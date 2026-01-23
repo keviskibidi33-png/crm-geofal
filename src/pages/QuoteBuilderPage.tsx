@@ -5,6 +5,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import { AutocompleteInput } from '../components/ui/autocomplete-input';
+import { searchEnsayos, getEnsayoByCodigo, getEnsayosRelacionados, type EnsayoItem } from '../data/ensayos-data';
 
 type QuoteItem = {
   codigo: string;
@@ -13,6 +15,7 @@ type QuoteItem = {
   acreditado?: string;
   costo_unitario: number;
   cantidad: number;
+  ensayoData?: EnsayoItem;
 };
 
 type QuotePayload = {
@@ -123,6 +126,9 @@ export function QuoteBuilderPage() {
       cantidad: 1,
     },
   ]);
+  const [showCodigoSuggestions, setShowCodigoSuggestions] = useState(false);
+  const [showDescripcionSuggestions, setShowDescripcionSuggestions] = useState(false);
+  const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
 
   const [exporting, setExporting] = useState(false);
   const [quoteNumber, setQuoteNumber] = useState<string>('001');
