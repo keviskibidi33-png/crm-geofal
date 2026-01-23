@@ -1,0 +1,16 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+CO07;Resistencia a la Flexión del concreto.;NTP 339.078/079;NO;-;LABORATORIO;100;20 minutos;
+CO08;Resistencia a la compresión de mortero con especimen cubicos de 50 mm.;NTP 334.051;NO;-;LABORATORIO;25;20 minutos;
+CO12;Compresión de testigos cilíndricos de concreto;ASTM C39/C39M-24;SI;-;LABORATORIO;15;20 minutos;Podemos curar las probetas
+CO12A;"El servicio incluye:
+- Suministro de modulo de madera, moldes para probetas cilíndricas de 4x8"", varilla compactadora, comba de goma y cucharón.
+- Recojo de probetas.
+- Compresión de testigos cilíndricos de concreto
+- Emisión de informe.
+- Cantidad: Kit por 06 unidades";ASTM C39/C39M-24;NO;;LABORATORIO;90;;
+CO14;Resistencia tracción simple por compresión diametral.;NTP 339.084;NO;-;LABORATORIO;30;20 minutos;
+CO19;Refrentado de probetas cilíndricas de concreto (por cara).;ASTM C617/C617M-23;NO;-;LABORATORIO;15;20 minutos;* Solo Es Para Probetas Que Se Realizara El Servicio De Ensayo De Compresion 
+CO20;Espesor de especímenes en concreto.;MTC E 507;NO;-;LABORATORIO;50;1 dia;
+DIS01;Verificación diseño de mezcla;ACI 211;NO;-;LABORATORIO;250;1/2 dia;Puede variar de acuerdo cantidad
+DIS02;Verificación diseño de mezcla con aditivo.;ACI 211;NO;-;LABORATORIO;500;1/2 dia;Puede variar de acuerdo cantidad
+DIS03;Diseño de mezcla Teórico.;ACI 211;NO;-;LABORATORIO;100;20 minutos;Siempre se debe realizar verificacion del diseño de mezcla

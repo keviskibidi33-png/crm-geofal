@@ -1,0 +1,20 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+ALB01;Absorción / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;130;3 dias;Ladrillo arcilla king kong / cantidad 5 und / tiempo 3 dias
+ALB02;Alabeo / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;130;1 dias;Ladrillo arcilla king kong / cantidad 5 und / tiempo 1 día
+ALB03;Compresión / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;200;3 dias;Ladrillo arcilla king kong / cantidad 5 und / tiempo 3 dias
+ALB04;Eflorescencia / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;130;7 dias;Ladrillo arcilla king kong y pastelero / cantidad 10 und /  tiempo 7 días
+ALB04A;Eflorescencia / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;200;7 dias;Ladrillo arcilla Techo / cantidad 10 und /  tiempo 7 días
+ALB05;Dimensionamiento  / Unidades de albañilería de Arcilla.;NTP 399.613;NO;-;LABORATORIO;130;1 dias;Ladrillo arcilla king kong / cantidad 10 und / tiempo 1 día
+ALB06;Medidas del área de vacíos en unidades perforadas.;NTP 399.613;NO;-;LABORATORIO;150;1 dias;Ladrillo arcilla king kong / cantidad X und / tiempo 1 día
+ALB07;Ensayo de Compresión en pilas de ladrillo (prisma albañilería).;NTP 399.605;NO;-;LABORATORIO;350;30 dias;Ladrillo arcilla king kong / cantidad 12 und / tiempo 30 dias
+ALB08;Muestreo / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;350;1/2 dia;Ladrillo de concreto king blog / 
+ALB09;Resistencia a la compresión  / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;250;1 dias;Ladrillo de concreto king blog y adoquines / cantidad 3 und / tiempo 1 día
+ALB10;Dimensionamiento  / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;150;1 dias;Ladrillo de concreto  king blog/ cantidad 3 und / tiempo 1 día
+ALB11;Absorción  / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;150;3 dias;Ladrillo de concreto king blog y adoquines / 
+ALB12;Absorción / Ladrillo pastelero;NTP 331.041;NO;-;LABORATORIO;130;3 dias;Ladrillo pastelero / cantidad 5 und / 
+ALB13;Modulo de rotura (Ensayo Flexión) / Unidades de albañilería de Arcilla;NTP 399.613;NO;-;LABORATORIO;250;3 dias;Ladrillo techo / cantidad 5 und /  tiempo de entrega 01 dias
+ALB14;Contenido de humedad  / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;100;3 dias;Ladrillo de concreto  king blog / 
+ALB15;Densidad / Unidades de albañilería de concreto.;NTP 399.604;NO;-;LABORATORIO;150;3 dias;Ladrillo de concreto king blog / 
+ALB16;Dimensionamiento  / Ladrillo pastelero;NTP 331.041;NO;-;LABORATORIO;130;3 dias;Ladrillo pastelero / Se ensayaran 10 und
+ALB17;Alabeo  / Ladrillo pastelero;NTP 331.041;NO;-;LABORATORIO;130;3 dias;Ladrillo pastelero / Se ensayaran 10 und
+ALB18;Carga de rotura por unidad de ancho / Ladrillo pastelero;NTP 331.041;NO;-;LABORATORIO;200;3 dias;Ladrillo pastelero / Se ensayaran 05 und

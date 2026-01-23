@@ -1,0 +1,12 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+SU02;Ensayo de penetración dinámica DPL.;NTP 339.159;NO;-;CAMPO;Sujeto a evaluación;2,1/2 hora;Solamente se realiza hasta 3 metros de profundidad
+SU06A;"Densidad del suelo IN-SITU, Cono de Arena 6""";NTP 339.143:1999 (revisada el 2019);SI;D1556;CAMPO;50;1/2 hora;Salida minima 4 puntos, se requiere el ensayo de proctor
+SU06B;"Densidad del suelo IN-SITU, Cono de Arena 12"".";NTP 339.143:1999 (revisada el 2019);NO;D1556;CAMPO;80;1,1/2 hora;Salida minima 4 puntos, se requiere el ensayo de proctor
+SU06C;"Control de calidad de suelo compactado por 1 dìa:                                                           Densidad del suelo IN-SITU con Cono de Arena 6""                                 Contenido de humedad en suelos ";NTP 339.143:1999 (revisada el 2019) ASTM D2216-19;SI;D1556;CAMPO;490;1 dia;No hay puntos minimos, rendiemiento del personal 40 minutos por punto
+SU06D;"Control de calidad de suelo compactado por 1 dìa:                                                           Densidad del suelo IN-SITU con Cono de Arena 6""                                 contenido de humedad con equipo Speedy";NTP 339.143:1999 (revisada el 2019);NO;D1556;CAMPO;490;1 dia;No hay puntos minimos, rendiemiento del personal 40 minutos por punto
+SU16;Ensayo de Penetración Estándar (SPT).;NTP 339.133;NO;-;CAMPO;Sujeto a evaluación;varia por tipo de suelo;El Cliente Proporcionara Ubicación, Cantidad Puntos Y Profundidad De Investigacion
+SU18;Capacidad de carga del Suelo (Placa de Carga).;ASTM D-1194;NO;-;CAMPO;2500;1 dia;El cliente proporcionara un volquete de 32 tonelada y/o excavadora
+SU28;Densidad del suelo y roca IN SITU por reemplazo de agua.;ASTM D5030;NO;-;CAMPO;Sujeto a evaluación;1 dia;Depende Del Diametro De La Grava, Y Cantidad Solicitada
+SU29;Infiltración de suelos en campo.;ASTM D3385;NO;-;CAMPO;3500;1 dia;Depende del tipo de suelo
+SU40;Métodos de prueba estándar para el análisis del tamaño de partículas de materiales de escollera naturales y artificiales.;ASTM D5519-07;NO;-;CAMPO;250;3 dias;Esto lo usaron para granulometria macro en TERRAMOVE
+SU41;Determinación de la densidad de suelo en terreno (Método Densímetro Nuclear).;ASTM D2922;NO;-;LABORATORIO;90;10 minutos;

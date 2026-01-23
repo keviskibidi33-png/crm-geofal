@@ -1,0 +1,36 @@
+--- PROYECTOS SCHEMA ---
+id: uuid
+cliente_id: uuid
+vendedor_id: uuid
+nombre: text
+descripcion: text
+estado: text
+etapa: text
+presupuesto: numeric
+progreso: integer
+fecha_inicio: date
+fecha_fin: date
+motivo_perdida: text
+created_at: timestamp with time zone
+updated_at: timestamp with time zone
+deleted_at: timestamp with time zone
+
+--- CLIENTES SCHEMA ---
+id: uuid
+nombre: text
+empresa: text
+ruc: text
+email: text
+telefono: text
+sector: text
+estado: text
+vendedor_id: uuid
+created_at: timestamp with time zone
+updated_at: timestamp with time zone
+deleted_at: timestamp with time zone
+fecha_registro: timestamp with time zone
+cotizaciones: integer
+proyectos: integer
+proyectos_ganados: integer
+valor_total: numeric
+tasa_conversion: numeric

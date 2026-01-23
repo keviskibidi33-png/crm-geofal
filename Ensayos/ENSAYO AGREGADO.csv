@@ -1,0 +1,15 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+AG08A;Inalterabilidad Agregado Grueso con Sulfato de Magnesio.;NTP 400.016;NO;ASTM C88;LABORATORIO;350;7 dias;* Se requiere realizar granulometria agregado AG19
+AG08B;Inalterabilidad Agregado Fino con Sulfato de Magnesio.;NTP 400.016;NO;ASTM C88;LABORATORIO;350;7 dias;* Se requiere realizar granulometria agregado AG19
+AG09;Índice de Durabilidad Agregado.;MTC E-214;NO;-;LABORATORIO;350;3 dias;
+AG18;Gravedad específica y absorción del agregado fino;ASTM C128-25;SI;-;LABORATORIO;150;3 dias;
+AG19;Análisis granulométrico por tamizado en agregado;ASTM C136/C136M-19;SI;-;LABORATORIO;100;3 dias;
+AG20;Contenido de humedad  en agregado;ASTM C566-19;SI;-;LABORATORIO;30;2 dias;
+AG22;Peso Unitario y Vacío de agregados;ASTM C29/C29M-23;SI;-;LABORATORIO;120;3 dias;* Se requiere hacer el peso especifico fino AG18 o grueso AG28, fino si es arena y grueso si es grava
+AG23;Pasante de la malla No.200;ASTM C117-23;SI;-;LABORATORIO;120;3 dias;
+AG26;Abrasión los Ángeles de agregado grueso de gran tamaño ;ASTM C535-16 (Reapproved 2024);SI;-;LABORATORIO;350;3 dias;* Se requiere realizar granulometria agregado AG19
+AG28;Gravedad especifica y absorción de agregado grueso;ASTM C127-25;SI;-;LABORATORIO;120;3 dias;
+AG33;Angularidad del agregado fino.;MTC E222;NO;-;LABORATORIO;120;3 dias;*Para realizar este ensayo se requiere del ensayo de Gravedad especifica del agregado fino
+AG34;Partículas planas y alargadas en agregado grueso;ASTM D4791-19 (Reapproved 2023);SI;ASTM D4791;LABORATORIO;120;3 dias;* Se requiere realizar granulometria agregado AG19
+AG35;Porcentaje de Caras fracturadas en agregado grueso ;ASTM D5821-13 (Reapproved 2017);SI;-;LABORATORIO;120;3 dias;* Se requiere realizar granulometria agregado AG19
+AG36;Abrasión los Ángeles de agregado grueso de tamaño pequeño.;ASTM C131/C131M-20;SI;-;LABORATORIO;250;3 dias;* Se requiere realizar granulometria agregado AG19

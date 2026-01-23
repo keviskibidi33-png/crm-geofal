@@ -1,0 +1,16 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+SU05;Corte Directo.;NTP 339.171;NO;D3080;LABORATORIO;350;3 dias;Solicitar al cliente la densidad del suelo.                                                                                         Si el cliente no tiene la densidad, se cotiza tambien el ensayo de proctor con ello hallaremos la densidad del suelo y lo remoldearemos al 95% Maxima densidad seca
+SU33;Resistencia a la Compresión no confinada de suelos cohesivos;NTP 339.167;NO;ASTM D2166;LABORATORIO;250;3 dias;
+SU37;California Bearing Ratio (CBR);ASTM D1883-21;SI;NTP 339.145;LABORATORIO;300;7 dias;
+SU38;CBR INSITU;;NO;;;;1/2 dia;
+SU40;Hinchamiento suelo;ASTM D4546-21;NO;;;;3 dias;
+SU41;Potencial de Colapso en suelo.;ASTM D5333;NO;-;LABORATORIO;370;3 dias;El Costo De Clasificacion En La Uni 210
+SU42;Conductividad hidráulica en pared rígida (Permeabilidad).;ASTM D2434;NO;-;LABORATORIO;530;2 dias;Para el ensayo se requiere realizar previo el ensayo de granulometria, limites, clasificación sucs, peso relativo del solido, peso especifico del grueso (solo si tiene grava), adicional ensayo de pasane de la malla 200 menor al 12%.
+SU43;Conductividad hidráulica en pared flexible (Permeabilidad).;ASTM D5084;NO;-;LABORATORIO;640;2 dias;Para el ensayo se requiere realizar previo el ensayo de granulometria, limites y clasificación sucs, peso relativo del solido, peso especifico del grueso (solo si tiene grava). Cantidad de muestra: 60 kilos, Tiempo de entrega: 05 días
+SU44;Conductividad térmica / Resistividad térmica;ASTM D5334-14;NO;-;LABORATORIO;1500;3 dias;Se requiere de ensayos de granulometria, límites y clasificación.
+SU45;Compresión triaxial no consolidado no drenado UU, diametro 75 mm;ASTM D2850;NO;-;LABORATORIO;1500;3 dias;UU: cuando halla licuacion de suelo (densidad baja, arena fina sin mucho contenido en la malla 200, que no tenga limites, nivel freatico), otro suelo arena muy sueltas cuando se excaven se hace un embudo, arcillas blandas (solo fino, densidades bajas), en conclusion suelos criticos, TIEMPO 1.1/2 DIAS EN ARENA Y ARCILLA
+SU46;Compresión triaxial consolidado no drenado CU, diametro 75 mm;ASTM D4767;NO;-;LABORATORIO;2000;3 dias;CU: Se realizara cuando el agua nunca se pueda drenar, ejemplo orilla del mar, donde hay nivel freatico, ems para puente, etc. TIEMPO 3 DIAS ARENA Y 4 DIAS ARCILLA
+SU47;Compresión triaxial consolidado drenado CD, diametro 75 mm;ASTM D7181;NO;-;LABORATORIO;Sujeto a evaluación;3 dias;CD:  Se realiza donde no hay nivel freatico, porque el suelo drena el agua, ejemplo se rompio una tuberia el suelo se inunda esto en un determinado tiempo drenara el agua. TIEMPO 6 DIAS EN ARENA Y ARCILLA
+EE01;Consolidación unidimensional.;ASTM D2435;NO;-;LABORATORIO;800;7 dias;
+EE02;Expansión libre.;ASTM D4546;NO;-;LABORATORIO;350;3 dias;
+EE03;Expansión controlada Método A.;ASTM D4546;NO;-;LABORATORIO;670;3 dias;

@@ -1,0 +1,10 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+MA02;Determinación de la resistencia de mezclas bituminosas empleando el aparato Marshall , incluye ensayo Rice y peso específico.;ASTM D1559                     MTC E504                    MTC E 514                       ASTM D2041;NO;;LABORATORIO;790;3 dias;* Cliente Propocionara La Mezcla Asfaltica
+MA02A;Determinación de la resistencia de mezclas bituminosas empleando el aparato Marshall, e incluye peso específico;ASTM D1559          MTC E504                     MTC E 514;NO;;LABORATORIO;540;3 dias;* Cliente Propocionara La Mezcla Asfaltica y proporcionara el RICE
+MA03;Estabilidad y Flujo Marshall (Incluye: elaboración de briqueta 3und);ASTM D1559;NO;-;LABORATORIO;350;3 dias;
+MA04;Densidad máxima teórica (Rice).;ASTM D2041;NO;ASTM D2041;LABORATORIO;250;3 dias;* Cliente Propocionara La Mezcla Asfaltica
+MA05;Diseño de mezcla asfáltica en caliente (Diseño Marshall).;-;NO;D1559;LABORATORIO;5000;consultar;
+MA08;Adherencia en agregado grueso (Revestimiento y desprendimiento), incluye ensayo Peso específico.;MTC E517;NO;D3625 (MTC E521);LABORATORIO;250;3 dias;* Cliente Propocionara La Mezcla Asfaltica
+MA11;Grado estimado de cubrimiento de partículas en mezclas agregado - Bitumen.;MTC E 519;NO;-;LABORATORIO;150;3 dias;
+MA13;Efecto de la humedad en mezclas asfalticas (LOTTMAN);ASTM D4867;NO;-;LABORATORIO;4200;3 dias;Costo en el mercado 3700 a 5000 soles
+MA14;Recuperación de asfalto por el método de abson.;-;NO;-;LABORATORIO;1200;3 dias;

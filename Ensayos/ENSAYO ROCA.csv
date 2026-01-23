@@ -1,0 +1,5 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+RO01;Carga Puntual (incluye tallado y ensayo 10 especimenes).;ASTM D 5731;NO;D 5731;LABORATORIO;500;3 dias;
+RO02;Gravedad especifica y absorción de roca.;ASTM D 6473;NO;-;LABORATORIO;250;3 dias;
+RO03;Densidad y peso unitario de muestra roca.;ASTM D 7263;NO;-;LABORATORIO;250;3 dias;
+RO04;Método de prueba para la resistencia a la compresión (uniaxial) - Método C;ASTM D 7012-14e1;NO;-;LABORATORIO;400;3 dias;

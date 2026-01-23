@@ -1,0 +1,5 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+E01;Escaneo de acero de refuerzo.;-;NO;-;CAMPO;Sujeto a evaluación;-;* Sujeto A Evaluacion De Estructura
+E02;Escaneo de acero por portico.;-;NO;-;CAMPO;Sujeto a evaluación;-;
+E03;Escaneo de acero por estructura.;-;NO;-;CAMPO;Sujeto a evaluación;-;
+E04;PH concreto.;ASTM C4262;NO;-;LABORATORIO;100;-;

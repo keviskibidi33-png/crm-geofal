@@ -1,0 +1,6 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+SU03;Determinación del PH en Suelo y Agua.;NTP 339.176;NO;D4972;LABORATORIO;70;3 dias;
+SU13;Sales solubles en Suelos y Agua.;NTP 339.152;NO;BS 1377;CAMPO;80;3 dias;Puede variar de acuerdo a la prioridad
+SU14;Cloruros Solubles en Suelos y Agua.;NTP 339.177;NO;AASHTO T291;LABORATORIO;80;3 dias;
+SU15;Sulfatos Solubles en Suelos y Agua.;NTP 339.178;NO;AASHTO T290;LABORATORIO;120;3 dias;Puede variar de acuerdo a la prioridad
+SU26;Contenido de materia orgánica.;AASHTO T267;NO;-;LABORATORIO;120;3 dias;Solo para suelo

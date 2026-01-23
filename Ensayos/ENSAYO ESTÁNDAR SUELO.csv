@@ -1,0 +1,17 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+SU04;Contenido de humedad con Speedy.; NTP 339.25;NO;D4944;LABORATORIO;30;15 minutos;
+SU19;Próctor modificado ;ASTM D1557-12 (Reapproved 2021);SI;-;LABORATORIO;150;2 dias;Para realizar el ensayo de proctor se requiere tambien realizar: granulometria SU24 y/o AG19/ peso especifico grueso AG28 /  peso relativo del solido SU32 / correccion por grava SU31
+SU20;Contenido de humedad en suelos;ASTM D2216-19;SI;-;LABORATORIO;30;2 dias;
+SU20A;Contenido de humedad en Roca.;ASTM D2216-19;NO;-;LABORATORIO;30;2 dias;No estamos acreditados en este alcance
+SU21;Equivalente de arena;ASTM D2419-22;SI;-;LABORATORIO;150;3 dias;
+SU22;Clasificación suelo SUCS - AASHTO;ASTM D2487-17 (Reapproved 2025) / ASTM D3282-24;SI;-;LABORATORIO;20;3 dias;Para el ensayo se requiere de granulometria SU24 y/o AG28 y limites SU23
+SU23;Límite líquido y Límite Plástico del Suelo ;ASTM D4318-17?1;SI;-;LABORATORIO;90;3 dias;
+SU24;Análisis granulométrico por tamizado en Suelo;ASTM D6913/D6913M-17;SI;-;LABORATORIO;100;3 dias;
+SU30;Ensayo de Compactación Próctor Estándar.;ASTM D698;NO;-;LABORATORIO;150;3 dias;
+SU31;Corrección de Peso Unitario para Partícula de gran tamaño.;ASTM D4718-87;NO;-;LABORATORIO;20;3 dias;
+SU32;Gravedad específica de los sólidos del suelo.;ASTM D854-14;NO;-;LABORATORIO;120;3 dias; Si La Muestra Tiene Grava Se Tendria Que Hacer Tambien El Ensayo De Peso Especifico Del Grueso
+SU34;Densidad y peso unitario de muestra suelo;ASTM D 7263;NO;-;;70;3 dias;Esto se repite en roca, xq para contrrol de calidad en roca el cliente solicito el ensayo
+SU35;Densidad del peso unitario máximo del suelo.;NTP 339.137;NO;-;LABORATORIO;350;3 dias;
+SU36;Densidad del peso unitario mínimo del suelo.;NTP 339.138;NO;-;LABORATORIO;150;3 dias;
+SU38;Determinación de sólidos totales suspendidos.;NTP 214.039;NO;-;LABORATORIO;150;3 dias;
+SU39;Análisis granulométrico por hidrómetro (incl. Granulometría por tamizado).;NTP 339.128 1999 (revisada el 2019);NO;-;LABORATORIO;350;4 dias;

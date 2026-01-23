@@ -1,0 +1,7 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+CO15;Determinar el pH de las aguas usadas para elaborar morteros y concretos.;NTP 334.190:2016;NO;-;LABORATORIO;100;3 dias;Ensayo en agua para concreto
+CO16;Determinar el contenido de sulfatos en las aguas usadas en la elaboración de morteros y concretos de cemento Pórtland.;NTP 339.227:2016;NO;-;LABORATORIO;120;3 dias;Ensayo en agua para concreto
+CO17;Determinar el contenido del ion cloruro en las aguas usadas en la elaboración de concretos y morteros de cemento Pórtland.;NTP 339.076:2017;NO;-;LABORATORIO;120;3 dias;Ensayo en agua para concreto
+SU27;Método de prueba estándar para la medición de sólidos en agua.;ASTM C1603;NO;-;LABORATORIO;120;3 dias;Ensayo en agua para concreto
+CO10;Determinación PH concreto endurecido / Carbonatación.;ASTM D1293;NO;-;LABORATORIO;100;3 dias;Ensayo en el concreto endurecido
+CO13;Ensayo Carbonatación.;ASTM D129;NO;-;LABORATORIO;50;1 dias;se puede realizar en la diamantina como en el hoyo donde se extrajo

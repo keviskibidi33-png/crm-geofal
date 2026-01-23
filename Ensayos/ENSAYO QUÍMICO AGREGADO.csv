@@ -1,0 +1,10 @@
+CÓDIGO;DESCRIPCION;NORMA;ACREDITADO;REFERENCIA OTRA NORMA;UBICACIÓN;PRECIO;TIEMPO;COMENTARIOS
+AG11;Contenido Sales solubles, fino o grueso.;MTC E-219;NO;MTC E-219;LABORATORIO;150;3 dias;
+AG16;Contenido de cloruros solubles.;NTP 400.042;NO;-;LABORATORIO;90;3 dias;
+AG17;Contenido de sulfatos solubles.;NTP 400.042;NO;-;LABORATORIO;150;3 dias;
+AG29;Valor de azul de metileno.;AASHTO TP57;NO;AASHTO TO3;LABORATORIO;150;3 dias;
+AG30;Reactividad agregado alcálisis.;ASTM C289-07;NO;MTC E 217;LABORATORIO;650;3 dias;
+AG24;Partículas Liviana en los agregados (carbon y lignito), Fino o grueso.;NTP 400.023;NO;-;LABORATORIO;220;3 dias;Antes era: Carbón y Lignito en agregado fino MTC E215
+AG25;Terrones de arcilla y partículas friables, Fino o grueso.;NTP 400.015;NO;ASTM C142;LABORATORIO;120;3 dias;ASTM C142/MTC E212 UNI
+AG12;Adherencia en agregado fino - Riedel  Weber.;MTC E 220;NO;-;LABORATORIO;150;3 dias;
+AG13;Impurezas Orgánicas en los áridos finos.;ASTM C40-99;NO;-;LABORATORIO;150;3 dias;
