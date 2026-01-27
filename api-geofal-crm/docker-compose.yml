@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  quotes-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quotes-service
+    ports:
+      - "8080"
+    environment:
+      - QUOTES_DATABASE_URL=${QUOTES_DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - QUOTES_CORS_ORIGINS=${QUOTES_CORS_ORIGINS}
+      - QUOTES_DISABLE_DB=${QUOTES_DISABLE_DB}
+    networks:
+      - coolify
+      - supabase_network
+    restart: always
+
+networks:
+  coolify:
+    external: true
+  supabase_network:
+    name: d4w80wk0wo8gscs00wskgcgk
+    external: true
