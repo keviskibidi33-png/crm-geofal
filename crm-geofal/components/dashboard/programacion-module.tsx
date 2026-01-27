@@ -113,6 +113,8 @@ const estadoAutorizarColors: Record<string, string> = {
 }
 
 export function ProgramacionModule({ user }: Props) {
+  console.log('[PROGRAMACION MODULE] 🚀 Componente montado, user:', user?.name)
+  
   const [servicios, setServicios] = useState<ProgramacionServicio[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>("laboratorio")
@@ -140,19 +142,26 @@ export function ProgramacionModule({ user }: Props) {
 
   // Cargar servicios
   const fetchServicios = useCallback(async () => {
+    console.log('[PROGRAMACION] 📡 Iniciando fetch de servicios...')
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (estadoFilter !== "all") params.append("estado", estadoFilter)
       if (searchTerm) params.append("search", searchTerm)
       
-      const response = await fetch(`${API_URL}/programacion?${params.toString()}`)
+      const url = `${API_URL}/programacion?${params.toString()}`
+      console.log('[PROGRAMACION] 🌐 URL:', url)
+      
+      const response = await fetch(url)
+      console.log('[PROGRAMACION] 📥 Response status:', response.status)
+      
       if (!response.ok) throw new Error("Error al cargar servicios")
       
       const data = await response.json()
+      console.log('[PROGRAMACION] ✅ Datos recibidos:', data.length, 'servicios')
       setServicios(data)
     } catch (error) {
-      console.error("Error:", error)
+      console.error("[PROGRAMACION] ❌ Error:", error)
       toast({
         title: "Error",
         description: "No se pudieron cargar los servicios",
@@ -160,6 +169,7 @@ export function ProgramacionModule({ user }: Props) {
       })
     } finally {
       setLoading(false)
+      console.log('[PROGRAMACION] ⏹️ Loading terminado')
     }
   }, [estadoFilter, searchTerm, toast])
 
@@ -458,6 +468,8 @@ export function ProgramacionModule({ user }: Props) {
     return value || "-"
   }
 
+  console.log('[PROGRAMACION] 🎨 Renderizando UI, servicios:', servicios.length)
+  
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -27,6 +27,11 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 export function DashboardSidebar({ activeModule, setActiveModule, user }: SidebarProps) {
   const filteredModules = modules.filter((module) => !module.adminOnly || user.role === "admin")
 
+  const handleModuleClick = (id: ModuleType) => {
+    console.log('[SIDEBAR] Click en módulo:', id)
+    setActiveModule(id)
+  }
+
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
@@ -53,7 +58,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
           return (
             <button
               key={module.id}
-              onClick={() => setActiveModule(module.id)}
+              onClick={() => handleModuleClick(module.id)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive

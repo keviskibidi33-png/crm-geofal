@@ -16,17 +16,20 @@ import { useAuth, type User, type UserRole, type ModuleType } from "@/hooks/use-
 import { Loader2 } from "lucide-react"
 
 export default function DashboardPage() {
-  const [activeModule, setActiveModule] = useState<ModuleType>("clientes")
+  const [activeModule, setActiveModule] = useState<ModuleType>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("crm-active-module") as ModuleType
+      console.log('[CRM] Valor recuperado de localStorage:', saved)
+      return saved || "clientes"
+    }
+    return "clientes"
+  })
   const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    const saved = localStorage.getItem("crm-active-module") as ModuleType
-    if (saved) setActiveModule(saved)
-  }, [])
-
-  useEffect(() => {
     localStorage.setItem("crm-active-module", activeModule)
+    console.log('[CRM] Nuevo valor de activeModule:', activeModule)
   }, [activeModule])
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function DashboardPage() {
   } as any
 
   const renderModule = () => {
+    console.log('[CRM] Renderizando módulo:', activeModule)
     switch (activeModule) {
       case "clientes":
         return <ClientesModule user={dashboardUser} />
@@ -62,8 +66,15 @@ export default function DashboardPage() {
         return <ProyectosModule user={dashboardUser} />
       case "cotizadora":
         return <CotizadoraModule user={dashboardUser} />
-      case "programacion":
-        return <ProgramacionModule user={dashboardUser} />
+      case "programacion": {
+        try {
+          console.log('[CRM] Intentando renderizar ProgramacionModule', dashboardUser)
+          return <ProgramacionModule user={dashboardUser} />
+        } catch (err) {
+          console.error('[CRM] Error al renderizar ProgramacionModule:', err)
+          return <div style={{color:'red'}}>Error al renderizar Programación: {String(err)}</div>
+        }
+      }
       case "usuarios":
         return (
           <RoleGuard user={dashboardUser} allowedRoles={["admin"]}>
