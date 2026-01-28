@@ -23,6 +23,7 @@ type Condicion = {
   texto: string;
   categoria?: string;
   orden: number;
+  created_by?: string | null;
 };
 
 type QuotePayload = {
@@ -208,7 +209,21 @@ export function QuoteBuilderPage() {
       const resp = await fetch(`${apiBaseUrl}/plantillas?vendedor_id=${vendedorId}`);
       if (resp.ok) {
         const data = await resp.json();
-        setPlantillas(data);
+        console.log('Plantillas cargadas del backend:', data);
+        
+        // Parsear condiciones_ids de PostgreSQL array string a JS array
+        const plantillasParseadas = data.map((p: any) => ({
+          ...p,
+          condiciones_ids: typeof p.condiciones_ids === 'string' && p.condiciones_ids.startsWith('{')
+            ? p.condiciones_ids.slice(1, -1).split(',').filter(Boolean)
+            : (Array.isArray(p.condiciones_ids) ? p.condiciones_ids : [])
+        }));
+        
+        if (plantillasParseadas.length > 0) {
+          console.log('Primera plantilla condiciones_ids PARSEADOS:', plantillasParseadas[0].condiciones_ids);
+        }
+        
+        setPlantillas(plantillasParseadas);
       }
     } catch (err) {
       console.error('Error fetching plantillas:', err);
@@ -243,6 +258,10 @@ export function QuoteBuilderPage() {
         plazo_dias: header.plazo_dias,
         condicion_pago: header.condicion_pago
       };
+
+      console.log('Guardando plantilla:', payload);
+      console.log('Items:', items);
+      console.log('Condiciones seleccionadas:', selectedCondiciones);
 
       const resp = await fetch(`${apiBaseUrl}/plantillas`, {
         method: 'POST',
@@ -313,19 +332,33 @@ export function QuoteBuilderPage() {
       
       setItems(plantillaItems);
       
-      // Solo asignar condiciones si es un array válido con elementos
-      const condicionesIds = Array.isArray(plantilla.condiciones_ids) ? plantilla.condiciones_ids : [];
+      // Parsear condiciones_ids de PostgreSQL array string a JS array
+      let condicionesIds: string[] = [];
+      if (typeof plantilla.condiciones_ids === 'string' && plantilla.condiciones_ids.startsWith('{')) {
+        condicionesIds = plantilla.condiciones_ids.slice(1, -1).split(',').filter(Boolean);
+      } else if (Array.isArray(plantilla.condiciones_ids)) {
+        condicionesIds = plantilla.condiciones_ids;
+      }
+      
+      console.log('Condiciones parseadas:', condicionesIds);
       setSelectedCondiciones(condicionesIds);
       
+      // SOLO actualizar plazo y condición de pago, NO datos del cliente
       setHeader(prev => ({
         ...prev,
         plazo_dias: plantilla.plazo_dias,
         condicion_pago: plantilla.condicion_pago
       }));
       
+      // Limpiar selección de cliente y proyecto para que el vendedor los elija
+      setSelectedCliente(null);
+      setSelectedProyecto(null);
+      setClienteSearch('');
+      setProyectoSearch('');
+      
       setShowPlantillasModal(false);
-      setNotification({ show: true, message: `Plantilla "${plantilla.nombre}" aplicada`, type: 'success' });
-      setTimeout(() => setNotification(null), 3000);
+      setNotification({ show: true, message: `Plantilla "${plantilla.nombre}" aplicada. Selecciona el cliente y proyecto.`, type: 'success' });
+      setTimeout(() => setNotification(null), 4000);
     } catch (err) {
       console.error('Error loading plantilla:', err);
       setNotification({ show: true, message: 'Error al cargar plantilla', type: 'error' });
@@ -552,6 +585,8 @@ export function QuoteBuilderPage() {
 
     setCreatingCondicion(true);
     try {
+      const vendedorId = currentUser?.id || urlParams.user_id;
+      
       const resp = await fetch(`${apiBaseUrl}/condiciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -559,12 +594,15 @@ export function QuoteBuilderPage() {
           texto: newCondicion.texto,
           categoria: newCondicion.categoria || 'General',
           orden: condiciones.length + 1,
+          vendedor_id: vendedorId,
         }),
       });
 
       if (!resp.ok) throw new Error('Error creando condición');
 
       const data = await resp.json();
+      console.log('Condición creada:', data.data);
+      console.log('created_by:', data.data.created_by);
       setCondiciones(prev => [...prev, data.data]);
       setNewCondicion({ texto: '', categoria: '' });
       setShowNewCondicionForm(false);
@@ -1508,17 +1546,20 @@ export function QuoteBuilderPage() {
                         </span>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCondicionToDelete(cond.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition p-1"
-                      title="Eliminar condición"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {/* Solo mostrar botón eliminar si la condición fue creada por un usuario */}
+                    {cond.created_by && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCondicionToDelete(cond.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition p-1"
+                        title="Eliminar condición"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </label>
                 ))
               )}
@@ -1878,25 +1919,43 @@ export function QuoteBuilderPage() {
                            (p.descripcion || '').toLowerCase().includes(searchLower) ||
                            itemsText.includes(searchLower);
                   }).map((plantilla) => {
-                    const itemsCount = Array.isArray(plantilla.items_json) 
-                      ? plantilla.items_json.length 
-                      : JSON.parse(plantilla.items_json || '[]').length;
+                    const items = Array.isArray(plantilla.items_json) 
+                      ? plantilla.items_json 
+                      : JSON.parse(plantilla.items_json || '[]');
+                    const itemsCount = items.length;
                     const condicionesCount = Array.isArray(plantilla.condiciones_ids) 
                       ? plantilla.condiciones_ids.length 
                       : 0;
-                    const condicionesNames = condicionesCount > 0 
-                      ? condiciones.filter(c => plantilla.condiciones_ids?.includes(c.id)).map(c => c.texto)
+                    const plantillaCondiciones = condicionesCount > 0 
+                      ? condiciones.filter(c => plantilla.condiciones_ids?.includes(c.id))
                       : [];
+                    const isExpanded = expandedPlantilla === plantilla.id;
+                    
+                    // Debug condiciones
+                    if (isExpanded && condicionesCount > 0) {
+                      console.log('Plantilla expandida:', plantilla.nombre);
+                      console.log('condiciones_ids de plantilla:', plantilla.condiciones_ids);
+                      console.log('Condiciones disponibles:', condiciones.length);
+                      console.log('Condiciones filtradas:', plantillaCondiciones.length);
+                      console.log('Condiciones filtradas:', plantillaCondiciones);
+                    }
+                    
+                    // Calcular total de la plantilla
+                    const totalPlantilla = items.reduce((sum: number, item: any) => 
+                      sum + ((item.cantidad || 0) * (item.costo_unitario || item.precio_unitario || 0)), 0
+                    );
 
                     return (
                       <div
                         key={plantilla.id}
-                        className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 transition-all relative group"
+                        className={`border rounded-lg transition-all relative ${
+                          isExpanded 
+                            ? 'border-blue-500 shadow-lg' 
+                            : 'border-slate-200 hover:border-blue-400'
+                        }`}
                       >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => handleLoadPlantilla(plantilla.id)}
-                        >
+                        {/* Header de la plantilla */}
+                        <div className="p-4 group">
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 pr-8">
                               <h3 className="font-semibold text-slate-900 mb-1">{plantilla.nombre}</h3>
@@ -1909,7 +1968,7 @@ export function QuoteBuilderPage() {
                             </span>
                           </div>
 
-                          {/* Información detallada */}
+                          {/* Resumen rápido */}
                           <div className="space-y-2 mb-3">
                             <div className="flex items-center gap-4 text-xs text-slate-600">
                               <span className="flex items-center gap-1 font-medium">
@@ -1926,36 +1985,160 @@ export function QuoteBuilderPage() {
                                   💳 {plantilla.condicion_pago}
                                 </span>
                               )}
+                              <span className="flex items-center gap-1 font-semibold text-slate-700">
+                                💰 S/ {totalPlantilla.toFixed(2)}
+                              </span>
                             </div>
 
-                            {/* Condiciones específicas */}
-                            {condicionesCount > 0 && (
-                              <div className="bg-slate-50 border border-slate-200 rounded p-2">
-                                <div className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                                  ✓ {condicionesCount} condición{condicionesCount !== 1 ? 'es' : ''} específica{condicionesCount !== 1 ? 's' : ''}:
-                                </div>
-                                <div className="text-xs text-slate-600 space-y-0.5">
-                                  {condicionesNames.slice(0, 3).map((nombre, idx) => (
-                                    <div key={idx} className="truncate">• {nombre}</div>
-                                  ))}
-                                  {condicionesNames.length > 3 && (
-                                    <div className="text-blue-600 font-medium">
-                                      +{condicionesNames.length - 3} más...
-                                    </div>
-                                  )}
-                                </div>
+                            {/* Preview de condiciones */}
+                            {condicionesCount > 0 && !isExpanded && (
+                              <div className="text-xs text-slate-600">
+                                <span className="font-medium">✓ {condicionesCount} condición{condicionesCount !== 1 ? 'es' : ''} específica{condicionesCount !== 1 ? 's' : ''}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="text-xs text-slate-400">
-                            Creada: {new Date(plantilla.created_at).toLocaleDateString('es-PE', { 
-                              day: '2-digit', 
-                              month: 'short', 
-                              year: 'numeric' 
-                            })}
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-slate-400">
+                              Creada: {new Date(plantilla.created_at).toLocaleDateString('es-PE', { 
+                                day: '2-digit', 
+                                month: 'short', 
+                                year: 'numeric' 
+                              })}
+                            </div>
+                            
+                            {/* Botón expandir/colapsar */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedPlantilla(isExpanded ? null : plantilla.id);
+                              }}
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              {isExpanded ? 'Ocultar detalles' : 'Ver detalles'}
+                              <svg 
+                                className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
+
+                        {/* Detalles expandibles */}
+                        {isExpanded && (
+                          <div className="border-t border-slate-200 bg-slate-50">
+                            {/* Lista detallada de ensayos */}
+                            <div className="p-4">
+                              <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-600" />
+                                Ensayos incluidos ({itemsCount})
+                              </h4>
+                              <div className="space-y-2 max-h-64 overflow-y-auto">
+                                {items.map((item: any, idx: number) => (
+                                  <div 
+                                    key={idx} 
+                                    className="bg-white border border-slate-200 rounded p-3 text-xs"
+                                  >
+                                    <div className="flex items-start justify-between mb-1">
+                                      <div className="flex-1">
+                                        <span className="font-mono text-blue-600 font-semibold">{item.codigo}</span>
+                                        <span className="text-slate-400 mx-2">•</span>
+                                        <span className="text-slate-700">{item.descripcion}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-slate-600 mt-2">
+                                      {item.categoria && (
+                                        <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-medium">
+                                          {item.categoria}
+                                        </span>
+                                      )}
+                                      <span>Cant: <strong>{item.cantidad}</strong></span>
+                                      <span>P.U: <strong>S/ {(item.costo_unitario || item.precio_unitario || 0).toFixed(2)}</strong></span>
+                                      <span className="ml-auto font-semibold text-slate-900">
+                                        Subtotal: S/ {((item.cantidad || 0) * (item.costo_unitario || item.precio_unitario || 0)).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Condiciones específicas detalladas */}
+                            {condicionesCount > 0 && (
+                              <div className="px-4 pb-4">
+                                <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                                  <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Condiciones específicas ({condicionesCount})
+                                </h4>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                  {plantillaCondiciones.map((cond: any) => (
+                                    <div 
+                                      key={cond.id} 
+                                      className="bg-white border border-slate-200 rounded p-3 text-xs"
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        <div className="flex-shrink-0 w-1 h-full bg-green-500 rounded-full"></div>
+                                        <div className="flex-1">
+                                          <div className="font-medium text-slate-900 mb-1">{cond.texto}</div>
+                                          {cond.categoria && (
+                                            <div className="text-slate-500 text-[10px]">
+                                              Categoría: {cond.categoria}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Información adicional */}
+                            <div className="px-4 pb-4">
+                              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                <div className="grid grid-cols-3 gap-4 text-xs">
+                                  <div>
+                                    <div className="text-slate-600 mb-1">Plazo de entrega</div>
+                                    <div className="font-semibold text-slate-900">
+                                      {plantilla.plazo_dias || 'No especificado'} {plantilla.plazo_dias ? 'días' : ''}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-slate-600 mb-1">Condición de pago</div>
+                                    <div className="font-semibold text-slate-900">
+                                      {plantilla.condicion_pago || 'No especificada'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-slate-600 mb-1">Total</div>
+                                    <div className="font-bold text-lg text-blue-700">
+                                      S/ {totalPlantilla.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Botón aplicar */}
+                            <div className="px-4 pb-4">
+                              <button
+                                onClick={() => handleLoadPlantilla(plantilla.id)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                              >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Aplicar esta plantilla
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Botón de eliminar */}
                         <button

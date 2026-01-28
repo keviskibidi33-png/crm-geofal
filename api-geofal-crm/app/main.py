@@ -25,6 +25,7 @@ from psycopg2.extras import RealDictCursor
 
 # Importar el nuevo exportador XML
 from app.xlsx_direct_v2 import export_xlsx_direct
+from app.programacion_export import export_programacion_xlsx
  
 app = FastAPI(title="quotes-service")
 
@@ -135,6 +136,30 @@ class QuoteExportRequest(BaseModel):
     template_id: str | None = None
     user_id: str | None = None
     proyecto_id: str | None = None
+
+class ProgramacionItem(BaseModel):
+    item_numero: str | int | None = None
+    recep_numero: str | int | None = None
+    ot: str | int | None = None
+    codigo_muestra: str | int | None = None
+    fecha_recepcion: str | None = None
+    fecha_inicio: str | None = None
+    fecha_entrega_estimada: str | None = None
+    cliente_nombre: str | None = None
+    descripcion_servicio: str | None = None
+    proyecto: str | None = None
+    entrega_real: str | None = None
+    estado_trabajo: str | None = None
+    cotizacion_lab: str | int | None = None
+    autorizacion_lab: str | None = None
+    nota_lab: str | None = None
+    dias_atraso_lab: int | str | None = None
+    motivo_dias_atraso_lab: str | None = None
+    evidencia_envio_recepcion: str | None = None
+    envio_informes: str | None = None
+
+class ProgramacionExportRequest(BaseModel):
+    items: list[ProgramacionItem]
  
  
 class NextNumberResponse(BaseModel):
@@ -145,7 +170,7 @@ class NextNumberResponse(BaseModel):
  
 # Mapping of template IDs to filenames
 TEMPLATE_VARIANTS = {
-    'V1': 'V1 - MUESTRA DE SUELO Y AGREGADO.xlsx',
+    'V1': 'Template.xlsx',
     'V2': 'V2 - PROBETAS.xlsx',
     'V3': 'V3 - DENSIDAD DE CAMPO Y MUESTREO.xlsx',
     'V4': 'V4 - EXTRACCIÓN DE DIAMANTINA.xlsx',
@@ -791,6 +816,52 @@ def _export_xlsx(payload: QuoteExportRequest) -> io.BytesIO:
 
     # Usar el nuevo exportador que modifica XML directamente
     return export_xlsx_direct(str(template_path), export_data)
+
+
+@app.post("/programacion/export")
+async def export_programacion(payload: ProgramacionExportRequest):
+    """
+    Export Programación data to Excel using the specified template.
+    """
+    # Locate template
+    filename = "Template_Programacion.xlsx"
+    possible_paths = [
+        Path(__file__).resolve().parents[2] / filename,
+        Path(__file__).resolve().parents[1] / filename,
+        Path("/app") / filename,
+    ]
+    
+    template_path = None
+    for p in possible_paths:
+        if p.exists():
+            template_path = p
+            break
+            
+    if not template_path:
+        # Fallback to local dev path if absolute match fails
+        fallback = Path("c:/Users/Lenovo/Documents/crmnew/api-geofal-crm/Template_Programacion.xlsx")
+        if fallback.exists():
+            template_path = fallback
+        else:
+             raise HTTPException(status_code=500, detail=f"Template {filename} not found.")
+
+    try:
+        # Convert Pydantic models to list of dicts
+        items_dict = [item.model_dump() for item in payload.items]
+        
+        output = export_programacion_xlsx(str(template_path), items_dict)
+        
+        export_filename = f"Programacion_{date.today().strftime('%Y%m%d')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={export_filename}"}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 
 # Carpeta para guardar cotizaciones generadas

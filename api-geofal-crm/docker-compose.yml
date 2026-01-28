@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: quotes-service
     ports:
-      - "8080"
+      - "8181"
     environment:
       - QUOTES_DATABASE_URL=${QUOTES_DATABASE_URL}
       - SUPABASE_URL=${SUPABASE_URL}

@@ -72,7 +72,7 @@ export default function DashboardPage() {
           return <ProgramacionModule user={dashboardUser} />
         } catch (err) {
           console.error('[CRM] Error al renderizar ProgramacionModule:', err)
-          return <div style={{color:'red'}}>Error al renderizar Programación: {String(err)}</div>
+          return <div style={{ color: 'red' }}>Error al renderizar Programación: {String(err)}</div>
         }
       }
       case "usuarios":
@@ -94,7 +94,13 @@ export default function DashboardPage() {
           </RoleGuard>
         )
       default:
-        return <CotizadoraModule user={dashboardUser} />
+        console.warn('[CRM] Modulo no reconocido:', activeModule)
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <h2 className="text-xl font-bold">Módulo no encontrado</h2>
+            <p>El módulo "{activeModule}" no está configurado o no existe.</p>
+          </div>
+        )
     }
   }
 
