@@ -118,13 +118,13 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
             <Badge
               variant="outline"
               className={cn(
-                "text-xs mt-1",
+                "text-xs mt-1 text-center",
                 user.role === "admin"
                   ? "border-primary/50 text-primary"
                   : "border-muted-foreground/50 text-muted-foreground",
               )}
             >
-              {user.roleLabel || (user.role === "admin" ? "Administrador" : "Vendedor")}
+              {user.roleLabel || (user.role === "admin" ? "Administrador" : user.role === "asesor comercial" ? "Asesor Comercial" : user.role)}
             </Badge>
           </div>
         </div>

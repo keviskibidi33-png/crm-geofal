@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { ClientesModule } from "@/components/dashboard/clientes-module"
@@ -21,25 +22,45 @@ export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("crm-active-module") as ModuleType
-      console.log('[CRM] Valor recuperado de localStorage:', saved)
       return saved || "clientes"
     }
     return "clientes"
   })
   const { user, loading, isSessionTerminated, signOut } = useAuth()
+  const [securityViolation, setSecurityViolation] = useState(false)
   const router = useRouter()
 
 
   useEffect(() => {
     localStorage.setItem("crm-active-module", activeModule)
-    console.log('[CRM] Nuevo valor de activeModule:', activeModule)
+    // console.log('[CRM] Nuevo valor de activeModule:', activeModule) // Cleaned log
   }, [activeModule])
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
+    // Only redirect if NOT loading, and NO user, and session is NOT terminated
+    if (!loading && !user && !isSessionTerminated) {
+      // Grace period: Wait 2s to see if a termination event comes in via Realtime
+      const timer = setTimeout(() => {
+        // Double check session status inside timeout
+        if (!isSessionTerminated) {
+          router.push("/login")
+        }
+      }, 2000)
+      return () => clearTimeout(timer)
     }
-  }, [user, loading, router])
+  }, [user, loading, router, isSessionTerminated])
+
+  // Session Consistency Check (Security)
+  useEffect(() => {
+    if (!loading && user) {
+      verifySessionConsistencyAction(user.id).then((result) => {
+        if (result && !result.isValid) {
+          // If mismatch is detected, show modal instead of redirecting immediately
+          setSecurityViolation(true)
+        }
+      })
+    }
+  }, [loading, user])
 
   if (loading) {
     return (
@@ -49,19 +70,34 @@ export default function DashboardPage() {
     )
   }
 
-  if (!user) return null
+  if (!user && !isSessionTerminated) return null
+
+  // If session is terminated but user is cleared, show ONLY the termination dialog (and maybe a blurred background)
+  if (!user && isSessionTerminated) {
+    return (
+      <div className="h-screen w-full bg-background/90 backdrop-blur-sm flex items-center justify-center">
+        <SessionTerminatedDialog
+          open={true}
+          onConfirm={signOut}
+        />
+      </div>
+    )
+  }
+
+  if (!user) return null // Should be unreachable given prior checks, but satisfies TS
 
   const dashboardUser = {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role === "admin" ? "admin" : "vendor",
+    role: user.role, // Usar el rol real de la base de datos
     avatar: user.avatar || "/professional-man-avatar.png",
     phone: user.phone || "",
+    permissions: user.permissions // Pasar los permisos para el Sidebar
   } as any
 
   const renderModule = () => {
-    console.log('[CRM] Renderizando módulo:', activeModule)
+    // console.log('[CRM] Renderizando módulo:', activeModule) // Cleaned log
     switch (activeModule) {
       case "clientes":
         return <ClientesModule user={dashboardUser} />
@@ -99,7 +135,7 @@ export default function DashboardPage() {
         )
       case "configuracion":
         return (
-          <RoleGuard user={dashboardUser} allowedRoles={["admin", "vendor"]}>
+          <RoleGuard user={dashboardUser} allowedRoles={["admin", "asesor comercial"]}>
             <ConfiguracionModule />
           </RoleGuard>
         )
@@ -122,10 +158,17 @@ export default function DashboardPage() {
         <main className="flex-1 overflow-auto p-6">{renderModule()}</main>
       </div>
 
+      {/* Visual Indicator Removed to avoid Z-index conflict with Dialog */}
+
       {/* Session Termination Guard */}
       <SessionTerminatedDialog
-        open={!!isSessionTerminated}
-        onConfirm={() => signOut()}
+        open={!!isSessionTerminated || securityViolation}
+        onConfirm={() => {
+          // console.log("Confirming force logout..."); // Cleaned log
+          signOut().then(() => {
+            window.location.href = "/login?error=force_logout"
+          });
+        }}
       />
     </div>
   )

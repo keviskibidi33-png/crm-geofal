@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,7 @@ import { Building2, Loader2, Lock, Mail, Activity } from "lucide-react"
 import { logAction } from "@/app/actions/audit-actions"
 import { resetAuthCache } from "@/hooks/use-auth"
 import { createSessionAction } from "@/app/actions/auth-actions"
+import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { cn } from "@/lib/utils"
 
 export default function LoginPage() {
@@ -27,6 +28,29 @@ export default function LoginPage() {
 
 
 
+    const [showTerminatedModal, setShowTerminatedModal] = useState(false)
+    const searchParams = useSearchParams()
+
+    // Check for "terminated" signal on mount
+    useState(() => {
+        if (typeof window !== 'undefined') {
+            const isTerminatedLocal = localStorage.getItem("crm_is_terminated") === 'true'
+            const errorParam = searchParams.get('error')
+
+            if (isTerminatedLocal || errorParam === 'force_logout') {
+                setShowTerminatedModal(true)
+            }
+        }
+    })
+
+    const handleTerminatedConfirm = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem("crm_is_terminated")
+        }
+        setShowTerminatedModal(false)
+        // Clear URL params (optional but cleaner)
+        router.replace("/login")
+    }
 
     // Add state for session conflict dialog
     const [sessionConflict, setSessionConflict] = useState<{ isOpen: boolean; details?: any }>({ isOpen: false })
@@ -228,6 +252,12 @@ export default function LoginPage() {
                     </Card>
                 </div>
             )}
+
+            {/* Session Terminated Dialog (Fallback for Redirects) */}
+            <SessionTerminatedDialog
+                open={showTerminatedModal}
+                onConfirm={handleTerminatedConfirm}
+            />
 
         </div>
     )

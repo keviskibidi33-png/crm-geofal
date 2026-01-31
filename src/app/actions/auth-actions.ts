@@ -8,31 +8,39 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 // Helper to verify admin role
-async function verifyAdminRole() {
+async function verifyAdminRole(): Promise<true | string> {
     const cookieStore = await cookies()
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } })
 
-    // Get the session ID from the cookie
     const sessionId = cookieStore.get('crm_session')?.value
-    if (!sessionId) return false
+    if (!sessionId) {
+        return "Cookie de sesión no encontrada";
+    }
 
     // Look up the user ID from the active session
-    const { data: sessionData } = await supabaseAdmin
+    const { data: sessionData, error: sessionError } = await supabaseAdmin
         .from('active_sessions')
         .select('user_id')
         .eq('session_id', sessionId)
-        .single()
+        .maybeSingle()
 
-    if (!sessionData) return false
+    if (sessionError) return `Error de base de datos: ${sessionError.message}`;
+    if (!sessionData) return "Sesión activa no encontrada en DB";
 
     // Check the user's role in perfiles
-    const { data: userProfile } = await supabaseAdmin
+    const { data: userProfile, error: profileError } = await supabaseAdmin
         .from('perfiles')
         .select('role')
         .eq('id', sessionData.user_id)
-        .single()
+        .maybeSingle()
 
-    return userProfile?.role === 'admin'
+    if (profileError) return `Error al leer perfil: ${profileError.message}`;
+    if (!userProfile) return "Perfil de usuario no encontrado";
+
+    // Compare case-insensitively
+    if (userProfile.role?.toLowerCase() === 'admin') return true;
+
+    return `Rol insuficiente: ${userProfile.role}`;
 }
 
 export async function createUserAction(data: {
@@ -298,7 +306,7 @@ export async function createSessionAction(userId: string) {
 
                 if (isStale) {
                     // Session is a ghost OR valid user with failed heartbeats. 
-                    // To be safe and enforce single session:
+                    console.log("DIAGNÓSTICO: Sesión activa detectada como inactiva, forzando cierre y reintento.");
                     // 1. Kill the DB session
                     await supabaseAdmin
                         .from('active_sessions')
@@ -308,7 +316,10 @@ export async function createSessionAction(userId: string) {
                     // 2. FORCE signal to other clients to log out (just in case they are online)
                     await supabaseAdmin
                         .from('perfiles')
-                        .update({ last_force_logout_at: new Date().toISOString() })
+                        .update({
+                            last_force_logout_at: new Date().toISOString(),
+                            last_seen_at: new Date(0).toISOString() // Set to epoch to force "Offline" status
+                        })
                         .eq('id', userId)
 
                     // Retry creation
@@ -389,5 +400,56 @@ export async function deleteSessionAction() {
     } catch (err: any) {
         console.error("Delete session error:", err)
         return { error: "Error al cerrar sesión segura" }
+    }
+}
+export async function forceLogoutAction(userId: string) {
+    if (!supabaseServiceKey) return { error: "Falta Service Role Key" };
+
+    const roleCheck = await verifyAdminRole();
+    if (roleCheck !== true) {
+        return { error: `Permisos insuficientes: ${roleCheck}` };
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    try {
+        const timestamp = new Date().toISOString();
+
+        // 1. Mark user for force logout in 'perfiles' (Triggers Realtime in frontend)
+        const { error: updateError } = await supabaseAdmin
+            .from('perfiles')
+            .update({
+                last_force_logout_at: timestamp,
+                last_seen_at: new Date(0).toISOString() // Reset to offline
+            })
+            .eq('id', userId);
+
+        if (updateError) throw updateError;
+
+        // 2. Clear all active sessions for this user in DB 
+        // This ensures middleware will also block them on next request
+        console.log(`[ForceLogout] Attempting to delete active_sessions for userId: ${userId}`);
+        const { data: sessionData, error: sessionError } = await supabaseAdmin
+            .from('active_sessions')
+            .delete()
+            .eq('user_id', userId)
+            .select() // Return deleted rows to confirm
+
+        if (sessionError) {
+            console.error("CRITICAL: Failed to delete active_sessions:", sessionError);
+        } else {
+            console.log(`[ForceLogout] Deleted ${sessionData?.length || 0} active sessions for user ${userId}. Rows:`, sessionData);
+        }
+
+        if (sessionError) {
+            console.warn("User marked for logout, but active_sessions cleanup failed:", sessionError);
+        }
+
+        return { success: true };
+    } catch (err: any) {
+        console.error("Force logout error:", err);
+        return { error: err.message || "Error al forzar cierre de sesión" };
     }
 }

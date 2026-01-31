@@ -19,4 +19,13 @@ export interface ProgramacionServicio {
     motivo_dias_atraso_lab: string | null
     evidencia_envio_recepcion: string | null
     envio_informes: string | null
+    fecha_solicitud_com: string | null
+    fecha_entrega_com: string | null
+    evidencia_solicitud_envio: string | null
+    dias_atraso_envio_coti: number | null
+    motivo_dias_atraso_com: string | null
+    numero_factura: string | null
+    estado_pago: string | null
+    estado_autorizar: string | null
+    nota_admin: string | null
 }

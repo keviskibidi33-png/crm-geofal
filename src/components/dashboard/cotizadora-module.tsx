@@ -14,7 +14,7 @@ import { QuotePreviewPanel } from "./quote-preview-panel"
 import type { User } from "@/app/page"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { CheckCircle2, XCircle, AlertCircle, ChevronDown, Trash2 } from "lucide-react"
 import {
   Dialog,
@@ -631,6 +631,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       <Sheet open={!!previewQuote} onOpenChange={(open) => !open && setPreviewQuote(null)}>
         <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0 border-l border-border bg-card">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Vista Previa de Cotización</SheetTitle>
+            <SheetDescription>Detalles rápidos de la cotización seleccionada</SheetDescription>
+          </SheetHeader>
           <QuotePreviewPanel
             quote={previewQuote}
             onDownload={handleDownload}

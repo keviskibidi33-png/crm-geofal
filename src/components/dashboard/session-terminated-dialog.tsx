@@ -19,28 +19,33 @@ interface SessionTerminatedDialogProps {
 export function SessionTerminatedDialog({ open, onConfirm }: SessionTerminatedDialogProps) {
     return (
         <AlertDialog open={open}>
-            <AlertDialogContent className="max-w-[400px] border-l-4 border-l-destructive bg-card shadow-2xl">
-                <AlertDialogHeader className="space-y-3">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                            <ShieldAlert className="h-5 w-5 text-destructive" />
-                        </div>
-                        <AlertDialogTitle className="text-xl font-bold">Sesión Finalizada</AlertDialogTitle>
+            <AlertDialogContent className="z-[9999] max-w-[450px] border-none bg-white shadow-2xl p-0 overflow-hidden ring-1 ring-zinc-200">
+                <div className="bg-red-50 p-6 flex flex-col items-center justify-center border-b border-red-100">
+                    <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mb-4 ring-4 ring-red-50">
+                        <ShieldAlert className="h-8 w-8 text-red-600" />
                     </div>
-                    <AlertDialogDescription className="text-slate-600 font-medium">
-                        Tu sesión ha sido cerrada por un administrador o ha expirado por motivos de seguridad.
-                        <br /><br />
-                        Por favor, inicia sesión nuevamente para continuar.
+                    <AlertDialogTitle className="text-2xl font-bold text-red-900 text-center">
+                        Sesión Terminada
+                    </AlertDialogTitle>
+                    <p className="text-red-700 font-medium mt-1">Acceso Remoto Revocado</p>
+                </div>
+
+                <div className="p-6 space-y-4">
+                    <AlertDialogDescription className="text-zinc-600 text-center text-base leading-relaxed">
+                        Su sesión ha sido cerrada por un administrador o por motivos de seguridad del sistema.
+                        <br />
+                        Para continuar trabajando, debe iniciar sesión nuevamente con sus credenciales.
                     </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="mt-4">
-                    <AlertDialogAction
-                        onClick={onConfirm}
-                        className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold"
-                    >
-                        Entendido, ir al Login
-                    </AlertDialogAction>
-                </AlertDialogFooter>
+
+                    <AlertDialogFooter className="mt-6 flex justify-center sm:justify-center">
+                        <AlertDialogAction
+                            onClick={onConfirm}
+                            className="w-full bg-zinc-900 text-white hover:bg-zinc-800 font-semibold py-6 text-lg transition-all"
+                        >
+                            Volver al Login
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </div>
             </AlertDialogContent>
         </AlertDialog>
     )

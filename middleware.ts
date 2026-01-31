@@ -45,15 +45,15 @@ export async function middleware(req: NextRequest) {
             }
         })
 
-        // 1. Get Session
+        // 1. Get Session including login timestamp
         const { data: sessionData, error: sessionError } = await supabase
             .from('active_sessions')
-            .select('user_id')
+            .select('user_id, last_login_at')
             .eq('session_id', sessionId)
             .single()
 
         if (sessionError || !sessionData) {
-            console.error("Middleware Session Check Failed:", sessionError?.message)
+            console.error("Middleware Session Check Failed:", sessionError?.message || "No Session Data")
             const response = NextResponse.redirect(new URL('/login?error=session_expired', req.url))
             response.cookies.delete('crm_session')
             return response
@@ -61,46 +61,68 @@ export async function middleware(req: NextRequest) {
 
         const userId = sessionData.user_id
 
-        // 2. Get Role
-        const { data: roleData, error: roleError } = await supabase
+        // 2. Get Role & Force Logout Timestamp
+        const { data: userData, error: userError } = await supabase
             .from('perfiles')
-            .select('role')
+            .select('role, last_force_logout_at')
             .eq('id', userId)
             .single()
 
-        const role = roleData?.role || null
+        if (userError || !userData) {
+            console.error("Middleware User Lookup Failed:", userError?.message)
+            const response = NextResponse.redirect(new URL('/login?error=user_not_found', req.url))
+            response.cookies.delete('crm_session')
+            return response
+        }
+
+        const role = userData.role || null
+        const lastForceLogout = userData.last_force_logout_at ? new Date(userData.last_force_logout_at).getTime() : 0
+        const sessionLastLogin = sessionData.last_login_at ? new Date(sessionData.last_login_at).getTime() : 0
+
+        // 3. Force Logout Check: If force logout happened AFTER login, kill session
+        if (lastForceLogout > sessionLastLogin) {
+            console.warn(`[Middleware] Force Logout Detected for user ${userId}. Logout: ${lastForceLogout} > Login: ${sessionLastLogin}`)
+            const response = NextResponse.redirect(new URL('/login?error=force_logout', req.url))
+            // Clean up invalid session from DB (optional cleanup, good practice)
+            await supabase.from('active_sessions').delete().eq('session_id', sessionId)
+            response.cookies.delete('crm_session')
+            return response
+        }
 
         // 4. Role Based Access Control (RBAC)
 
-        // Admin General Access: All
+        // Super Admin: Acceso Total
+        if (role === 'admin') {
+            return res
+        }
+
+        // Acceso a módulos sensibles (Solo Admin)
+        const isSensitiveRoute =
+            pathname.startsWith('/usuarios') ||
+            pathname.startsWith('/permisos') ||
+            pathname.startsWith('/auditoria')
+
+        if (isSensitiveRoute && role !== 'admin') {
+            return NextResponse.redirect(new URL('/unauthorized', req.url))
+        }
+
+        // Admin General: Todo menos sensible
         if (role === 'admin_general') {
             return res
         }
 
         // Laboratorio Routes
         if (pathname.startsWith('/laboratorio') || pathname.startsWith('/programacion')) {
-            if (role !== 'laboratorio' && role !== 'laboratorio_leer') {
+            const allowedRoles = ['admin', 'admin_general', 'laboratorio_tipificador', 'laboratorio_lector', 'administrativo', 'asesor comercial']
+            if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }
         }
 
-        // Comercial Routes
-        if (pathname.startsWith('/comercial') || pathname.startsWith('/cotizaciones') || pathname.startsWith('/clientes')) {
-            // Assuming 'vendedor' is the role for comercial
-            if (role !== 'vendedor' && role !== 'administracion') {
-                // Note: 'administracion' is unclear if they have access to comercial, assuming NO based on "acceso a otras tablas pero no modulos"
-                // Prompt: "user_administracion: ... acceso a otras tablas pero no modulos" -> Implies NO module access?
-                // Prompt: "user_vendedor: Solo VER tabla comercial".
-                // Let's stick to strict: Vendedor only.
-                if (role !== 'vendedor') {
-                    return NextResponse.redirect(new URL('/unauthorized', req.url))
-                }
-            }
-        }
-
-        // Administracion Routes
-        if (pathname.startsWith('/administracion')) {
-            if (role !== 'administracion') {
+        // Comercial / Operativo Routes
+        if (pathname.startsWith('/comercial') || pathname.startsWith('/cotizaciones') || pathname.startsWith('/clientes') || pathname.startsWith('/proyectos')) {
+            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'asesor comercial']
+            if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }
         }

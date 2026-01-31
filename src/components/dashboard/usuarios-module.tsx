@@ -1,6 +1,6 @@
 "use client"
 
-import { createUserAction, updateUserAction, deleteUserAction } from "@/app/actions/auth-actions"
+import { createUserAction, updateUserAction, deleteUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
@@ -156,19 +156,17 @@ export function UsuariosModule() {
     }
 
     const handleForceLogout = async (userId: string) => {
-        if (!confirm("¿Cerrar la sesión de este usuario forzosamente?")) return
+        if (!confirm("¿Cerrar la sesión de este usuario forzosamente? (Se desconectará de inmediato)")) return
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/users/${userId}/logout`, {
-                method: 'POST'
-            })
-            if (!res.ok) throw new Error("Error al cerrar sesión")
+            const result = await forceLogoutAction(userId)
+            if (result.error) throw new Error(result.error)
 
             toast.success("Sesión cerrada", {
-                description: "Se ha enviado la orden de cierre de sesión."
+                description: "Se ha expulsado al usuario del sistema."
             })
-        } catch (err) {
-            toast.error("Error", { description: "No se pudo cerrar la sesión remota" })
+        } catch (err: any) {
+            toast.error("Error de Expulsión", { description: err.message || "No se pudo cerrar la sesión remota" })
         }
     }
 

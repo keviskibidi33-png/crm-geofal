@@ -14,10 +14,9 @@ export function useProgramacionData() {
         queryKey: ["programacion"],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from("programacion_servicios")
+                .from("cuadro_control")
                 .select("*")
-                .order("created_at", { ascending: false })
-                .limit(2000)
+                .order("item_numero", { ascending: false })
 
             if (error) {
                 console.error("Error fetching data:", error)
@@ -32,40 +31,29 @@ export function useProgramacionData() {
     // 2. Suscripción Realtime (La magia para no dar F5)
     useEffect(() => {
         const channel = supabase
-            .channel("programacion-realtime")
+            .channel("cuadro_control_changes")
             .on(
                 "postgres_changes",
-                {
-                    event: "*",               // Escuchar INSERT, UPDATE y DELETE
-                    schema: "public",
-                    table: "programacion_servicios",
-                },
+                { event: "*", schema: "public", table: "programacion_lab" },
                 (payload) => {
-                    // Cuando llega un cambio, actualizamos la lista en memoria manualmente
-
-                    if (payload.eventType === "INSERT") {
-                        const newRow = payload.new as ProgramacionServicio
-                        queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
-                            // Deduplication: Avoid adding if it's already there (e.g. from optimistic insert)
-                            if (oldData.some(r => r.id === newRow.id)) return oldData
-                            return [newRow, ...oldData]
-                        })
-                    }
-
-                    else if (payload.eventType === "UPDATE") {
-                        const updatedRow = payload.new as ProgramacionServicio
-                        queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
-                            return oldData.map((item) =>
-                                item.id === updatedRow.id ? updatedRow : item
-                            )
-                        })
-                    }
-
-                    else if (payload.eventType === "DELETE") {
-                        queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
-                            return oldData.filter((item) => item.id !== payload.old.id)
-                        })
-                    }
+                    console.log("Realtime (lab) event:", payload)
+                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "programacion_comercial" },
+                (payload) => {
+                    console.log("Realtime (com) event:", payload)
+                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "programacion_administracion" },
+                (payload) => {
+                    console.log("Realtime (admin) event:", payload)
+                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
                 }
             )
             .subscribe((status) => {
@@ -89,10 +77,25 @@ export function useProgramacionData() {
         })
 
         try {
+            // Route update to the correct table
+            const commercialFields = ['fecha_solicitud_com', 'fecha_entrega_com', 'evidencia_solicitud_envio', 'dias_atraso_envio_coti', 'motivo_dias_atraso_com']
+            const adminFields = ['numero_factura', 'estado_pago', 'estado_autorizar', 'nota_admin']
+
+            let targetTable = "programacion_lab"
+            let idField = "id"
+
+            if (commercialFields.includes(field)) {
+                targetTable = "programacion_comercial"
+                idField = "programacion_id"
+            } else if (adminFields.includes(field)) {
+                targetTable = "programacion_administracion"
+                idField = "programacion_id"
+            }
+
             const { error } = await supabase
-                .from("programacion_servicios")
+                .from(targetTable)
                 .update({ [field]: value, updated_at: new Date().toISOString() })
-                .eq("id", rowId)
+                .eq(idField, rowId)
 
             if (error) throw error
         } catch (error) {
@@ -105,13 +108,8 @@ export function useProgramacionData() {
     }, [queryClient, supabase])
 
     const insertRow = useCallback(async (newRow: Partial<ProgramacionServicio>) => {
-        // Optimistic update difficult without ID, so we wait for DB response
-        // BUT, since we want "instant" feedback, we can optimistically add if we generate a temp ID?
-        // Better: Wait for the INSERT response (which is very fast usually) and manually update cache THEN, 
-        // essentially "beating" the realtime subscription to it.
-
-        const { data: insertedData, error } = await supabase
-            .from("programacion_servicios")
+        const { data: insertedData, error: labError } = await supabase
+            .from("programacion_lab")
             .insert({
                 ...newRow,
                 item_numero: undefined,
@@ -119,23 +117,49 @@ export function useProgramacionData() {
                 estado_trabajo: newRow.estado_trabajo || "PENDIENTE",
                 evidencia_envio_recepcion: newRow.evidencia_envio_recepcion,
                 envio_informes: newRow.envio_informes,
+                // Extension fields handled via follow-up update
+                fecha_solicitud_com: undefined,
+                fecha_entrega_com: undefined,
+                evidencia_solicitud_envio: undefined,
+                motivo_dias_atraso_com: undefined,
+                numero_factura: undefined,
+                estado_pago: undefined,
+                estado_autorizar: undefined,
+                nota_admin: undefined,
             })
             .select()
             .single()
 
-        if (insertedData) {
-            const row = insertedData as ProgramacionServicio
-            // Immediate manual cache update
-            queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
-                if (oldData.some(r => r.id === row.id)) return oldData
-                return [row, ...oldData]
-            })
+        if (labError) {
+            console.error("Insert lab failed:", labError)
+            toast.error("Error al crear registro")
+            throw labError
         }
 
-        if (error) {
-            console.error("Insert failed details:", JSON.stringify(error, null, 2))
-            toast.error("Error al crear registro")
-            throw error
+        if (insertedData) {
+            const rowId = insertedData.id
+
+            // Check if we need to update extension tables
+            const commercialData: any = {}
+            if (newRow.fecha_solicitud_com) commercialData.fecha_solicitud_com = newRow.fecha_solicitud_com
+            if (newRow.fecha_entrega_com) commercialData.fecha_entrega_com = newRow.fecha_entrega_com
+            if (newRow.evidencia_solicitud_envio) commercialData.evidencia_solicitud_envio = newRow.evidencia_solicitud_envio
+            if (newRow.motivo_dias_atraso_com) commercialData.motivo_dias_atraso_com = newRow.motivo_dias_atraso_com
+
+            const adminData: any = {}
+            if (newRow.numero_factura) adminData.numero_factura = newRow.numero_factura
+            if (newRow.estado_pago) adminData.estado_pago = newRow.estado_pago
+            if (newRow.estado_autorizar) adminData.estado_autorizar = newRow.estado_autorizar
+            if (newRow.nota_admin) adminData.nota_admin = newRow.nota_admin
+
+            if (Object.keys(commercialData).length > 0) {
+                await supabase.from("programacion_comercial").update(commercialData).eq("programacion_id", rowId)
+            }
+            if (Object.keys(adminData).length > 0) {
+                await supabase.from("programacion_administracion").update(adminData).eq("programacion_id", rowId)
+            }
+
+            queryClient.invalidateQueries({ queryKey: ["programacion"] })
         }
     }, [queryClient, supabase])
 
