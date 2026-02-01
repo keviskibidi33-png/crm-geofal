@@ -53,30 +53,38 @@ export default function DashboardPage() {
     }
   }, [user, loading, router, isSessionTerminated])
 
-  // Handle initial module authorization and default module based on role
+  // Handle module authorization and security checks
   useEffect(() => {
     if (loading || !user) return;
 
     const role = user.role?.toLowerCase() || "";
 
-    // Choose a smart default based on role
-    const getRoleDefault = (): ModuleType => {
-      if (role === 'admin' || role === 'admin_general') return 'clientes';
-      if (role.includes('laboratorio')) return 'laboratorio';
-      if (role.includes('comercial') || role.includes('vendor') || role.includes('asesor')) return 'comercial';
-      if (role.includes('administracion')) return 'administracion';
-      return 'clientes';
+    // 1. Administrators have absolute access - never redirect them
+    if (role === 'admin' || role === 'admin_general') {
+      return;
     }
 
-    // Check if the current module is actually allowed
-    const isAllowed = user.role === 'admin' || (user.permissions && user.permissions[activeModule]?.read);
+    // 2. For other roles, check against their granted permissions
+    const hasPermission = user.permissions && user.permissions[activeModule]?.read;
 
-    if (!isAllowed) {
+    if (!hasPermission) {
+      // Choose a smart default based on role
+      const getRoleDefault = (): ModuleType => {
+        if (role.includes('laboratorio')) return 'laboratorio';
+        if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial';
+        if (role.includes('administracion')) return 'administracion';
+        return 'clientes';
+      }
+
       const defaultModule = getRoleDefault();
-      console.log(`[Auth] Redirigiendo a módulo permitido (${defaultModule}) para rol: ${role}`);
-      setActiveModule(defaultModule);
+
+      // Only set if different to avoid potential state loops
+      if (activeModule !== defaultModule) {
+        console.log(`[Auth] Seguridad: Usuario rol "${role}" intentó acceder a "${activeModule}" sin permiso. Redirigiendo a "${defaultModule}".`);
+        setActiveModule(defaultModule);
+      }
     }
-  }, [loading, user?.id]); // Only run when user loads or change
+  }, [loading, user?.id, activeModule]); // Watch activeModule for security
 
   // Session Consistency Check (Security)
   useEffect(() => {
