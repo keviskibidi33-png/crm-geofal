@@ -52,6 +52,7 @@ export default function LoginPage() {
         router.replace("/login")
     }
 
+
     // Add state for session conflict dialog
     const [sessionConflict, setSessionConflict] = useState<{ isOpen: boolean; details?: any }>({ isOpen: false })
     const [isClosing, setIsClosing] = useState(false)
@@ -64,10 +65,10 @@ export default function LoginPage() {
         }, 200) // Match duration-200
     }
 
-    const handleAuth = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleAuth = async (e?: React.FormEvent, force: boolean = false) => {
+        if (e) e.preventDefault()
         setLoading(true)
-        setSessionConflict({ isOpen: false })
+        if (!force) setSessionConflict({ isOpen: false })
 
         try {
             const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -98,9 +99,9 @@ export default function LoginPage() {
                 logAction({
                     user_id: authData.user.id,
                     user_name: authData.user.user_metadata?.full_name || email,
-                    action: "Inicio de sesión",
+                    action: force ? "Re-claim sesión" : "Inicio de sesión",
                     module: "AUTH",
-                    details: { email }
+                    details: { email, forced: force }
                 })
             }
 
@@ -122,6 +123,13 @@ export default function LoginPage() {
             })
             setLoading(false)
         }
+    }
+
+    const handleForceLogin = () => {
+        closeSessionConflict()
+        setTimeout(() => {
+            handleAuth(undefined, true)
+        }, 300)
     }
 
     return (
@@ -206,47 +214,56 @@ export default function LoginPage() {
                 © 2026 Geofal CRM. Todos los derechos reservados.
             </div>
 
-            {/* Session Conflict Dialog */}
+
+            {/* Session Conflict Dialog - Informational Only */}
             {(sessionConflict.isOpen || isClosing) && (
                 <div className={cn(
-                    "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-200",
+                    "fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-md transition-opacity duration-300",
                     isClosing ? "opacity-0" : "opacity-100 animate-in fade-in"
                 )}>
                     <Card className={cn(
-                        "w-full max-w-md border-red-200 bg-white shadow-lg",
-                        isClosing ? "animate-out fade-out zoom-out-0 duration-200" : "animate-in fade-in zoom-in-0 duration-200"
+                        "w-full max-w-md border-red-200 bg-white/95 shadow-2xl overflow-hidden",
+                        isClosing ? "animate-out fade-out zoom-out-95 duration-200" : "animate-in fade-in zoom-in-95 duration-300"
                     )}>
+                        <div className="h-1.5 w-full bg-red-500" />
                         <CardHeader className="text-center pb-2">
-                            <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                                <Lock className="h-6 w-6 text-red-600" />
+                            <div className="mx-auto w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4 ring-8 ring-red-50/50">
+                                <Lock className="h-7 w-7 text-red-600" />
                             </div>
-                            <CardTitle className="text-xl font-bold text-red-700">Acceso Denegado</CardTitle>
-                            <CardDescription className="text-zinc-600">
-                                Este usuario ya tiene una sesión activa (online) en otro dispositivo.
+                            <CardTitle className="text-2xl font-bold text-zinc-900 font-outfit">Sesión Activa</CardTitle>
+                            <CardDescription className="text-zinc-500 text-sm">
+                                Se ha detectado que **otra conexión está activa** con tu cuenta.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4 pt-2">
-                            <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-sm">
-                                <div className="flex items-center gap-2 mb-2 text-red-800 font-semibold">
-                                    <Activity className="h-4 w-4" />
-                                    Detalles de la sesión activa:
+                        <CardContent className="space-y-4 pt-2 text-center">
+                            <div className="bg-red-50/50 p-4 rounded-xl border border-red-100 inline-flex items-start gap-4 text-left w-full">
+                                <div className="bg-red-100 p-2 rounded-lg">
+                                    <Activity className="h-5 w-5 text-red-700" />
                                 </div>
-                                <div className="space-y-1 text-zinc-700 ml-6">
-                                    <p>• <strong>Dispositivo:</strong> {sessionConflict.details?.device_info || 'Navegador Web'}</p>
-                                    <p>• <strong>Inicio:</strong> {sessionConflict.details?.last_login_at ? new Date(sessionConflict.details.last_login_at).toLocaleString() : 'Recientemente'}</p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-red-900">Conexión Existente</p>
+                                    <p className="text-xs text-red-800/80">
+                                        Activa desde: {sessionConflict.details?.last_login_at
+                                            ? new Date(sessionConflict.details.last_login_at).toLocaleString('es-PE', {
+                                                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                            })
+                                            : 'Recientemente'}
+                                    </p>
                                 </div>
                             </div>
-                            <p className="text-center text-xs text-muted-foreground">
-                                Solo se permite una sesión activa por seguridad. Cierre la otra sesión o espere a que expire.
+                            <p className="text-sm text-zinc-600 px-4 leading-relaxed">
+                                Por motivos de seguridad y control de licencias, solo se permite **una sesión activa simultánea** por usuario.
+                            </p>
+                            <p className="text-xs text-zinc-400 italic">
+                                Por favor, cierra la sesión en el otro dispositivo o espera 2 minutos de inactividad para poder ingresar aquí.
                             </p>
                         </CardContent>
-                        <CardFooter className="flex-col gap-2">
+                        <CardFooter className="pb-8 pt-2">
                             <Button
-                                variant="outline"
-                                className="w-full border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
+                                className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-base transition-all"
                                 onClick={closeSessionConflict}
                             >
-                                Entendido, cancelar
+                                Entendido
                             </Button>
                         </CardFooter>
                     </Card>

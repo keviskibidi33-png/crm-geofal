@@ -18,13 +18,15 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
-  { id: "programacion", label: "Programación", icon: ClipboardList },
+  { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
+  { id: "comercial", label: "Control Comercial", icon: ClipboardList },
+  { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
   { id: "permisos", label: "Permisos", icon: Shield, adminOnly: true },
-  { id: "laboratorio", label: "Laboratorio", icon: Activity }, // Added Laboratorio
   { id: "auditoria", label: "Auditoría", icon: Activity, adminOnly: true },
   { id: "configuracion", label: "Configuración", icon: Settings },
 ]
+
 
 export function DashboardSidebar({ activeModule, setActiveModule, user }: SidebarProps) {
   // DEBUG: Log user permissions on every render

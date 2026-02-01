@@ -12,6 +12,9 @@ import { UsuariosModule } from "@/components/dashboard/usuarios-module"
 import { ProyectosModule } from "@/components/dashboard/proyectos-module"
 import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
 import { ProgramacionModule } from "@/components/dashboard/programacion-module"
+import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
+import { ComercialModule } from "@/components/dashboard/comercial-module"
+import { AdministracionModule } from "@/components/dashboard/administracion-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -49,6 +52,28 @@ export default function DashboardPage() {
       return () => clearTimeout(timer)
     }
   }, [user, loading, router, isSessionTerminated])
+
+  // Set default module based on role and handle unauthorized saved modules
+  useEffect(() => {
+    if (!loading && user) {
+      const savedModule = localStorage.getItem("crm-active-module")
+      const role = user.role.toLowerCase()
+
+      // Define the target module based on role if no valid one is set
+      let targetModule: ModuleType = role.includes('laboratorio') ? 'laboratorio'
+        : (role.includes('vendedor') || role.includes('comercial') || role === 'vendor') ? 'comercial'
+          : role.includes('administracion') ? 'administracion'
+            : 'clientes'
+
+      // Check if current activeModule is actually allowed
+      const isAllowed = user.role === 'admin' || (user.permissions && user.permissions[activeModule]?.read)
+
+      if (!savedModule || !isAllowed) {
+        console.log(`[Auth] Redirecting to default module for role ${role}: ${targetModule}`)
+        setActiveModule(targetModule)
+      }
+    }
+  }, [loading, user, activeModule])
 
   // Session Consistency Check (Security)
   useEffect(() => {
@@ -90,10 +115,11 @@ export default function DashboardPage() {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role, // Usar el rol real de la base de datos
+    role: user.role,
+    roleLabel: user.roleLabel,
     avatar: user.avatar || "/professional-man-avatar.png",
     phone: user.phone || "",
-    permissions: user.permissions // Pasar los permisos para el Sidebar
+    permissions: user.permissions
   } as any
 
   const renderModule = () => {
@@ -106,15 +132,13 @@ export default function DashboardPage() {
       case "cotizadora":
         return <CotizadoraModule user={dashboardUser} />
       case "programacion":
-      case "laboratorio": {
-        try {
-          console.log('[CRM] Intentando renderizar ProgramacionModule', dashboardUser)
-          return <ProgramacionModule user={dashboardUser} />
-        } catch (err) {
-          console.error('[CRM] Error al renderizar ProgramacionModule:', err)
-          return <div style={{ color: 'red' }}>Error al renderizar Programación: {String(err)}</div>
-        }
-      }
+        return <ProgramacionModule user={dashboardUser} />
+      case "laboratorio":
+        return <LaboratorioModule user={dashboardUser} />
+      case "comercial":
+        return <ComercialModule user={dashboardUser} />
+      case "administracion":
+        return <AdministracionModule user={dashboardUser} />
       case "usuarios":
         return (
           <RoleGuard user={dashboardUser} allowedRoles={["admin"]}>

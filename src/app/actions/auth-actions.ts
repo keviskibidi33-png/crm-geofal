@@ -268,18 +268,53 @@ export async function createSessionAction(userId: string) {
         const sessionId = randomUUID()
         const cookieStore = await cookies()
 
-        // 0. Check if user is active
-        const { data: userProfile } = await supabaseAdmin
+        // 0. Preliminary check (Role and Status)
+        const { data: profile } = await supabaseAdmin
             .from('perfiles')
-            .select('activo')
+            .select('activo, role, last_seen_at')
             .eq('id', userId)
             .single()
 
-        if (userProfile && userProfile.activo === false) {
-            return { error: "Su cuenta ha sido desactivada. Contacte al administrador." }
+        if (profile && profile.activo === false) {
+            return { error: "Su cuenta ha sido desactivada. Contacte al administrador. (Error: Perfil Inactivo)" }
         }
 
-        // 1. Try to INSERT active session in DB (StrictMode: Fail if exists)
+        // 1. Session Protection Logic (Heartbeat-based "Smart Detection")
+        const { data: existingSessions } = await supabaseAdmin
+            .from('active_sessions')
+            .select('session_id, last_login_at, device_info')
+            .eq('user_id', userId)
+
+        const rawRole = profile?.role?.toLowerCase() || ""
+        const isLabLector = rawRole.includes('laboratorio') && rawRole.includes('lector')
+        const sessionLimit = isLabLector ? 10 : 1
+
+        if (existingSessions && existingSessions.length >= sessionLimit) {
+            // VERIFICACIÓN INTELIGENTE DE "SEÑAL REAL" (HEARTBEAT)
+            const lastSeenStr = profile?.last_seen_at
+            const lastSeen = lastSeenStr ? new Date(lastSeenStr).getTime() : 0
+            const now = new Date().getTime()
+
+            // Si el último latido (heartbeat) fue hace más de 2 minutos (120s),
+            // consideramos que es una "señal falsa" (sesión fantasma/cerrada a la fuerza).
+            const isTrulyAlive = (now - lastSeen) < (2 * 60 * 1000)
+
+            if (!isTrulyAlive) {
+                console.log(`[SessionGuard] Sesión fantasma detectada para ${userId} (Sin latidos). Limpiando...`)
+                await supabaseAdmin.from('active_sessions').delete().eq('user_id', userId)
+            } else {
+                console.log(`[SessionGuard] BLOQUEO ESTRICTO: Sesión REALMENTE ACTIVA para ${userId}.`)
+                return {
+                    error: isLabLector
+                        ? "Has alcanzado el límite de 10 sesiones permitidas."
+                        : "Esta cuenta ya tiene una sesión activa en este momento.",
+                    code: 'SESSION_EXISTS',
+                    details: existingSessions[0]
+                }
+            }
+        }
+
+        // 2. Create New Session
         const { error: dbError } = await supabaseAdmin
             .from('active_sessions')
             .insert({
@@ -289,68 +324,7 @@ export async function createSessionAction(userId: string) {
                 device_info: "browser"
             })
 
-        if (dbError) {
-            // Check for unique violation (Postgres code 23505)
-            if (dbError.code === '23505') {
-                // 1. Check if the "active" session is actually stale based on Heartbeat
-                const { data: profile } = await supabaseAdmin
-                    .from('perfiles')
-                    .select('last_seen_at')
-                    .eq('id', userId)
-                    .single()
-
-                const lastSeen = profile?.last_seen_at ? new Date(profile.last_seen_at).getTime() : 0
-                const now = new Date().getTime()
-                // Threshold: 2 minutes (120000 ms)
-                const isStale = (now - lastSeen) > (2 * 60 * 1000)
-
-                if (isStale) {
-                    // Session is a ghost OR valid user with failed heartbeats. 
-                    console.log("DIAGNÓSTICO: Sesión activa detectada como inactiva, forzando cierre y reintento.");
-                    // 1. Kill the DB session
-                    await supabaseAdmin
-                        .from('active_sessions')
-                        .delete()
-                        .eq('user_id', userId)
-
-                    // 2. FORCE signal to other clients to log out (just in case they are online)
-                    await supabaseAdmin
-                        .from('perfiles')
-                        .update({
-                            last_force_logout_at: new Date().toISOString(),
-                            last_seen_at: new Date(0).toISOString() // Set to epoch to force "Offline" status
-                        })
-                        .eq('id', userId)
-
-                    // Retry creation
-                    const { error: retryError } = await supabaseAdmin
-                        .from('active_sessions')
-                        .insert({
-                            user_id: userId,
-                            session_id: sessionId,
-                            last_login_at: new Date().toISOString(),
-                            device_info: "browser"
-                        })
-
-                    if (retryError) throw retryError // If it fails again, real error
-                } else {
-                    // Session is genuinely active. Block it.
-                    const { data: existingSession } = await supabaseAdmin
-                        .from('active_sessions')
-                        .select('last_login_at, device_info')
-                        .eq('user_id', userId)
-                        .single()
-
-                    return {
-                        error: "Este usuario ya tiene una sesión activa",
-                        code: 'SESSION_EXISTS',
-                        details: existingSession
-                    }
-                }
-            } else {
-                throw dbError
-            }
-        }
+        if (dbError) throw dbError
 
         // Successfully created session. Now mark user as SEEN so it's not immediately stale
         await supabaseAdmin

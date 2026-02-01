@@ -28,4 +28,5 @@ export interface ProgramacionServicio {
     estado_pago: string | null
     estado_autorizar: string | null
     nota_admin: string | null
+    updated_at?: string
 }

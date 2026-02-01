@@ -12,6 +12,9 @@ import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { UsuariosModule } from "@/components/dashboard/usuarios-module"
 import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
 import { ProgramacionModule } from "@/components/dashboard/programacion-module"
+import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
+import { ComercialModule } from "@/components/dashboard/comercial-module"
+import { AdministracionModule } from "@/components/dashboard/administracion-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { useAuth, type User, type UserRole, type ModuleType } from "@/hooks/use-auth"
 import { Loader2 } from "lucide-react"
@@ -29,6 +32,28 @@ export default function HomePage() {
       router.push("/login")
     }
   }, [user, loading, router])
+
+  // Set default module based on role and handle unauthorized saved modules
+  useEffect(() => {
+    if (!loading && user) {
+      const savedModule = localStorage.getItem("crm-active-module")
+      const role = user.role.toLowerCase()
+
+      // Define the target module based on role if no valid one is set
+      let targetModule: ModuleType = role.includes('laboratorio') ? 'laboratorio'
+        : (role.includes('vendedor') || role.includes('comercial') || role === 'vendor') ? 'comercial'
+          : role.includes('administracion') ? 'administracion'
+            : 'cotizadora'
+
+      // Check if current activeModule is actually allowed
+      const isAllowed = user.role === 'admin' || (user.permissions && user.permissions[activeModule]?.read)
+
+      if (!savedModule || !isAllowed) {
+        console.log(`[Auth] Redirecting to default module for role ${role}: ${targetModule}`)
+        setActiveModule(targetModule)
+      }
+    }
+  }, [loading, user, activeModule])
 
   if (loading) {
     return (
@@ -83,6 +108,7 @@ export default function HomePage() {
     role: user.role,
     avatar: user.avatar || "/professional-man-avatar.png",
     phone: user.phone || "",
+    permissions: user.permissions,
   } as any
 
   const renderModule = () => {
@@ -119,6 +145,12 @@ export default function HomePage() {
             <ConfiguracionModule />
           </RoleGuard>
         )
+      case "laboratorio":
+        return <LaboratorioModule user={dashboardUser} />
+      case "comercial":
+        return <ComercialModule user={dashboardUser} />
+      case "administracion":
+        return <AdministracionModule user={dashboardUser} />
       default:
         return <CotizadoraModule user={dashboardUser} />
     }

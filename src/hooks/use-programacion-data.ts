@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabaseClient"
 import { ProgramacionServicio } from "@/types/programacion"
 import { toast } from "sonner"
+import { useAuth } from "@/hooks/use-auth"
 
 export function useProgramacionData() {
-    // const supabase = ... (Used directly from import)
+    const { user } = useAuth()
     const queryClient = useQueryClient()
     const [realtimeStatus, setRealtimeStatus] = useState<"CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED">("CONNECTING")
 
@@ -71,6 +72,10 @@ export function useProgramacionData() {
 
     // Hybrid Update Logic (Compatible with DataTable)
     const updateField = useCallback(async (rowId: string, field: string, value: unknown) => {
+        if (user?.role === 'laboratorio_lector') {
+            toast.error("No tienes permisos para modificar datos. Tu rol es de solo lectura.")
+            return
+        }
         // 1. Optimistic Update in Cache
         queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
             return oldData.map(row => row.id === rowId ? { ...row, [field]: value } : row)
@@ -108,6 +113,10 @@ export function useProgramacionData() {
     }, [queryClient, supabase])
 
     const insertRow = useCallback(async (newRow: Partial<ProgramacionServicio>) => {
+        if (user?.role === 'laboratorio_lector') {
+            toast.error("No tienes permisos para crear registros. Tu rol es de solo lectura.")
+            return
+        }
         const { data: insertedData, error: labError } = await supabase
             .from("programacion_lab")
             .insert({
