@@ -132,9 +132,38 @@ async function buildUser(session: any): Promise<User> {
         permissions = await fetchRolePermissions(roleFromProfile)
     }
 
-    // Role-specific Fallback Logic (if everything else fails)
-    if (!permissions || Object.keys(permissions).length === 0) {
-        console.log("[Auth] Using hardcoded role defaults")
+    // --- Active Enforcement Layer (Security Override) ---
+    const enforcePermissions = (perms: RolePermissions): RolePermissions => {
+        const p = { ...perms }
+        const r = role.toLowerCase()
+
+        if (r === 'admin' || r === 'admin_general') return p
+
+        if (r === 'asesor comercial' || r === 'vendor' || r === 'vendedor') {
+            // Force Commercial access, deny Labs
+            p.comercial = { read: true, write: p.comercial?.write || false, delete: false }
+            p.clientes = { read: true, write: true, delete: false }
+            p.proyectos = { read: true, write: true, delete: false }
+            p.cotizadora = { read: true, write: true, delete: false }
+            p.programacion = { read: false, write: false, delete: false }
+            p.laboratorio = { read: false, write: false, delete: false }
+            p.configuracion = { read: true, write: false, delete: false }
+        } else if (r === 'laboratorio_lector' || r === 'laboratorio') {
+            const isLector = r === 'laboratorio_lector'
+            p.laboratorio = { read: true, write: !isLector, delete: false }
+            p.programacion = { read: true, write: !isLector, delete: false }
+            p.clientes = { read: true, write: false, delete: false }
+            p.proyectos = { read: true, write: false, delete: false }
+            p.comercial = { read: false, write: false, delete: false }
+        }
+
+        return p
+    }
+
+    if (permissions && Object.keys(permissions).length > 0) {
+        permissions = enforcePermissions(permissions)
+    } else {
+        console.log("[Auth] Using hardcoded role defaults (Fallback)")
         if (role === 'admin' || role === 'admin_general') {
             permissions = {
                 clientes: { read: true, write: true, delete: true },
@@ -150,7 +179,8 @@ async function buildUser(session: any): Promise<User> {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
                 cotizadora: { read: true, write: true, delete: false },
-                comercial: { read: true, write: false, delete: false }
+                comercial: { read: true, write: false, delete: false },
+                configuracion: { read: true, write: false, delete: false }
             }
         } else if (role === 'laboratorio_lector' || role === 'laboratorio') {
             permissions = {
@@ -168,7 +198,7 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
-    console.log(`[Auth] Final permissions:`, permissions)
+    console.log(`[Auth] Final permissions (Enforced):`, permissions)
 
 
     return {
