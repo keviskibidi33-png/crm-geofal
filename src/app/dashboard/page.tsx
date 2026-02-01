@@ -53,27 +53,30 @@ export default function DashboardPage() {
     }
   }, [user, loading, router, isSessionTerminated])
 
-  // Set default module based on role and handle unauthorized saved modules
+  // Handle initial module authorization and default module based on role
   useEffect(() => {
-    if (!loading && user) {
-      const savedModule = localStorage.getItem("crm-active-module")
-      const role = user.role.toLowerCase()
+    if (loading || !user) return;
 
-      // Define the target module based on role if no valid one is set
-      let targetModule: ModuleType = role.includes('laboratorio') ? 'laboratorio'
-        : (role.includes('vendedor') || role.includes('comercial') || role === 'vendor') ? 'comercial'
-          : role.includes('administracion') ? 'administracion'
-            : 'clientes'
+    const role = user.role?.toLowerCase() || "";
 
-      // Check if current activeModule is actually allowed
-      const isAllowed = user.role === 'admin' || (user.permissions && user.permissions[activeModule]?.read)
-
-      if (!savedModule || !isAllowed) {
-        console.log(`[Auth] Redirecting to default module for role ${role}: ${targetModule}`)
-        setActiveModule(targetModule)
-      }
+    // Choose a smart default based on role
+    const getRoleDefault = (): ModuleType => {
+      if (role === 'admin' || role === 'admin_general') return 'clientes';
+      if (role.includes('laboratorio')) return 'laboratorio';
+      if (role.includes('comercial') || role.includes('vendor') || role.includes('asesor')) return 'comercial';
+      if (role.includes('administracion')) return 'administracion';
+      return 'clientes';
     }
-  }, [loading, user, activeModule])
+
+    // Check if the current module is actually allowed
+    const isAllowed = user.role === 'admin' || (user.permissions && user.permissions[activeModule]?.read);
+
+    if (!isAllowed) {
+      const defaultModule = getRoleDefault();
+      console.log(`[Auth] Redirigiendo a módulo permitido (${defaultModule}) para rol: ${role}`);
+      setActiveModule(defaultModule);
+    }
+  }, [loading, user?.id]); // Only run when user loads or change
 
   // Session Consistency Check (Security)
   useEffect(() => {

@@ -17,6 +17,7 @@ interface SidebarProps {
 const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
+  { id: "programacion", label: "Programación", icon: ClipboardList },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
@@ -29,13 +30,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 
 
 export function DashboardSidebar({ activeModule, setActiveModule, user }: SidebarProps) {
-  // DEBUG: Log user permissions on every render
-  console.log("[SIDEBAR DEBUG] User object:", JSON.stringify({
-    role: user.role,
-    roleLabel: user.roleLabel,
-    permissions: user.permissions
-  }, null, 2))
-
   // Use granular permissions for filtering
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
@@ -49,9 +43,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
       return hasAccess
     }
 
-    // 3. Fallback for legacy behavior (if no permissions loaded)
-    console.log(`[SIDEBAR DEBUG] Module ${module.id}: Using fallback (no permissions), adminOnly=${module.adminOnly}`)
-    return !module.adminOnly
+    // 3. Fallback: If not in permissions and not admin, hide it (Strict Security)
+    console.log(`[SIDEBAR DEBUG] Module ${module.id}: Hidden (No permission entry)`)
+    return false
   })
 
   const handleModuleClick = (id: ModuleType) => {

@@ -129,24 +129,46 @@ async function buildUser(session: any): Promise<User> {
 
     if (!permissions || Object.keys(permissions).length === 0) {
         console.log(`[Auth] No permissions from Supabase join, fetching from API for role: ${roleFromProfile}`)
-        // Use the EXACT role value from profile, not the lowercased version
         permissions = await fetchRolePermissions(roleFromProfile)
     }
 
-    // Use defaults if still no permissions
+    // Role-specific Fallback Logic (if everything else fails)
     if (!permissions || Object.keys(permissions).length === 0) {
-        console.log("[Auth] Using default permissions")
-        permissions = defaultPermissions
+        console.log("[Auth] Using hardcoded role defaults")
+        if (role === 'admin' || role === 'admin_general') {
+            permissions = {
+                clientes: { read: true, write: true, delete: true },
+                proyectos: { read: true, write: true, delete: true },
+                cotizadora: { read: true, write: true, delete: true },
+                programacion: { read: true, write: true, delete: true },
+                laboratorio: { read: true, write: true, delete: true },
+                comercial: { read: true, write: true, delete: true },
+                administracion: { read: true, write: true, delete: true }
+            }
+        } else if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
+            permissions = {
+                clientes: { read: true, write: true, delete: false },
+                proyectos: { read: true, write: true, delete: false },
+                cotizadora: { read: true, write: true, delete: false },
+                comercial: { read: true, write: false, delete: false }
+            }
+        } else if (role === 'laboratorio_lector' || role === 'laboratorio') {
+            permissions = {
+                laboratorio: { read: true, write: role !== 'laboratorio_lector', delete: false },
+                programacion: { read: true, write: role !== 'laboratorio_lector', delete: false },
+                clientes: { read: true, write: false, delete: false },
+                proyectos: { read: true, write: false, delete: false }
+            }
+        } else {
+            console.log(`[Auth] No hardcoded match for role: ${role}. Using minimal defaults.`);
+            permissions = {
+                clientes: { read: true, write: false, delete: false },
+                cotizadora: { read: true, write: false, delete: false }
+            }
+        }
     }
 
-    // Aliasing logic for new modules (if programacion is present)
-    if (permissions && permissions.programacion) {
-        if (!permissions.laboratorio) permissions.laboratorio = { ...permissions.programacion }
-        if (!permissions.comercial) permissions.comercial = { ...permissions.programacion }
-        if (!permissions.administracion) permissions.administracion = { ...permissions.programacion }
-    }
-
-    console.log(`[Auth] Final permissions (after alias):`, permissions)
+    console.log(`[Auth] Final permissions:`, permissions)
 
 
     return {
