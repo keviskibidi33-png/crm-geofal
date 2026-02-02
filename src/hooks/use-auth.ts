@@ -108,13 +108,15 @@ async function buildUser(session: any): Promise<User> {
     // --- Active Enforcement Layer (LAW & SECURITY) ---
     const enforcePermissions = (perms: RolePermissions): RolePermissions => {
         const p = { ...perms }
-        const r = role.toLowerCase()
+        const r = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        // Flexible matching: admin, gerencia, gerente, administrativo, administracion, director, jefe
+        const isAdmin = r.includes('admin') || r.includes('geren') || r.includes('administra') || r.includes('direc') || r.includes('jefe')
 
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
-        if (r === 'admin' || r === 'admin_general') {
+        if (isAdmin) {
             // Admins get everything
             return {
                 clientes: { read: true, write: true, delete: true },
@@ -135,14 +137,17 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // Process permissions
+    const rNorm = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const isAdminFinal = rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('administra') || rNorm.includes('direc') || rNorm.includes('jefe')
+
     if (permissions && Object.keys(permissions).length > 0) {
         permissions = enforcePermissions(permissions)
     } else {
         console.log("[Auth] No matrix permissions found, using role-based safety fallbacks")
         // Admin protection: If matrix fails, Admin STILL gets everything
-        if (role === 'admin' || role === 'admin_general') {
+        if (isAdminFinal) {
             permissions = enforcePermissions({})
-        } else if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
+        } else if (rNorm.includes('asesor') || rNorm.includes('vendedor') || rNorm.includes('vendor')) {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },

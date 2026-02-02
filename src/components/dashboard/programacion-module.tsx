@@ -19,11 +19,54 @@ type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { data, isLoading, realtimeStatus, refetch } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
-    const [currentMode, setCurrentMode] = useState<ViewMode>('LAB')
+
+    // === AUTO-SELECT VIEW BASED ON ROLE ===
+    // Map role_ids directly to views (based on database values)
+    const roleToViewMap: Record<string, ViewMode> = {
+        'admin': 'ADMIN',
+        'administrativo': 'ADMIN',
+        'vendor': 'COMERCIAL',
+        'laboratorio_lector': 'LAB',
+        'laboratorio_tipificador': 'LAB'
+    }
+
+    // Normalize role for comparison (remove accents, lowercase)
+    const rNorm = user.role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+
+    // DEBUG: Log the role value to help diagnose
+    console.log('[ProgramacionModule] user.role:', user.role, '| normalized:', rNorm)
+
+    // Determine initial mode based on user role
+    const getInitialMode = (): ViewMode => {
+        // First: Try exact match from database role_ids
+        if (roleToViewMap[rNorm]) {
+            console.log('[ProgramacionModule] Exact match found:', rNorm, '->', roleToViewMap[rNorm])
+            return roleToViewMap[rNorm]
+        }
+
+        // Fallback: Pattern matching for variations
+        // Admin/Gerencia/Administrativo → ADMIN view
+        if (rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')) {
+            console.log('[ProgramacionModule] Pattern match (admin):', rNorm)
+            return 'ADMIN'
+        }
+        // Comercial/Vendedor/Asesor → COMERCIAL view
+        if (rNorm.includes('comercial') || rNorm.includes('vendedor') || rNorm.includes('asesor') || rNorm.includes('vendor') || rNorm.includes('ventas')) {
+            console.log('[ProgramacionModule] Pattern match (comercial):', rNorm)
+            return 'COMERCIAL'
+        }
+        // Laboratory or any other → LAB view (default)
+        console.log('[ProgramacionModule] Default to LAB for role:', rNorm)
+        return 'LAB'
+    }
+
+    const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
+
 
     const handleIframeUpdate = useCallback(() => {
         refetch()
     }, [refetch])
+
 
     const { sendMessage } = useProgramacionIframe(handleIframeUpdate)
 
@@ -120,9 +163,10 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
-    // REDO PERMISSIONS: Simplified and absolute logic
-    const userRoleLower = user.role.toLowerCase()
-    const isAdmin = userRoleLower.includes('admin') || userRoleLower.includes('gerencia') || userRoleLower.includes('administracion')
+    // REDO PERMISSIONS: Simplified and absolute logic (rNorm already defined above)
+    // Inclusive matching: admin, gerente, administrativo, director, jefe, etc.
+    const isAdmin = rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('administra') || rNorm.includes('direc') || rNorm.includes('jefe')
+
 
     const modeToPermissionKey: Record<string, string> = {
         'LAB': 'laboratorio',
@@ -132,8 +176,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
 
     // For Tipificador, we force allow if it's laboratory mode and not a reader
-    const isLabEdit = currentMode === 'LAB' && userRoleLower.includes('laboratorio') && !userRoleLower.includes('lector')
+    const isLabEdit = currentMode === 'LAB' && rNorm.includes('laboratorio') && !rNorm.includes('lector')
 
+    // canWrite is true if: isAdmin, or it's a lab person in lab mode, or they have the specific write permission
     const canWrite = isAdmin || isLabEdit ||
         user.permissions?.[permissionKey]?.write ||
         user.permissions?.['programacion']?.write || false
