@@ -119,7 +119,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
-    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}`
+
+    // Calc canWrite to pass it to the iframe as fallback
+    const canWrite = user.role.toLowerCase().includes('admin') ||
+        user.permissions?.[currentMode.toLowerCase()]?.write ||
+        user.permissions?.['programacion']?.write || false
+
+    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${user.role}&canWrite=${canWrite}`
 
     return (
         <>
