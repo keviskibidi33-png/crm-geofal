@@ -128,9 +128,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
     const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
 
-    const canWrite = user.role.toLowerCase().includes('admin') ||
+    const canWriteFromRole = user.role.toLowerCase().includes('admin') ||
         user.role.toLowerCase().includes('gerencia') ||
         user.role.toLowerCase().includes('administracion') ||
+        (user.role.toLowerCase().includes('laboratorio') && !user.role.toLowerCase().includes('lector'))
+
+    const canWrite = canWriteFromRole ||
         user.permissions?.[permissionKey]?.write ||
         user.permissions?.['programacion']?.write || false
 
