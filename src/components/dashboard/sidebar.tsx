@@ -26,7 +26,6 @@ interface SidebarProps {
 const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
-  { id: "programacion", label: "Programación", icon: ClipboardList },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },

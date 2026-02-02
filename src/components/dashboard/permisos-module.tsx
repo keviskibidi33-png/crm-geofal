@@ -52,10 +52,11 @@ const MODULES = [
     { id: "clientes", label: "Clientes" },
     { id: "proyectos", label: "Proyectos" },
     { id: "cotizadora", label: "Cotizadora" },
-    { id: "programacion", label: "Programación" },
+    { id: "laboratorio", label: "Prog: Laboratorio" },
+    { id: "comercial", label: "Prog: Comercial" },
+    { id: "administracion", label: "Prog: Administración" },
     { id: "usuarios", label: "Gestión Usuarios" },
     { id: "auditoria", label: "Auditoría" },
-    { id: "laboratorio", label: "Laboratorio" },
     { id: "permisos", label: "Matriz Permisos" },
 ]
 
@@ -166,7 +167,11 @@ export function PermisosModule() {
 
             // Refresh list to sync state
             const updatedRole = await res.json()
-            setRoles(roles.map(r => r.role_id === updatedRole.role_id ? updatedRole : r))
+            setRoles(prev => prev.map(r => r.role_id === updatedRole.role_id ? updatedRole : r))
+            setActiveRole(updatedRole)
+
+            // Extra safety: re-fetch everything
+            setTimeout(fetchRoles, 500)
 
         } catch (error) {
             toast.error("Error al guardar", {

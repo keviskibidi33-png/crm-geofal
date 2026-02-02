@@ -70,13 +70,15 @@ export function ComercialModule({ user }: ComercialModuleProps) {
             .slice(0, 3)
     }, [data])
 
+    const canWrite = user.permissions?.comercial?.write === true || user.role === "admin"
+
     const iframeUrl = process.env.NEXT_PUBLIC_PROGRAMACION_URL ||
         (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
     // Comercial view is a specific mode
-    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}`
+    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}${!canWrite ? '&readOnly=true' : ''}`
 
     if (isLoading) {
         return (
@@ -98,7 +100,7 @@ export function ComercialModule({ user }: ComercialModuleProps) {
                     <p className="text-zinc-500 text-sm font-medium">Seguimiento de entregas y atención al cliente.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {user.role === 'laboratorio_lector' && (
+                    {!canWrite && (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">
                             <Shield className="w-3.5 h-3.5 text-amber-600" />
                             <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">

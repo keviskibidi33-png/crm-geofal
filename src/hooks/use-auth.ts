@@ -70,24 +70,11 @@ async function fetchProfile(userId: string) {
 async function fetchRolePermissions(roleId: string): Promise<RolePermissions | null> {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-        console.log(`[Auth] Fetching roles from API: ${apiUrl}/roles for roleId: "${roleId}"`)
-
         const response = await fetch(`${apiUrl}/roles`)
-        console.log(`[Auth] API response status: ${response.status}`)
-
-        if (!response.ok) {
-            console.error(`[Auth] API failed: ${response.status}`)
-            return null
-        }
-
+        if (!response.ok) return null
         const roles = await response.json()
-        console.log(`[Auth] Roles available:`, roles.map((r: any) => r.role_id))
-
         const roleData = roles.find((r: any) => r.role_id === roleId)
-        console.log(`[Auth] Match found for "${roleId}":`, roleData ? 'YES' : 'NO')
-
         if (roleData?.permissions) {
-            console.log(`[Auth] Fetched permissions for role ${roleId}:`, roleData.permissions)
             return roleData.permissions
         }
         return null
@@ -101,9 +88,6 @@ async function fetchRolePermissions(roleId: string): Promise<RolePermissions | n
 async function buildUser(session: any): Promise<User> {
     const profile = await fetchProfile(session.user.id)
 
-    console.log(`[Auth] Profile fetched:`, profile)
-    console.log(`[Auth] Profile role field:`, profile?.role)
-
     // Capture the current logout timestamp to avoid triggering on it during Live session
     if (profile?.last_force_logout_at) {
         lastSeenLogoutAt = profile.last_force_logout_at
@@ -113,9 +97,6 @@ async function buildUser(session: any): Promise<User> {
     const roleFromProfile = profile?.role || session.user.user_metadata?.role || "vendor"
     const role = roleFromProfile.toLowerCase() as UserRole
     const roleDef = Array.isArray(profile?.role_definitions) ? profile?.role_definitions[0] : profile?.role_definitions
-
-    console.log(`[Auth] Role from profile (exact):`, roleFromProfile)
-    console.log(`[Auth] Role definition from join:`, roleDef)
 
     // 1. Prioritize permissions from database (Supabase Join or API)
     let permissions = roleDef?.permissions
@@ -155,7 +136,6 @@ async function buildUser(session: any): Promise<User> {
 
     // Process permissions
     if (permissions && Object.keys(permissions).length > 0) {
-        console.log("[Auth] Using permissions from Matrix (Database)")
         permissions = enforcePermissions(permissions)
     } else {
         console.log("[Auth] No matrix permissions found, using role-based safety fallbacks")
@@ -165,7 +145,8 @@ async function buildUser(session: any): Promise<User> {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
                 cotizadora: { read: true, write: true, delete: false },
-                comercial: { read: true, write: false, delete: false },
+                comercial: { read: true, write: true, delete: false },
+                programacion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else if (role === 'laboratorio_lector' || role === 'laboratorio' || role === 'lector laboratorio') {
