@@ -1,18 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Bell, Search, LogOut, User as UserIcon, Settings, Sun, Moon, Building2, FolderKanban, FileText, Loader2 } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Bell, Search, Settings, Sun, Moon, Building2, FolderKanban, FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type User, type ModuleType } from "@/hooks/use-auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -375,47 +366,6 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
           </PopoverContent>
         </Popover>
 
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-3 px-3">
-              <Avatar className="h-8 w-8">
-                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <UserIcon className="h-4 w-4 text-primary" />
-                </div>
-                <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden md:block">{user.name}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col">
-                <span>{user.name}</span>
-                <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setActiveModule("configuracion")}>
-              <Settings className="mr-2 h-4 w-4" />
-              Mi Perfil y Preferencias
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggleTheme}>
-              {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-              {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar Sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   )

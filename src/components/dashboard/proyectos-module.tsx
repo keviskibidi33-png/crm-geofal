@@ -409,6 +409,10 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   }
 
   const saveProgress = async (projectId: string) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para actualizar el progreso." })
+      return
+    }
     const newStatus = tempProgress === 100 ? "completado" : projects.find(p => p.id === projectId)?.estado === "completado" ? "en_ejecucion" : undefined;
 
     try {
@@ -472,6 +476,10 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
     motivoPerdida?: Project["motivoPerdida"],
     notasCierre?: string,
   ) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para cerrar proyectos." })
+      return
+    }
     const targetProject = projects.find(p => p.id === projectId);
     if (!targetProject) return;
 
@@ -536,6 +544,10 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   }
 
   const startExecution = async (projectId: string) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para iniciar la ejecución." })
+      return
+    }
     const { error } = await supabase
       .from("proyectos")
       .update({ estado: "en_ejecucion", etapa: "ventas" })
@@ -568,6 +580,10 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   }
 
   const changeProjectStatus = async (projectId: string, newStatus: Project["estado"]) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para cambiar el estado del proyecto." })
+      return
+    }
     // 1. Determine the new etapa based on status
     let newEtapa: Project["etapa"] = "pipeline"
     if (["prospecto", "en_negociacion", "propuesta_enviada"].includes(newStatus)) {
@@ -627,8 +643,14 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
     setIsEditDialogOpen(true)
   }
 
+  const canWrite = user.permissions?.proyectos?.write === true || user.role === "admin"
+
   const handleEditSave = async () => {
     if (selectedProject && editForm) {
+      if (!canWrite) {
+        toast.error("Acceso denegado", { description: "No tienes permisos para editar proyectos." })
+        return
+      }
       setLoading(true)
       try {
         const newStatus = editForm.estado || selectedProject.estado
@@ -705,6 +727,10 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   }
 
   const handleDeleteConfirm = async () => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para eliminar proyectos." })
+      return
+    }
     if (deleteConfirmStep === 1) {
       setDeleteConfirmStep(2)
     } else if (deleteConfirmStep === 2 && deleteConfirmText === selectedProject?.nombre) {
@@ -1083,7 +1109,11 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           <Button variant="outline" size="icon" onClick={() => { fetchProjects() }} title="Recargar lista">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </Button>
-          <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90"
+            disabled={!canWrite}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Proyecto
           </Button>
@@ -1535,6 +1565,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
                               Ver detalles
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              disabled={!canWrite}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 openEditDialog(project)
@@ -1578,6 +1609,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
                             </DropdownMenuSub>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
+                              disabled={!canWrite}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 openDeleteDialog(project)

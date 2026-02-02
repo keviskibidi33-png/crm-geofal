@@ -169,11 +169,7 @@ export default function DashboardPage() {
           </RoleGuard>
         )
       case "configuracion":
-        return (
-          <RoleGuard user={dashboardUser} allowedRoles={["admin", "asesor comercial"]}>
-            <ConfiguracionModule />
-          </RoleGuard>
-        )
+        return <ConfiguracionModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

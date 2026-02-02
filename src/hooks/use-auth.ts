@@ -109,14 +109,7 @@ async function buildUser(session: any): Promise<User> {
         lastSeenLogoutAt = profile.last_force_logout_at
     }
 
-    const defaultPermissions: RolePermissions = {
-        clientes: { read: true, write: true, delete: false },
-        proyectos: { read: true, write: true, delete: false },
-        cotizadora: { read: true, write: true, delete: false },
-        programacion: { read: true, write: false, delete: false },
-    }
-
-    // Use the exact role from profile (don't lowercase, to match role_definitions)
+    // Role initialization
     const roleFromProfile = profile?.role || session.user.user_metadata?.role || "vendor"
     const role = roleFromProfile.toLowerCase() as UserRole
     const roleDef = Array.isArray(profile?.role_definitions) ? profile?.role_definitions[0] : profile?.role_definitions
@@ -124,57 +117,50 @@ async function buildUser(session: any): Promise<User> {
     console.log(`[Auth] Role from profile (exact):`, roleFromProfile)
     console.log(`[Auth] Role definition from join:`, roleDef)
 
-    // Try to get permissions from Supabase join first, then from API
+    // 1. Prioritize permissions from database (Supabase Join or API)
     let permissions = roleDef?.permissions
-
     if (!permissions || Object.keys(permissions).length === 0) {
         console.log(`[Auth] No permissions from Supabase join, fetching from API for role: ${roleFromProfile}`)
         permissions = await fetchRolePermissions(roleFromProfile)
     }
 
-    // --- Active Enforcement Layer (Security Override) ---
+    // --- Active Enforcement Layer (LAW & SECURITY) ---
     const enforcePermissions = (perms: RolePermissions): RolePermissions => {
         const p = { ...perms }
         const r = role.toLowerCase()
 
-        if (r === 'admin' || r === 'admin_general') return p
+        // LAW: Everyone can see their settings/config
+        p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
-        if (r === 'asesor comercial' || r === 'vendor' || r === 'vendedor') {
-            // Force Commercial access, deny Labs
-            p.comercial = { read: true, write: p.comercial?.write || false, delete: false }
-            p.clientes = { read: true, write: true, delete: false }
-            p.proyectos = { read: true, write: true, delete: false }
-            p.cotizadora = { read: true, write: true, delete: false }
-            p.programacion = { read: false, write: false, delete: false }
-            p.laboratorio = { read: false, write: false, delete: false }
-            p.configuracion = { read: true, write: false, delete: false }
-        } else if (r === 'laboratorio_lector' || r === 'laboratorio') {
-            const isLector = r === 'laboratorio_lector'
-            p.laboratorio = { read: true, write: !isLector, delete: false }
-            p.programacion = { read: true, write: !isLector, delete: false }
-            p.clientes = { read: true, write: false, delete: false }
-            p.proyectos = { read: true, write: false, delete: false }
-            p.comercial = { read: false, write: false, delete: false }
-        }
-
-        return p
-    }
-
-    if (permissions && Object.keys(permissions).length > 0) {
-        permissions = enforcePermissions(permissions)
-    } else {
-        console.log("[Auth] Using hardcoded role defaults (Fallback)")
-        if (role === 'admin' || role === 'admin_general') {
-            permissions = {
+        // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
+        if (r === 'admin' || r === 'admin_general') {
+            // Admins get everything
+            return {
                 clientes: { read: true, write: true, delete: true },
                 proyectos: { read: true, write: true, delete: true },
                 cotizadora: { read: true, write: true, delete: true },
                 programacion: { read: true, write: true, delete: true },
                 laboratorio: { read: true, write: true, delete: true },
                 comercial: { read: true, write: true, delete: true },
-                administracion: { read: true, write: true, delete: true }
+                administracion: { read: true, write: true, delete: true },
+                configuracion: { read: true, write: true, delete: true },
+                usuarios: { read: true, write: true, delete: true },
+                auditoria: { read: true, write: true, delete: true },
+                permisos: { read: true, write: true, delete: true }
             }
-        } else if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
+        }
+
+        return p
+    }
+
+    // Process permissions
+    if (permissions && Object.keys(permissions).length > 0) {
+        console.log("[Auth] Using permissions from Matrix (Database)")
+        permissions = enforcePermissions(permissions)
+    } else {
+        console.log("[Auth] No matrix permissions found, using role-based safety fallbacks")
+        // FALLBACKS (Only if Matrix is empty)
+        if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
@@ -182,24 +168,20 @@ async function buildUser(session: any): Promise<User> {
                 comercial: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
-        } else if (role === 'laboratorio_lector' || role === 'laboratorio') {
+        } else if (role === 'laboratorio_lector' || role === 'laboratorio' || role === 'lector laboratorio') {
             permissions = {
-                laboratorio: { read: true, write: role !== 'laboratorio_lector', delete: false },
-                programacion: { read: true, write: role !== 'laboratorio_lector', delete: false },
-                clientes: { read: true, write: false, delete: false },
-                proyectos: { read: true, write: false, delete: false }
+                laboratorio: { read: true, write: role !== 'laboratorio_lector' && role !== 'lector laboratorio', delete: false },
+                configuracion: { read: true, write: false, delete: false }
             }
         } else {
-            console.log(`[Auth] No hardcoded match for role: ${role}. Using minimal defaults.`);
+            console.log(`[Auth] Minimal fallback for unknown role: ${role}`)
             permissions = {
-                clientes: { read: true, write: false, delete: false },
-                cotizadora: { read: true, write: false, delete: false }
+                configuracion: { read: true, write: false, delete: false }
             }
         }
     }
 
-    console.log(`[Auth] Final permissions (Enforced):`, permissions)
-
+    console.log(`[Auth] Final permissions (Matrix + Law):`, permissions)
 
     return {
         id: session.user.id,

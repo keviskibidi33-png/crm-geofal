@@ -327,8 +327,14 @@ export function ClientesModule({ user }: ClientesModuleProps) {
     setIsEditDialogOpen(true)
   }
 
+  const canWrite = user.permissions?.clientes?.write === true || user.role === "admin"
+
   const handleEditSave = async () => {
     if (!selectedClient) return
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para editar clientes." })
+      return
+    }
     try {
       const payload = mapClientToDbPayload(editForm)
       if (Object.keys(payload).length === 0) {
@@ -403,6 +409,10 @@ export function ClientesModule({ user }: ClientesModuleProps) {
   }
 
   const handleDeleteConfirm = async () => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para eliminar clientes." })
+      return
+    }
     if (deleteConfirmStep === 1) {
       setDeleteConfirmStep(2)
       return
@@ -443,6 +453,10 @@ export function ClientesModule({ user }: ClientesModuleProps) {
   }
 
   const changeClientStatus = async (clientId: string, newStatus: Client["estado"]) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para cambiar el estado de los clientes." })
+      return
+    }
     try {
       const { error } = await supabase
         .from("clientes")
@@ -501,7 +515,11 @@ export function ClientesModule({ user }: ClientesModuleProps) {
           <Button variant="outline" size="icon" onClick={() => { fetchClients() }} title="Recargar lista">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </Button>
-          <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90"
+            disabled={!canWrite}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Cliente
           </Button>
@@ -688,6 +706,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
                           Ver detalles
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          disabled={!canWrite}
                           onClick={(e) => {
                             e.stopPropagation()
                             openEditDialog(client)
@@ -723,6 +742,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                          disabled={!canWrite}
                           onClick={(e) => {
                             e.stopPropagation()
                             openDeleteDialog(client)

@@ -216,7 +216,13 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     }
   }, [filteredQuotes])
 
+  const canWrite = user.permissions?.cotizadora?.write === true || user.role === "admin"
+
   const changeQuoteStatus = async (quoteId: string, newStatus: Quote["estado"]) => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para cambiar el estado de las cotizaciones." })
+      return
+    }
     setUpdatingStatus(true)
     try {
       const dbStatus = newStatus === 'pendiente' ? 'borrador' : newStatus
@@ -294,6 +300,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   }
 
   const handleDeleteQuote = async () => {
+    if (!canWrite) {
+      toast.error("Acceso denegado", { description: "No tienes permisos para eliminar cotizaciones." })
+      return
+    }
     const quoteToDelete = previewQuote || selectedQuote
     if (!quoteToDelete) return
 
@@ -356,7 +366,11 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             <Button variant="outline" size="icon" onClick={fetchQuotes} title="Recargar" className="h-9 w-9">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
-            <Button onClick={() => setIsDialogOpen(true)} className="h-9 px-4 font-semibold">
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="h-9 px-4 font-semibold"
+              disabled={!canWrite}
+            >
               <Plus className="h-4 w-4 mr-1.5" />
               Nueva Cotización
             </Button>

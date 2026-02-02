@@ -55,7 +55,6 @@ const MODULES = [
     { id: "programacion", label: "Programación" },
     { id: "usuarios", label: "Gestión Usuarios" },
     { id: "auditoria", label: "Auditoría" },
-    { id: "configuracion", label: "Configuración" },
     { id: "laboratorio", label: "Laboratorio" },
     { id: "permisos", label: "Matriz Permisos" },
 ]
