@@ -121,10 +121,17 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             : 'http://localhost:8472')
 
     // Calc canWrite to pass it to the iframe as fallback
+    const modeToPermissionKey: Record<string, string> = {
+        'LAB': 'laboratorio',
+        'COMERCIAL': 'comercial',
+        'ADMIN': 'administracion'
+    }
+    const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
+
     const canWrite = user.role.toLowerCase().includes('admin') ||
         user.role.toLowerCase().includes('gerencia') ||
         user.role.toLowerCase().includes('administracion') ||
-        user.permissions?.[currentMode.toLowerCase()]?.write ||
+        user.permissions?.[permissionKey]?.write ||
         user.permissions?.['programacion']?.write || false
 
     const encodedRole = encodeURIComponent(user.role)
