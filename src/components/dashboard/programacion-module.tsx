@@ -120,25 +120,19 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
-    // Calc canWrite to pass it to the iframe as fallback
-    const modeToPermissionKey: Record<string, string> = {
-        'LAB': 'laboratorio',
-        'COMERCIAL': 'comercial',
-        'ADMIN': 'administracion'
-    }
-    const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
+    // REDO PERMISSIONS: Simplified and absolute logic
+    const userRoleLower = user.role.toLowerCase()
+    const isAdmin = userRoleLower.includes('admin') || userRoleLower.includes('gerencia') || userRoleLower.includes('administracion')
 
-    const canWriteFromRole = user.role.toLowerCase().includes('admin') ||
-        user.role.toLowerCase().includes('gerencia') ||
-        user.role.toLowerCase().includes('administracion') ||
-        (user.role.toLowerCase().includes('laboratorio') && !user.role.toLowerCase().includes('lector'))
+    // For Tipificador, we force allow if it's laboratory mode and not a reader
+    const isLabEdit = currentMode === 'LAB' && userRoleLower.includes('laboratorio') && !userRoleLower.includes('lector')
 
-    const canWrite = canWriteFromRole ||
+    const canWrite = isAdmin || isLabEdit ||
         user.permissions?.[permissionKey]?.write ||
         user.permissions?.['programacion']?.write || false
 
     const encodedRole = encodeURIComponent(user.role)
-    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&v=${Date.now()}`
+    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}&v=${Date.now()}`
 
     return (
         <>
