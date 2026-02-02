@@ -56,7 +56,6 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
   const { signOut } = useAuth()
 
   const handleModuleClick = (id: ModuleType) => {
-    console.log('[SIDEBAR] Click en módulo:', id)
     setActiveModule(id)
   }
 

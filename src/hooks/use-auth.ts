@@ -162,7 +162,6 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
-    console.log(`[Auth] Final permissions (Matrix + Law):`, permissions)
 
     return {
         id: session.user.id,
@@ -353,7 +352,6 @@ export function useAuth() {
         init()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log(`[Auth] Event: ${event}`)
             if (event === "SIGNED_OUT") {
                 cachedUser = null
                 hasInitialized = false
