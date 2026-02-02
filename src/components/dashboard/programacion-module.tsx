@@ -124,6 +124,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const userRoleLower = user.role.toLowerCase()
     const isAdmin = userRoleLower.includes('admin') || userRoleLower.includes('gerencia') || userRoleLower.includes('administracion')
 
+    const modeToPermissionKey: Record<string, string> = {
+        'LAB': 'laboratorio',
+        'COMERCIAL': 'comercial',
+        'ADMIN': 'administracion'
+    }
+    const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
+
     // For Tipificador, we force allow if it's laboratory mode and not a reader
     const isLabEdit = currentMode === 'LAB' && userRoleLower.includes('laboratorio') && !userRoleLower.includes('lector')
 
