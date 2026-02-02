@@ -62,9 +62,11 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
-    // Laboratorio view is a specific mode of the programming system
-    // Reforce security by passing readOnly param if canWrite is false
-    const fullUrl = `${iframeUrl}?mode=lab&userId=${user.id}${!canWrite ? '&readOnly=true' : ''}`
+    const isAdmin = user.role === "admin"
+    const encodedRole = encodeURIComponent(user.role)
+
+    // Laboratorio view - include ALL required params
+    const fullUrl = `${iframeUrl}?mode=lab&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}&v=${Date.now()}`
 
     if (isLoading) {
         return (

@@ -77,8 +77,11 @@ export function ComercialModule({ user }: ComercialModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
-    // Comercial view is a specific mode
-    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}${!canWrite ? '&readOnly=true' : ''}`
+    const isAdmin = user.role === "admin"
+    const encodedRole = encodeURIComponent(user.role)
+
+    // Comercial view - include ALL required params
+    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}&v=${Date.now()}`
 
     if (isLoading) {
         return (
