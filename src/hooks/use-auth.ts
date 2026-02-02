@@ -139,8 +139,10 @@ async function buildUser(session: any): Promise<User> {
         permissions = enforcePermissions(permissions)
     } else {
         console.log("[Auth] No matrix permissions found, using role-based safety fallbacks")
-        // FALLBACKS (Only if Matrix is empty)
-        if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
+        // Admin protection: If matrix fails, Admin STILL gets everything
+        if (role === 'admin' || role === 'admin_general') {
+            permissions = enforcePermissions({})
+        } else if (role === 'asesor comercial' || role === 'vendor' || role === 'vendedor') {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
