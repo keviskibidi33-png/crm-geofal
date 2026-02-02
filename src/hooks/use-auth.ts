@@ -151,6 +151,7 @@ async function buildUser(session: any): Promise<User> {
             }
         } else if (role === 'laboratorio_lector' || role === 'laboratorio' || role === 'lector laboratorio') {
             permissions = {
+                programacion: { read: true, write: role !== 'laboratorio_lector' && role !== 'lector laboratorio', delete: false },
                 laboratorio: { read: true, write: role !== 'laboratorio_lector' && role !== 'lector laboratorio', delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
