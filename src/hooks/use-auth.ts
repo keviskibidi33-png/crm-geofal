@@ -149,10 +149,11 @@ async function buildUser(session: any): Promise<User> {
                 programacion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
-        } else if (role === 'laboratorio_lector' || role === 'laboratorio' || role === 'lector laboratorio') {
+        } else if (role.includes('laboratorio')) {
+            const isLector = role.includes('lector')
             permissions = {
-                programacion: { read: true, write: role !== 'laboratorio_lector' && role !== 'lector laboratorio', delete: false },
-                laboratorio: { read: true, write: role !== 'laboratorio_lector' && role !== 'lector laboratorio', delete: false },
+                programacion: { read: true, write: !isLector, delete: false },
+                laboratorio: { read: true, write: !isLector, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {
