@@ -83,6 +83,17 @@ export async function createUserAction(data: {
             return { error: error.message }
         }
 
+        // Force confirm if needed (Double check)
+        if (userData.user && !userData.user.confirmed_at) {
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                userData.user.id,
+                { email_confirm: true }
+            )
+            if (updateError) {
+                console.warn("Failed to force confirm email:", updateError)
+            }
+        }
+
         // Note: The triggers on the 'users' table should handle the creation of the 'vendedores' record.
         // However, we explicitly upsert to ensure the EMAIL and other fields are strictly in sync
 
@@ -94,6 +105,7 @@ export async function createUserAction(data: {
                 email: data.email,
                 phone: data.phone || null,
                 role: data.role,
+                activo: true, // Explicitly set activo
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' })
 

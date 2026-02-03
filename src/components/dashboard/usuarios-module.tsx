@@ -3,7 +3,8 @@
 import { createUserAction, updateUserAction, deleteUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
 import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
-import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
+import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -56,11 +57,13 @@ interface SellerFormData {
     role: string
 }
 
-const ITEMS_PER_PAGE = 6
+const ITEMS_PER_PAGE = 20
 
 export function UsuariosModule() {
     const { user } = useAuth()
     const [sellers, setSellers] = useState<Seller[]>([])
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState<"todos" | "activo" | "inactivo">("todos")
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
@@ -89,10 +92,10 @@ export function UsuariosModule() {
     const fetchSellers = useCallback(async () => {
         setFetching(true)
         try {
+            // Removed .is("deleted_at", null) to include soft-deleted "inactive" users
             const { data, error } = await supabase
                 .from("perfiles")
                 .select("*")
-                .is("deleted_at", null)
                 .order("full_name")
 
             if (error) throw error
@@ -103,7 +106,7 @@ export function UsuariosModule() {
                 email: s.email || "---",
                 phone: s.phone || "",
                 role: s.role,
-                estado: "activo", // Since we filter deleted_at is null, they are all active
+                estado: s.deleted_at ? "inactivo" : "activo",
                 last_seen_at: s.last_seen_at
             })))
         } catch (err: any) {
@@ -136,7 +139,7 @@ export function UsuariosModule() {
                                 role: updatedUser.role || s.role,
                                 phone: updatedUser.phone || s.phone,
                                 last_seen_at: updatedUser.last_seen_at,
-                                estado: "activo"
+                                estado: updatedUser.deleted_at ? "inactivo" : "activo"
                             }
                             : s
                     ))
@@ -267,15 +270,26 @@ export function UsuariosModule() {
         if (!selectedSeller || !targetStatus) return
         setIsLoading(true)
         try {
-            // Update role/status in DB. For now we use role as proxy or just mock it since status column doesn't exist yet
-            // User said "activacion/desactivacion"
-            // Let's assume for now we just show it's done or update a hypothetical field
-            // Let's assume for now we just show it's done or update a hypothetical field
+            // Logic: If target is "inactivo", we soft-delete. If "activo", we clear deleted_at.
+            const updates = targetStatus === "inactivo"
+                ? { deleted_at: new Date().toISOString() }
+                : { deleted_at: null }
+
+            const { error } = await supabase
+                .from("perfiles")
+                .update(updates)
+                .eq("id", selectedSeller.id)
+
+            if (error) throw error
+
+            setSellers(sellers.map(s =>
+                s.id === selectedSeller.id ? { ...s, estado: targetStatus } : s
+            ))
+
             toast.success(targetStatus === "activo" ? "Usuario activado" : "Usuario desactivado", {
                 description: `El usuario ${selectedSeller.nombre} ha sido ${targetStatus === "activo" ? "activado" : "desactivado"}.`,
             })
 
-            // Log action
             logAction({
                 user_id: user?.id,
                 user_name: user?.name,
@@ -324,12 +338,23 @@ export function UsuariosModule() {
         }
     }
 
-    const totalPages = Math.ceil(sellers.length / ITEMS_PER_PAGE)
-    const paginatedSellers = sellers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+    const filteredSellers = sellers.filter(seller => {
+        const matchesSearch =
+            seller.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            seller.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            seller.role.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchesStatus = statusFilter === "todos" ? true : seller.estado === statusFilter
+
+        return matchesSearch && matchesStatus
+    })
+
+    const totalPages = Math.ceil(filteredSellers.length / ITEMS_PER_PAGE)
+    const paginatedSellers = filteredSellers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
                     <p className="text-muted-foreground">Administra los vendedores y sus permisos de acceso</p>
@@ -342,6 +367,31 @@ export function UsuariosModule() {
                         <Plus className="h-4 w-4 mr-2" />
                         Nuevo Vendedor
                     </Button>
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg border border-border">
+                <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar por nombre, email..."
+                        className="pl-9"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por estado:</span>
+                    <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="todos">Todos</SelectItem>
+                            <SelectItem value="activo">Activos</SelectItem>
+                            <SelectItem value="inactivo">Inactivos (Desactivados)</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
@@ -358,15 +408,11 @@ export function UsuariosModule() {
                         <div className="flex justify-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
-                    ) : sellers.length === 0 ? (
+                    ) : filteredSellers.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                            <h3 className="text-lg font-medium mb-1">No hay usuarios</h3>
-                            <p className="text-sm text-muted-foreground mb-4">Añade tu primer vendedor para comenzar</p>
-                            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Añadir Vendedor
-                            </Button>
+                            <h3 className="text-lg font-medium mb-1">No se encontraron usuarios</h3>
+                            <p className="text-sm text-muted-foreground mb-4">Intenta ajustar tu búsqueda o filtros.</p>
                         </div>
                     ) : (
                         <Table>
@@ -385,10 +431,10 @@ export function UsuariosModule() {
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
                                                 <div
-                                                    className={`h-2.5 w-2.5 rounded-full ${isOnline(seller.last_seen_at) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300'}`}
-                                                    title={isOnline(seller.last_seen_at) ? "En línea" : "Desconectado"}
+                                                    className={`h-2.5 w-2.5 rounded-full ${seller.estado === 'inactivo' ? 'bg-red-400' : (isOnline(seller.last_seen_at) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300')}`}
+                                                    title={seller.estado === 'inactivo' ? "Usuario Desactivado" : (isOnline(seller.last_seen_at) ? "En línea" : "Desconectado")}
                                                 />
-                                                {seller.nombre}
+                                                <span className={seller.estado === 'inactivo' ? "text-muted-foreground line-through" : ""}>{seller.nombre}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">{seller.email}</TableCell>
@@ -444,7 +490,7 @@ export function UsuariosModule() {
                                                             }}
                                                         >
                                                             <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                            Activar Usuario
+                                                            Reactivar Usuario
                                                         </DropdownMenuItem>
                                                     )}
                                                     <DropdownMenuItem
@@ -479,11 +525,11 @@ export function UsuariosModule() {
 
             {/* Pagination Footer */}
             {
-                sellers.length > ITEMS_PER_PAGE && (
+                filteredSellers.length > ITEMS_PER_PAGE && (
                     <div className="flex items-center justify-between pt-4 border-t mt-4">
                         <p className="text-sm text-muted-foreground">
                             Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                            {Math.min(currentPage * ITEMS_PER_PAGE, sellers.length)} de {sellers.length} usuarios
+                            {Math.min(currentPage * ITEMS_PER_PAGE, filteredSellers.length)} de {filteredSellers.length} usuarios
                         </p>
                         <div className="flex items-center gap-2">
                             <Button

@@ -24,7 +24,7 @@ function LoginForm() {
     const [showTerminatedModal, setShowTerminatedModal] = useState(false)
     const searchParams = useSearchParams()
 
-    // Check for "terminated" signal on mount
+    // Check for "terminated" signal on mount and clear stale Supabase State
     useState(() => {
         if (typeof window !== 'undefined') {
             const isTerminatedLocal = localStorage.getItem("crm_is_terminated") === 'true'
@@ -32,6 +32,22 @@ function LoginForm() {
 
             if (isTerminatedLocal || errorParam === 'force_logout') {
                 setShowTerminatedModal(true)
+            }
+
+            // --- FIX FOR 404/REFRESH TOKEN ISSUE ---
+            // Clear any stale Supabase tokens that might cause "Invalid Refresh Token" errors
+            // or hydration issues.
+            try {
+                const keysToRemove = []
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i)
+                    if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+                        keysToRemove.push(key)
+                    }
+                }
+                keysToRemove.forEach(k => localStorage.removeItem(k))
+            } catch (e) {
+                // Ignore errors
             }
         }
     })
