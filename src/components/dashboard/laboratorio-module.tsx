@@ -141,8 +141,8 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
                                 <div key={idx} className="px-4 py-2 flex items-center justify-between hover:bg-white transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="h-6 w-1 bg-blue-500 rounded-full" />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold text-zinc-800 truncate" title={`${item.ot || 'S/N'} - ${item.proyecto || item.cliente_nombre || 'Sin nombre'}`}>
+                                        <div className="min-w-0 flex-1 overflow-hidden">
+                                            <p className="text-xs font-bold text-zinc-800 truncate block max-w-full" title={`${item.ot || 'S/N'} - ${item.proyecto || item.cliente_nombre || 'Sin nombre'}`}>
                                                 OT {item.ot || 'S/N'} - {item.proyecto || item.cliente_nombre || 'Sin nombre'}
                                             </p>
                                             <p className="text-[10px] text-zinc-500 truncate" title={`Estado: ${item.estado_trabajo} • Ensayo: ${item.descripcion_servicio || 'N/A'}`}>
