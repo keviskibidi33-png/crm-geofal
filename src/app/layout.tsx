@@ -11,9 +11,20 @@ const inter = Inter({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Geofal CRM - Sistema de Gestión",
-  description: "Geofal CRM para administración de clientes y cotizaciones",
-  generator: "v0.app",
+  title: "Geofal CRM - Sistema de Gestión Inteligente",
+  description: "Plataforma centralizada de Geofal para la gestión técnica, comercial y administrativa de proyectos de ingeniería.",
+  keywords: ["CRM", "Geofal", "Ingeniería", "Gestión de Proyectos", "Laboratorio"],
+  authors: [{ name: "Geofal Perú" }],
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  robots: "noindex, nofollow", // CRM internals usually shouldn't be indexed
+  openGraph: {
+    title: "Geofal CRM",
+    description: "Sistema de Gestión técnica y comercial",
+    url: "https://crm.geofal.com.pe",
+    siteName: "Geofal CRM",
+    locale: "es_PE",
+    type: "website",
+  },
 }
 
 export default function RootLayout({

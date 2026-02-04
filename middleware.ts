@@ -10,6 +10,13 @@ export async function middleware(req: NextRequest) {
     const res = NextResponse.next()
     const { pathname } = req.nextUrl
 
+    // SECURITY HEADERS
+    res.headers.set('X-Frame-Options', 'DENY') // Prevent clickjacking
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
     // 1. Define Public Routes
     const isPublicRoute =
         pathname === '/login' ||

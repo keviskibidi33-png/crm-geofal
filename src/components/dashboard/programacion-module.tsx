@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Clock, CheckCircle2, AlertTriangle, FlaskConical, Briefcase, Building2, ChevronRight, BarChart3, X } from "lucide-react"
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { supabase } from "@/lib/supabaseClient"
 
 interface ProgramacionModuleProps {
     user: User
@@ -19,9 +20,9 @@ type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { data, isLoading, realtimeStatus, refetch } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
+    const [accessToken, setAccessToken] = useState<string | null>(null)
 
     // === AUTO-SELECT VIEW BASED ON ROLE ===
-    // Map role_ids directly to views (based on database values)
     const roleToViewMap: Record<string, ViewMode> = {
         'admin': 'ADMIN',
         'administrativo': 'ADMIN',
@@ -30,47 +31,23 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         'laboratorio_tipificador': 'LAB'
     }
 
-    // Normalize role for comparison (remove accents, lowercase)
     const rNorm = user.role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
-    // DEBUG: Log the role value to help diagnose
-    console.log('[ProgramacionModule] user.role:', user.role, '| normalized:', rNorm)
-
-    // Determine initial mode based on user role
     const getInitialMode = (): ViewMode => {
-        // First: Try exact match from database role_ids
-        if (roleToViewMap[rNorm]) {
-            console.log('[ProgramacionModule] Exact match found:', rNorm, '->', roleToViewMap[rNorm])
-            return roleToViewMap[rNorm]
-        }
-
-        // Fallback: Pattern matching for variations
-        // Admin/Gerencia/Administrativo → ADMIN view
-        if (rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')) {
-            console.log('[ProgramacionModule] Pattern match (admin):', rNorm)
-            return 'ADMIN'
-        }
-        // Comercial/Vendedor/Asesor → COMERCIAL view
-        if (rNorm.includes('comercial') || rNorm.includes('vendedor') || rNorm.includes('asesor') || rNorm.includes('vendor') || rNorm.includes('ventas')) {
-            console.log('[ProgramacionModule] Pattern match (comercial):', rNorm)
-            return 'COMERCIAL'
-        }
-        // Laboratory or any other → LAB view (default)
-        console.log('[ProgramacionModule] Default to LAB for role:', rNorm)
+        if (roleToViewMap[rNorm]) return roleToViewMap[rNorm]
+        if (rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')) return 'ADMIN'
+        if (rNorm.includes('comercial') || rNorm.includes('vendedor') || rNorm.includes('asesor') || rNorm.includes('vendor') || rNorm.includes('ventas')) return 'COMERCIAL'
         return 'LAB'
     }
 
     const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
 
-
     const handleIframeUpdate = useCallback(() => {
         refetch()
     }, [refetch])
 
-
     const { sendMessage } = useProgramacionIframe(handleIframeUpdate)
 
-    // KPI Calculations
     const kpis = useMemo(() => {
         const total = data.length
         const pendientes = data.filter(r => r.estado_trabajo === 'PENDIENTE').length
@@ -115,8 +92,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         }
     }
 
-    const openModule = (mode: ViewMode) => {
+    const openModule = async (mode: ViewMode) => {
         setCurrentMode(mode)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+            setAccessToken(session.access_token)
+        }
         setIsOpen(true)
     }
 
@@ -163,10 +144,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://localhost:8472')
 
-    // REDO PERMISSIONS: Simplified and absolute logic (rNorm already defined above)
-    // Inclusive matching: admin, gerente, administrativo, director, jefe, etc.
     const isAdmin = rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('administra') || rNorm.includes('direc') || rNorm.includes('jefe')
-
 
     const modeToPermissionKey: Record<string, string> = {
         'LAB': 'laboratorio',
@@ -175,21 +153,35 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
     const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
 
-    // For Tipificador, we force allow if it's laboratory mode and not a reader
     const isLabEdit = currentMode === 'LAB' && rNorm.includes('laboratorio') && !rNorm.includes('lector')
+    const isSuperAdmin = rNorm === 'admin'
 
-    // canWrite is true if: isAdmin, or it's a lab person in lab mode, or they have the specific write permission
-    const canWrite = isAdmin || isLabEdit ||
-        user.permissions?.[permissionKey]?.write ||
-        user.permissions?.['programacion']?.write || false
+    // Final write permission: 
+    // - Superadmins always can write
+    // - Other admins can write to non-LAB views
+    // - Lab staff can write to LAB
+    // - Other roles follow their explicit permissions
+    let canWrite = isSuperAdmin || isLabEdit
+
+    if (!canWrite) {
+        if (currentMode === 'LAB') {
+            // Strict block for LAB for everyone else
+            canWrite = user.permissions?.[permissionKey]?.write || false
+        } else {
+            // Normal admin/explicit logic for COM/ADMIN
+            canWrite = isAdmin ||
+                user.permissions?.[permissionKey]?.write ||
+                user.permissions?.['programacion']?.write || false
+        }
+    }
 
     const encodedRole = encodeURIComponent(user.role)
-    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}&v=${Date.now()}`
+    const tokenParam = accessToken ? `&token=${accessToken}` : ""
+    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${Date.now()}`
 
     return (
         <>
             <div className="flex flex-col h-full space-y-6 p-6 bg-zinc-50/50 overflow-y-auto">
-                {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Dashboard de Operaciones</h1>
@@ -203,7 +195,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                     </div>
                 </div>
 
-                {/* Global KPI Strip */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white rounded-lg border border-zinc-100 shadow-sm flex items-center justify-between">
                         <div>
@@ -237,7 +228,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
                 <div className="h-px bg-zinc-200" />
 
-                {/* Active Modules List */}
                 <div className="space-y-3">
                     <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Módulos de Gestión</h2>
                     <ModuleRow mode="LAB" />
@@ -246,14 +236,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                 </div>
             </div>
 
-            {/* Modal con Iframe */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent
                     style={{ backgroundColor: '#fff' }}
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={() => setIsOpen(false)}
                 >
-                    {/* Header minimalista */}
                     <div className="flex-none flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200">
                         <div className="flex items-center gap-3">
                             <Icon className="w-5 h-5 text-blue-600" />
@@ -269,7 +257,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                         </DialogPrimitive.Close>
                     </div>
 
-                    {/* Iframe */}
                     <div className="flex-1 min-h-0 relative">
                         <iframe
                             data-programacion-iframe
