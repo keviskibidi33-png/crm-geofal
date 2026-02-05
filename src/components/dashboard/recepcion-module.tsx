@@ -67,7 +67,7 @@ export function RecepcionModule() {
     }
 
     const handleDownloadExcel = (id: number) => {
-        const API_URL = process.env.NEXT_PUBLIC_RECEPCION_URL || "https://recepcion.geofal.com.pe"
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
         window.open(`${API_URL}/api/ordenes/${id}/excel`, '_blank')
     }
 

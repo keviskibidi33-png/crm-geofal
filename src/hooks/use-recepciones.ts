@@ -60,8 +60,8 @@ export function useRecepciones() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Using production URL as default fallback
-    const API_URL = process.env.NEXT_PUBLIC_RECEPCION_BACKEND_URL || "https://recepcion.geofal.com.pe"
+    // Unified Backend URL
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
     const fetchRecepciones = useCallback(async () => {
         setLoading(true)
