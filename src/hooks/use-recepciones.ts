@@ -60,8 +60,8 @@ export function useRecepciones() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Using localhost:8002 directly for now, or via environment variable if set in CRM
-    const API_URL = process.env.NEXT_PUBLIC_CRM_API_URL || "http://localhost:8002"
+    // Using production URL as default fallback
+    const API_URL = process.env.NEXT_PUBLIC_RECEPCION_BACKEND_URL || "https://recepcion.geofal.com.pe"
 
     const fetchRecepciones = useCallback(async () => {
         setLoading(true)
