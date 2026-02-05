@@ -13,6 +13,7 @@ import { ProyectosModule } from "@/components/dashboard/proyectos-module"
 import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
 import { ProgramacionModule } from "@/components/dashboard/programacion-module"
 import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
+import { RecepcionModule } from "@/components/dashboard/recepcion-module"
 import { ComercialModule } from "@/components/dashboard/comercial-module"
 import { AdministracionModule } from "@/components/dashboard/administracion-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
@@ -146,6 +147,8 @@ export default function DashboardPage() {
         return <ProgramacionModule user={dashboardUser} />
       case "laboratorio":
         return <LaboratorioModule user={dashboardUser} />
+      case "recepcion":
+        return <RecepcionModule />
       case "comercial":
         return <ComercialModule user={dashboardUser} />
       case "administracion":

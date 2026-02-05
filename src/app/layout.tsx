@@ -15,7 +15,6 @@ export const metadata: Metadata = {
   description: "Plataforma centralizada de Geofal para la gestión técnica, comercial y administrativa de proyectos de ingeniería.",
   keywords: ["CRM", "Geofal", "Ingeniería", "Gestión de Proyectos", "Laboratorio"],
   authors: [{ name: "Geofal Perú" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   robots: "noindex, nofollow", // CRM internals usually shouldn't be indexed
   openGraph: {
     title: "Geofal CRM",
@@ -26,6 +25,13 @@ export const metadata: Metadata = {
     type: "website",
   },
 }
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 
 export default function RootLayout({
   children,

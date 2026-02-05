@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -27,6 +27,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
+  { id: "recepcion", label: "Recepción", icon: TestTube, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
@@ -42,7 +43,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
     // 1. If user is admin, show everything
-    if (user.role === "admin") return true
+    if (user.role === "admin" || user.role === "admin_general") return true
 
     // 2. If module has specific permission key, check it
     if (user.permissions && user.permissions[module.id]) {
@@ -127,7 +128,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user }: Sideba
                   variant="outline"
                   className={cn(
                     "text-[10px] h-4 mt-1 px-1.5 text-center leading-none",
-                    user.role === "admin"
+                    user.role === "admin" || user.role === "admin_general"
                       ? "border-primary/50 text-primary"
                       : "border-muted-foreground/50 text-muted-foreground",
                   )}
