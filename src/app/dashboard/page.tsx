@@ -12,6 +12,7 @@ import { UsuariosModule } from "@/components/dashboard/usuarios-module"
 import { ProyectosModule } from "@/components/dashboard/proyectos-module"
 import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
 import { ProgramacionModule } from "@/components/dashboard/programacion-module"
+import { VerificacionMuestrasModule } from "@/components/dashboard/verificacion-muestras-module"
 import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
 import { RecepcionModule } from "@/components/dashboard/recepcion-module"
 import { ComercialModule } from "@/components/dashboard/comercial-module"
@@ -171,6 +172,8 @@ export default function DashboardPage() {
             <AuditoriaModule user={dashboardUser} />
           </RoleGuard>
         )
+      case "verificacion_muestras":
+        return <VerificacionMuestrasModule />
       case "configuracion":
         return <ConfiguracionModule />
       default:
