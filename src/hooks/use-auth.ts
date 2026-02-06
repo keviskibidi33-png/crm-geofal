@@ -69,7 +69,7 @@ async function fetchProfile(userId: string) {
 
 async function fetchRolePermissions(roleId: string): Promise<RolePermissions | null> {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
         const response = await fetch(`${apiUrl}/roles`)
         if (!response.ok) return null
         const roles = await response.json()
@@ -318,7 +318,7 @@ export function useAuth() {
         }
 
         const sendHeartbeat = async () => {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
             try {
                 await fetch(`${apiUrl}/users/heartbeat`, {
                     method: 'POST',

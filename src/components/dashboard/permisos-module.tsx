@@ -72,7 +72,7 @@ export function PermisosModule() {
         setLoading(true)
         try {
             // Fetch from your FastAPI backend
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/roles`)
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
             if (!res.ok) throw new Error("Failed to fetch roles")
             const data = await res.json()
             setRoles(data)
@@ -149,7 +149,7 @@ export function PermisosModule() {
         if (!activeRole) return
         setSaving(true)
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/roles/${activeRole.role_id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles/${activeRole.role_id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

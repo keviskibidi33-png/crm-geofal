@@ -79,7 +79,7 @@ export function UsuariosModule() {
 
     const fetchRoles = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/roles`)
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
             if (res.ok) {
                 const data = await res.json()
                 setAvailableRoles(data)
