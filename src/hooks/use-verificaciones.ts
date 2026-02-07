@@ -68,11 +68,32 @@ export function useVerificaciones() {
         }
     }
 
+    const fetchVerificacion = useCallback(async (id: number) => {
+        try {
+            const res = await fetch(`${API_URL}/api/verificacion/${id}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            })
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}))
+                throw new Error(errorData.detail || `Error fetching verificacion: ${res.status}`)
+            }
+            return await res.json()
+        } catch (err: any) {
+            console.error(err)
+            toast.error(err.message || "Error cargando detalle")
+            return null
+        }
+    }, [API_URL])
+
     return {
         verificaciones,
         loading,
         error,
         fetchVerificaciones,
+        fetchVerificacion,
         deleteVerificacion
     }
 }
