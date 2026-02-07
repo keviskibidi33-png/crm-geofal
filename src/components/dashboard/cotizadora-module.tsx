@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateQuoteDialog } from "./create-quote-dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { QuotePreviewPanel } from "./quote-preview-panel"
-import type { User } from "@/app/page"
+import { User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"

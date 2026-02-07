@@ -17,7 +17,7 @@ export function VerificacionMuestrasModule() {
     const [iframePath, setIframePath] = useState("/nuevo") // Default route for iframe
     const [refreshKey, setRefreshKey] = useState(0)
 
-    const FRONTEND_URL = process.env.NEXT_PUBLIC_VERIFICACION_FRONTEND_URL || "http://localhost:3005"
+    const FRONTEND_URL = process.env.NEXT_PUBLIC_VERIFICACION_FRONTEND_URL || "https://verificacion.geofal.com.pe"
 
     useEffect(() => {
         fetchVerificaciones()
