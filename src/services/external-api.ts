@@ -1,6 +1,6 @@
 import { ProgramacionServicio } from "@/types/programacion"
 
-const API_BASE_URL = "https://api.geofal.com.pe/v1"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 class ProgramacionApiError extends Error {
     constructor(public message: string, public status: number) {

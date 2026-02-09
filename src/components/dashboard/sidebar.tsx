@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -29,6 +29,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "recepcion", label: "Recepción", icon: TestTube, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Muestras", icon: ClipboardList, adminOnly: true },
+  { id: "compresion", label: "Compresión", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
@@ -36,6 +37,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "permisos", label: "Permisos", icon: Shield, adminOnly: true },
   { id: "auditoria", label: "Auditoría", icon: Activity, adminOnly: true },
   { id: "configuracion", label: "Configuración", icon: Settings },
+  { id: "tracing", label: "Seguimiento (Tracing)", icon: Activity },
 ]
 
 

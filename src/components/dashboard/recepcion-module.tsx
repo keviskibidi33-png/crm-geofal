@@ -68,7 +68,7 @@ export function RecepcionModule() {
 
     const handleDownloadExcel = (id: number) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-        window.open(`${API_URL}/api/ordenes/${id}/excel`, '_blank')
+        window.open(`${API_URL}/api/recepcion/${id}/excel`, '_blank')
     }
 
     const formatDate = (dateStr?: string) => {
@@ -210,7 +210,7 @@ export function RecepcionModule() {
                     </DialogHeader>
                     <div className="w-full h-full relative">
                         <iframe
-                            src={`${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "https://recepcion.geofal.com.pe"}/migration/nueva-recepcion`}
+                            src={`${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion`}
                             className="w-full h-full border-none"
                             title="Nueva Recepción"
                         />

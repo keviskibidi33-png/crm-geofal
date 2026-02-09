@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing"
 
 export interface Permission {
     read: boolean
@@ -131,7 +131,8 @@ async function buildUser(session: any): Promise<User> {
                 usuarios: { read: true, write: true, delete: true },
                 auditoria: { read: true, write: true, delete: true },
                 permisos: { read: true, write: true, delete: true },
-                verificacion_muestras: { read: true, write: true, delete: true }
+                verificacion_muestras: { read: true, write: true, delete: true },
+                compresion: { read: true, write: true, delete: true }
             }
         }
 

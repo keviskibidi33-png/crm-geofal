@@ -142,7 +142,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const iframeUrl = process.env.NEXT_PUBLIC_PROGRAMACION_URL ||
         (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
             ? 'https://programacion.geofal.com.pe'
-            : 'http://localhost:8472')
+            : 'http://127.0.0.1:3001')
 
     const isAdmin = rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('administra') || rNorm.includes('direc') || rNorm.includes('jefe')
 

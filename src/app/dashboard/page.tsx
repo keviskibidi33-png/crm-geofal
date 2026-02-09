@@ -13,10 +13,12 @@ import { ProyectosModule } from "@/components/dashboard/proyectos-module"
 import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
 import { ProgramacionModule } from "@/components/dashboard/programacion-module"
 import { VerificacionMuestrasModule } from "@/components/dashboard/verificacion-muestras-module"
+import { CompresionModule } from "@/components/dashboard/compresion-module"
 import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
 import { RecepcionModule } from "@/components/dashboard/recepcion-module"
 import { ComercialModule } from "@/components/dashboard/comercial-module"
 import { AdministracionModule } from "@/components/dashboard/administracion-module"
+import { TracingModule } from "@/components/dashboard/tracing-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -174,8 +176,12 @@ export default function DashboardPage() {
         )
       case "verificacion_muestras":
         return <VerificacionMuestrasModule />
+      case "compresion":
+        return <CompresionModule />
       case "configuracion":
         return <ConfiguracionModule />
+      case "tracing":
+        return <TracingModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

@@ -67,7 +67,7 @@ export function useRecepciones() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_URL}/api/ordenes/?limit=100`, {
+            const res = await fetch(`${API_URL}/api/recepcion/?limit=100`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export function useRecepciones() {
             // I recall reviewing `recepciones.py` content via tool output and it had POST and GET.
             // I should probably add DELETE logic if I want to support native delete.
             // For now, I'll stub it or assume it exists/will be added.
-            const res = await fetch(`${API_URL}/api/ordenes/${id}`, {
+            const res = await fetch(`${API_URL}/api/recepcion/${id}`, {
                 method: 'DELETE'
             })
             if (!res.ok) throw new Error("Failed to delete")

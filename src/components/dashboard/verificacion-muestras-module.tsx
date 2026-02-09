@@ -24,7 +24,7 @@ export function VerificacionMuestrasModule() {
     const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [token, setToken] = useState<string | null>(null)
 
-    const FRONTEND_URL = process.env.NEXT_PUBLIC_VERIFICACION_FRONTEND_URL || "https://verificacion.geofal.com.pe"
+    const FRONTEND_URL = process.env.NEXT_PUBLIC_VERIFICACION_FRONTEND_URL || "http://127.0.0.1:5174"
 
     useEffect(() => {
         fetchVerificaciones()
