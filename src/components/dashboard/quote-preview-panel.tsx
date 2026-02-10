@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, Eye, FileText, Building2, User2, Package, Clock, CheckCircle2, XCircle, AlertCircle, ChevronDown, Loader2, Mail, Phone, Trash2 } from "lucide-react"
+import { Download, Eye, FileText, Building2, User2, Package, Clock, CheckCircle2, XCircle, AlertCircle, ChevronDown, Loader2, Mail, Phone, Trash2, UploadCloud } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -20,6 +20,7 @@ interface QuotePreviewPanelProps {
     onViewFull: (quote: Quote) => void
     onEdit: (quote: Quote) => void
     onDelete: (quote: Quote) => void
+    onUpload: (quote: Quote) => void
     isUpdating?: boolean
 }
 
@@ -53,6 +54,7 @@ export function QuotePreviewPanel({
     onViewFull,
     onEdit,
     onDelete,
+    onUpload,
     isUpdating = false
 }: QuotePreviewPanelProps) {
     if (!quote) {
@@ -313,15 +315,33 @@ export function QuotePreviewPanel({
                     </Button>
                 </div>
 
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full h-9 text-xs gap-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
-                    onClick={() => onEdit(quote)}
-                >
-                    <FileText className="h-3.5 w-3.5" />
-                    Editar Cotización
-                </Button>
+                <div className="flex gap-2">
+                     <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 text-xs gap-1.5 bg-background hover:bg-muted"
+                        onClick={() => onUpload(quote)}
+                        title="Reemplazar archivo (PDF/Excel)"
+                        disabled={isUpdating}
+                    >
+                        {isUpdating ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <UploadCloud className="h-3.5 w-3.5" />
+                        )}
+                        {isUpdating ? "Subiendo..." : "Subir Archivo"}
+                    </Button>
+                    
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1 h-9 text-xs gap-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                        onClick={() => onEdit(quote)}
+                    >
+                        <FileText className="h-3.5 w-3.5" />
+                        Editar
+                    </Button>
+                </div>
 
                 <div className="flex gap-2">
                     <Button

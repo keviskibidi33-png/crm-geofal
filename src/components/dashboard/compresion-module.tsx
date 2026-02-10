@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface EnsayoCompresion {
     id: number
@@ -29,8 +30,8 @@ export function CompresionModule() {
     const [iframePath, setIframePath] = useState("/compresion")
     const [refreshKey, setRefreshKey] = useState(0)
     const [token, setToken] = useState<string | null>(null)
-    const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
-    const [loadingRecepcion, setLoadingRecepcion] = useState(false)
+    const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
+    const [loadingEnsayo, setLoadingEnsayo] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
 
     const FRONTEND_URL = process.env.NEXT_PUBLIC_COMPRESION_FRONTEND_URL || "http://127.0.0.1:5175"
@@ -102,20 +103,20 @@ export function CompresionModule() {
     }
 
     const handleViewDetails = async (id: number) => {
-        setLoadingRecepcion(true)
+        setLoadingEnsayo(true)
         setIsDetailOpen(true)
         try {
-            const response = await fetch(`${API_URL}/api/recepcion/${id}`)
+            const response = await fetch(`${API_URL}/api/compresion/${id}`)
             if (response.ok) {
                 const data = await response.json()
-                setSelectedRecepcion(data)
+                setSelectedEnsayo(data)
             } else {
-                toast.error("No se pudo cargar el detalle de la recepción")
+                toast.error("No se pudo cargar el detalle del ensayo")
             }
         } catch (error) {
             toast.error("Error al cargar detalles")
         } finally {
-            setLoadingRecepcion(false)
+            setLoadingEnsayo(false)
         }
     }
 
@@ -209,10 +210,9 @@ export function CompresionModule() {
                                                 variant="ghost"
                                                 size="icon"
                                                 title="Ver Detalle"
-                                                onClick={() => item.recepcion_id && handleViewDetails(item.recepcion_id)}
-                                                disabled={!item.recepcion_id}
+                                                onClick={() => handleViewDetails(item.id)}
                                             >
-                                                <Eye className={`h-4 w-4 ${item.recepcion_id ? 'text-slate-600' : 'text-slate-300'}`} />
+                                                <Eye className="h-4 w-4 text-slate-600" />
                                             </Button>
 
                                             {/* Edit */}
@@ -271,127 +271,119 @@ export function CompresionModule() {
 
             {/* Reception Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col p-6 bg-background rounded-xl shadow-2xl border">
-                    <DialogHeader className="mb-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <DialogTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                    <FileText className="h-6 w-6 text-indigo-600" />
-                                    Detalle de Recepción
-                                </DialogTitle>
-                                <DialogDescription className="text-slate-500 mt-1">
-                                    Información completa de la recepción {selectedRecepcion?.numero_recepcion}
-                                </DialogDescription>
-                            </div>
-                        </div>
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileText className="h-5 w-5 text-primary" />
+                            Detalle de Ensayo de Compresión
+                        </DialogTitle>
+                        <DialogDescription>
+                            Información completa del ensayo OT {selectedEnsayo?.numero_ot}
+                        </DialogDescription>
                     </DialogHeader>
 
-                    {loadingRecepcion ? (
+                    {loadingEnsayo ? (
                         <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
                             <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
-                            <p className="text-slate-500 font-medium">Cargando datos de la recepción...</p>
+                            <p className="text-slate-500 font-medium">Cargando datos del ensayo...</p>
                         </div>
-                    ) : selectedRecepcion ? (
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
-                            {/* Project Info Card */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
-                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        Información del Cliente
-                                    </h4>
-                                    <div className="space-y-2.5">
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Cliente</p>
-                                            <p className="text-sm font-semibold text-slate-800">{selectedRecepcion.cliente || 'No especificado'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Proyecto</p>
-                                            <p className="text-sm font-semibold text-slate-800">{selectedRecepcion.proyecto || 'No especificado'}</p>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">OT</p>
-                                                <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedRecepcion.numero_ot}</p>
+                    ) : selectedEnsayo ? (
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-6 space-y-6">
+                                {/* Ensayo Info Card */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Cabecera del Ensayo
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número OT</p>
+                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedEnsayo.numero_ot}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número Recepción</p>
+                                                    <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.numero_recepcion}</p>
+                                                </div>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Fecha Recepción</p>
-                                                <p className="text-sm font-semibold text-slate-800">{selectedRecepcion.fecha_recepcion}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Equipo Utilizado</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.codigo_equipo || 'No especificado'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Notas y Adicionales
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Otros Detalles</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.otros || 'Sin detalles'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Nota</p>
+                                                <p className="text-xs text-slate-600 italic line-clamp-2">{selectedEnsayo.nota || 'Sin observaciones'}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
-                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        Ubicación y Contacto
-                                    </h4>
-                                    <div className="space-y-2.5">
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Ubicación</p>
-                                            <p className="text-sm font-semibold text-slate-800">{selectedRecepcion.ubicacion || 'No especificada'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Solicitante</p>
-                                            <p className="text-sm font-semibold text-slate-800">{selectedRecepcion.solicitante || 'No especificado'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Observaciones</p>
-                                            <p className="text-xs text-slate-600 italic line-clamp-2">{selectedRecepcion.observaciones || 'Sin observaciones'}</p>
-                                        </div>
+                                {/* Items Table Section */}
+                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                                            Resultados de Compresión ({selectedEnsayo.items?.length || 0})
+                                        </h4>
+                                        <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedEnsayo.estado}</Badge>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Samples Table Section */}
-                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
-                                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
-                                        Muestras de Concreto ({selectedRecepcion.muestras?.length || 0})
-                                    </h4>
-                                    <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedRecepcion.estado}</Badge>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <Table className="min-w-full">
-                                        <TableHeader className="bg-slate-50/50">
-                                            <TableRow>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">Cód. LEM</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">F. Rotura</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">Resistencia</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">Identificación</TableHead>
-                                                <TableHead className="text-[9px] font-black uppercase h-8">Estructura</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {selectedRecepcion.muestras?.map((m: any) => (
-                                                <TableRow key={m.id} className="hover:bg-slate-50/50 transition-colors h-10">
-                                                    <TableCell className="text-xs font-bold text-center py-2">{m.item_numero}</TableCell>
-                                                    <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_muestra_lem}</TableCell>
-                                                    <TableCell className="text-xs font-semibold py-2">{m.fecha_rotura}</TableCell>
-                                                    <TableCell className="text-xs font-bold text-green-700 py-2">{m.fc_kg_cm2} kg/cm²</TableCell>
-                                                    <TableCell className="text-xs text-slate-600 py-2">{m.identificacion_muestra}</TableCell>
-                                                    <TableCell className="text-xs text-slate-600 py-2">{m.estructura}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {(!selectedRecepcion.muestras || selectedRecepcion.muestras.length === 0) && (
+                                    <div className="overflow-x-auto">
+                                        <Table className="min-w-full">
+                                            <TableHeader className="bg-slate-50/50">
                                                 <TableRow>
-                                                    <TableCell colSpan={6} className="h-16 text-center text-xs text-slate-400 italic">No hay muestras registradas</TableCell>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Cód. LEM</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fecha Ensayo</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Carga Máx (kN)</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fractura</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Realizado por</TableHead>
                                                 </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedEnsayo.items?.map((m: any) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/50 transition-colors h-10">
+                                                        <TableCell className="text-xs font-bold text-center py-2">{m.item}</TableCell>
+                                                        <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem}</TableCell>
+                                                        <TableCell className="text-xs font-semibold py-2">
+                                                            {m.fecha_ensayo ? new Date(m.fecha_ensayo).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima} kN</TableCell>
+                                                        <TableCell className="text-xs text-slate-600 py-2">{m.tipo_fractura}</TableCell>
+                                                        <TableCell className="text-[10px] text-slate-500 py-2">{m.realizado}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {(!selectedEnsayo.items || selectedEnsayo.items.length === 0) && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="h-16 text-center text-xs text-slate-400 italic">No hay resultados registrados</TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </ScrollArea>
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
-                            <p className="text-slate-400 italic">No se encontraron datos para esta recepción.</p>
+                            <p className="text-slate-400 italic">No se encontraron datos para este ensayo.</p>
                         </div>
                     )}
 
-                    <DialogFooter className="mt-6 border-t pt-4">
+                    <DialogFooter className="p-6 border-t shrink-0 bg-muted/5 gap-2 sm:gap-0">
                         <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="px-8 font-bold text-slate-700">
                             Cerrar
                         </Button>

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X } from "lucide-react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X, UploadCloud } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -135,6 +135,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [quoteToUpload, setQuoteToUpload] = useState<Quote | null>(null)
   // const { toast } = useToast() // Replaced by Sonner
   const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
 
@@ -335,6 +338,69 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       toast.error("Error al eliminar", {
         description: err.message,
       })
+    }
+  }
+
+  const handleUploadClick = (quote: Quote) => {
+    setQuoteToUpload(quote)
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !quoteToUpload) return
+
+    // Validar tipo de archivo
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (!['xlsx', 'xls', 'pdf'].includes(ext || '')) {
+      toast.error("Tipo de archivo no permitido", {
+        description: "Solo se permiten archivos Excel (.xlsx, .xls) o PDF (.pdf)"
+      })
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    setUploadingFile(true)
+    const toastId = toast.loading("Subiendo archivo...")
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const res = await fetch(`${baseUrl}/${quoteToUpload.id}/manual-upload`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.detail || "Error al subir el archivo")
+      }
+
+      toast.success("Archivo reemplazado exitosamente", { id: toastId })
+      
+      logAction({
+        user_id: user.id,
+        user_name: user.name,
+        action: `Subió manual / Reemplazó archivo cotización: ${quoteToUpload.numero}`,
+        module: "COTIZADORA",
+        details: { quote_id: quoteToUpload.id, filename: file.name }
+      })
+
+      fetchQuotes() // Recargar la lista
+    } catch (error: any) {
+      toast.error("Error al subir archivo", {
+        id: toastId,
+        description: error.message
+      })
+    } finally {
+      setUploadingFile(false)
+      setQuoteToUpload(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
     }
   }
 
@@ -623,6 +689,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
+                            onClick={(e) => { e.stopPropagation(); handleUploadClick(quote) }}
+                            title="Reemplazar archivo (PDF/Excel)"
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedQuote(quote);
@@ -656,7 +731,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             onViewFull={openViewDialog}
             onDelete={(quote) => { setPreviewQuote(quote); setIsDeleteConfirmOpen(true) }}
             onEdit={(quote) => { setSelectedQuote(quote); setIsDialogOpen(true) }}
-            isUpdating={updatingStatus}
+            onUpload={handleUploadClick}
+            isUpdating={updatingStatus || uploadingFile}
           />
         </SheetContent>
       </Sheet>
@@ -821,6 +897,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         description="Esta acción eliminará el registro de la vista del CRM. ¿Deseas continuar?"
         confirmText="Sí, eliminar"
         cancelText="No, cancelar"
+      />
+
+      {/* Hidden File Input for Manual Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".xlsx,.xls,.pdf"
+        onChange={handleFileChange}
       />
     </div>
   )

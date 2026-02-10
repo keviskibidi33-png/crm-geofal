@@ -232,7 +232,7 @@ export function RecepcionModule() {
                     </DialogHeader>
 
                     {selectedRecepcion && (
-                        <ScrollArea className="flex-1">
+                        <ScrollArea className="flex-1 min-h-0">
                             <div className="p-6 space-y-6">
                                 {/* Section 1: Project & Client */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/20">

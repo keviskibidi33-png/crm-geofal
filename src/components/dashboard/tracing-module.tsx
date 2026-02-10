@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useTracing, TracingSummary } from "@/hooks/use-tracing"
@@ -18,7 +18,10 @@ import {
     ChevronRight,
     Calendar,
     Download,
-    Printer
+    Printer,
+    Loader2,
+    FileSpreadsheet,
+    Building2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,6 +36,20 @@ export function TracingModule() {
     const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [isEnsayoDetailOpen, setIsEnsayoDetailOpen] = useState(false)
+    const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
+    const [loadingEnsayo, setLoadingEnsayo] = useState(false)
+    const [selectedEnsayoId, setSelectedEnsayoId] = useState<number | null>(null)
+
+    // Reception Detail State
+    const [isRecepcionDetailOpen, setIsRecepcionDetailOpen] = useState(false)
+    const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
+    const [loadingRecepcion, setLoadingRecepcion] = useState(false)
+
+    // Verification Detail State
+    const [isVerificDetailOpen, setIsVerificDetailOpen] = useState(false)
+    const [selectedVerific, setSelectedVerific] = useState<any>(null)
+    const [loadingVerific, setLoadingVerific] = useState(false)
 
     const componentRef = useRef<HTMLDivElement>(null)
 
@@ -50,6 +67,102 @@ export function TracingModule() {
     const handleOpenDetail = (numero: string) => {
         fetchTracing(numero)
         setIsDetailOpen(true)
+    }
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'completado': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+            case 'en_proceso': return <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />;
+            case 'por_implementar': return <Zap className="w-4 h-4 text-blue-400 opacity-60" />;
+            default: return <AlertCircle className="w-4 h-4 text-slate-300" />;
+        }
+    }
+
+    const handleDownloadRecepcionExcel = async (id: number, ot: string) => {
+        try {
+            const response = await fetch(`${API_URL}/api/recepcion/${id}/excel`)
+            if (response.ok) {
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `OT-${ot}.xlsx`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+            }
+        } catch (error) {
+            console.error("Error downloading excel:", error)
+        }
+    }
+
+    const handleDownloadVerificacionExcel = async (id: number) => {
+        try {
+            const response = await fetch(`${API_URL}/api/verificacion/${id}/exportar`)
+            if (response.ok) {
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `Verificacion-${id}.xlsx`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+            }
+        } catch (error) {
+            console.error("Error downloading excel:", error)
+        }
+    }
+
+    const handleViewEnsayoDetail = async (id: number) => {
+        setLoadingEnsayo(true)
+        setIsEnsayoDetailOpen(true)
+        setSelectedEnsayoId(id)
+        try {
+            const response = await fetch(`${API_URL}/api/compresion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedEnsayo(data)
+            }
+        } catch (error) {
+            console.error("Error loading ensayo detail:", error)
+        } finally {
+            setLoadingEnsayo(false)
+        }
+    }
+
+    const handleViewRecepcionDetail = async (id: number) => {
+        setLoadingRecepcion(true)
+        setIsRecepcionDetailOpen(true)
+        try {
+            const response = await fetch(`${API_URL}/api/recepcion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedRecepcion(data)
+            }
+        } catch (error) {
+            console.error("Error loading recepcion detail:", error)
+        } finally {
+            setLoadingRecepcion(false)
+        }
+    }
+
+    const handleViewVerificDetail = async (id: number) => {
+        setLoadingVerific(true)
+        setIsVerificDetailOpen(true)
+        try {
+            const response = await fetch(`${API_URL}/api/verificacion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedVerific(data)
+            }
+        } catch (error) {
+            console.error("Error loading verificacion detail:", error)
+        } finally {
+            setLoadingVerific(false)
+        }
     }
 
     const handleExportList = () => {
@@ -80,14 +193,7 @@ export function TracingModule() {
         document.body.removeChild(link)
     }
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'completado': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-            case 'en_proceso': return <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />;
-            case 'por_implementar': return <Zap className="w-4 h-4 text-blue-400 opacity-60" />;
-            default: return <AlertCircle className="w-4 h-4 text-slate-300" />;
-        }
-    }
+
 
     const getStatusBubble = (status: string, label: string) => {
         const colors = {
@@ -322,6 +428,39 @@ export function TracingModule() {
                                                                     Descargar Excel Original
                                                                 </Button>
                                                             )}
+                                                            {stage.key === 'recepcion' && stage.data?.recepcion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewRecepcionDetail(stage.data.recepcion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles de Recepción
+                                                                </Button>
+                                                            )}
+                                                            {stage.key === 'verificacion' && stage.data?.verificacion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewVerificDetail(stage.data.verificacion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles de Verificación
+                                                                </Button>
+                                                            )}
+                                                            {stage.key === 'compresion' && stage.data?.compresion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewEnsayoDetail(stage.data.compresion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles del Ensayo
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                         <Badge className={cn(
                                                             "text-[10px] uppercase px-2 py-0 border-none transition-colors",
@@ -342,6 +481,383 @@ export function TracingModule() {
                     </ScrollArea>
                 </DialogContent>
             </Dialog>
+
+            {/* Ensayo Detail Modal */}
+            <Dialog open={isEnsayoDetailOpen} onOpenChange={setIsEnsayoDetailOpen}>
+                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileText className="h-5 w-5 text-primary" />
+                            Detalle de Ensayo de Compresión
+                        </DialogTitle>
+                        <DialogDescription>
+                            Información completa del ensayo OT {selectedEnsayo?.numero_ot}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {loadingEnsayo ? (
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos del ensayo...</p>
+                        </div>
+                    ) : selectedEnsayo ? (
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-6 space-y-6">
+                                {/* Ensayo Info Card */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Cabecera del Ensayo
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número OT</p>
+                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedEnsayo.numero_ot}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número Recepción</p>
+                                                    <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.numero_recepcion}</p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Equipo Utilizado</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.codigo_equipo || 'No especificado'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Notas y Adicionales
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Otros Detalles</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.otros || 'Sin detalles'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Nota</p>
+                                                <p className="text-xs text-slate-600 italic line-clamp-2">{selectedEnsayo.nota || 'Sin observaciones'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Items Table Section */}
+                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                                            Resultados de Compresión ({selectedEnsayo.items?.length || 0})
+                                        </h4>
+                                        <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedEnsayo.estado}</Badge>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <Table className="min-w-full">
+                                            <TableHeader className="bg-slate-50/50">
+                                                <TableRow>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Cód. LEM</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fecha Ensayo</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Carga Máx (kN)</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fractura</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedEnsayo.items?.map((m: any) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/50 transition-colors h-10">
+                                                        <TableCell className="text-xs font-bold text-center py-2">{m.item}</TableCell>
+                                                        <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem}</TableCell>
+                                                        <TableCell className="text-xs font-semibold py-2">
+                                                            {m.fecha_ensayo ? new Date(m.fecha_ensayo).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima} kN</TableCell>
+                                                        <TableCell className="text-xs text-slate-600 py-2">{m.tipo_fractura}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {(!selectedEnsayo.items || selectedEnsayo.items.length === 0) && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="h-16 text-center text-xs text-slate-400 italic">No hay resultados registrados</TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para este ensayo.</p>
+                        </div>
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsEnsayoDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Reception Detail Modal */}
+            <Dialog open={isRecepcionDetailOpen} onOpenChange={setIsRecepcionDetailOpen}>
+                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileSpreadsheet className="h-5 w-5 text-primary" />
+                            Detalle de Recepción Original
+                        </DialogTitle>
+                        <DialogDescription>
+                            Información completa de la OT {selectedRecepcion?.numero_ot}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {loadingRecepcion ? (
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos de recepción...</p>
+                        </div>
+                    ) : selectedRecepcion ? (
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-8 space-y-8">
+                                {/* Information Grid */}
+                                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente / Solicitante</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedRecepcion.cliente || '1111'}</p>
+                                                <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ruc || '1111'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Contacto</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.persona_contacto || '1111'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    {selectedRecepcion.email} • {selectedRecepcion.telefono}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Proyecto</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedRecepcion.proyecto || '1111'}</p>
+                                                <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ubicacion || '1111'}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Fechas</p>
+                                                    <p className="text-xs font-bold text-slate-700">Recepción: <span className="font-black">{selectedRecepcion.fecha_recepcion || '06/02/2026'}</span></p>
+                                                </div>
+                                                <div className="flex flex-col justify-end">
+                                                    <p className="text-xs font-bold text-slate-700">Conclusión Est.: <span className="font-black">{selectedRecepcion.fecha_estimada_culminacion || '13/02/2026'}</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Logistics Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Emisión de Informes</p>
+                                        <div className="flex gap-2">
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-[10px] font-black uppercase border-slate-200", selectedRecepcion.emision_fisica ? "bg-slate-100 text-slate-700" : "opacity-40")}>Físico</Badge>
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-[10px] font-black uppercase border-transparent", selectedRecepcion.emision_digital ? "bg-[#0070F3] text-white" : "opacity-40")}>Digital</Badge>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Entregado por</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.entregado_por || '1111'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Recibido por</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.recibido_por || '1111'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Muestras Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 text-[#0070F3] h-6 w-6 rounded-md flex items-center justify-center text-xs font-black">
+                                            {selectedRecepcion.muestras?.length || 0}
+                                        </div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Muestras Registradas</h3>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                                                    <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Nº</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Código LEM</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Identificación</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Estructura</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">F'c</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Moldeo</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Edad</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Rotura</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Densidad</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedRecepcion.muestras?.map((m: any, idx: number) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/30 transition-colors h-12">
+                                                        <TableCell className="text-xs font-bold text-slate-400 text-center">{idx + 1}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-[#0070F3] text-center underline decoration-blue-200">
+                                                            {m.codigo_lem || '11111111'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.identificacion_muestra || '1111'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.estructura || '1111'}</TableCell>
+                                                        <TableCell className="text-xs font-black text-slate-900 text-center">{m.fc_kg_cm2 || '280'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.fecha_moldeo || '05/12/2026'}</TableCell>
+                                                        <TableCell className="text-xs font-black text-slate-600 text-center">{m.edad || '7'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-500 text-center">{m.fecha_rotura || '12/12/2026'}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter bg-slate-50 py-0 h-5">
+                                                                {m.densidad ? 'SI' : 'NO'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para esta recepción.</p>
+                        </div>
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsRecepcionDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Verification Detail Modal */}
+            <Dialog open={isVerificDetailOpen} onOpenChange={setIsVerificDetailOpen}>
+                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                            Detalle de Verificación de Muestras
+                        </DialogTitle>
+                        <DialogDescription>
+                            Validación técnica de dimensiones y geometría
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {loadingVerific ? (
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos de verificación...</p>
+                        </div>
+                    ) : selectedVerific ? (
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-6 space-y-6">
+                                {/* Header Info */}
+                                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedVerific.cliente || 'CLIENTE PRUEBA PATRONES'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Documento de Referencia</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedVerific.codigo_documento || 'F-LEM-P-01.12 (v03)'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    Fecha Doc: {selectedVerific.fecha_documento || '01/01/2026'} • Pág: {selectedVerific.pagina || '1 de 1'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Nº Verificación</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedVerific.numero_verificacion || 'TEST-1758'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Fecha & Responsable</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedVerific.fecha_verificacion || '2026-02-06'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    Verificado por: {selectedVerific.verificado_por || 'TEST AGENT'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Results Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 text-[#0070F3] h-6 w-6 rounded-md flex items-center justify-center text-xs font-black">
+                                            {selectedVerific.muestras_verificadas?.length || 0}
+                                        </div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Muestras Verificadas</h3>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                                                    <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Itm</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Cód. LEM</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Tipo</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Ø1 (mm)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Ø2 (mm)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Tol (%)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Cumple</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Masa (kg)</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedVerific.muestras_verificadas?.map((m: any, idx: number) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/30 transition-colors h-12">
+                                                        <TableCell className="text-xs font-bold text-slate-400 text-center">{m.item_numero || idx + 1}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-[#0070F3] underline decoration-blue-200">{m.codigo_lem || '-'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.tipo_testigo}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.diametro_1_mm}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.diametro_2_mm}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.tolerancia_porcentaje}%</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge variant="outline" className={cn(
+                                                                "text-[9px] font-black uppercase px-2 py-0 border-none",
+                                                                m.cumple_tolerancia ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                            )}>
+                                                                {m.cumple_tolerancia ? 'SI' : 'NO'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.masa_kg}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para esta verificación.</p>
+                        </div>
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsVerificDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     )
 }
