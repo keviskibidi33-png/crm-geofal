@@ -815,7 +815,6 @@ export function TracingModule() {
                                                     <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Ø2 (mm)</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Tol (%)</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Cumple</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Masa (kg)</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -835,7 +834,6 @@ export function TracingModule() {
                                                                 {m.cumple_tolerancia ? 'SI' : 'NO'}
                                                             </Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.masa_kg}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>

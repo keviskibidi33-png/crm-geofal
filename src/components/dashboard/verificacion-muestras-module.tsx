@@ -278,7 +278,6 @@ export function VerificacionMuestrasModule() {
                                                     <TableHead className="text-center font-bold">Ø2 (mm)</TableHead>
                                                     <TableHead className="text-center font-bold">Tol (%)</TableHead>
                                                     <TableHead className="text-center font-bold">Cumple</TableHead>
-                                                    <TableHead className="text-center font-bold">Masa (kg)</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody className="text-xs">
@@ -296,12 +295,11 @@ export function VerificacionMuestrasModule() {
                                                                 <Badge variant="outline" className="text-destructive border-destructive/20 bg-destructive/5">NO</Badge>
                                                             }
                                                         </TableCell>
-                                                        <TableCell className="text-center font-semibold">{m.masa_kg}</TableCell>
                                                     </TableRow>
                                                 ))}
                                                 {(!selectedVerificacion.muestras_verificadas || selectedVerificacion.muestras_verificadas.length === 0) && (
                                                     <TableRow>
-                                                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                                                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                                                             No hay muestras registradas en esta verificación.
                                                         </TableCell>
                                                     </TableRow>
