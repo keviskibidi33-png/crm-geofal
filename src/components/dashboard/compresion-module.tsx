@@ -261,7 +261,7 @@ export function CompresionModule() {
                     <div className="w-full h-full relative">
                         <iframe
                             key={refreshKey}
-                            src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
+                            src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}&v=${new Date().getTime()}`}
                             className="w-full h-full border-none"
                             title="Compresión Iframe"
                         />
