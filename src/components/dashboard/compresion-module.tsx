@@ -141,8 +141,8 @@ export function CompresionModule() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Ensayos de Compresión</h1>
-                    <p className="text-muted-foreground">Gestión y control de ensayos de compresión de muestras</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Informes de Ensayo</h1>
+                    <p className="text-muted-foreground">Gestión y control de informes de ensayo de compresión de muestras</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={fetchEnsayos} disabled={loading}>
@@ -150,7 +150,7 @@ export function CompresionModule() {
                     </Button>
                     <Button onClick={() => handleOpenModal("/compresion")} className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Nuevo Ensayo
+                        Nuevo Informe
                     </Button>
                 </div>
             </div>
@@ -255,8 +255,8 @@ export function CompresionModule() {
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
                     <DialogHeader className="hidden">
-                        <DialogTitle>Módulo Compresión</DialogTitle>
-                        <DialogDescription>Crea o edita ensayos de compresión</DialogDescription>
+                        <DialogTitle>Módulo Informe</DialogTitle>
+                        <DialogDescription>Crea o edita informes de ensayo</DialogDescription>
                     </DialogHeader>
                     <div className="w-full h-full relative">
                         <iframe
@@ -275,10 +275,10 @@ export function CompresionModule() {
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
-                            Detalle de Ensayo de Compresión
+                            Detalle de Informe de Ensayo
                         </DialogTitle>
                         <DialogDescription>
-                            Información completa del ensayo OT {selectedEnsayo?.numero_ot}
+                            Información completa del informe OT {selectedEnsayo?.numero_ot}
                         </DialogDescription>
                     </DialogHeader>
 

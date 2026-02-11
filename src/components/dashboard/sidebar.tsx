@@ -29,7 +29,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "recepcion", label: "Recepción", icon: TestTube, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Muestras", icon: ClipboardList, adminOnly: true },
-  { id: "compresion", label: "Compresión", icon: Beaker, adminOnly: true },
+  { id: "compresion", label: "Informe", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
