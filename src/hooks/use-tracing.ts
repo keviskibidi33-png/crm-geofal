@@ -88,6 +88,29 @@ export function useTracing() {
         }
     }, [API_URL]);
 
+    const deleteTracing = useCallback(async (numeroRecepcion: string) => {
+        setLoadingList(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`${API_URL}/api/tracing/${encodeURIComponent(numeroRecepcion)}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error(`Error al eliminar: ${response.status}`);
+            }
+            // Recargar lista tras eliminar
+            await fetchTracingList();
+            return true;
+        } catch (err: any) {
+            console.error("Error deleting tracing:", err);
+            setError(err.message || "Error al eliminar el registro.");
+            return false;
+        } finally {
+            setLoadingList(false);
+        }
+    }, [API_URL, fetchTracingList]);
+
     return {
         tracingData,
         tracingList,
@@ -96,6 +119,7 @@ export function useTracing() {
         error,
         fetchTracing,
         fetchTracingList,
+        deleteTracing,
         setTracingData
     };
 }

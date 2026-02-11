@@ -21,7 +21,8 @@ import {
     Printer,
     Loader2,
     FileSpreadsheet,
-    Building2
+    Building2,
+    Trash2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,7 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { cn } from "@/lib/utils"
 
 export function TracingModule() {
-    const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList } = useTracing()
+    const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isEnsayoDetailOpen, setIsEnsayoDetailOpen] = useState(false)
@@ -162,6 +163,20 @@ export function TracingModule() {
             console.error("Error loading verificacion detail:", error)
         } finally {
             setLoadingVerific(false)
+        }
+    }
+
+    const handleDeleteTracing = async (numero: string) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el registro ${numero} de la trazabilidad? Esta acción no se puede deshacer.`)) {
+            return
+        }
+
+        const success = await deleteTracing(numero)
+        if (success) {
+            setIsDetailOpen(false)
+            alert("Registro eliminado con éxito.")
+        } else {
+            alert("No se pudo eliminar el registro.")
         }
     }
 
@@ -301,9 +316,19 @@ export function TracingModule() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-white transition-all rounded-full">
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex justify-end gap-2 px-2" onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="hover:bg-red-50 hover:text-red-500 rounded-full h-8 w-8"
+                                                onClick={() => handleDeleteTracing(item.numero_recepcion)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-white transition-all rounded-full h-8 w-8" onClick={() => handleOpenDetail(item.numero_recepcion)}>
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -337,6 +362,17 @@ export function TracingModule() {
                                     <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1">
                                         ID: {tracingData.numero_recepcion}
                                     </Badge>
+                                )}
+                                {!loading && tracingData && (
+                                    <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        onClick={() => handleDeleteTracing(tracingData.numero_recepcion)} 
+                                        className="gap-2 bg-red-600/50 hover:bg-red-600 text-white border-none"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Eliminar de Historial
+                                    </Button>
                                 )}
                             </div>
                         </div>
