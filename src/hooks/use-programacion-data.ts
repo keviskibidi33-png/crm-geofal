@@ -45,12 +45,13 @@ export function useProgramacionData() {
     // 3. Suscripción Realtime — merge in-place, no full refetch on UPDATE
     useEffect(() => {
         const handlePayload = (payload: any) => {
-            const id = payload.new?.id || payload.new?.programacion_id
-                || payload.old?.id || payload.old?.programacion_id
+            const rec = payload.new || payload.old || {}
+            // View key: prefer programacion_id (commercial/admin tables) over id (lab table)
+            const viewId: string | undefined = rec.programacion_id || rec.id
 
             // Skip events caused by our own writes
-            if (id && pendingLocalIds.current.has(id)) {
-                pendingLocalIds.current.delete(id)
+            if (viewId && pendingLocalIds.current.has(viewId)) {
+                pendingLocalIds.current.delete(viewId)
                 return
             }
 
@@ -58,13 +59,12 @@ export function useProgramacionData() {
 
             if (eventType === "DELETE") {
                 queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) =>
-                    old.filter(r => r.id !== id)
+                    old.filter(r => r.id !== viewId)
                 )
                 return
             }
 
             if (eventType === "INSERT") {
-                // New row from another user — debounced refetch (needs view join)
                 debouncedRefetch()
                 return
             }
@@ -73,17 +73,16 @@ export function useProgramacionData() {
             if (eventType === "UPDATE" && payload.new) {
                 const changed = payload.new
                 queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) => {
-                    const matchId = changed.id || changed.programacion_id
-                    const found = old.some(r => r.id === matchId)
+                    const found = old.some(r => r.id === viewId)
                     if (!found) {
-                        debouncedRefetch()
+                        // Not in cache — silently ignore
                         return old
                     }
                     return old.map(row => {
-                        if (row.id !== matchId) return row
+                        if (row.id !== viewId) return row
                         const merged = { ...row }
                         for (const key of Object.keys(changed)) {
-                            if (key === "id" || key === "programacion_id") continue
+                            if (key === "id" || key === "programacion_id" || key === "created_at") continue
                             ;(merged as any)[key] = changed[key]
                         }
                         return merged
