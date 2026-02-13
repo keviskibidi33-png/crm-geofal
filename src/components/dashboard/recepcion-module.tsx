@@ -43,6 +43,17 @@ export function RecepcionModule() {
                 setIsModalOpen(false)
                 fetchRecepciones() // Refresh data on close
             }
+            // Auto-refresh: iframe requests a fresh token before expiry
+            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (session && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: session.access_token },
+                            '*'
+                        )
+                    }
+                })
+            }
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)

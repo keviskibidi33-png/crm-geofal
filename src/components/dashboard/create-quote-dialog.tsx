@@ -68,6 +68,19 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Auto-refresh: iframe requests a fresh token before expiry
+      if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session && event.source) {
+            (event.source as Window).postMessage(
+              { type: 'TOKEN_REFRESH', token: session.access_token },
+              '*'
+            )
+          }
+        })
+        return
+      }
+
       // Security: In production we should check event.origin
       if (event.data?.type === 'QUOTE_CREATED' || event.data?.type === 'QUOTE_UPDATED') {
         const isUpdate = event.data?.type === 'QUOTE_UPDATED'
