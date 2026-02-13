@@ -451,9 +451,9 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Actualizó progreso: ${tempProgress}%`,
+        action: `Actualizó progreso de proyecto a ${tempProgress}%`,
         module: "PROYECTOS",
-        details: { project_id: projectId, project_name: projects.find(p => p.id === projectId)?.nombre }
+        details: { proyecto: projects.find(p => p.id === projectId)?.nombre }
       })
     } catch (err: any) {
       toast.error("Error", {
@@ -529,9 +529,9 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Cerró proyecto (${resultado}): ${targetProject.nombre}`,
+        action: `Cerró proyecto: ${targetProject.nombre} → ${resultado === "venta_ganada" ? "Ganado" : resultado === "venta_perdida" ? "Perdido" : "Archivado"}`,
         module: "PROYECTOS",
-        details: { project_id: projectId }
+        severity: "warning",
       })
     } catch (err: any) {
       toast.error("Error", {
@@ -572,9 +572,8 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
     logAction({
       user_id: user.id,
       user_name: user.name,
-      action: `Inició ejecución: ${projects.find(p => p.id === projectId)?.nombre || 'Proyecto'}`,
+      action: `Inició ejecución de proyecto: ${projects.find(p => p.id === projectId)?.nombre || 'Proyecto'}`,
       module: "PROYECTOS",
-      details: { project_id: projectId }
     })
 
   }
@@ -624,9 +623,8 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
     logAction({
       user_id: user.id,
       user_name: user.name,
-      action: `Cambió estado: ${getEstadoLabel(newStatus)}`,
+      action: `Cambió estado de proyecto a: ${getEstadoLabel(newStatus)}`,
       module: "PROYECTOS",
-      details: { project_id: projectId, status: newStatus }
     })
 
 
@@ -702,7 +700,6 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           user_name: user.name,
           action: `Editó proyecto: ${selectedProject.nombre}`,
           module: "PROYECTOS",
-          details: { project_id: selectedProject.id }
         })
 
         void fetchProjects() // Refresh list in background
@@ -754,7 +751,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           user_name: user.name,
           action: `Eliminó proyecto: ${selectedProject?.nombre}`,
           module: "PROYECTOS",
-          details: { project_id: selectedProject?.id }
+          severity: "warning",
         })
       } catch (err: any) {
         toast.error("Error", { description: err.message })

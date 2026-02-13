@@ -150,9 +150,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Creó proyecto: ${data.nombre}`,
+        action: `Creó proyecto: ${data.nombre} para ${empresaSeleccionada?.empresa || 'empresa'}`,
         module: "PROYECTOS",
-        details: { client_id: selectedCliente, contact_id: selectedContacto }
       })
 
       reset()

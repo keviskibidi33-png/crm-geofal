@@ -104,10 +104,10 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
             user_id: user.id,
             user_name: user.name,
             action: isUpdate
-              ? `Editó cotización ${quoteCode ? `(${quoteCode})` : ''} desde CRM`
-              : `Generó cotización ${quoteCode ? `(${quoteCode})` : ''} desde CRM`,
-            module: "COTIZADORA",
-            details: quote ? { quote_code: quoteCode, quote_id: quote.id, ...quote } : { raw_data: event.data }
+              ? `Editó cotización ${quoteCode || ''}`
+              : `Generó nueva cotización ${quoteCode || ''}`,
+            module: "COTIZACIONES",
+            details: { codigo: quoteCode, cotizacion_id: quote?.id }
           })
         }
 

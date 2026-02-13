@@ -123,9 +123,8 @@ export function CreateClientDialog({ open, onOpenChange, onSuccess }: CreateClie
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Creó cliente: ${data.empresa}`,
+        action: `Creó cliente: ${data.empresa}${data.ruc ? ` (RUC: ${data.ruc})` : ''}`,
         module: "CLIENTES",
-        details: { ruc: data.ruc, nombre: data.nombre, cargo: data.cargo }
       })
 
       reset()

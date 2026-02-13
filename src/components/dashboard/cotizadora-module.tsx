@@ -252,9 +252,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Cambió estado cotización: ${newStatus}`,
-        module: "COTIZADORA",
-        details: { quote_id: quoteId }
+        action: `Cambió estado de cotización a: ${statusLabels[newStatus] || newStatus}`,
+        module: "COTIZACIONES",
+        details: { cotizacion_id: quoteId }
       })
     } catch (err: any) {
       toast.error("Error al actualizar estado", {
@@ -291,9 +291,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Descargó cotización: ${quote.numero}`,
-        module: "COTIZADORA",
-        details: { quote_id: quote.id }
+        action: `Descargó archivo de cotización COT-${quote.numero}-${quote.year}`,
+        module: "COTIZACIONES",
+        details: { cotizacion_id: quote.id }
       })
     } catch (err: any) {
       toast.error("Error al descargar", {
@@ -330,9 +330,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Eliminó cotización (soft delete): ${deletedId}`,
-        module: "COTIZADORA",
-        details: { quote_id: deletedId }
+        action: `Eliminó cotización`,
+        module: "COTIZACIONES",
+        severity: "warning",
+        details: { cotizacion_id: deletedId }
       })
     } catch (err: any) {
       toast.error("Error al eliminar", {
@@ -384,9 +385,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Subió manual / Reemplazó archivo cotización: ${quoteToUpload.numero}`,
-        module: "COTIZADORA",
-        details: { quote_id: quoteToUpload.id, filename: file.name }
+        action: `Reemplazó archivo de cotización COT-${quoteToUpload.numero}-${quoteToUpload.year}`,
+        module: "COTIZACIONES",
+        details: { cotizacion_id: quoteToUpload.id, archivo: file.name }
       })
 
       fetchQuotes() // Recargar la lista

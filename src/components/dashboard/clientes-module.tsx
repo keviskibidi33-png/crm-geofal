@@ -468,7 +468,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
           user_name: user.name,
           action: `Eliminó cliente: ${selectedClient.empresa}`,
           module: "CLIENTES",
-          details: { client_id: selectedClient.id }
+          severity: "warning",
         })
 
         setIsDeleteDialogOpen(false)
@@ -502,9 +502,8 @@ export function ClientesModule({ user }: ClientesModuleProps) {
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Cambió estado cliente: ${newStatus}`,
+        action: `Cambió estado de cliente a: ${newStatus}`,
         module: "CLIENTES",
-        details: { client_id: clientId }
       })
     } catch (error) {
 

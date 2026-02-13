@@ -210,9 +210,8 @@ export function UsuariosModule() {
             logAction({
                 user_id: user?.id,
                 user_name: user?.name,
-                action: `Creó usuario: ${data.nombre}`,
+                action: `Creó usuario: ${data.nombre} (${data.role})`,
                 module: "USUARIOS",
-                details: { email: data.email, role: data.role }
             })
             setIsCreateDialogOpen(false)
             reset()
@@ -254,7 +253,6 @@ export function UsuariosModule() {
                 user_name: user?.name,
                 action: `Editó usuario: ${data.nombre}`,
                 module: "USUARIOS",
-                details: { target_user_id: editingSeller.id }
             })
             setEditingSeller(null)
         } catch (err: any) {
@@ -295,7 +293,6 @@ export function UsuariosModule() {
                 user_name: user?.name,
                 action: `${targetStatus === "activo" ? "Activó" : "Desactivó"} usuario: ${selectedSeller.nombre}`,
                 module: "USUARIOS",
-                details: { target_user_id: selectedSeller.id }
             })
             setIsStatusDialogOpen(false)
             setSelectedSeller(null)
@@ -327,7 +324,7 @@ export function UsuariosModule() {
                 user_name: user?.name,
                 action: `Eliminó usuario: ${selectedSeller.nombre}`,
                 module: "USUARIOS",
-                details: { target_user_id: selectedSeller.id }
+                severity: "warning",
             })
             setIsDeleteDialogOpen(false)
             setSelectedSeller(null)

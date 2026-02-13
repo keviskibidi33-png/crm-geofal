@@ -101,9 +101,8 @@ function LoginForm() {
                 logAction({
                     user_id: authData.user.id,
                     user_name: authData.user.user_metadata?.full_name || email,
-                    action: force ? "Re-claim sesión" : "Inicio de sesión",
-                    module: "AUTH",
-                    details: { email, forced: force }
+                    action: force ? "Reclaimó sesión activa" : "Inició sesión",
+                    module: "SESIÓN",
                 })
             }
 

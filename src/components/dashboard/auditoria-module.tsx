@@ -172,10 +172,51 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
     const getSeverityBadge = (severity: string) => {
         switch (severity) {
-            case 'error': return "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
-            case 'warning': return "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
-            default: return "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm"
+            case 'error': return "bg-red-500/10 text-red-600 border-red-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+            case 'warning': return "bg-amber-500/10 text-amber-600 border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+            default: return "bg-blue-500/10 text-blue-600 border-blue-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
         }
+    }
+
+    const getSeverityLabel = (severity: string) => {
+        switch (severity) {
+            case 'error': return 'Error'
+            case 'warning': return 'Atención'
+            default: return 'Normal'
+        }
+    }
+
+    const getModuleColor = (module: string) => {
+        switch (module?.toUpperCase()) {
+            case 'CLIENTES': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            case 'PROYECTOS': return 'bg-violet-50 text-violet-700 border-violet-200'
+            case 'COTIZACIONES': return 'bg-sky-50 text-sky-700 border-sky-200'
+            case 'USUARIOS': return 'bg-orange-50 text-orange-700 border-orange-200'
+            case 'SESIÓN': return 'bg-slate-50 text-slate-600 border-slate-200'
+            case 'CONFIGURACIÓN': return 'bg-pink-50 text-pink-700 border-pink-200'
+            default: return 'bg-gray-50 text-gray-600 border-gray-200'
+        }
+    }
+
+    /** Format details object into a human-readable summary */
+    const formatDetails = (details: any): string | null => {
+        if (!details || Object.keys(details).length === 0) return null
+        const parts: string[] = []
+        // Client edit changes
+        if (details.campos_modificados) {
+            parts.push(`Campos: ${details.campos_modificados.join(', ')}`)
+        }
+        if (details.cambios) {
+            for (const [field, change] of Object.entries(details.cambios as Record<string, { antes: string; despues: string }>)) {
+                parts.push(`${field}: "${change.antes || '—'}" → "${change.despues || '—'}"`)
+            }
+        }
+        // Simple fields
+        if (details.codigo) parts.push(`Código: ${details.codigo}`)
+        if (details.proyecto) parts.push(`Proyecto: ${details.proyecto}`)
+        if (details.archivo) parts.push(`Archivo: ${details.archivo}`)
+        // If nothing matched, skip — don't show IDs
+        return parts.length > 0 ? parts.join(' · ') : null
     }
 
     return (
@@ -290,28 +331,33 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                                         className="hover:bg-secondary/10 transition-colors cursor-pointer group"
                                         onClick={() => setSelectedLog(log)}
                                     >
-                                        <TableCell className="text-xs font-mono">
-                                            {new Date(log.created_at).toLocaleString('es-PE')}
+                                        <TableCell className="text-xs text-muted-foreground">
+                                            {new Date(log.created_at).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         </TableCell>
-                                        <TableCell className="font-medium max-w-[200px] truncate" title={log.user_name || "Sistema"}>
+                                        <TableCell className="font-semibold max-w-[150px] truncate text-sm" title={log.user_name || "Sistema"}>
                                             {log.user_name || "Sistema"}
                                         </TableCell>
-                                        <TableCell className="max-w-[200px] truncate" title={log.action}>
-                                            <span className="text-sm font-semibold">{log.action}</span>
+                                        <TableCell className="max-w-[280px]" title={log.action}>
+                                            <span className="text-sm">{log.action}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider opacity-70">
-                                                {log.module || "N/A"}
+                                            <Badge variant="outline" className={cn("text-[10px] font-bold tracking-wider border", getModuleColor(log.module))}>
+                                                {log.module || "—"}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="max-w-[300px]">
-                                            <span className="text-xs text-muted-foreground truncate block italic">
-                                                {log.details ? JSON.stringify(log.details) : "-"}
-                                            </span>
+                                            {(() => {
+                                                const summary = formatDetails(log.details)
+                                                return summary ? (
+                                                    <span className="text-xs text-muted-foreground truncate block">{summary}</span>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground/40">—</span>
+                                                )
+                                            })()}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Badge className={getSeverityBadge(log.severity)}>
-                                                {log.severity}
+                                                {getSeverityLabel(log.severity)}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
@@ -440,7 +486,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                         <div className="space-y-6">
                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                 <Badge className={getSeverityBadge(selectedLog.severity) + " text-sm px-3 py-1"}>
-                                    {selectedLog.severity}
+                                    {getSeverityLabel(selectedLog.severity)}
                                 </Badge>
                                 <span className="text-sm text-muted-foreground font-medium text-right">
                                     {new Date(selectedLog.created_at).toLocaleString('es-PE', {
@@ -461,7 +507,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                                 <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground uppercase tracking-wider">Módulo</Label>
                                     <div className="font-medium flex items-center gap-2">
-                                        <Badge variant="outline">{selectedLog.module || "N/A"}</Badge>
+                                        <Badge variant="outline" className={cn("border", getModuleColor(selectedLog.module))}>{selectedLog.module || "—"}</Badge>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
@@ -470,17 +516,50 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                                 </div>
                             </div>
 
-                            {selectedLog.details && (
-                                <div className="space-y-2">
-                                    <Label className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Datos Técnicos (JSON)
-                                    </Label>
-                                    <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/50 font-mono text-xs">
-                                        <pre className="whitespace-pre-wrap break-all text-primary/80">
-                                            {JSON.stringify(selectedLog.details, null, 2)}
-                                        </pre>
-                                    </ScrollArea>
+                            {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
+                                <div className="space-y-3">
+                                    {/* Human-readable changes */}
+                                    {selectedLog.details.cambios && (
+                                        <div className="space-y-2">
+                                            <Label className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">
+                                                Cambios realizados
+                                            </Label>
+                                            <div className="space-y-2">
+                                                {Object.entries(selectedLog.details.cambios as Record<string, { antes: string; despues: string }>).map(([field, change]) => (
+                                                    <div key={field} className="flex items-start gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-lg">
+                                                        <span className="text-xs font-bold text-amber-700 min-w-[80px] uppercase tracking-wider pt-0.5">{field}</span>
+                                                        <div className="flex-1 text-sm">
+                                                            <span className="line-through text-red-400">{change.antes || '—'}</span>
+                                                            <span className="mx-2 text-muted-foreground">→</span>
+                                                            <span className="font-semibold text-emerald-600">{change.despues || '—'}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Other detail fields (not cambios) */}
+                                    {(() => {
+                                        const otherKeys = Object.keys(selectedLog.details).filter(k => k !== 'cambios' && k !== 'campos_modificados')
+                                        if (otherKeys.length === 0) return null
+                                        return (
+                                            <div className="space-y-2">
+                                                <Label className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">
+                                                    <FileText className="h-4 w-4" />
+                                                    Información adicional
+                                                </Label>
+                                                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 space-y-1.5">
+                                                    {otherKeys.map(key => (
+                                                        <div key={key} className="flex items-center gap-2 text-sm">
+                                                            <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                            <span className="font-medium">{String(selectedLog.details[key])}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    })()}
                                 </div>
                             )}
                         </div>

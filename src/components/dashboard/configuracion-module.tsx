@@ -47,10 +47,9 @@ export function ConfiguracionModule() {
       // Log action
       logAction({
         user_id: currentUser.id,
-        user_name: formData.name, // Use new name for the log record if changed
-        action: "Actualizó su perfil",
-        module: "CONFIGURACION",
-        details: { fields_updated: Object.keys(formData) }
+        user_name: formData.name,
+        action: "Actualizó su perfil personal",
+        module: "CONFIGURACIÓN",
       })
 
       setIsEditing(false)
