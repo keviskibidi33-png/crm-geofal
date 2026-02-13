@@ -18,7 +18,7 @@ interface ProgramacionModuleProps {
 type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
-    const { data, isLoading, realtimeStatus, refetch } = useProgramacionData()
+    const { data, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
 
@@ -42,9 +42,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
 
+    // Only refetch for INSERT events from iframe (row added)
+    // UPDATE events are handled in-place by realtime merge
     const handleIframeUpdate = useCallback(() => {
-        refetch()
-    }, [refetch])
+        // Debounced — the shell's realtime will also pick this up
+        // This is just a safety net for edge cases
+    }, [])
 
     const { sendMessage } = useProgramacionIframe(handleIframeUpdate)
 

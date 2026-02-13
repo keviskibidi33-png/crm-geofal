@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react"
+import { useEffect, useCallback, useState, useRef } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabaseClient"
 import { ProgramacionServicio } from "@/types/programacion"
@@ -9,6 +9,11 @@ export function useProgramacionData() {
     const { user } = useAuth()
     const queryClient = useQueryClient()
     const [realtimeStatus, setRealtimeStatus] = useState<"CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED">("CONNECTING")
+
+    // Track IDs we just changed locally so realtime can skip self-echoes
+    const pendingLocalIds = useRef<Set<string>>(new Set())
+    // Debounce timer for coalescing rapid realtime events
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // 1. Fetch Inicial (Carga los 2000 registros una vez)
     const { data = [], isLoading } = useQuery({
@@ -26,36 +31,83 @@ export function useProgramacionData() {
             }
             return data as ProgramacionServicio[]
         },
-        staleTime: Infinity, // Important: Don't auto-refetch, rely on Realtime
+        staleTime: Infinity, // Don't auto-refetch, rely on Realtime
     })
 
-    // 2. Suscripción Realtime (La magia para no dar F5)
+    // 2. Debounced refetch — coalesces burst events into 1 call
+    const debouncedRefetch = useCallback(() => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current)
+        debounceTimer.current = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["programacion"] })
+        }, 2000)
+    }, [queryClient])
+
+    // 3. Suscripción Realtime — merge in-place, no full refetch on UPDATE
     useEffect(() => {
+        const handlePayload = (payload: any) => {
+            const id = payload.new?.id || payload.new?.programacion_id
+                || payload.old?.id || payload.old?.programacion_id
+
+            // Skip events caused by our own writes
+            if (id && pendingLocalIds.current.has(id)) {
+                pendingLocalIds.current.delete(id)
+                return
+            }
+
+            const eventType = payload.eventType
+
+            if (eventType === "DELETE") {
+                queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) =>
+                    old.filter(r => r.id !== id)
+                )
+                return
+            }
+
+            if (eventType === "INSERT") {
+                // New row from another user — debounced refetch (needs view join)
+                debouncedRefetch()
+                return
+            }
+
+            // UPDATE — merge changed fields into cache
+            if (eventType === "UPDATE" && payload.new) {
+                const changed = payload.new
+                queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) => {
+                    const matchId = changed.id || changed.programacion_id
+                    const found = old.some(r => r.id === matchId)
+                    if (!found) {
+                        debouncedRefetch()
+                        return old
+                    }
+                    return old.map(row => {
+                        if (row.id !== matchId) return row
+                        const merged = { ...row }
+                        for (const key of Object.keys(changed)) {
+                            if (key === "id" || key === "programacion_id") continue
+                            ;(merged as any)[key] = changed[key]
+                        }
+                        return merged
+                    })
+                })
+            }
+        }
+
         const channel = supabase
-            .channel("cuadro_control_changes")
+            .channel("shell_programacion_realtime")
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "programacion_lab" },
-                (payload) => {
-                    console.log("Realtime (lab) event:", payload)
-                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
-                }
+                handlePayload
             )
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "programacion_comercial" },
-                (payload) => {
-                    console.log("Realtime (com) event:", payload)
-                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
-                }
+                handlePayload
             )
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "programacion_administracion" },
-                (payload) => {
-                    console.log("Realtime (admin) event:", payload)
-                    queryClient.invalidateQueries({ queryKey: ["programacion"] })
-                }
+                handlePayload
             )
             .subscribe((status) => {
                 setRealtimeStatus(status)
@@ -64,11 +116,11 @@ export function useProgramacionData() {
                 }
             })
 
-        // Limpieza al salir de la página
         return () => {
             supabase.removeChannel(channel)
+            if (debounceTimer.current) clearTimeout(debounceTimer.current)
         }
-    }, [queryClient, supabase])
+    }, [queryClient, debouncedRefetch])
 
     // Hybrid Update Logic (Compatible with DataTable)
     const updateField = useCallback(async (rowId: string, field: string, value: unknown) => {
@@ -76,13 +128,15 @@ export function useProgramacionData() {
             toast.error("No tienes permisos para modificar datos. Tu rol es de solo lectura.")
             return
         }
-        // 1. Optimistic Update in Cache
+        // 1. Optimistic Update in Cache (instant UI)
         queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
             return oldData.map(row => row.id === rowId ? { ...row, [field]: value } : row)
         })
 
+        // 2. Mark so realtime skips our own echo
+        pendingLocalIds.current.add(rowId)
+
         try {
-            // Route update to the correct table
             const commercialFields = ['fecha_solicitud_com', 'fecha_entrega_com', 'evidencia_solicitud_envio', 'dias_atraso_envio_coti', 'motivo_dias_atraso_com']
             const adminFields = ['numero_factura', 'estado_pago', 'estado_autorizar', 'nota_admin']
 
@@ -106,8 +160,7 @@ export function useProgramacionData() {
         } catch (error) {
             console.error("Update failed:", error)
             toast.error("Error al guardar")
-            // Rollback could be implemented by refetching or saving previous state, 
-            // but for simple text edits, just invalidating usually works enough or letting user retry
+            pendingLocalIds.current.delete(rowId)
             queryClient.invalidateQueries({ queryKey: ["programacion"] })
         }
     }, [queryClient, supabase])
@@ -138,6 +191,10 @@ export function useProgramacionData() {
             })
             .select()
             .single()
+
+        if (insertedData) {
+            pendingLocalIds.current.add(insertedData.id)
+        }
 
         if (labError) {
             console.error("Insert lab failed:", labError)
