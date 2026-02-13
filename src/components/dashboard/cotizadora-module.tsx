@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react"
-import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X, UploadCloud } from "lucide-react"
+import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X, UploadCloud, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -137,7 +137,14 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
   const [quoteToUpload, setQuoteToUpload] = useState<Quote | null>(null)
+  // Import Excel states
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [importPreview, setImportPreview] = useState<any>(null)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importingExcel, setImportingExcel] = useState(false)
+  const [loadingPreview, setLoadingPreview] = useState(false)
   // const { toast } = useToast() // Replaced by Sonner
   const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
 
@@ -410,6 +417,108 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setIsViewDialogOpen(true)
   }
 
+  // --- Import Excel Handlers ---
+  const handleImportFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'xlsx') {
+      toast.error("Solo archivos .xlsx", { description: "Seleccione un archivo Excel (.xlsx) válido" })
+      return
+    }
+
+    setImportFile(file)
+    setLoadingPreview(true)
+    setIsImportDialogOpen(true)
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await fetch(`${baseUrl}/import-excel/preview`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Error al pre-visualizar")
+      }
+
+      const data = await res.json()
+      setImportPreview(data.preview)
+    } catch (err: any) {
+      toast.error("Error al leer Excel", { description: err.message })
+      setIsImportDialogOpen(false)
+      setImportFile(null)
+    } finally {
+      setLoadingPreview(false)
+      if (importFileInputRef.current) importFileInputRef.current.value = ""
+    }
+  }
+
+  const confirmImportExcel = async () => {
+    if (!importFile) return
+
+    setImportingExcel(true)
+    const toastId = toast.loading("Importando cotización...")
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const formData = new FormData()
+      formData.append("file", importFile)
+      formData.append("user_id", user.id)
+      formData.append("user_name", user.name)
+
+      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Error al importar")
+      }
+
+      const data = await res.json()
+      toast.success("Cotización importada exitosamente", {
+        id: toastId,
+        description: `COT-${data.year}-${data.numero} creada con ${data.parsed_data?.items_count || 0} items`,
+      })
+
+      logAction({
+        user_id: user.id,
+        user_name: user.name,
+        action: `Importó cotización desde Excel: COT-${data.year}-${data.numero}`,
+        module: "COTIZACIONES",
+        details: {
+          cotizacion_id: data.quote_id,
+          cliente: data.parsed_data?.cliente,
+          items_count: data.parsed_data?.items_count,
+          total: data.parsed_data?.total,
+          archivo_original: importFile.name,
+        }
+      })
+
+      fetchQuotes()
+      setIsImportDialogOpen(false)
+      setImportPreview(null)
+      setImportFile(null)
+    } catch (err: any) {
+      toast.error("Error al importar", { id: toastId, description: err.message })
+    } finally {
+      setImportingExcel(false)
+    }
+  }
+
+  const cancelImport = () => {
+    setIsImportDialogOpen(false)
+    setImportPreview(null)
+    setImportFile(null)
+  }
+
   const clearFilters = () => {
     setSearchQuery("")
     setStatusFilter("all")
@@ -440,6 +549,16 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Nueva Cotización
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => importFileInputRef.current?.click()}
+              className="h-9 px-4 font-semibold"
+              disabled={!canWrite}
+              title="Importar cotización desde Excel existente"
+            >
+              <FileUp className="h-4 w-4 mr-1.5" />
+              Importar Excel
             </Button>
           </div>
         </div>
@@ -908,6 +1027,161 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         accept=".xlsx,.xls,.pdf"
         onChange={handleFileChange}
       />
+
+      {/* Hidden File Input for Import Excel */}
+      <input
+        type="file"
+        ref={importFileInputRef}
+        className="hidden"
+        accept=".xlsx"
+        onChange={handleImportFileSelect}
+      />
+
+      {/* Import Excel Preview Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={(open) => { if (!open) cancelImport() }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="h-5 w-5 text-primary" />
+              Importar Cotización desde Excel
+            </DialogTitle>
+            <DialogDescription>
+              {importFile ? `Archivo: ${importFile.name}` : "Procesando archivo..."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingPreview ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Analizando Excel...</p>
+            </div>
+          ) : importPreview ? (
+            <div className="space-y-4">
+              {/* Datos del Cliente */}
+              <div className="rounded-lg border p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-primary uppercase tracking-wide">Datos del Cliente</h4>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cliente:</span>
+                    <span className="font-medium text-right">{importPreview.cliente || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">RUC:</span>
+                    <span className="font-medium text-right">{importPreview.ruc || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Contacto:</span>
+                    <span className="font-medium text-right">{importPreview.contacto || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Teléfono:</span>
+                    <span className="font-medium text-right">{importPreview.telefono || "—"}</span>
+                  </div>
+                  <div className="flex justify-between col-span-2">
+                    <span className="text-muted-foreground">Proyecto:</span>
+                    <span className="font-medium text-right">{importPreview.proyecto || "—"}</span>
+                  </div>
+                  {importPreview.titulo_original && (
+                    <div className="flex justify-between col-span-2">
+                      <span className="text-muted-foreground">Título Original:</span>
+                      <span className="font-medium text-right text-xs">{importPreview.titulo_original}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Detectados */}
+              <div className="rounded-lg border p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-primary uppercase tracking-wide">
+                  Items Detectados ({importPreview.items_count})
+                </h4>
+                {importPreview.items?.length > 0 ? (
+                  <div className="max-h-48 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs w-8">#</TableHead>
+                          <TableHead className="text-xs">Descripción</TableHead>
+                          <TableHead className="text-xs text-right">P.U.</TableHead>
+                          <TableHead className="text-xs text-right">Cant.</TableHead>
+                          <TableHead className="text-xs text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {importPreview.items.map((item: any, idx: number) => (
+                          <TableRow key={idx}>
+                            <TableCell className="text-xs font-mono">{idx + 1}</TableCell>
+                            <TableCell className="text-xs max-w-[200px] truncate" title={item.descripcion}>
+                              {item.descripcion}
+                            </TableCell>
+                            <TableCell className="text-xs text-right">
+                              S/. {Number(item.costo_unitario).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-xs text-right">{item.cantidad}</TableCell>
+                            <TableCell className="text-xs text-right font-medium">
+                              S/. {(item.costo_unitario * item.cantidad).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No se detectaron items en el Excel
+                  </p>
+                )}
+              </div>
+
+              {/* Totales */}
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="font-medium">S/. {importPreview.subtotal?.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">IGV (18%):</span>
+                  <span className="font-medium">S/. {importPreview.igv?.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm font-bold border-t pt-2 mt-2">
+                  <span>Total:</span>
+                  <span className="text-primary text-base">S/. {importPreview.total?.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Info Note */}
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  <strong>Nota:</strong> Se asignará un nuevo número de cotización automáticamente y el Excel se almacenará en el sistema con el código generado.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={cancelImport} disabled={importingExcel}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmImportExcel}
+              disabled={importingExcel || loadingPreview || !importPreview}
+              className="font-semibold"
+            >
+              {importingExcel ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <FileUp className="h-4 w-4 mr-1.5" />
+                  Confirmar Importación
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
