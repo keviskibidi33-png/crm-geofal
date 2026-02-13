@@ -184,7 +184,7 @@ export function TracingModule() {
         // Implementación simple de exportación a CSV desde el frontend
         if (!tracingList.length) return
 
-        const headers = ["Numero Recepcion", "Cliente", "Fecha", "Recepcion", "Verificacion", "Compresion", "Informe"]
+        const headers = ["Numero Recepcion", "Cliente", "Fecha", "Recepcion", "Verificacion", "Compresion", "Formato"]
         const rows = tracingList.map(item => [
             item.numero_recepcion,
             item.cliente || "",
@@ -455,13 +455,21 @@ export function TracingModule() {
                                                             )}
                                                             {stage.download_url && (
                                                                 <Button
-                                                                    variant="outline"
+                                                                    variant={stage.key === 'informe' ? 'default' : 'outline'}
                                                                     size="sm"
-                                                                    className="mt-3 gap-2 h-8 text-xs border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary w-full sm:w-auto"
+                                                                    className={cn(
+                                                                        "mt-3 gap-2 h-8 text-xs w-full sm:w-auto",
+                                                                        stage.key === 'informe'
+                                                                            ? "bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                                                                            : "border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+                                                                    )}
                                                                     onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${stage.download_url}`, '_blank')}
                                                                 >
-                                                                    <FileText className="w-3 h-3" />
-                                                                    Descargar Excel Original
+                                                                    {stage.key === 'informe' ? (
+                                                                        <><Download className="w-3 h-3" /> Generar Resumen de Ensayo</>
+                                                                    ) : (
+                                                                        <><FileText className="w-3 h-3" /> Descargar Excel Original</>
+                                                                    )}
                                                                 </Button>
                                                             )}
                                                             {stage.key === 'recepcion' && stage.data?.recepcion_id && (

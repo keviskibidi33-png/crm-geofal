@@ -269,7 +269,7 @@ export function RecepcionModule() {
                                 {/* Section 2: Logistics */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                     <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Emisión de Informes</p>
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Emisión de Formatos</p>
                                         <div className="flex gap-2 mt-1">
                                             {selectedRecepcion.emision_fisica && <Badge variant="outline">Físico</Badge>}
                                             {selectedRecepcion.emision_digital && <Badge variant="default">Digital</Badge>}
