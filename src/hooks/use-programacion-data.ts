@@ -1,113 +1,82 @@
-import { useEffect, useCallback, useState, useRef } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import { ProgramacionServicio } from "@/types/programacion"
 import { toast } from "sonner"
-import { useAuth } from "@/hooks/use-auth"
+
+// -----------------------------------------------------------------------
+// Lightweight KPI data — the shell only needs counts + 3 recent changes.
+// The full data table lives inside the iframe (programacion-crm).
+// NO full cuadro_control fetch — eliminates the 111 kB refetch flicker.
+// -----------------------------------------------------------------------
+
+interface ProgramacionKpis {
+    total: number
+    pendientes: number
+    proceso: number
+    finalizados: number
+    atrasados: number
+}
+
+const EMPTY_KPIS: ProgramacionKpis = { total: 0, pendientes: 0, proceso: 0, finalizados: 0, atrasados: 0 }
 
 export function useProgramacionData() {
-    const { user } = useAuth()
-    const queryClient = useQueryClient()
+    const [kpis, setKpis] = useState<ProgramacionKpis>(EMPTY_KPIS)
+    const [recentChanges, setRecentChanges] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [realtimeStatus, setRealtimeStatus] = useState<"CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED">("CONNECTING")
 
-    // Track IDs we just changed locally so realtime can skip self-echoes
-    const pendingLocalIds = useRef<Set<string>>(new Set())
-    // Debounce timer for coalescing rapid realtime events
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // Fetch KPIs with lightweight count queries (no full data transfer)
+    const fetchKpis = async () => {
+        try {
+            const [totalRes, pendRes, procRes, finRes] = await Promise.all([
+                supabase.from("programacion_lab").select("id", { count: "exact", head: true }),
+                supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PENDIENTE"),
+                supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO"),
+                supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("estado_trabajo.eq.COMPLETADO,estado_trabajo.eq.FINALIZADO"),
+            ])
 
-    // 1. Fetch Inicial (Carga los 2000 registros una vez)
-    const { data = [], isLoading } = useQuery({
-        queryKey: ["programacion"],
-        queryFn: async () => {
-            const { data, error } = await supabase
+            const today = new Date().toISOString().split("T")[0]
+            const atrasadosRes = await supabase
+                .from("programacion_lab")
+                .select("id", { count: "exact", head: true })
+                .is("entrega_real", null)
+                .not("fecha_entrega_estimada", "is", null)
+                .lt("fecha_entrega_estimada", today)
+
+            setKpis({
+                total: totalRes.count ?? 0,
+                pendientes: pendRes.count ?? 0,
+                proceso: procRes.count ?? 0,
+                finalizados: finRes.count ?? 0,
+                atrasados: atrasadosRes.count ?? 0,
+            })
+
+            // Also fetch 3 most recent changes (lightweight — only 3 rows)
+            const { data: recent } = await supabase
                 .from("cuadro_control")
-                .select("*")
-                .order("item_numero", { ascending: false })
-
-            if (error) {
-                console.error("Error fetching data:", error)
-                toast.error("Error al cargar datos")
-                throw error
-            }
-            return data as ProgramacionServicio[]
-        },
-        staleTime: Infinity, // Don't auto-refetch, rely on Realtime
-    })
-
-    // 2. Debounced refetch — coalesces burst events into 1 call
-    const debouncedRefetch = useCallback(() => {
-        if (debounceTimer.current) clearTimeout(debounceTimer.current)
-        debounceTimer.current = setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ["programacion"] })
-        }, 2000)
-    }, [queryClient])
-
-    // 3. Suscripción Realtime — merge in-place, no full refetch on UPDATE
-    useEffect(() => {
-        const handlePayload = (payload: any) => {
-            const rec = payload.new || payload.old || {}
-            // View key: prefer programacion_id (commercial/admin tables) over id (lab table)
-            const viewId: string | undefined = rec.programacion_id || rec.id
-
-            // Skip events caused by our own writes
-            if (viewId && pendingLocalIds.current.has(viewId)) {
-                pendingLocalIds.current.delete(viewId)
-                return
-            }
-
-            const eventType = payload.eventType
-
-            if (eventType === "DELETE") {
-                queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) =>
-                    old.filter(r => r.id !== viewId)
-                )
-                return
-            }
-
-            if (eventType === "INSERT") {
-                debouncedRefetch()
-                return
-            }
-
-            // UPDATE — merge changed fields into cache
-            if (eventType === "UPDATE" && payload.new) {
-                const changed = payload.new
-                queryClient.setQueryData(["programacion"], (old: ProgramacionServicio[] = []) => {
-                    const found = old.some(r => r.id === viewId)
-                    if (!found) {
-                        // Not in cache — silently ignore
-                        return old
-                    }
-                    return old.map(row => {
-                        if (row.id !== viewId) return row
-                        const merged = { ...row }
-                        for (const key of Object.keys(changed)) {
-                            if (key === "id" || key === "programacion_id" || key === "created_at") continue
-                            ;(merged as any)[key] = changed[key]
-                        }
-                        return merged
-                    })
-                })
-            }
+                .select("id,ot,proyecto,cliente_nombre,estado_trabajo,descripcion_servicio,updated_at")
+                .not("updated_at", "is", null)
+                .order("updated_at", { ascending: false })
+                .limit(3)
+            setRecentChanges(recent ?? [])
+        } catch {
+            console.error("Error fetching KPIs")
+        } finally {
+            setIsLoading(false)
         }
+    }
+
+    useEffect(() => {
+        fetchKpis()
+
+        // Realtime: only refresh counts (lightweight), debounced 3s
+        let debounce: ReturnType<typeof setTimeout> | null = null
 
         const channel = supabase
-            .channel("shell_programacion_realtime")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "programacion_lab" },
-                handlePayload
-            )
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "programacion_comercial" },
-                handlePayload
-            )
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "programacion_administracion" },
-                handlePayload
-            )
+            .channel("shell_kpi_realtime")
+            .on("postgres_changes", { event: "*", schema: "public", table: "programacion_lab" }, () => {
+                if (debounce) clearTimeout(debounce)
+                debounce = setTimeout(fetchKpis, 3000)
+            })
             .subscribe((status) => {
                 setRealtimeStatus(status)
                 if (status === "CHANNEL_ERROR") {
@@ -117,123 +86,23 @@ export function useProgramacionData() {
 
         return () => {
             supabase.removeChannel(channel)
-            if (debounceTimer.current) clearTimeout(debounceTimer.current)
+            if (debounce) clearTimeout(debounce)
         }
-    }, [queryClient, debouncedRefetch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
-    // Hybrid Update Logic (Compatible with DataTable)
-    const updateField = useCallback(async (rowId: string, field: string, value: unknown) => {
-        if (user?.role === 'laboratorio_lector') {
-            toast.error("No tienes permisos para modificar datos. Tu rol es de solo lectura.")
-            return
-        }
-        // 1. Optimistic Update in Cache (instant UI)
-        queryClient.setQueryData(["programacion"], (oldData: ProgramacionServicio[] = []) => {
-            return oldData.map(row => row.id === rowId ? { ...row, [field]: value } : row)
-        })
-
-        // 2. Mark so realtime skips our own echo
-        pendingLocalIds.current.add(rowId)
-
-        try {
-            const commercialFields = ['fecha_solicitud_com', 'fecha_entrega_com', 'evidencia_solicitud_envio', 'dias_atraso_envio_coti', 'motivo_dias_atraso_com']
-            const adminFields = ['numero_factura', 'estado_pago', 'estado_autorizar', 'nota_admin']
-
-            let targetTable = "programacion_lab"
-            let idField = "id"
-
-            if (commercialFields.includes(field)) {
-                targetTable = "programacion_comercial"
-                idField = "programacion_id"
-            } else if (adminFields.includes(field)) {
-                targetTable = "programacion_administracion"
-                idField = "programacion_id"
-            }
-
-            const { error } = await supabase
-                .from(targetTable)
-                .update({ [field]: value, updated_at: new Date().toISOString() })
-                .eq(idField, rowId)
-
-            if (error) throw error
-        } catch (error) {
-            console.error("Update failed:", error)
-            toast.error("Error al guardar")
-            pendingLocalIds.current.delete(rowId)
-            queryClient.invalidateQueries({ queryKey: ["programacion"] })
-        }
-    }, [queryClient, supabase])
-
-    const insertRow = useCallback(async (newRow: Partial<ProgramacionServicio>) => {
-        if (user?.role === 'laboratorio_lector') {
-            toast.error("No tienes permisos para crear registros. Tu rol es de solo lectura.")
-            return
-        }
-        const { data: insertedData, error: labError } = await supabase
-            .from("programacion_lab")
-            .insert({
-                ...newRow,
-                item_numero: undefined,
-                created_at: new Date().toISOString(),
-                estado_trabajo: newRow.estado_trabajo || "PENDIENTE",
-                evidencia_envio_recepcion: newRow.evidencia_envio_recepcion,
-                envio_informes: newRow.envio_informes,
-                // Extension fields handled via follow-up update
-                fecha_solicitud_com: undefined,
-                fecha_entrega_com: undefined,
-                evidencia_solicitud_envio: undefined,
-                motivo_dias_atraso_com: undefined,
-                numero_factura: undefined,
-                estado_pago: undefined,
-                estado_autorizar: undefined,
-                nota_admin: undefined,
-            })
-            .select()
-            .single()
-
-        if (insertedData) {
-            pendingLocalIds.current.add(insertedData.id)
-        }
-
-        if (labError) {
-            console.error("Insert lab failed:", labError)
-            toast.error("Error al crear registro")
-            throw labError
-        }
-
-        if (insertedData) {
-            const rowId = insertedData.id
-
-            // Check if we need to update extension tables
-            const commercialData: any = {}
-            if (newRow.fecha_solicitud_com) commercialData.fecha_solicitud_com = newRow.fecha_solicitud_com
-            if (newRow.fecha_entrega_com) commercialData.fecha_entrega_com = newRow.fecha_entrega_com
-            if (newRow.evidencia_solicitud_envio) commercialData.evidencia_solicitud_envio = newRow.evidencia_solicitud_envio
-            if (newRow.motivo_dias_atraso_com) commercialData.motivo_dias_atraso_com = newRow.motivo_dias_atraso_com
-
-            const adminData: any = {}
-            if (newRow.numero_factura) adminData.numero_factura = newRow.numero_factura
-            if (newRow.estado_pago) adminData.estado_pago = newRow.estado_pago
-            if (newRow.estado_autorizar) adminData.estado_autorizar = newRow.estado_autorizar
-            if (newRow.nota_admin) adminData.nota_admin = newRow.nota_admin
-
-            if (Object.keys(commercialData).length > 0) {
-                await supabase.from("programacion_comercial").update(commercialData).eq("programacion_id", rowId)
-            }
-            if (Object.keys(adminData).length > 0) {
-                await supabase.from("programacion_administracion").update(adminData).eq("programacion_id", rowId)
-            }
-
-            queryClient.invalidateQueries({ queryKey: ["programacion"] })
-        }
-    }, [queryClient, supabase])
+    // Provide a data-compatible shape for modules that use .length and .filter()
+    // These return the pre-computed KPI counts
+    const data = {
+        length: kpis.total,
+        filter: () => ({ length: 0 }),
+    } as any
 
     return {
-        data,
+        kpis,
+        data: [] as any[],
+        recentChanges,
         isLoading,
         realtimeStatus,
-        refetch: async () => { await queryClient.invalidateQueries({ queryKey: ["programacion"] }) },
-        updateField,
-        insertRow
     }
 }

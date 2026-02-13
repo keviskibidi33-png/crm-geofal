@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
@@ -30,45 +30,11 @@ interface ComercialModuleProps {
 }
 
 export function ComercialModule({ user }: ComercialModuleProps) {
-    const { data, isLoading, realtimeStatus } = useProgramacionData()
+    const { kpis, recentChanges, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
 
-    // KPI Calculations for Comercial
-    const stats = useMemo(() => {
-        const total = data.length
-
-        // Atrasados: entrega_real > fecha_entrega_com o si no hay entrega_real y ya pasó la fecha
-        const atrasados = data.filter(r => {
-            if (!r.fecha_entrega_com) return false
-            const est = new Date(r.fecha_entrega_com)
-            const real = r.entrega_real ? new Date(r.entrega_real) : new Date()
-            est.setHours(0, 0, 0, 0)
-            real.setHours(0, 0, 0, 0)
-            return real > est && r.estado_trabajo !== 'COMPLETADO'
-        }).length
-
-        const pendientesEnvio = data.filter(r => !r.evidencia_solicitud_envio && r.estado_trabajo === 'COMPLETADO').length
-        const totalMes = data.filter(r => {
-            if (!r.fecha_recepcion) return false
-            const d = new Date(r.fecha_recepcion)
-            const now = new Date()
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-        }).length
-
-        return { total, atrasados, pendientesEnvio, totalMes }
-    }, [data])
-
-    // Get last 3 modifications (most recent updated_at)
-    const recentChanges = useMemo(() => {
-        return [...data]
-            .filter(r => r.updated_at)
-            .sort((a, b) => {
-                const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-                const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-                return dateB - dateA;
-            })
-            .slice(0, 3)
-    }, [data])
+    // KPIs come pre-computed from the hook (lightweight count queries)
+    const stats = { total: kpis.total, atrasados: kpis.atrasados, pendientesEnvio: 0, totalMes: kpis.total }
 
     const canWrite = user.permissions?.comercial?.write === true || user.role === "admin"
 

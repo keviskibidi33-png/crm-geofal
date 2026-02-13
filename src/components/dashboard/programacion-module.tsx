@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
@@ -18,7 +18,7 @@ interface ProgramacionModuleProps {
 type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
-    const { data, isLoading, realtimeStatus } = useProgramacionData()
+    const { kpis, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
 
@@ -42,32 +42,11 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
 
-    // Only refetch for INSERT events from iframe (row added)
-    // UPDATE events are handled in-place by realtime merge
     const handleIframeUpdate = useCallback(() => {
-        // Debounced — the shell's realtime will also pick this up
-        // This is just a safety net for edge cases
+        // No-op: shell KPIs auto-refresh via their own realtime subscription
     }, [])
 
     const { sendMessage } = useProgramacionIframe(handleIframeUpdate)
-
-    const kpis = useMemo(() => {
-        const total = data.length
-        const pendientes = data.filter(r => r.estado_trabajo === 'PENDIENTE').length
-        const proceso = data.filter(r => r.estado_trabajo === 'PROCESO').length
-        const finalizados = data.filter(r => r.estado_trabajo === 'COMPLETADO' || r.estado_trabajo === 'FINALIZADO').length
-
-        const atrasados = data.filter(r => {
-            if (!r.fecha_entrega_estimada) return false
-            const est = new Date(r.fecha_entrega_estimada)
-            const real = r.entrega_real ? new Date(r.entrega_real) : new Date()
-            est.setHours(0, 0, 0, 0)
-            real.setHours(0, 0, 0, 0)
-            return !r.entrega_real && real > est
-        }).length
-
-        return { total, pendientes, proceso, finalizados, atrasados }
-    }, [data])
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {

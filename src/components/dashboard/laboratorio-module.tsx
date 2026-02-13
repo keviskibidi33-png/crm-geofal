@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
@@ -30,30 +30,11 @@ interface LaboratorioModuleProps {
 }
 
 export function LaboratorioModule({ user }: LaboratorioModuleProps) {
-    const { data, isLoading, realtimeStatus } = useProgramacionData()
+    const { kpis, recentChanges, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
 
-    // KPI Calculations for Laboratory
-    const stats = useMemo(() => {
-        const total = data.length
-        const pend = data.filter(r => r.estado_trabajo === 'PENDIENTE').length
-        const proce = data.filter(r => r.estado_trabajo === 'PROCESO').length
-        const compl = data.filter(r => r.estado_trabajo === 'COMPLETADO' || r.estado_trabajo === 'FINALIZADO').length
-
-        return { total, pend, proce, compl }
-    }, [data])
-
-    // Get last 3 modifications (most recent updated_at)
-    const recentChanges = useMemo(() => {
-        return [...data]
-            .filter(r => r.updated_at)
-            .sort((a, b) => {
-                const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-                const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-                return dateB - dateA;
-            })
-            .slice(0, 3)
-    }, [data])
+    // KPIs come pre-computed from the hook (lightweight count queries)
+    const stats = { total: kpis.total, pend: kpis.pendientes, proce: kpis.proceso, compl: kpis.finalizados }
 
     const canWrite = user.permissions?.laboratorio?.write === true || user.role === "admin"
 

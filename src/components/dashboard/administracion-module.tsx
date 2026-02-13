@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
@@ -30,32 +30,11 @@ interface AdministracionModuleProps {
 }
 
 export function AdministracionModule({ user }: AdministracionModuleProps) {
-    const { data, isLoading, realtimeStatus } = useProgramacionData()
+    const { kpis, recentChanges, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
 
-    // KPI Calculations for Administracion
-    const stats = useMemo(() => {
-        const total = data.length
-
-        const porFacturar = data.filter(r => r.estado_trabajo === 'COMPLETADO' && !r.numero_factura).length
-        const facturados = data.filter(r => !!r.numero_factura).length
-        const pendientesPago = data.filter(r => !!r.numero_factura && r.estado_pago !== 'PAGADO').length
-        const pagados = data.filter(r => r.estado_pago === 'PAGADO').length
-
-        return { total, porFacturar, facturados, pendientesPago, pagados }
-    }, [data])
-
-    // Get last 3 modifications (most recent updated_at)
-    const recentChanges = useMemo(() => {
-        return [...data]
-            .filter(r => r.updated_at)
-            .sort((a, b) => {
-                const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-                const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-                return dateB - dateA;
-            })
-            .slice(0, 3)
-    }, [data])
+    // KPIs come pre-computed from the hook (lightweight count queries)
+    const stats = { total: kpis.total, porFacturar: kpis.finalizados, facturados: 0, pendientesPago: 0, pagados: 0 }
 
     const canWrite = user.permissions?.administracion?.write === true || user.role === "admin"
 
