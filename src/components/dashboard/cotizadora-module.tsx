@@ -148,6 +148,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [importNumero, setImportNumero] = useState("")
   const [importNumeroExists, setImportNumeroExists] = useState<any>(null)
   const [checkingNumero, setCheckingNumero] = useState(false)
+  const [importSelectedCondiciones, setImportSelectedCondiciones] = useState<string[]>([])
+  const [importCondicionSearch, setImportCondicionSearch] = useState("")
   // const { toast } = useToast() // Replaced by Sonner
   const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
 
@@ -454,6 +456,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setImportPreview(data.preview)
       setImportNumero(data.preview.suggested_numero || "")
       setImportNumeroExists(null)
+      setImportSelectedCondiciones(data.preview.matched_condiciones_ids || [])
+      setImportCondicionSearch("")
     } catch (err: any) {
       toast.error("Error al leer Excel", { description: err.message })
       setIsImportDialogOpen(false)
@@ -477,7 +481,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       formData.append("user_id", user.id)
       formData.append("user_name", user.name)
 
-      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}&custom_numero=${encodeURIComponent(importNumero)}`, {
+      const condicionesParam = importSelectedCondiciones.length > 0 ? `&condiciones_ids=${encodeURIComponent(importSelectedCondiciones.join(","))}` : ""
+      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}&custom_numero=${encodeURIComponent(importNumero)}${condicionesParam}`, {
         method: "POST",
         body: formData,
       })
@@ -513,6 +518,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setImportFile(null)
       setImportNumero("")
       setImportNumeroExists(null)
+      setImportSelectedCondiciones([])
+      setImportCondicionSearch("")
     } catch (err: any) {
       toast.error("Error al importar", { id: toastId, description: err.message })
     } finally {
@@ -526,6 +533,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setImportFile(null)
     setImportNumero("")
     setImportNumeroExists(null)
+    setImportSelectedCondiciones([])
+    setImportCondicionSearch("")
   }
 
   const checkImportNumero = async (numero: string) => {
@@ -1223,15 +1232,63 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                 </div>
                 {importPreview.condiciones_especificas_lista?.length > 0 && (
                   <div>
-                    <span className="text-muted-foreground text-xs">Condiciones específicas:</span>
+                    <span className="text-muted-foreground text-xs">Detectadas del Excel:</span>
                     <ul className="mt-1 space-y-0.5">
                       {importPreview.condiciones_especificas_lista.map((cond: string, idx: number) => (
-                        <li key={idx} className="text-xs flex items-start gap-1.5">
-                          <span className="text-primary mt-0.5">•</span>
+                        <li key={idx} className="text-xs flex items-start gap-1.5 text-muted-foreground">
+                          <span className="text-green-500 mt-0.5">✓</span>
                           <span>{cond}</span>
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+                {/* Selección de condiciones desde la DB */}
+                {importPreview.all_condiciones?.length > 0 && (
+                  <div className="border-t pt-3 mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wide">
+                        Seleccionar Condiciones ({importSelectedCondiciones.length})
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Buscar condición..."
+                      value={importCondicionSearch}
+                      onChange={e => setImportCondicionSearch(e.target.value)}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      className="w-full text-xs px-2 py-1.5 border rounded mb-2 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                      {importPreview.all_condiciones
+                        .filter((c: any) =>
+                          !importCondicionSearch ||
+                          c.texto.toLowerCase().includes(importCondicionSearch.toLowerCase())
+                        )
+                        .map((cond: any) => (
+                          <label
+                            key={cond.id}
+                            className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 px-1.5 py-1 rounded text-xs"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={importSelectedCondiciones.includes(cond.id)}
+                              onChange={() => {
+                                setImportSelectedCondiciones(prev =>
+                                  prev.includes(cond.id)
+                                    ? prev.filter(id => id !== cond.id)
+                                    : [...prev, cond.id]
+                                )
+                              }}
+                              className="mt-0.5 accent-primary"
+                            />
+                            <span className={importSelectedCondiciones.includes(cond.id) ? "font-medium" : "text-muted-foreground"}>
+                              {cond.texto}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
                   </div>
                 )}
               </div>
