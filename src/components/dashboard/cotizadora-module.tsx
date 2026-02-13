@@ -15,7 +15,7 @@ import { User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { CheckCircle2, XCircle, AlertCircle, ChevronDown, Trash2 } from "lucide-react"
+import { CheckCircle2, XCircle, AlertCircle, ChevronDown, Trash2, AlertTriangle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -145,6 +145,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importingExcel, setImportingExcel] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [importNumero, setImportNumero] = useState("")
+  const [importNumeroExists, setImportNumeroExists] = useState<any>(null)
+  const [checkingNumero, setCheckingNumero] = useState(false)
   // const { toast } = useToast() // Replaced by Sonner
   const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
 
@@ -449,6 +452,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       const data = await res.json()
       setImportPreview(data.preview)
+      setImportNumero(data.preview.suggested_numero || "")
+      setImportNumeroExists(null)
     } catch (err: any) {
       toast.error("Error al leer Excel", { description: err.message })
       setIsImportDialogOpen(false)
@@ -472,7 +477,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       formData.append("user_id", user.id)
       formData.append("user_name", user.name)
 
-      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}`, {
+      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}&custom_numero=${encodeURIComponent(importNumero)}`, {
         method: "POST",
         body: formData,
       })
@@ -506,6 +511,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setIsImportDialogOpen(false)
       setImportPreview(null)
       setImportFile(null)
+      setImportNumero("")
+      setImportNumeroExists(null)
     } catch (err: any) {
       toast.error("Error al importar", { id: toastId, description: err.message })
     } finally {
@@ -517,6 +524,32 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setIsImportDialogOpen(false)
     setImportPreview(null)
     setImportFile(null)
+    setImportNumero("")
+    setImportNumeroExists(null)
+  }
+
+  const checkImportNumero = async (numero: string) => {
+    setImportNumero(numero)
+    setImportNumeroExists(null)
+    
+    if (!numero.trim()) return
+    
+    setCheckingNumero(true)
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const year = new Date().getFullYear()
+      const res = await fetch(`${baseUrl}/import-excel/check-number?numero=${encodeURIComponent(numero.trim())}&year=${year}`, {
+        method: "POST",
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setImportNumeroExists(data.exists ? data.quote : null)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setCheckingNumero(false)
+    }
   }
 
   const clearFilters = () => {
@@ -1057,6 +1090,37 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </div>
           ) : importPreview ? (
             <div className="space-y-4">
+              {/* Número de Cotización (editable) */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-primary uppercase tracking-wide">Número de Cotización</h4>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">COT-{new Date().getFullYear()}-</span>
+                  <Input
+                    value={importNumero}
+                    onChange={(e) => checkImportNumero(e.target.value)}
+                    placeholder="Ej: 001"
+                    className="w-28 font-mono font-bold text-center"
+                  />
+                  {checkingNumero && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                {importNumeroExists && (
+                  <div className="flex items-start gap-2 mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/30">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-medium text-amber-700 dark:text-amber-400">
+                        Este número ya existe: COT-{importNumeroExists.year}-{importNumeroExists.numero}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Cliente: {importNumeroExists.cliente} · S/. {Number(importNumeroExists.total).toLocaleString("es-PE")} · {importNumeroExists.estado}
+                      </p>
+                      <p className="text-amber-600 dark:text-amber-400 mt-1">
+                        Si continúa, se reemplazará la cotización existente.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Datos del Cliente */}
               <div className="rounded-lg border p-4 space-y-2">
                 <h4 className="font-semibold text-sm text-primary uppercase tracking-wide">Datos del Cliente</h4>
@@ -1133,6 +1197,45 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                 )}
               </div>
 
+              {/* Condiciones y Plazo */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <h4 className="font-semibold text-sm text-primary uppercase tracking-wide">Condiciones Detectadas</h4>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Plazo estimado:</span>
+                    <p className="font-medium">
+                      {importPreview.plazo_dias > 0 ? `${importPreview.plazo_dias} días hábiles` : "No especificado"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Condición de pago:</span>
+                    <p className="font-medium">
+                      {importPreview.condicion_pago_key ? {
+                        'valorizacion': 'Valorización mensual',
+                        'adelantado': 'Adelantado',
+                        '50_adelanto': '50% Adelanto + saldo',
+                        'credito_7': 'Crédito 7 días',
+                        'credito_15': 'Crédito 15 días',
+                        'credito_30': 'Crédito 30 días',
+                      }[importPreview.condicion_pago_key] || importPreview.condicion_pago_key : "No detectada"}
+                    </p>
+                  </div>
+                </div>
+                {importPreview.condiciones_especificas_lista?.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">Condiciones específicas:</span>
+                    <ul className="mt-1 space-y-0.5">
+                      {importPreview.condiciones_especificas_lista.map((cond: string, idx: number) => (
+                        <li key={idx} className="text-xs flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>{cond}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               {/* Totales */}
               <div className="rounded-lg border bg-muted/50 p-4">
                 <div className="flex justify-between items-center text-sm">
@@ -1148,13 +1251,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   <span className="text-primary text-base">S/. {importPreview.total?.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
-
-              {/* Info Note */}
-              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  <strong>Nota:</strong> Se asignará un nuevo número de cotización automáticamente y el Excel se almacenará en el sistema con el código generado.
-                </p>
-              </div>
             </div>
           ) : null}
 
@@ -1164,7 +1260,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </Button>
             <Button
               onClick={confirmImportExcel}
-              disabled={importingExcel || loadingPreview || !importPreview}
+              disabled={importingExcel || loadingPreview || !importPreview || !importNumero.trim()}
               className="font-semibold"
             >
               {importingExcel ? (
@@ -1175,7 +1271,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
               ) : (
                 <>
                   <FileUp className="h-4 w-4 mr-1.5" />
-                  Confirmar Importación
+                  {importNumeroExists ? "Reemplazar y Confirmar" : "Confirmar Importación"}
                 </>
               )}
             </Button>
