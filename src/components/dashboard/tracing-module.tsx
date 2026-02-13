@@ -184,7 +184,7 @@ export function TracingModule() {
         // Implementación simple de exportación a CSV desde el frontend
         if (!tracingList.length) return
 
-        const headers = ["Numero Recepcion", "Cliente", "Fecha", "Recepcion", "Verificacion", "Compresion", "Formato"]
+        const headers = ["Numero Recepcion", "Cliente", "Fecha", "Recepcion", "Verificacion", "Compresion", "Informe"]
         const rows = tracingList.map(item => [
             item.numero_recepcion,
             item.cliente || "",
@@ -466,7 +466,7 @@ export function TracingModule() {
                                                                     onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${stage.download_url}`, '_blank')}
                                                                 >
                                                                     {stage.key === 'informe' ? (
-                                                                        <><Download className="w-3 h-3" /> Generar Resumen de Ensayo</>
+                                                                        <><Download className="w-3 h-3" /> Generar Informe</>
                                                                     ) : (
                                                                         <><FileText className="w-3 h-3" /> Descargar Excel Original</>
                                                                     )}
