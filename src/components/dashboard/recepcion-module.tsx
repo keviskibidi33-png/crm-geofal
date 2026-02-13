@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { supabase } from "@/lib/supabaseClient"
 
 export function RecepcionModule() {
     const { recepciones, loading, fetchRecepciones, deleteRecepcion } = useRecepciones()
@@ -20,11 +21,19 @@ export function RecepcionModule() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [token, setToken] = useState<string | null>(null)
     const { user } = useAuth()
 
     // Initial fetch
     useEffect(() => {
         fetchRecepciones()
+
+        // Get session token to pass to iframe
+        const getSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) setToken(session.access_token)
+        }
+        getSession()
     }, [fetchRecepciones])
 
     // Listen for close message from Iframe
@@ -210,7 +219,7 @@ export function RecepcionModule() {
                     </DialogHeader>
                     <div className="w-full h-full relative">
                         <iframe
-                            src={`${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion`}
+                            src={`${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}&v=${new Date().getTime()}`}
                             className="w-full h-full border-none"
                             title="Nueva Recepción"
                         />

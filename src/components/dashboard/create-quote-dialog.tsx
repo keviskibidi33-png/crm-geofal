@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { AlertCircle, ExternalLink } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { logAction } from "@/app/actions/audit-actions"
+import { supabase } from "@/lib/supabaseClient"
 
 interface CreateQuoteDialogProps {
   open: boolean
@@ -28,12 +29,24 @@ interface CreateQuoteDialogProps {
   quoteId?: string
 }
 export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSuccess, proyectoId, clienteId, quoteId }: CreateQuoteDialogProps) {
-  // const { toast } = useToast() // Replaced by Sonner
+  const [token, setToken] = useState<string | null>(null)
   const baseUrl = iframeUrl ?? process.env.NEXT_PUBLIC_COTIZADOR_URL ?? DEFAULT_COTIZADOR_URL
+
+  // Get session token to pass to iframe
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) setToken(session.access_token)
+    }
+    getSession()
+  }, [])
 
   // Build URL with user params and context for auto-fill
   let resolvedIframeUrl = baseUrl
   const params = new URLSearchParams()
+
+  // Pass auth token
+  if (token) params.set('token', token)
 
   if (user) {
     params.set('user_id', user.id)
