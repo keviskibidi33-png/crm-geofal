@@ -28,6 +28,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,6 +55,16 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
 import { CreateClientDialog } from "./create-client-dialog"
 import { type User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
@@ -212,6 +223,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(1)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [editForm, setEditForm] = useState<Partial<Client>>({})
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false)
   // const { toast } = useToast() // Replaced by Sonner
 
   const fetchClients = useCallback(async () => {
@@ -381,13 +393,32 @@ export function ClientesModule({ user }: ClientesModuleProps) {
 
       toast.success("Cliente actualizado")
 
-      // Log action
+      // Build detailed change log for audit
+      const changes: Record<string, { antes: string; despues: string }> = {}
+      const fieldLabels: Record<string, string> = {
+        empresa: "Razón Social", ruc: "RUC", nombre: "Contacto",
+        email: "Email", telefono: "Teléfono", direccion: "Dirección",
+        sector: "Sector", cargo: "Cargo", estado: "Estado"
+      }
+      for (const key of Object.keys(fieldLabels)) {
+        const prev = (selectedClient as any)[key] || ""
+        const next = (editForm as any)[key] || ""
+        if (prev !== next) {
+          changes[fieldLabels[key]] = { antes: prev, despues: next }
+        }
+      }
+
       logAction({
         user_id: user.id,
         user_name: user.name,
-        action: `Editó perfil completo: ${editForm.empresa}`,
+        action: `Editó cliente: ${editForm.empresa}`,
         module: "CLIENTES",
-        details: { client_id: selectedClient.id }
+        severity: Object.keys(changes).some(k => k === "RUC" || k === "Razón Social") ? "warning" : "info",
+        details: {
+          client_id: selectedClient.id,
+          campos_modificados: Object.keys(changes),
+          cambios: changes
+        }
       })
 
       setIsEditDialogOpen(false)
@@ -1209,8 +1240,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
                       id="edit-ruc"
                       value={editForm.ruc || ""}
                       onChange={(e) => setEditForm({ ...editForm, ruc: e.target.value })}
-                      className="h-10 text-xs font-mono text-slate-700 rounded-xl border-slate-200 bg-slate-50/30"
-                      readOnly
+                      className="h-10 text-xs font-mono text-slate-700 rounded-xl border-slate-200 bg-white focus:border-primary/40"
                     />
                   </div>
                   <div className="space-y-1">
@@ -1324,13 +1354,78 @@ export function ClientesModule({ user }: ClientesModuleProps) {
             <div className="flex-1" />
             <Button
               className="h-10 px-9 font-bold bg-[#0089b3] hover:bg-[#007499] text-white rounded-xl shadow-[0_4px_12px_rgba(0,137,179,0.2)] transition-all active:scale-[0.98] text-xs"
-              onClick={handleEditSave}
+              onClick={() => setIsAuditModalOpen(true)}
             >
               Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Audit Confirmation Modal ── */}
+      <AlertDialog open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
+        <AlertDialogContent className="sm:max-w-[440px] bg-white border-slate-200 rounded-2xl p-0 overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 px-8 pt-8 pb-5">
+            <AlertDialogHeader className="space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/10 ring-4 ring-blue-500/5">
+                <ShieldCheck className="h-7 w-7 text-blue-600" />
+              </div>
+              <AlertDialogTitle className="text-center text-lg font-bold text-slate-800">
+                Confirmación de Modificación
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="text-center space-y-3">
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Los cambios realizados en la ficha de cliente quedarán registrados en el
+                    <span className="font-semibold text-slate-700"> historial de auditoría</span> del sistema,
+                    incluyendo la identidad del usuario responsable, la fecha y los campos modificados.
+                  </p>
+                  {selectedClient && (() => {
+                    const changedFields: string[] = []
+                    if (editForm.empresa !== selectedClient.empresa) changedFields.push("Razón Social")
+                    if (editForm.ruc !== selectedClient.ruc) changedFields.push("RUC")
+                    if (editForm.nombre !== selectedClient.nombre) changedFields.push("Contacto")
+                    if (editForm.email !== selectedClient.email) changedFields.push("Email")
+                    if (editForm.telefono !== selectedClient.telefono) changedFields.push("Teléfono")
+                    if (editForm.direccion !== selectedClient.direccion) changedFields.push("Dirección")
+                    if (editForm.sector !== selectedClient.sector) changedFields.push("Sector")
+                    if (editForm.cargo !== selectedClient.cargo) changedFields.push("Cargo")
+                    if (changedFields.length === 0) return null
+                    return (
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 text-left">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Campos modificados</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {changedFields.map((f) => (
+                            <span key={f} className="px-2 py-0.5 bg-amber-50 border border-amber-200/60 text-amber-700 rounded-md text-[10px] font-semibold">
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+          </div>
+          <AlertDialogFooter className="px-8 pb-7 pt-5 gap-3 sm:justify-center border-t border-slate-100">
+            <AlertDialogCancel className="flex-1 h-10 rounded-xl border-slate-200 text-slate-500 hover:bg-slate-50 font-semibold text-xs">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1 h-10 rounded-xl bg-[#0089b3] hover:bg-[#007499] text-white font-bold shadow-[0_4px_12px_rgba(0,137,179,0.2)] transition-all active:scale-[0.98] text-xs"
+              onClick={async (e) => {
+                e.preventDefault()
+                setIsAuditModalOpen(false)
+                await handleEditSave()
+              }}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
+              Confirmo, guardar cambios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ContactAgendaDialog
         open={isAgendaOpen}
