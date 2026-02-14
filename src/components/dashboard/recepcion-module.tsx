@@ -145,8 +145,7 @@ export function RecepcionModule() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[100px]">OT</TableHead>
-                            <TableHead>Recepción</TableHead>
+                            <TableHead className="w-[120px]">Recepción</TableHead>
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
                             <TableHead>Fecha</TableHead>
@@ -157,21 +156,20 @@ export function RecepcionModule() {
                     <TableBody>
                         {loading && recepciones.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     Cargando datos...
                                 </TableCell>
                             </TableRow>
                         ) : filteredData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     No se encontraron resultados
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
                                 <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item)}>
-                                    <TableCell className="font-medium">{item.numero_ot}</TableCell>
-                                    <TableCell>{item.numero_recepcion}</TableCell>
+                                    <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
                                     <TableCell className="max-w-[200px] truncate" title={item.cliente}>
                                         {item.cliente}
                                     </TableCell>
@@ -320,7 +318,7 @@ export function RecepcionModule() {
                                                 <TableRow className="bg-muted/50 text-xs hover:bg-muted/50">
                                                     <TableHead className="w-[50px] text-center font-bold">Nº</TableHead>
                                                     <TableHead className="font-bold">Código LEM</TableHead>
-                                                    <TableHead className="font-bold">Identificación</TableHead>
+                                                    <TableHead className="font-bold">Código</TableHead>
                                                     <TableHead className="font-bold">Estructura</TableHead>
                                                     <TableHead className="text-center font-bold">F&apos;c</TableHead>
                                                     <TableHead className="font-bold">Fecha Moldeo</TableHead>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Plus, Droplets } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabaseClient"
 
 export function HumedadModule() {
@@ -77,6 +77,10 @@ export function HumedadModule() {
             {/* Iframe modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
+                    <DialogHeader className="hidden">
+                        <DialogTitle>Ensayo de Humedad</DialogTitle>
+                        <DialogDescription>Formulario de contenido de humedad ASTM D2216</DialogDescription>
+                    </DialogHeader>
                     <iframe
                         key={refreshKey}
                         src={`${FRONTEND_URL}/?token=${token || ''}&v=${new Date().getTime()}`}
