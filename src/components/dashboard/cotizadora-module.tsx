@@ -1219,14 +1219,14 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   <div>
                     <span className="text-muted-foreground text-xs">Condición de pago:</span>
                     <p className="font-medium">
-                      {importPreview.condicion_pago_key ? {
+                      {importPreview.condicion_pago_key ? ({
                         'valorizacion': 'Valorización mensual',
                         'adelantado': 'Adelantado',
                         '50_adelanto': '50% Adelanto + saldo',
                         'credito_7': 'Crédito 7 días',
                         'credito_15': 'Crédito 15 días',
                         'credito_30': 'Crédito 30 días',
-                      }[importPreview.condicion_pago_key] || importPreview.condicion_pago_key : "No detectada"}
+                      } as Record<string, string>)[importPreview.condicion_pago_key] || importPreview.condicion_pago_key : "No detectada"}
                     </p>
                   </div>
                 </div>

@@ -6,7 +6,6 @@ import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
 import { Button } from "@/components/ui/button"
 import {
-    Activity,
     Clock,
     CheckCircle2,
     AlertTriangle,
@@ -14,14 +13,13 @@ import {
     X,
     Briefcase,
     BarChart3,
-    Database,
     Loader2,
     Zap,
     History,
     Shield,
     FileSearch
 } from "lucide-react"
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 

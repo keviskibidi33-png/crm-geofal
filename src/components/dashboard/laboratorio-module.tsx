@@ -7,7 +7,6 @@ import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } 
 import { Button } from "@/components/ui/button"
 import {
     Activity,
-    Beaker,
     Clock,
     CheckCircle2,
     AlertTriangle,
@@ -21,7 +20,7 @@ import {
     History,
     Shield
 } from "lucide-react"
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 

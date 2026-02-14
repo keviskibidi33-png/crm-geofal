@@ -91,13 +91,6 @@ export function useProgramacionData() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Provide a data-compatible shape for modules that use .length and .filter()
-    // These return the pre-computed KPI counts
-    const data = {
-        length: kpis.total,
-        filter: () => ({ length: 0 }),
-    } as any
-
     return {
         kpis,
         data: [] as any[],

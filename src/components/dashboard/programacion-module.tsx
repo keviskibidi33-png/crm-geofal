@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
-import { DialogFullscreen as Dialog, DialogFullscreenTrigger as DialogTrigger, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
+import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
 import { Button } from "@/components/ui/button"
 import { Clock, CheckCircle2, AlertTriangle, FlaskConical, Briefcase, Building2, ChevronRight, BarChart3, X } from "lucide-react"
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -46,7 +46,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         // No-op: shell KPIs auto-refresh via their own realtime subscription
     }, [])
 
-    const { sendMessage } = useProgramacionIframe(handleIframeUpdate)
+    useProgramacionIframe(handleIframeUpdate)
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {
