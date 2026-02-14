@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, MoreHorizontal } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,6 +19,7 @@ export function RecepcionModule() {
     const { recepciones, loading, fetchRecepciones, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
@@ -41,7 +42,8 @@ export function RecepcionModule() {
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === 'CLOSE_MODAL') {
                 setIsModalOpen(false)
-                fetchRecepciones() // Refresh data on close
+                setEditId(null)
+                fetchRecepciones()
             }
             // Auto-refresh: iframe requests a fresh token before expiry
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
@@ -63,8 +65,15 @@ export function RecepcionModule() {
     const handleModalOpenChange = (open: boolean) => {
         setIsModalOpen(open)
         if (!open) {
+            setEditId(null)
             fetchRecepciones()
         }
+    }
+
+    const handleEdit = (recepcion: Recepcion) => {
+        setEditId(recepcion.id)
+        setIsDetailOpen(false)
+        setIsModalOpen(true)
     }
 
     // Filter Logic
@@ -187,6 +196,9 @@ export function RecepcionModule() {
                                             <Button variant="ghost" size="icon" onClick={() => openDetail(item)}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
@@ -223,14 +235,17 @@ export function RecepcionModule() {
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
                     <DialogHeader className="hidden">
-                        <DialogTitle>Nueva Recepción</DialogTitle>
-                        <DialogDescription>Formulario de creación de nueva recepción</DialogDescription>
+                        <DialogTitle>{editId ? 'Editar Recepción' : 'Nueva Recepción'}</DialogTitle>
+                        <DialogDescription>{editId ? 'Formulario de edición de recepción' : 'Formulario de creación de nueva recepción'}</DialogDescription>
                     </DialogHeader>
                     <div className="w-full h-full relative">
                         <iframe
-                            src={`${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}&v=${new Date().getTime()}`}
+                            src={editId
+                                ? `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/recepciones/${editId}/editar?token=${token || ''}&v=${new Date().getTime()}`
+                                : `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}&v=${new Date().getTime()}`
+                            }
                             className="w-full h-full border-none"
-                            title="Nueva Recepción"
+                            title={editId ? 'Editar Recepción' : 'Nueva Recepción'}
                         />
                     </div>
                 </DialogContent>
@@ -268,7 +283,12 @@ export function RecepcionModule() {
                                     <div className="space-y-1">
                                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contacto</p>
                                         <p className="text-sm font-medium">{selectedRecepcion.persona_contacto || "-"}</p>
-                                        <p className="text-xs text-muted-foreground">{selectedRecepcion.email} {selectedRecepcion.telefono ? `• ${selectedRecepcion.telefono}` : ''}</p>
+                                        <div className="text-xs text-muted-foreground space-y-0.5">
+                                            {selectedRecepcion.email && selectedRecepcion.email.split(/[\s,;]+/).filter(Boolean).map((e, i) => (
+                                                <p key={i}>{e}</p>
+                                            ))}
+                                            {selectedRecepcion.telefono && <p>Tel: {selectedRecepcion.telefono}</p>}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-1">
@@ -333,8 +353,8 @@ export function RecepcionModule() {
                                                     <TableRow key={idx}>
                                                         <TableCell className="text-center font-medium bg-muted/20">{m.item_numero}</TableCell>
                                                         <TableCell className="font-mono text-primary">{m.codigo_muestra_lem || "-"}</TableCell>
-                                                        <TableCell>{m.identificacion_muestra}</TableCell>
-                                                        <TableCell>{m.estructura || "-"}</TableCell>
+                                                        <TableCell className="whitespace-pre-wrap">{m.identificacion_muestra}</TableCell>
+                                                        <TableCell className="whitespace-pre-wrap">{m.estructura || "-"}</TableCell>
                                                         <TableCell className="text-center font-bold">{m.fc_kg_cm2 || "-"}</TableCell>
                                                         <TableCell>{formatDate(m.fecha_moldeo)}</TableCell>
                                                         <TableCell>{m.hora_moldeo || "-"}</TableCell>
@@ -364,8 +384,12 @@ export function RecepcionModule() {
                         <div className="flex-1 text-xs text-muted-foreground flex items-center">
                             ID Referencia: {selectedRecepcion?.id}
                         </div>
-                        <Button variant="outline" onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)}>
-                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        <Button variant="outline" onClick={() => selectedRecepcion && handleEdit(selectedRecepcion)} className="gap-2">
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                        </Button>
+                        <Button variant="outline" onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)} className="gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
                             Descargar Excel
                         </Button>
                         <Button onClick={() => setIsDetailOpen(false)}>Cerrar</Button>
