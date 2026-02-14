@@ -22,7 +22,8 @@ import {
     Loader2,
     FileSpreadsheet,
     Building2,
-    Trash2
+    Trash2,
+    History
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,10 @@ export function TracingModule() {
     const [selectedVerific, setSelectedVerific] = useState<any>(null)
     const [loadingVerific, setLoadingVerific] = useState(false)
 
+    // Informe Version History State
+    const [informeVersiones, setInformeVersiones] = useState<any[]>([])
+    const [loadingVersiones, setLoadingVersiones] = useState(false)
+
     const componentRef = useRef<HTMLDivElement>(null)
 
     const handlePrint = useReactToPrint({
@@ -67,10 +72,27 @@ export function TracingModule() {
 
     const handleOpenDetail = (numero: string) => {
         fetchTracing(numero)
+        fetchInformeVersiones(numero)
         setIsDetailOpen(true)
     }
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+    // Fetch version history when detail opens
+    const fetchInformeVersiones = async (numeroRecepcion: string) => {
+        setLoadingVersiones(true)
+        try {
+            const response = await fetch(`${API_URL}/api/tracing/informe/${encodeURIComponent(numeroRecepcion)}/versiones`)
+            if (response.ok) {
+                const data = await response.json()
+                setInformeVersiones(data.versiones || [])
+            }
+        } catch (err) {
+            console.error("Error fetching versiones:", err)
+        } finally {
+            setLoadingVersiones(false)
+        }
+    }
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -441,7 +463,7 @@ export function TracingModule() {
                                                                     {new Date(stage.date).toLocaleString()}
                                                                 </div>
                                                             )}
-                                                            {stage.data && Object.keys(stage.data).length > 0 && (
+                                                            {stage.data && Object.keys(stage.data).length > 0 && stage.key !== 'informe' && (
                                                                 <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-200 dark:border-slate-700 pt-3">
                                                                     {Object.entries(stage.data).map(([key, value]) => (
                                                                         key !== 'ot' && (
@@ -453,23 +475,88 @@ export function TracingModule() {
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                            {stage.download_url && (
+                                                            {/* Informe stage: custom UI with version info */}
+                                                            {stage.key === 'informe' && (
+                                                                <div className="mt-3 space-y-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                                                                    {/* Status indicators */}
+                                                                    <div className="flex flex-wrap gap-2 text-[10px]">
+                                                                        {stage.data?.versiones > 0 && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px]">
+                                                                                <History className="w-3 h-3" />
+                                                                                {stage.data.versiones} versión(es) generada(s)
+                                                                            </Badge>
+                                                                        )}
+                                                                        {stage.status !== 'completado' && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px] border-yellow-300 text-yellow-700 bg-yellow-50">
+                                                                                <AlertCircle className="w-3 h-3" />
+                                                                                Datos parciales
+                                                                            </Badge>
+                                                                        )}
+                                                                        {stage.status === 'completado' && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px] border-green-300 text-green-700 bg-green-50">
+                                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                                Datos completos
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    {/* Download button */}
+                                                                    {stage.download_url && (
+                                                                        <Button
+                                                                            variant="default"
+                                                                            size="sm"
+                                                                            className="gap-2 h-8 text-xs w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                                                                            onClick={() => {
+                                                                                window.open(`${API_URL}${stage.download_url}`, '_blank')
+                                                                                // Refresh versions after download
+                                                                                if (tracingData?.numero_recepcion) {
+                                                                                    setTimeout(() => fetchInformeVersiones(tracingData.numero_recepcion), 2000)
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <Download className="w-3 h-3" />
+                                                                            {stage.status === 'completado' ? 'Generar Informe Final' : 'Generar Informe (Parcial)'}
+                                                                        </Button>
+                                                                    )}
+                                                                    {/* Version history */}
+                                                                    {informeVersiones.length > 0 && (
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                                                <History className="w-3 h-3" />
+                                                                                Historial de Versiones
+                                                                            </p>
+                                                                            <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+                                                                                {informeVersiones.map((v: any) => (
+                                                                                    <div key={v.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded px-2.5 py-1.5 text-[11px]">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="font-bold text-primary">v{v.version}</span>
+                                                                                            <span className="text-muted-foreground">
+                                                                                                {v.fecha_generacion ? new Date(v.fecha_generacion).toLocaleString() : '-'}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            {v.datos_completos ? (
+                                                                                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-green-300 text-green-600">Completo</Badge>
+                                                                                            ) : (
+                                                                                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-yellow-300 text-yellow-600">Parcial</Badge>
+                                                                                            )}
+                                                                                            <span className="text-muted-foreground">{v.total_muestras}m</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {/* Non-informe download buttons */}
+                                                            {stage.download_url && stage.key !== 'informe' && (
                                                                 <Button
-                                                                    variant={stage.key === 'informe' ? 'default' : 'outline'}
+                                                                    variant="outline"
                                                                     size="sm"
-                                                                    className={cn(
-                                                                        "mt-3 gap-2 h-8 text-xs w-full sm:w-auto",
-                                                                        stage.key === 'informe'
-                                                                            ? "bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                                                                            : "border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
-                                                                    )}
-                                                                    onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${stage.download_url}`, '_blank')}
+                                                                    className="mt-3 gap-2 h-8 text-xs w-full sm:w-auto border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+                                                                    onClick={() => window.open(`${API_URL}${stage.download_url}`, '_blank')}
                                                                 >
-                                                                    {stage.key === 'informe' ? (
-                                                                        <><Download className="w-3 h-3" /> Generar Informe</>
-                                                                    ) : (
-                                                                        <><FileText className="w-3 h-3" /> Descargar Excel Original</>
-                                                                    )}
+                                                                    <FileText className="w-3 h-3" /> Descargar Excel Original
                                                                 </Button>
                                                             )}
                                                             {stage.key === 'recepcion' && stage.data?.recepcion_id && (
