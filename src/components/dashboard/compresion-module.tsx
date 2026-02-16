@@ -96,7 +96,14 @@ export function CompresionModule() {
 
     const handleModalOpenChange = (open: boolean) => {
         if (!open) {
-            setShowExitConfirm(true)
+            if (iframePath.includes('id=')) {
+                // Editing → show confirmation before discarding
+                setShowExitConfirm(true)
+                return
+            }
+            // Creating new → close directly
+            setIsModalOpen(false)
+            fetchEnsayos()
             return
         }
         setIsModalOpen(open)

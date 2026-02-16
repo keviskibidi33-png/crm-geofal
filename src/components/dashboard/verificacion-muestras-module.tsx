@@ -58,7 +58,14 @@ export function VerificacionMuestrasModule() {
 
     const handleModalOpenChange = (open: boolean) => {
         if (!open) {
-            setShowExitConfirm(true)
+            if (iframePath.includes('/editar')) {
+                // Editing → show confirmation before discarding
+                setShowExitConfirm(true)
+                return
+            }
+            // Creating new → close directly
+            setIsModalOpen(false)
+            fetchVerificaciones()
             return
         }
         setIsModalOpen(open)

@@ -65,8 +65,14 @@ export function RecepcionModule() {
     // Refresh when modal closes
     const handleModalOpenChange = (open: boolean) => {
         if (!open) {
-            // User tried to close (X, ESC, overlay) → show confirmation
-            setShowExitConfirm(true)
+            if (editId) {
+                // Editing → show confirmation before discarding
+                setShowExitConfirm(true)
+                return
+            }
+            // Creating new → close directly
+            setIsModalOpen(false)
+            fetchRecepciones()
             return
         }
         setIsModalOpen(open)
