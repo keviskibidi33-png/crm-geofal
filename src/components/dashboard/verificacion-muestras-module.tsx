@@ -55,16 +55,9 @@ export function VerificacionMuestrasModule() {
         setIsModalOpen(true)
     }
 
-    const openDetail = async (id: number) => {
-        setIsDetailLoading(true)
+    const openDetail = (item: VerificacionMuestra) => {
+        setSelectedVerificacion(item)
         setIsDetailOpen(true)
-        const data = await fetchVerificacion(id)
-        if (data) {
-            setSelectedVerificacion(data)
-        } else {
-            setIsDetailOpen(false)
-        }
-        setIsDetailLoading(false)
     }
 
     const handleDelete = async (id: number) => {
@@ -141,7 +134,7 @@ export function VerificacionMuestrasModule() {
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
-                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item.id)}>
+                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item)}>
                                     <TableCell className="font-medium">{item.numero_verificacion}</TableCell>
                                     <TableCell>{item.cliente || "-"}</TableCell>
                                     <TableCell>{item.verificado_por || "-"}</TableCell>
@@ -155,7 +148,7 @@ export function VerificacionMuestrasModule() {
                                             </Button>
 
                                             {/* View Details (Native Dialog) */}
-                                            <Button variant="ghost" size="icon" title="Ver Detalles" onClick={() => openDetail(item.id)}>
+                                            <Button variant="ghost" size="icon" title="Ver Detalles" onClick={() => openDetail(item)}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>
 
@@ -226,11 +219,7 @@ export function VerificacionMuestrasModule() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    {isDetailLoading ? (
-                        <div className="flex-1 flex items-center justify-center">
-                            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : selectedVerificacion && (
+                    {selectedVerificacion && (
                         <ScrollArea className="flex-1 min-h-0">
                             <div className="p-6 space-y-6">
                                 {/* Section 1: General Info */}

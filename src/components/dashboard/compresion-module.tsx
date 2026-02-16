@@ -113,19 +113,18 @@ export function CompresionModule() {
         window.open(`${API_URL}/api/compresion/${id}/excel`, '_blank')
     }
 
-    const handleViewDetails = async (id: number) => {
-        setLoadingEnsayo(true)
+    const handleViewDetails = async (item: EnsayoCompresion) => {
+        setSelectedEnsayo(item)
         setIsDetailOpen(true)
+        setLoadingEnsayo(true)
         try {
-            const response = await fetch(`${API_URL}/api/compresion/${id}`)
+            const response = await fetch(`${API_URL}/api/compresion/${item.id}`)
             if (response.ok) {
                 const data = await response.json()
                 setSelectedEnsayo(data)
-            } else {
-                toast.error("No se pudo cargar el detalle del ensayo")
             }
         } catch (error) {
-            toast.error("Error al cargar detalles")
+            // Keep showing basic list data
         } finally {
             setLoadingEnsayo(false)
         }
@@ -204,7 +203,7 @@ export function CompresionModule() {
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
-                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item.id)}>
+                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item)}>
                                     <TableCell className="font-medium">{item.numero_ot}</TableCell>
                                     <TableCell>{item.numero_recepcion}</TableCell>
                                     <TableCell>{getEstadoBadge(item.estado)}</TableCell>
@@ -221,7 +220,7 @@ export function CompresionModule() {
                                                 variant="ghost"
                                                 size="icon"
                                                 title="Ver Detalle"
-                                                onClick={() => handleViewDetails(item.id)}
+                                                onClick={() => handleViewDetails(item)}
                                             >
                                                 <Eye className="h-4 w-4 text-slate-600" />
                                             </Button>

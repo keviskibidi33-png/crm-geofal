@@ -292,7 +292,7 @@ export function TracingModule() {
                 </CardContent>
             </Card>
 
-            <ScrollArea className="flex-1 rounded-xl border bg-card shadow-sm">
+            <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
                 <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                         <TableRow>
@@ -357,7 +357,7 @@ export function TracingModule() {
                         )}
                     </TableBody>
                 </Table>
-            </ScrollArea>
+            </div>
 
             {/* Modal de Detalle Premium */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
