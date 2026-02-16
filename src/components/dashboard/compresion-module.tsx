@@ -281,7 +281,7 @@ export function CompresionModule() {
 
             {/* Reception Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
@@ -298,7 +298,7 @@ export function CompresionModule() {
                             <p className="text-slate-500 font-medium">Cargando datos del ensayo...</p>
                         </div>
                     ) : selectedEnsayo ? (
-                        <ScrollArea className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 overflow-auto">
                             <div className="p-6 space-y-6">
                                 {/* Ensayo Info Card */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -406,7 +406,7 @@ export function CompresionModule() {
                                     </div>
                                 </div>
                             </div>
-                        </ScrollArea>
+                        </div>
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
                             <p className="text-slate-400 italic">No se encontraron datos para este ensayo.</p>

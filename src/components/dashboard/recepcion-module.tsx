@@ -253,7 +253,7 @@ export function RecepcionModule() {
 
             {/* Detail Sheet/Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
@@ -265,7 +265,7 @@ export function RecepcionModule() {
                     </DialogHeader>
 
                     {selectedRecepcion && (
-                        <ScrollArea className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 overflow-auto">
                             <div className="p-6 space-y-6">
                                 {/* Section 1: Project & Client */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/20">
@@ -379,7 +379,7 @@ export function RecepcionModule() {
                                     </div>
                                 </div>
                             </div>
-                        </ScrollArea>
+                        </div>
                     )}
 
                     <DialogFooter className="p-6 border-t shrink-0 bg-muted/5 gap-2 sm:gap-0">
