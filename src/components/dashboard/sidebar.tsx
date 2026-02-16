@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { Users, FileText, Settings, ChevronRight, ChevronLeft, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft } from "lucide-react"
