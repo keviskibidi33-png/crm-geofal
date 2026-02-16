@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { AlertCircle, ExternalLink } from "lucide-react"
 import { useEffect, useState } from "react"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 import { supabase } from "@/lib/supabaseClient"
 
 interface CreateQuoteDialogProps {

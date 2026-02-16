@@ -33,7 +33,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { isToday, isThisWeek, isThisMonth, parseISO, format } from "date-fns"
 import { es } from "date-fns/locale"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 
 export interface Quote {
   id: string

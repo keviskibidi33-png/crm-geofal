@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/hooks/use-auth"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 
 interface Seller {
     id: string

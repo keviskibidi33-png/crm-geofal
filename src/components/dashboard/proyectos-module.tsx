@@ -77,7 +77,7 @@ import { CreateProjectDialog } from "./create-project-dialog"
 import { CloseProjectDialog } from "./close-project-dialog"
 import { CreateQuoteDialog } from "./create-quote-dialog"
 import { type User } from "@/hooks/use-auth"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 import { ContactSelector } from "./contact-selector"
 
 export interface Project {

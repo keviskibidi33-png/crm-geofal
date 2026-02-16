@@ -21,7 +21,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { type User } from "@/hooks/use-auth"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 import { ContactSelector } from "./contact-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
 

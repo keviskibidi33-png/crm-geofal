@@ -11,7 +11,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { updateUserAction } from "@/app/actions/auth-actions"
 import { Loader2, AlertTriangle, Phone } from "lucide-react"
-import { logAction } from "@/app/actions/audit-actions"
+import { logActionClient as logAction } from "@/lib/audit-client"
 
 export function ConfiguracionModule() {
   const { user: currentUser, refreshUser } = useAuth()
