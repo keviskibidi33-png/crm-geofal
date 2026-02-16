@@ -98,11 +98,12 @@ function LoginForm() {
                     throw new Error(sessionResult.error)
                 }
 
-                logAction({
+                await logAction({
                     user_id: authData.user.id,
                     user_name: authData.user.user_metadata?.full_name || email,
                     action: force ? "Reclaimó sesión activa" : "Inició sesión",
                     module: "SESIÓN",
+                    severity: "info",
                 })
             }
 

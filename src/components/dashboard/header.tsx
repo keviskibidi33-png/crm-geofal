@@ -283,9 +283,9 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
+    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6">
       {/* Search with Autocomplete */}
-      <div className="relative w-96" ref={searchRef}>
+      <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-md lg:max-w-lg" ref={searchRef}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         {isSearching && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
@@ -335,7 +335,7 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         <Button
           variant="ghost"
           size="icon"

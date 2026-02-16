@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@supabase/supabase-js"
+import { headers } from "next/headers"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -27,6 +28,22 @@ export async function logAction(data: AuditLog) {
     if (!supabaseServiceKey) return { error: "Service Role Key missing" }
 
     try {
+        const headerStore = await headers()
+        const candidateHeaders = [
+            headerStore.get("x-forwarded-for"),
+            headerStore.get("x-real-ip"),
+            headerStore.get("x-vercel-forwarded-for"),
+            headerStore.get("cf-connecting-ip"),
+            headerStore.get("x-client-ip"),
+            headerStore.get("true-client-ip"),
+        ]
+        const firstHeaderIp = candidateHeaders
+            .find((value) => value && value.trim().length > 0)
+            ?.split(",")[0]
+            ?.trim()
+
+        const resolvedIp = data.ip_address || firstHeaderIp || null
+
         const { error } = await supabaseAdmin
             .from('auditoria')
             .insert({
@@ -35,7 +52,7 @@ export async function logAction(data: AuditLog) {
                 action: data.action,
                 module: data.module,
                 details: data.details,
-                ip_address: data.ip_address,
+                ip_address: resolvedIp,
                 severity: data.severity || 'info'
             })
 
@@ -55,6 +72,8 @@ export async function getAuditLogs(filters: {
     startDate?: string
     endDate?: string
     userId?: string
+    ipAddress?: string
+    includeSystem?: boolean
     page?: number
     pageSize?: number
 }) {
@@ -80,6 +99,16 @@ export async function getAuditLogs(filters: {
         }
         if (filters.userId && filters.userId !== 'all') {
             query = query.eq('user_id', filters.userId)
+        }
+        if (filters.ipAddress?.trim()) {
+            query = query.ilike('ip_address', `%${filters.ipAddress.trim()}%`)
+        }
+
+        // Default behavior: focus on user-attributed events, hide technical system noise.
+        if (!filters.includeSystem) {
+            query = query
+                .not('user_id', 'is', null)
+                .not('action', 'in', '(INSERT,UPDATE)')
         }
 
         const { data, error, count } = await query

@@ -53,6 +53,8 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
     // Filters
     const [userIdFilter, setUserIdFilter] = useState("all")
+    const [includeSystem, setIncludeSystem] = useState(false)
+    const [ipFilter, setIpFilter] = useState("")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
 
@@ -74,6 +76,8 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
         try {
             const result = await getAuditLogs({
                 userId: userIdFilter,
+                ipAddress: ipFilter,
+                includeSystem,
                 startDate: startDate ? new Date(startDate).toISOString() : undefined,
                 endDate: endDate ? new Date(endDate).toISOString() : undefined,
                 page: currentPage,
@@ -91,7 +95,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
         } finally {
             setLoading(false)
         }
-    }, [userIdFilter, startDate, endDate, currentPage, pageSize])
+    }, [userIdFilter, ipFilter, includeSystem, startDate, endDate, currentPage, pageSize])
 
     useEffect(() => {
         fetchUsers()
@@ -253,7 +257,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <div className="space-y-2">
                             <Label>Usuario</Label>
                             <Select value={userIdFilter} onValueChange={setUserIdFilter}>
@@ -270,6 +274,18 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                             </Select>
                         </div>
                         <div className="space-y-2">
+                            <Label>Origen</Label>
+                            <Select value={includeSystem ? "all" : "user"} onValueChange={(value) => setIncludeSystem(value === "all")}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filtrar origen" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="user">Solo usuario</SelectItem>
+                                    <SelectItem value="all">Usuario + sistema</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
                             <Label>Desde</Label>
                             <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                         </div>
@@ -277,12 +293,22 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                             <Label>Hasta</Label>
                             <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                         </div>
+                        <div className="space-y-2">
+                            <Label>IP</Label>
+                            <Input
+                                placeholder="Ej: 190.10.0.12"
+                                value={ipFilter}
+                                onChange={e => setIpFilter(e.target.value)}
+                            />
+                        </div>
                         <div className="flex items-end">
                             <Button
                                 variant="ghost"
                                 className="w-full text-muted-foreground"
                                 onClick={() => {
                                     setUserIdFilter("all")
+                                    setIpFilter("")
+                                    setIncludeSystem(false)
                                     setStartDate("")
                                     setEndDate("")
                                     setCurrentPage(1)

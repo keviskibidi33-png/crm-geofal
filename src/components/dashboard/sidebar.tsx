@@ -46,6 +46,16 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
+  const [isTabletLayout, setIsTabletLayout] = React.useState(false)
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1100px)")
+    const updateTabletLayout = () => setIsTabletLayout(mediaQuery.matches)
+    updateTabletLayout()
+    mediaQuery.addEventListener("change", updateTabletLayout)
+    return () => mediaQuery.removeEventListener("change", updateTabletLayout)
+  }, [])
+
   // Use granular permissions for filtering
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
@@ -71,11 +81,85 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
+  const renderProfileDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="w-full flex items-center justify-center p-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors">
+                <Avatar className="h-9 w-9 border-2 border-primary/30">
+                  <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center">
+                    <UserIcon className="h-4 w-4 text-primary" />
+                  </div>
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                    {user.name?.split(" ").map((n) => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left">
+            <Avatar className="h-10 w-10 border-2 border-primary/30 shrink-0">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <UserIcon className="h-4 w-4 text-primary" />
+              </div>
+              <AvatarFallback className="bg-primary/20 text-primary">
+                {user.name?.split(" ").map((n) => n[0]).join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] h-4 mt-1 px-1.5 text-center leading-none",
+                  user.role === "admin" || user.role === "admin_general"
+                    ? "border-primary/50 text-primary"
+                    : "border-muted-foreground/50 text-muted-foreground",
+                )}
+              >
+                {user.roleLabel || (user.role === "admin" ? "Administrador" : user.role === "asesor comercial" ? "Asesor Comercial" : user.role)}
+              </Badge>
+            </div>
+          </button>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="end" className="w-56 ml-2">
+        <DropdownMenuLabel>
+          <div className="flex flex-col">
+            <span>{user.name}</span>
+            <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setActiveModule("configuracion")}>
+          <Settings className="mr-2 h-4 w-4" />
+          Mi Perfil y Preferencias
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={toggleTheme}>
+          {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+          {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
+          <LogOut className="mr-2 h-4 w-4" />
+          Cerrar Sesión
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   return (
     <TooltipProvider delayDuration={0}>
     <aside className={cn(
       "h-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0",
-      collapsed ? "w-[68px]" : "w-64"
+      collapsed ? "w-[68px]" : isTabletLayout ? "w-56" : "w-64"
     )}>
       {/* Logo + Collapse Toggle */}
       <div className="border-b border-sidebar-border shrink-0">
@@ -100,8 +184,15 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         </button>
       </div>
 
+      {/* User Profile (Top on Tablet) */}
+      {isTabletLayout && (
+        <div className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+          {renderProfileDropdown()}
+        </div>
+      )}
+
       {/* Navigation */}
-      <nav className={cn("flex-1 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
+      <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
         {filteredModules.map((module) => {
           const Icon = module.icon
           const isActive = activeModule === module.id
@@ -140,79 +231,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       </nav>
 
       {/* User Profile Dropdown */}
-      <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            {collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="w-full flex items-center justify-center p-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors">
-                    <Avatar className="h-9 w-9 border-2 border-primary/30">
-                      <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center">
-                        <UserIcon className="h-4 w-4 text-primary" />
-                      </div>
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {user.name?.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>
-                  <p className="font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left">
-                <Avatar className="h-10 w-10 border-2 border-primary/30 shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <UserIcon className="h-4 w-4 text-primary" />
-                  </div>
-                  <AvatarFallback className="bg-primary/20 text-primary">
-                    {user.name?.split(" ").map((n) => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[10px] h-4 mt-1 px-1.5 text-center leading-none",
-                      user.role === "admin" || user.role === "admin_general"
-                        ? "border-primary/50 text-primary"
-                        : "border-muted-foreground/50 text-muted-foreground",
-                    )}
-                  >
-                    {user.roleLabel || (user.role === "admin" ? "Administrador" : user.role === "asesor comercial" ? "Asesor Comercial" : user.role)}
-                  </Badge>
-                </div>
-              </button>
-            )}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-56 ml-2">
-            <DropdownMenuLabel>
-              <div className="flex flex-col">
-                <span>{user.name}</span>
-                <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setActiveModule("configuracion")}>
-              <Settings className="mr-2 h-4 w-4" />
-              Mi Perfil y Preferencias
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggleTheme}>
-              {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-              {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar Sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {!isTabletLayout && (
+        <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+          {renderProfileDropdown()}
+        </div>
+      )}
     </aside>
     </TooltipProvider>
   )
