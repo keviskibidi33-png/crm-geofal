@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useAuth } from "@/hooks/use-auth"
+import { authFetch } from "@/lib/api-auth"
 
 export interface Muestra {
     id: number
@@ -67,12 +68,8 @@ export function useRecepciones() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_URL}/api/recepcion/?limit=100`, {
+            const res = await authFetch(`${API_URL}/api/recepcion/?limit=100`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    // Auth headers if we add security later
-                }
             })
             if (!res.ok) throw new Error("Error fetching recepciones")
             const data = await res.json()
@@ -99,7 +96,7 @@ export function useRecepciones() {
             // I recall reviewing `recepciones.py` content via tool output and it had POST and GET.
             // I should probably add DELETE logic if I want to support native delete.
             // For now, I'll stub it or assume it exists/will be added.
-            const res = await fetch(`${API_URL}/api/recepcion/${id}`, {
+            const res = await authFetch(`${API_URL}/api/recepcion/${id}`, {
                 method: 'DELETE'
             })
             if (!res.ok) throw new Error("Failed to delete")

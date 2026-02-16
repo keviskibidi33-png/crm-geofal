@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
+import { authFetch } from "@/lib/api-auth"
 
 export interface VerificacionMuestra {
     id: number
@@ -29,11 +30,8 @@ export function useVerificaciones() {
         setLoading(true)
         setError(null)
         try {
-            const res = await fetch(`${API_URL}/api/verificacion/`, {
+            const res = await authFetch(`${API_URL}/api/verificacion/`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                }
             })
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}))
@@ -52,7 +50,7 @@ export function useVerificaciones() {
 
     const deleteVerificacion = async (id: number) => {
         try {
-            const res = await fetch(`${API_URL}/api/verificacion/${id}`, {
+            const res = await authFetch(`${API_URL}/api/verificacion/${id}`, {
                 method: 'DELETE'
             })
             if (!res.ok) {
@@ -70,11 +68,8 @@ export function useVerificaciones() {
 
     const fetchVerificacion = useCallback(async (id: number) => {
         try {
-            const res = await fetch(`${API_URL}/api/verificacion/${id}`, {
+            const res = await authFetch(`${API_URL}/api/verificacion/${id}`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                }
             })
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}))

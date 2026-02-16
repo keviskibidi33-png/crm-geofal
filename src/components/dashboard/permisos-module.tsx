@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea" // Assuming you have this or
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 import {
     Table,
     TableBody,
@@ -72,7 +73,7 @@ export function PermisosModule() {
         setLoading(true)
         try {
             // Fetch from your FastAPI backend
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
             if (!res.ok) throw new Error("Failed to fetch roles")
             const data = await res.json()
             setRoles(data)
@@ -149,9 +150,8 @@ export function PermisosModule() {
         if (!activeRole) return
         setSaving(true)
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles/${activeRole.role_id}`, {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles/${activeRole.role_id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     label: activeRole.label,
                     description: activeRole.description,

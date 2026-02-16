@@ -33,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { authFetch } from "@/lib/api-auth"
 
 export function TracingModule() {
     const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
@@ -82,7 +83,7 @@ export function TracingModule() {
     const fetchInformeVersiones = async (numeroRecepcion: string) => {
         setLoadingVersiones(true)
         try {
-            const response = await fetch(`${API_URL}/api/tracing/informe/${encodeURIComponent(numeroRecepcion)}/versiones`)
+            const response = await authFetch(`${API_URL}/api/tracing/informe/${encodeURIComponent(numeroRecepcion)}/versiones`)
             if (response.ok) {
                 const data = await response.json()
                 setInformeVersiones(data.versiones || [])
@@ -105,7 +106,7 @@ export function TracingModule() {
 
     const handleDownloadRecepcionExcel = async (id: number, ot: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/recepcion/${id}/excel`)
+            const response = await authFetch(`${API_URL}/api/recepcion/${id}/excel`)
             if (response.ok) {
                 const blob = await response.blob()
                 const url = window.URL.createObjectURL(blob)
@@ -123,7 +124,7 @@ export function TracingModule() {
 
     const handleDownloadVerificacionExcel = async (id: number) => {
         try {
-            const response = await fetch(`${API_URL}/api/verificacion/${id}/exportar`)
+            const response = await authFetch(`${API_URL}/api/verificacion/${id}/exportar`)
             if (response.ok) {
                 const blob = await response.blob()
                 const url = window.URL.createObjectURL(blob)
@@ -144,7 +145,7 @@ export function TracingModule() {
         setIsEnsayoDetailOpen(true)
         setSelectedEnsayoId(id)
         try {
-            const response = await fetch(`${API_URL}/api/compresion/${id}`)
+            const response = await authFetch(`${API_URL}/api/compresion/${id}`)
             if (response.ok) {
                 const data = await response.json()
                 setSelectedEnsayo(data)
@@ -160,7 +161,7 @@ export function TracingModule() {
         setLoadingRecepcion(true)
         setIsRecepcionDetailOpen(true)
         try {
-            const response = await fetch(`${API_URL}/api/recepcion/${id}`)
+            const response = await authFetch(`${API_URL}/api/recepcion/${id}`)
             if (response.ok) {
                 const data = await response.json()
                 setSelectedRecepcion(data)
@@ -176,7 +177,7 @@ export function TracingModule() {
         setLoadingVerific(true)
         setIsVerificDetailOpen(true)
         try {
-            const response = await fetch(`${API_URL}/api/verificacion/${id}`)
+            const response = await authFetch(`${API_URL}/api/verificacion/${id}`)
             if (response.ok) {
                 const data = await response.json()
                 setSelectedVerific(data)

@@ -25,17 +25,20 @@ export function VerificacionMuestrasModule() {
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [token, setToken] = useState<string | null>(null)
 
+    const syncIframeToken = async (): Promise<string | null> => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const freshToken = session?.access_token ?? null
+        setToken(freshToken)
+        return freshToken
+    }
+
     const FRONTEND_URL = process.env.NEXT_PUBLIC_VERIFICACION_FRONTEND_URL || "http://127.0.0.1:5174"
 
     useEffect(() => {
         fetchVerificaciones()
 
         // Get session token to pass to iframe
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) setToken(session.access_token)
-        }
-        getSession()
+        syncIframeToken()
     }, [fetchVerificaciones])
 
     // Listen for close message from Iframe
@@ -45,12 +48,23 @@ export function VerificacionMuestrasModule() {
                 setIsModalOpen(false)
                 fetchVerificaciones()
             }
+            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+                syncIframeToken().then((freshToken) => {
+                    if (freshToken && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: freshToken },
+                            '*'
+                        )
+                    }
+                })
+            }
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
     }, [fetchVerificaciones])
 
-    const handleOpenModal = (path: string) => {
+    const handleOpenModal = async (path: string) => {
+        await syncIframeToken()
         setIframePath(path)
         setRefreshKey(prev => prev + 1)
         setIsModalOpen(true)

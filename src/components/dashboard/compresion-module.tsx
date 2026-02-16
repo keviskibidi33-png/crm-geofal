@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface EnsayoCompresion {
@@ -38,11 +39,18 @@ export function CompresionModule() {
     const FRONTEND_URL = process.env.NEXT_PUBLIC_COMPRESION_FRONTEND_URL || "http://127.0.0.1:5175"
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
+    const syncIframeToken = async (): Promise<string | null> => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const freshToken = session?.access_token ?? null
+        setToken(freshToken)
+        return freshToken
+    }
+
     // Fetch ensayos from API
     const fetchEnsayos = async () => {
         setLoading(true)
         try {
-            const response = await fetch(`${API_URL}/api/compresion/`)
+            const response = await authFetch(`${API_URL}/api/compresion/`)
             if (response.ok) {
                 const data = await response.json()
                 setEnsayos(data)
@@ -58,11 +66,7 @@ export function CompresionModule() {
         fetchEnsayos()
 
         // Get session token to pass to iframe
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) setToken(session.access_token)
-        }
-        getSession()
+        syncIframeToken()
     }, [])
 
     // Listen for close message from Iframe
@@ -74,10 +78,10 @@ export function CompresionModule() {
             }
             // Auto-refresh: iframe requests a fresh token before expiry
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-                supabase.auth.getSession().then(({ data: { session } }) => {
-                    if (session && event.source) {
+                syncIframeToken().then((freshToken) => {
+                    if (freshToken && event.source) {
                         (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: session.access_token },
+                            { type: 'TOKEN_REFRESH', token: freshToken },
                             '*'
                         )
                     }
@@ -88,7 +92,8 @@ export function CompresionModule() {
         return () => window.removeEventListener("message", handleMessage)
     }, [])
 
-    const handleOpenModal = (path: string) => {
+    const handleOpenModal = async (path: string) => {
+        await syncIframeToken()
         setIframePath(path)
         setRefreshKey(prev => prev + 1)
         setIsModalOpen(true)
@@ -117,7 +122,7 @@ export function CompresionModule() {
 
     const handleDelete = async (id: number) => {
         try {
-            const response = await fetch(`${API_URL}/api/compresion/${id}`, {
+            const response = await authFetch(`${API_URL}/api/compresion/${id}`, {
                 method: 'DELETE'
             })
             if (response.ok) {
@@ -140,7 +145,7 @@ export function CompresionModule() {
         setIsDetailOpen(true)
         setLoadingEnsayo(true)
         try {
-            const response = await fetch(`${API_URL}/api/compresion/${item.id}`)
+            const response = await authFetch(`${API_URL}/api/compresion/${item.id}`)
             if (response.ok) {
                 const data = await response.json()
                 setSelectedEnsayo(data)

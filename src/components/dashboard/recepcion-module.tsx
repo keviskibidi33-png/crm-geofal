@@ -26,16 +26,19 @@ export function RecepcionModule() {
     const [token, setToken] = useState<string | null>(null)
     const { user } = useAuth()
 
-    // Initial fetch
+    const syncIframeToken = async (): Promise<string | null> => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const freshToken = session?.access_token ?? null
+        setToken(freshToken)
+        return freshToken
+    }
+
+    // Initial fetch|
     useEffect(() => {
         fetchRecepciones()
 
         // Get session token to pass to iframe
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) setToken(session.access_token)
-        }
-        getSession()
+        syncIframeToken()
     }, [fetchRecepciones])
 
     // Listen for close message from Iframe
@@ -48,10 +51,10 @@ export function RecepcionModule() {
             }
             // Auto-refresh: iframe requests a fresh token before expiry
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-                supabase.auth.getSession().then(({ data: { session } }) => {
-                    if (session && event.source) {
+                syncIframeToken().then((freshToken) => {
+                    if (freshToken && event.source) {
                         (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: session.access_token },
+                            { type: 'TOKEN_REFRESH', token: freshToken },
                             '*'
                         )
                     }
@@ -85,9 +88,16 @@ export function RecepcionModule() {
         fetchRecepciones()
     }
 
-    const handleEdit = (recepcion: Recepcion) => {
+    const handleEdit = async (recepcion: Recepcion) => {
+        await syncIframeToken()
         setEditId(recepcion.id)
         setIsDetailOpen(false)
+        setIsModalOpen(true)
+    }
+
+    const handleCreate = async () => {
+        await syncIframeToken()
+        setEditId(null)
         setIsModalOpen(true)
     }
 
@@ -144,7 +154,7 @@ export function RecepcionModule() {
                     <Button variant="outline" size="icon" onClick={() => fetchRecepciones()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+                    <Button onClick={handleCreate} className="gap-2">
                         <Plus className="h-4 w-4" />
                         Nueva Recepción
                     </Button>

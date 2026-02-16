@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { authFetch } from '@/lib/api-auth';
 
 export interface StageStatus {
     name: string;
@@ -46,7 +47,7 @@ export function useTracing() {
         setError(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/tracing/flujo/${encodeURIComponent(numeroRecepcion)}`);
+            const response = await authFetch(`${API_URL}/api/tracing/flujo/${encodeURIComponent(numeroRecepcion)}`);
             if (!response.ok) {
                 if (response.status === 404) {
                     setError("No se encontró información para este número de recepción.");
@@ -73,7 +74,7 @@ export function useTracing() {
         setError(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/tracing/listar`);
+            const response = await authFetch(`${API_URL}/api/tracing/listar`);
             if (!response.ok) {
                 throw new Error(`Error al cargar la lista: ${response.status}`);
             }
@@ -93,7 +94,7 @@ export function useTracing() {
         setError(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/tracing/${encodeURIComponent(numeroRecepcion)}`, {
+            const response = await authFetch(`${API_URL}/api/tracing/${encodeURIComponent(numeroRecepcion)}`, {
                 method: 'DELETE'
             });
             if (!response.ok) {

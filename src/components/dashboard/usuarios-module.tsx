@@ -31,6 +31,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 
@@ -79,7 +80,7 @@ export function UsuariosModule() {
 
     const fetchRoles = useCallback(async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
             if (res.ok) {
                 const data = await res.json()
                 setAvailableRoles(data)

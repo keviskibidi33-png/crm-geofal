@@ -1,8 +1,35 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 import { logAction } from "@/app/actions/audit-actions"
 
-export async function POST(request: Request) {
+function resolveClientIp(request: NextRequest): string | undefined {
+  const forwarded = request.headers.get("forwarded")
+  const forwardedMatch = forwarded?.match(/for=(?:"?\[?)([^;,"]+)/i)
+  const forwardedIp = forwardedMatch?.[1]?.replace("]", "").trim()
+
+  const candidateHeaders = [
+    forwardedIp,
+    request.headers.get("x-forwarded-for"),
+    request.headers.get("x-real-ip"),
+    request.headers.get("x-vercel-forwarded-for"),
+    request.headers.get("cf-connecting-ip"),
+    request.headers.get("x-client-ip"),
+    request.headers.get("true-client-ip"),
+  ]
+
+  const firstHeaderIp = candidateHeaders
+    .find((value) => value && value.trim().length > 0)
+    ?.split(",")[0]
+    ?.trim()
+
+  if (!firstHeaderIp || firstHeaderIp.toLowerCase() === "unknown") {
+    return undefined
+  }
+
+  return firstHeaderIp
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
@@ -16,7 +43,7 @@ export async function POST(request: Request) {
       action: body.action,
       module: body.module,
       details: body.details,
-      ip_address: body.ip_address,
+      ip_address: body.ip_address || resolveClientIp(request),
       severity: body.severity,
     })
 

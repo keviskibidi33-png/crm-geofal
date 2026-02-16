@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
@@ -70,7 +71,7 @@ async function fetchProfile(userId: string) {
 async function fetchRolePermissions(roleId: string): Promise<RolePermissions | null> {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-        const response = await fetch(`${apiUrl}/roles`)
+        const response = await authFetch(`${apiUrl}/roles`)
         if (!response.ok) return null
         const roles = await response.json()
         const roleData = roles.find((r: any) => r.role_id === roleId)
@@ -321,9 +322,8 @@ export function useAuth() {
         const sendHeartbeat = async () => {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
             try {
-                await fetch(`${apiUrl}/users/heartbeat`, {
+                await authFetch(`${apiUrl}/users/heartbeat`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: currentUserId })
                 })
             } catch (err) { }
