@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { RefreshCw, Plus, Search, FileText, Trash2, Eye, FileSpreadsheet, Clock, ChevronLeft, Building2, MapPin, User, Mail, Phone, Calendar } from "lucide-react"
+import { RefreshCw, Plus, Search, FileText, Trash2, Eye, Pencil, FileSpreadsheet, Clock, ChevronLeft, Building2, MapPin, User, Mail, Phone, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -176,7 +176,7 @@ export function VerificacionMuestrasModule() {
 
                                             {/* Edit (Iframe Modal) */}
                                             <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/editar/${item.id}`)}>
-                                                <RefreshCw className="h-4 w-4 text-blue-600" />
+                                                <Pencil className="h-4 w-4 text-blue-600" />
                                             </Button>
 
                                             {/* Delete */}

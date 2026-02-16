@@ -172,7 +172,6 @@ export function RecepcionModule() {
                             <TableHead className="w-[120px]">Recepción</TableHead>
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
-                            <TableHead>Fecha</TableHead>
                             <TableHead className="text-center">Muestras</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
@@ -180,13 +179,13 @@ export function RecepcionModule() {
                     <TableBody>
                         {loading && recepciones.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     Cargando datos...
                                 </TableCell>
                             </TableRow>
                         ) : filteredData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     No se encontraron resultados
                                 </TableCell>
                             </TableRow>
@@ -200,7 +199,6 @@ export function RecepcionModule() {
                                     <TableCell className="max-w-[200px] truncate" title={item.proyecto}>
                                         {item.proyecto}
                                     </TableCell>
-                                    <TableCell>{formatDate(item.fecha_recepcion)}</TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="secondary">
                                             {Array.isArray(item.muestras) ? item.muestras.length : 0}
