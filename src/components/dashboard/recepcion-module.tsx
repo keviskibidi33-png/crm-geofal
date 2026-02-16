@@ -22,6 +22,7 @@ export function RecepcionModule() {
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const { user } = useAuth()
 
@@ -63,11 +64,19 @@ export function RecepcionModule() {
 
     // Refresh when modal closes
     const handleModalOpenChange = (open: boolean) => {
-        setIsModalOpen(open)
         if (!open) {
-            setEditId(null)
-            fetchRecepciones()
+            // User tried to close (X, ESC, overlay) → show confirmation
+            setShowExitConfirm(true)
+            return
         }
+        setIsModalOpen(open)
+    }
+
+    const confirmCloseModal = () => {
+        setShowExitConfirm(false)
+        setIsModalOpen(false)
+        setEditId(null)
+        fetchRecepciones()
     }
 
     const handleEdit = (recepcion: Recepcion) => {
@@ -251,6 +260,24 @@ export function RecepcionModule() {
                 </DialogContent>
             </Dialog>
 
+            {/* Unsaved changes confirmation */}
+            <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Los datos ingresados no se han guardado. Si sales ahora, se perderán los cambios.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmCloseModal} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Salir sin guardar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             {/* Detail Sheet/Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
@@ -337,9 +364,8 @@ export function RecepcionModule() {
                                             <TableHeader>
                                                 <TableRow className="bg-muted/50 text-xs hover:bg-muted/50">
                                                     <TableHead className="w-[50px] text-center font-bold">Nº</TableHead>
-                                                    <TableHead className="font-bold">Código Muestra</TableHead>
                                                     <TableHead className="font-bold">Código LEM</TableHead>
-                                                    <TableHead className="font-bold">Identificación</TableHead>
+                                                    <TableHead className="font-bold">Codigo</TableHead>
                                                     <TableHead className="font-bold">Estructura</TableHead>
                                                     <TableHead className="text-center font-bold">F&apos;c</TableHead>
                                                     <TableHead className="font-bold">Fecha Moldeo</TableHead>
@@ -353,7 +379,6 @@ export function RecepcionModule() {
                                                 {Array.isArray(selectedRecepcion.muestras) && selectedRecepcion.muestras.map((m: any, idx: number) => (
                                                     <TableRow key={idx}>
                                                         <TableCell className="text-center font-medium bg-muted/20">{m.item_numero}</TableCell>
-                                                        <TableCell>{m.codigo_muestra || "-"}</TableCell>
                                                         <TableCell className="font-mono text-primary">{m.codigo_muestra_lem || "-"}</TableCell>
                                                         <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.identificacion_muestra || "-"}</TableCell>
                                                         <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.estructura || "-"}</TableCell>
@@ -369,7 +394,7 @@ export function RecepcionModule() {
                                                 ))}
                                                 {(!Array.isArray(selectedRecepcion.muestras) || selectedRecepcion.muestras.length === 0) && (
                                                     <TableRow>
-                                                        <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                                                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                                                             No hay muestras registradas en esta recepción.
                                                         </TableCell>
                                                     </TableRow>

@@ -27,6 +27,7 @@ export function CompresionModule() {
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [iframePath, setIframePath] = useState("/compresion")
     const [refreshKey, setRefreshKey] = useState(0)
     const [token, setToken] = useState<string | null>(null)
@@ -91,6 +92,20 @@ export function CompresionModule() {
         setIframePath(path)
         setRefreshKey(prev => prev + 1)
         setIsModalOpen(true)
+    }
+
+    const handleModalOpenChange = (open: boolean) => {
+        if (!open) {
+            setShowExitConfirm(true)
+            return
+        }
+        setIsModalOpen(open)
+    }
+
+    const confirmCloseModal = () => {
+        setShowExitConfirm(false)
+        setIsModalOpen(false)
+        fetchEnsayos()
     }
 
     const handleDelete = async (id: number) => {
@@ -262,7 +277,7 @@ export function CompresionModule() {
             </div>
 
             {/* Modal Iframe for Creation/Editing */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
                     <DialogHeader className="hidden">
                         <DialogTitle>Módulo Formato</DialogTitle>
@@ -278,6 +293,24 @@ export function CompresionModule() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Unsaved changes confirmation */}
+            <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Los datos ingresados no se han guardado. Si sales ahora, se perderán los cambios.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmCloseModal} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Salir sin guardar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Reception Detail Modal */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
