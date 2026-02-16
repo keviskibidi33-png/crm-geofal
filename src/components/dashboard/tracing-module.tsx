@@ -958,12 +958,14 @@ export function TracingModule() {
                                                         <TableCell className="text-xs font-bold text-slate-600 text-center">{m.diametro_2_mm}</TableCell>
                                                         <TableCell className="text-xs font-bold text-slate-600 text-center">{m.tolerancia_porcentaje}%</TableCell>
                                                         <TableCell className="text-center">
-                                                            <Badge variant="outline" className={cn(
-                                                                "text-[9px] font-black uppercase px-2 py-0 border-none",
-                                                                m.cumple_tolerancia ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                                            )}>
-                                                                {m.cumple_tolerancia ? 'SI' : 'NO'}
-                                                            </Badge>
+                                                            {m.aceptacion_diametro ? (
+                                                                <Badge variant="outline" className={cn(
+                                                                    "text-[9px] font-black uppercase px-2 py-0 border-none",
+                                                                    m.aceptacion_diametro.toLowerCase().includes("cumple") && !m.aceptacion_diametro.toLowerCase().includes("no") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                                )}>
+                                                                    {m.aceptacion_diametro}
+                                                                </Badge>
+                                                            ) : "-"}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}

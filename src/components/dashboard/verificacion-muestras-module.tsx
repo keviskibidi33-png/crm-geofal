@@ -294,22 +294,28 @@ export function VerificacionMuestrasModule() {
                                                         <TableCell className="text-center">{m.diametro_1_mm ?? "-"}</TableCell>
                                                         <TableCell className="text-center">{m.diametro_2_mm ?? "-"}</TableCell>
                                                         <TableCell className="text-center">{m.tolerancia_porcentaje != null ? `${m.tolerancia_porcentaje}%` : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.aceptacion || (m.cumple_tolerancia ? "SI" : "NO")}</TableCell>
-                                                        <TableCell className="text-center">{m.perpend_sup_1 ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.perpend_sup_2 ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.perpend_inf_1 ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.perpend_inf_2 ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.medida_menor_05_sup ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.medida_menor_05_inf ? "✓" : "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.cara_superior_005 || "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.cara_inferior_005 || "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.depresiones_5mm || "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.longitud_1 ?? "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.longitud_2 ?? "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.longitud_3 ?? "-"}</TableCell>
-                                                        <TableCell className="text-center">{m.masa_muestra_aire ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            {m.aceptacion_diametro ? (
+                                                                <Badge variant="outline" className={m.aceptacion_diametro.toLowerCase().includes("cumple") && !m.aceptacion_diametro.toLowerCase().includes("no") ? "text-green-600 border-green-200 bg-green-50" : "text-destructive border-destructive/20 bg-destructive/5"}>
+                                                                    {m.aceptacion_diametro}
+                                                                </Badge>
+                                                            ) : "-"}
+                                                        </TableCell>
+                                                        <TableCell className="text-center">{m.perpendicularidad_sup1 != null ? (m.perpendicularidad_sup1 ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpendicularidad_sup2 != null ? (m.perpendicularidad_sup2 ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpendicularidad_inf1 != null ? (m.perpendicularidad_inf1 ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpendicularidad_inf2 != null ? (m.perpendicularidad_inf2 ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpendicularidad_medida != null ? (m.perpendicularidad_medida ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.planitud_medida != null ? (m.planitud_medida ? "✓" : "✗") : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.planitud_superior_aceptacion || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.planitud_inferior_aceptacion || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.planitud_depresiones_aceptacion || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_1_mm ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_2_mm ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_3_mm ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.masa_muestra_aire_g ?? "-"}</TableCell>
                                                         <TableCell className="text-center">{m.pesar || "-"}</TableCell>
-                                                        <TableCell>{m.accion || "-"}</TableCell>
+                                                        <TableCell>{m.accion_realizar || "-"}</TableCell>
                                                         <TableCell>{m.conformidad || "-"}</TableCell>
                                                     </TableRow>
                                                 ))}
