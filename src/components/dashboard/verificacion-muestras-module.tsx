@@ -226,7 +226,7 @@ export function VerificacionMuestrasModule() {
 
             {/* Modal Iframe for Creation/Editing */}
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                     <DialogHeader className="hidden">
                         <DialogTitle>Módulo Verificación</DialogTitle>
                         <DialogDescription>Crea o edita verificaciones</DialogDescription>

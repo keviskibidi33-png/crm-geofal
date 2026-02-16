@@ -76,7 +76,7 @@ export function HumedadModule() {
 
             {/* Iframe modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                     <DialogHeader className="hidden">
                         <DialogTitle>Ensayo de Humedad</DialogTitle>
                         <DialogDescription>Formulario de contenido de humedad ASTM D2216</DialogDescription>

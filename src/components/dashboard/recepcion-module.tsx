@@ -256,7 +256,7 @@ export function RecepcionModule() {
 
             {/* Modal with Iframe for Creation */}
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                     <DialogHeader className="hidden">
                         <DialogTitle>{editId ? 'Editar Recepción' : 'Nueva Recepción'}</DialogTitle>
                         <DialogDescription>{editId ? 'Formulario de edición de recepción' : 'Formulario de creación de nueva recepción'}</DialogDescription>
