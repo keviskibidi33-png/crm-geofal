@@ -352,33 +352,53 @@ export function CompresionModule() {
                                         <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedEnsayo.estado}</Badge>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <Table className="min-w-full">
+                                        <Table className="min-w-[1200px]">
                                             <TableHeader className="bg-slate-50/50">
                                                 <TableRow>
                                                     <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>
                                                     <TableHead className="text-[9px] font-black uppercase h-8">Cód. LEM</TableHead>
-                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fecha Ensayo</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">F. Programado</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">F. Ensayo</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Hora</TableHead>
                                                     <TableHead className="text-[9px] font-black uppercase h-8">Carga Máx (kN)</TableHead>
                                                     <TableHead className="text-[9px] font-black uppercase h-8">Fractura</TableHead>
-                                                    <TableHead className="text-[9px] font-black uppercase h-8">Realizado por</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Defectos</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Realizado</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Revisado</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">F. Revisión</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Aprobado</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">F. Aprobación</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {selectedEnsayo.items?.map((m: any) => (
                                                     <TableRow key={m.id} className="hover:bg-slate-50/50 transition-colors h-10">
                                                         <TableCell className="text-xs font-bold text-center py-2">{m.item}</TableCell>
-                                                        <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem}</TableCell>
+                                                        <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem || '-'}</TableCell>
+                                                        <TableCell className="text-xs py-2">
+                                                            {m.fecha_ensayo_programado ? new Date(m.fecha_ensayo_programado).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
                                                         <TableCell className="text-xs font-semibold py-2">
                                                             {m.fecha_ensayo ? new Date(m.fecha_ensayo).toLocaleDateString('es-PE') : '-'}
                                                         </TableCell>
-                                                        <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima} kN</TableCell>
-                                                        <TableCell className="text-xs text-slate-600 py-2">{m.tipo_fractura}</TableCell>
-                                                        <TableCell className="text-[10px] text-slate-500 py-2">{m.realizado}</TableCell>
+                                                        <TableCell className="text-xs py-2">{m.hora_ensayo || '-'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima != null ? `${m.carga_maxima} kN` : '-'}</TableCell>
+                                                        <TableCell className="text-xs text-slate-600 py-2">{m.tipo_fractura || '-'}</TableCell>
+                                                        <TableCell className="text-xs text-slate-500 py-2">{m.defectos || '-'}</TableCell>
+                                                        <TableCell className="text-[10px] text-slate-500 py-2">{m.realizado || '-'}</TableCell>
+                                                        <TableCell className="text-[10px] text-slate-500 py-2">{m.revisado || '-'}</TableCell>
+                                                        <TableCell className="text-xs py-2">
+                                                            {m.fecha_revision ? new Date(m.fecha_revision).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-[10px] text-slate-500 py-2">{m.aprobado || '-'}</TableCell>
+                                                        <TableCell className="text-xs py-2">
+                                                            {m.fecha_aprobacion ? new Date(m.fecha_aprobacion).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
                                                     </TableRow>
                                                 ))}
                                                 {(!selectedEnsayo.items || selectedEnsayo.items.length === 0) && (
                                                     <TableRow>
-                                                        <TableCell colSpan={6} className="h-16 text-center text-xs text-slate-400 italic">No hay resultados registrados</TableCell>
+                                                        <TableCell colSpan={13} className="h-16 text-center text-xs text-slate-400 italic">No hay resultados registrados</TableCell>
                                                     </TableRow>
                                                 )}
                                             </TableBody>

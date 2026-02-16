@@ -332,13 +332,14 @@ export function RecepcionModule() {
                                         </span>
                                         Muestras Registradas
                                     </h3>
-                                    <div className="rounded-md border overflow-hidden">
-                                        <Table>
+                                    <div className="rounded-md border overflow-x-auto">
+                                        <Table className="min-w-[900px]">
                                             <TableHeader>
                                                 <TableRow className="bg-muted/50 text-xs hover:bg-muted/50">
                                                     <TableHead className="w-[50px] text-center font-bold">Nº</TableHead>
+                                                    <TableHead className="font-bold">Código Muestra</TableHead>
                                                     <TableHead className="font-bold">Código LEM</TableHead>
-                                                    <TableHead className="font-bold">Código</TableHead>
+                                                    <TableHead className="font-bold">Identificación</TableHead>
                                                     <TableHead className="font-bold">Estructura</TableHead>
                                                     <TableHead className="text-center font-bold">F&apos;c</TableHead>
                                                     <TableHead className="font-bold">Fecha Moldeo</TableHead>
@@ -352,9 +353,10 @@ export function RecepcionModule() {
                                                 {Array.isArray(selectedRecepcion.muestras) && selectedRecepcion.muestras.map((m: any, idx: number) => (
                                                     <TableRow key={idx}>
                                                         <TableCell className="text-center font-medium bg-muted/20">{m.item_numero}</TableCell>
+                                                        <TableCell>{m.codigo_muestra || "-"}</TableCell>
                                                         <TableCell className="font-mono text-primary">{m.codigo_muestra_lem || "-"}</TableCell>
-                                                        <TableCell className="whitespace-pre-wrap">{m.identificacion_muestra}</TableCell>
-                                                        <TableCell className="whitespace-pre-wrap">{m.estructura || "-"}</TableCell>
+                                                        <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.identificacion_muestra || "-"}</TableCell>
+                                                        <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.estructura || "-"}</TableCell>
                                                         <TableCell className="text-center font-bold">{m.fc_kg_cm2 || "-"}</TableCell>
                                                         <TableCell>{formatDate(m.fecha_moldeo)}</TableCell>
                                                         <TableCell>{m.hora_moldeo || "-"}</TableCell>
@@ -367,7 +369,7 @@ export function RecepcionModule() {
                                                 ))}
                                                 {(!Array.isArray(selectedRecepcion.muestras) || selectedRecepcion.muestras.length === 0) && (
                                                     <TableRow>
-                                                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                                                        <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                                                             No hay muestras registradas en esta recepción.
                                                         </TableCell>
                                                     </TableRow>

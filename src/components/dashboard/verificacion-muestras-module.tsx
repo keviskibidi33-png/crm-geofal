@@ -256,17 +256,33 @@ export function VerificacionMuestrasModule() {
                                         </span>
                                         Muestras Verificadas
                                     </h3>
-                                    <div className="rounded-md border overflow-hidden">
-                                        <Table>
+                                    <div className="rounded-md border overflow-x-auto">
+                                        <Table className="min-w-[1800px]">
                                             <TableHeader>
-                                                <TableRow className="bg-muted/50 text-xs hover:bg-muted/50">
-                                                    <TableHead className="w-[50px] text-center font-bold">Itm</TableHead>
+                                                <TableRow className="bg-muted/50 text-[10px] hover:bg-muted/50">
+                                                    <TableHead className="w-[40px] text-center font-bold">Itm</TableHead>
                                                     <TableHead className="font-bold">Cód. LEM</TableHead>
                                                     <TableHead className="font-bold">Tipo</TableHead>
                                                     <TableHead className="text-center font-bold">Ø1 (mm)</TableHead>
                                                     <TableHead className="text-center font-bold">Ø2 (mm)</TableHead>
                                                     <TableHead className="text-center font-bold">Tol (%)</TableHead>
-                                                    <TableHead className="text-center font-bold">Cumple</TableHead>
+                                                    <TableHead className="text-center font-bold">Aceptación</TableHead>
+                                                    <TableHead className="text-center font-bold">SUP 1</TableHead>
+                                                    <TableHead className="text-center font-bold">SUP 2</TableHead>
+                                                    <TableHead className="text-center font-bold">INF 1</TableHead>
+                                                    <TableHead className="text-center font-bold">INF 2</TableHead>
+                                                    <TableHead className="text-center font-bold">Med&lt;0.5 S</TableHead>
+                                                    <TableHead className="text-center font-bold">Med&lt;0.5 I</TableHead>
+                                                    <TableHead className="text-center font-bold">C.Sup &lt;0.05</TableHead>
+                                                    <TableHead className="text-center font-bold">C.Inf &lt;0.05</TableHead>
+                                                    <TableHead className="text-center font-bold">Depres ≤5mm</TableHead>
+                                                    <TableHead className="text-center font-bold">Long 1</TableHead>
+                                                    <TableHead className="text-center font-bold">Long 2</TableHead>
+                                                    <TableHead className="text-center font-bold">Long 3</TableHead>
+                                                    <TableHead className="text-center font-bold">Masa (g)</TableHead>
+                                                    <TableHead className="text-center font-bold">Pesar</TableHead>
+                                                    <TableHead className="font-bold">Acción</TableHead>
+                                                    <TableHead className="font-bold">Conformidad</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody className="text-xs">
@@ -274,21 +290,32 @@ export function VerificacionMuestrasModule() {
                                                     <TableRow key={idx}>
                                                         <TableCell className="text-center font-medium bg-muted/20">{m.item_numero}</TableCell>
                                                         <TableCell className="font-mono text-primary">{m.codigo_lem || "-"}</TableCell>
-                                                        <TableCell className="uppercase">{m.tipo_testigo}</TableCell>
-                                                        <TableCell className="text-center">{m.diametro_1_mm}</TableCell>
-                                                        <TableCell className="text-center">{m.diametro_2_mm}</TableCell>
-                                                        <TableCell className="text-center">{m.tolerancia_porcentaje}%</TableCell>
-                                                        <TableCell className="text-center">
-                                                            {m.cumple_tolerancia ?
-                                                                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">SI</Badge> :
-                                                                <Badge variant="outline" className="text-destructive border-destructive/20 bg-destructive/5">NO</Badge>
-                                                            }
-                                                        </TableCell>
+                                                        <TableCell className="uppercase">{m.tipo_testigo || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.diametro_1_mm ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.diametro_2_mm ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.tolerancia_porcentaje != null ? `${m.tolerancia_porcentaje}%` : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.aceptacion || (m.cumple_tolerancia ? "SI" : "NO")}</TableCell>
+                                                        <TableCell className="text-center">{m.perpend_sup_1 ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpend_sup_2 ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpend_inf_1 ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.perpend_inf_2 ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.medida_menor_05_sup ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.medida_menor_05_inf ? "✓" : "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.cara_superior_005 || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.cara_inferior_005 || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.depresiones_5mm || "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_1 ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_2 ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.longitud_3 ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.masa_muestra_aire ?? "-"}</TableCell>
+                                                        <TableCell className="text-center">{m.pesar || "-"}</TableCell>
+                                                        <TableCell>{m.accion || "-"}</TableCell>
+                                                        <TableCell>{m.conformidad || "-"}</TableCell>
                                                     </TableRow>
                                                 ))}
                                                 {(!selectedVerificacion.muestras_verificadas || selectedVerificacion.muestras_verificadas.length === 0) && (
                                                     <TableRow>
-                                                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                                        <TableCell colSpan={23} className="text-center text-muted-foreground py-8">
                                                             No hay muestras registradas en esta verificación.
                                                         </TableCell>
                                                     </TableRow>
