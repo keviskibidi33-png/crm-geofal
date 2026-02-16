@@ -150,7 +150,7 @@ export function RecepcionModule() {
             </div>
 
             {/* Content (Table) */}
-            <div className="rounded-md border bg-card">
+            <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

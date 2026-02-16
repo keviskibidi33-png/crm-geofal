@@ -204,12 +204,12 @@ export function CompresionModule() {
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
-                                <TableRow key={item.id} className="hover:bg-muted/50">
+                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item.id)}>
                                     <TableCell className="font-medium">{item.numero_ot}</TableCell>
                                     <TableCell>{item.numero_recepcion}</TableCell>
                                     <TableCell>{getEstadoBadge(item.estado)}</TableCell>
                                     <TableCell>{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString('es-PE') : '-'}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
                                             {/* Download Excel */}
                                             <Button variant="ghost" size="icon" title="Descargar Excel" onClick={() => handleDownloadExcel(item.id)}>

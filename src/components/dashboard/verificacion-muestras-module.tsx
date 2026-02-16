@@ -141,13 +141,13 @@ export function VerificacionMuestrasModule() {
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
-                                <TableRow key={item.id} className="hover:bg-muted/50">
+                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item.id)}>
                                     <TableCell className="font-medium">{item.numero_verificacion}</TableCell>
                                     <TableCell>{item.cliente || "-"}</TableCell>
                                     <TableCell>{item.verificado_por || "-"}</TableCell>
                                     <TableCell>{item.fecha_verificacion || "-"}</TableCell>
                                     <TableCell className="text-center">{item.muestras_verificadas?.length || 0}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
                                             {/* Download Excel */}
                                             <Button variant="ghost" size="icon" title="Descargar Excel" onClick={() => handleDownloadExcel(item.id)}>
