@@ -34,6 +34,12 @@ export default function DashboardPage() {
     }
     return "clientes"
   })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("crm-sidebar-collapsed") === 'true'
+    }
+    return false
+  })
   const { user, loading, isSessionTerminated, signOut } = useAuth()
   const [securityViolation, setSecurityViolation] = useState(false)
   const router = useRouter()
@@ -43,6 +49,10 @@ export default function DashboardPage() {
     localStorage.setItem("crm-active-module", activeModule)
     // console.log('[CRM] Nuevo valor de activeModule:', activeModule) // Cleaned log
   }, [activeModule])
+
+  useEffect(() => {
+    localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   useEffect(() => {
     // Only redirect if NOT loading, and NO user, and session is NOT terminated
@@ -198,7 +208,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <DashboardSidebar activeModule={activeModule} setActiveModule={setActiveModule} user={dashboardUser} />
+      <DashboardSidebar activeModule={activeModule} setActiveModule={setActiveModule} user={dashboardUser} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader user={dashboardUser} setActiveModule={setActiveModule} />
         <main className="flex-1 overflow-auto p-6">{renderModule()}</main>
