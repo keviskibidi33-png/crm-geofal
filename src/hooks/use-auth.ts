@@ -57,6 +57,8 @@ async function fetchProfile(userId: string) {
             .eq("id", userId)
             .single()
 
+        console.log("[Auth] Profile query result:", { profile, error })
+
         if (error) {
             console.error("[Auth] Error fetching profile:", error)
             return null
@@ -64,17 +66,22 @@ async function fetchProfile(userId: string) {
 
         // Fetch role_definitions separately to avoid PostgREST FK join issues with RLS
         if (profile?.role) {
-            const { data: roleDef } = await supabase
+            const { data: roleDef, error: roleError } = await supabase
                 .from("role_definitions")
                 .select("label, permissions")
                 .eq("role_id", profile.role)
                 .single()
 
+            console.log("[Auth] RoleDef query result:", { roleDef, roleError, roleId: profile.role })
+
             if (roleDef) {
-                return { ...profile, role_definitions: roleDef }
+                const result = { ...profile, role_definitions: roleDef }
+                console.log("[Auth] Final profile with roleDef:", result)
+                return result
             }
         }
 
+        console.log("[Auth] Returning profile WITHOUT roleDef")
         return { ...profile, role_definitions: null }
     } catch (e) {
         console.error("[Auth] Exception fetching profile:", e)
