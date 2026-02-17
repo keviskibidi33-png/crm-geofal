@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal, Loader2, AlertCircle } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal, Loader2, AlertCircle, Upload } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -27,13 +27,16 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
-    const timeoutRef = useRef<NodeJS.Timeout>();
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleLoad = () => {
         setIsLoading(false);
         setError(null);
         setRetryCount(0);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
     };
 
     const handleRetry = useCallback(() => {
@@ -67,7 +70,10 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         }, timeoutMs);
 
         return () => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
         };
     }, [isLoading, retryCount, handleRetry]);
 
@@ -137,6 +143,9 @@ export function RecepcionModule() {
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [token, setToken] = useState<string | null>(null)
+    const [isImporting, setIsImporting] = useState(false)
+    const [importedData, setImportedData] = useState<any>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const { user } = useAuth()
 
     const syncIframeToken = async (): Promise<string | null> => {
@@ -178,6 +187,30 @@ export function RecepcionModule() {
         return () => window.removeEventListener("message", handleMessage)
     }, [fetchRecepciones])
 
+    // Sync imported data to Iframe when it opens
+    useEffect(() => {
+        if (isModalOpen && importedData && !editId) {
+            const sendData = () => {
+                const iframes = document.getElementsByTagName('iframe');
+                for (let i = 0; i < iframes.length; i++) {
+                    const iframe = iframes[i];
+                    // Match by title or src
+                    if (iframe.title === 'Nueva Recepción') {
+                        console.log('[RecepcionModule] Syncing imported data to iframe...');
+                        iframe.contentWindow?.postMessage({
+                            type: 'IMPORT_DATA',
+                            data: importedData
+                        }, '*');
+                    }
+                }
+            };
+            
+            // Wait for iframe content to be ready
+            const timer = setTimeout(sendData, 3000); 
+            return () => clearTimeout(timer);
+        }
+    }, [isModalOpen, importedData, editId])
+
     // Refresh when modal closes
     const handleModalOpenChange = (open: boolean) => {
         if (!open) {
@@ -211,7 +244,53 @@ export function RecepcionModule() {
     const handleCreate = async () => {
         await syncIframeToken()
         setEditId(null)
+        setImportedData(null)
         setIsModalOpen(true)
+    }
+
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xlsm')) {
+            toast.error("Solo se permiten archivos Excel (.xlsx, .xlsm)")
+            return
+        }
+
+        setIsImporting(true)
+        const loadingToast = toast.loading("Procesando Excel...")
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            
+            const response = await authFetch(`${API_URL}/api/recepcion/importar-excel`, {
+                method: 'POST',
+                body: formData
+            })
+
+            if (!response.ok) {
+                const error = await response.json()
+                throw new Error(error.detail || "Error al procesar el Excel")
+            }
+
+            const data = await response.json()
+            toast.dismiss(loadingToast)
+            toast.success(`Excel importado: ${data.muestras?.length || 0} muestras detectadas`)
+            
+            // Set data and open modal
+            setImportedData(data)
+            await syncIframeToken()
+            setEditId(null)
+            setIsModalOpen(true)
+        } catch (error: any) {
+            toast.dismiss(loadingToast)
+            toast.error(error.message)
+        } finally {
+            setIsImporting(false)
+            if (fileInputRef.current) fileInputRef.current.value = ""
+        }
     }
 
     // Filter Logic
@@ -291,8 +370,23 @@ export function RecepcionModule() {
                     <p className="text-muted-foreground">Gestiona los registros de ingreso y órdenes de trabajo</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xlsm"
+                        onChange={handleImportExcel}
+                        className="hidden"
+                    />
                     <Button variant="outline" size="icon" onClick={() => fetchRecepciones()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Button 
+                        onClick={() => fileInputRef.current?.click()} 
+                        disabled={isImporting}
+                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                        {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        Importar Recepción
                     </Button>
                     <Button onClick={handleCreate} className="gap-2">
                         <Plus className="h-4 w-4" />
