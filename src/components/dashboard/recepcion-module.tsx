@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
 import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal, Loader2, AlertCircle, Upload } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -51,10 +51,10 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         if (!isLoading) return;
 
         // Exponential backoff for auto-retry
-        // 1st retry: 10s (optimistic)
-        // 2nd retry: 20s
-        // 3rd retry: 40s
-        const timeoutMs = 10000 * Math.pow(2, retryCount); 
+        // 1st retry: 20s (given backend speed)
+        // 2nd retry: 40s
+        // 3rd retry: 80s
+        const timeoutMs = 20000 * Math.pow(2, retryCount); 
         
         timeoutRef.current = setTimeout(() => {
             if (retryCount < 2) {
@@ -77,7 +77,13 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         };
     }, [isLoading, retryCount, handleRetry]);
 
-    const currentSrc = `${src}${src.includes('?') ? '&' : '?'}retry=${retryCount}&t=${Date.now()}`;
+    // STABILIZE URL: Only change when retryCount changes
+    const currentSrc = useMemo(() => {
+        const url = new URL(src);
+        url.searchParams.set('retry', retryCount.toString());
+        url.searchParams.set('t', Date.now().toString()); // Still reload on AUTHENTIC retry
+        return url.toString();
+    }, [src, retryCount]);
 
     return (
         <div className="w-full h-full relative bg-gray-50">
@@ -498,8 +504,8 @@ export function RecepcionModule() {
                     <div className="w-full h-full relative">
                         <SmartIframe
                             src={editId
-                                ? `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/recepciones/${editId}/editar?token=${token || ''}&v=${new Date().getTime()}`
-                                : `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}&v=${new Date().getTime()}`
+                                ? `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/recepciones/${editId}/editar?token=${token || ''}`
+                                : `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}`
                             }
                             title={editId ? 'Editar Recepción' : 'Nueva Recepción'}
                         />

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { RefreshCw, Plus, Search, FileText, Trash2, Eye, FileSpreadsheet, Pencil, Loader2 } from "lucide-react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { RefreshCw, Plus, Search, FileText, Trash2, Eye, FileSpreadsheet, Pencil, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -23,6 +23,124 @@ interface EnsayoCompresion {
     items_count?: number
 }
 
+// --- Smart Iframe Component with Retry Logic ---
+interface SmartIframeProps {
+    src: string;
+    title: string;
+}
+
+function SmartIframe({ src, title }: SmartIframeProps) {
+    const [key, setKey] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleLoad = () => {
+        setIsLoading(false);
+        setError(null);
+        setRetryCount(0);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+    };
+
+    const handleRetry = useCallback(() => {
+        setIsLoading(true);
+        setError(null);
+        setKey(prev => prev + 1);
+        setRetryCount(prev => prev + 1);
+    }, []);
+
+    useEffect(() => {
+        if (!isLoading) return;
+
+        const timeoutMs = 20000 * Math.pow(2, retryCount); 
+        
+        timeoutRef.current = setTimeout(() => {
+            if (retryCount < 2) {
+                toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`);
+                setTimeout(() => {
+                    toast.dismiss();
+                    handleRetry();
+                }, 1500);
+            } else {
+                setError(`El servicio no responde después de varios intentos (${timeoutMs/1000}s).`);
+                setIsLoading(false);
+            }
+        }, timeoutMs);
+
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
+    }, [isLoading, retryCount, handleRetry]);
+
+    const currentSrc = useMemo(() => {
+        const url = new URL(src);
+        url.searchParams.set('retry', retryCount.toString());
+        url.searchParams.set('t', Date.now().toString());
+        return url.toString();
+    }, [src, retryCount]);
+
+    return (
+        <div className="w-full h-full relative bg-gray-50">
+            {isLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
+                    <div className="relative">
+                        <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                        {retryCount > 0 && (
+                            <div className="absolute top-0 right-0 -mr-2 -mt-2 h-5 w-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-bounce">
+                                {retryCount}
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">
+                        Conectando con el módulo... <br/>
+                        <span className="text-xs opacity-75">Esto puede tardar unos segundos si el sistema está "frío".</span>
+                    </p>
+                </div>
+            )}
+            
+            {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center animate-in fade-in zoom-in-95 duration-300">
+                    <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                        <AlertCircle className="h-10 w-10 text-red-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Conexión Interrumpida</h3>
+                    <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">
+                        {error} <br/>
+                        Es posible que el servicio esté reiniciándose o experimentando alta carga.
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => window.location.reload()}>
+                            Recargar Página
+                        </Button>
+                        <Button onClick={handleRetry} className="gap-2 shadow-md hover:shadow-lg transition-all">
+                            <RefreshCw className="h-4 w-4" />
+                            Reintentar Conexión
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <iframe
+                key={key}
+                src={currentSrc}
+                className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                title={title}
+                onLoad={handleLoad}
+                onError={() => setError("Error al cargar el marco de contenido.")}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                loading="eager"
+            />
+        </div>
+    );
+}
+
 export function CompresionModule() {
     const [ensayos, setEnsayos] = useState<EnsayoCompresion[]>([])
     const [loading, setLoading] = useState(false)
@@ -30,7 +148,6 @@ export function CompresionModule() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [iframePath, setIframePath] = useState("/compresion")
-    const [refreshKey, setRefreshKey] = useState(0)
     const [token, setToken] = useState<string | null>(null)
     const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
@@ -95,7 +212,6 @@ export function CompresionModule() {
     const handleOpenModal = async (path: string) => {
         await syncIframeToken()
         setIframePath(path)
-        setRefreshKey(prev => prev + 1)
         setIsModalOpen(true)
     }
 
@@ -323,10 +439,8 @@ export function CompresionModule() {
                         <DialogDescription>Crea o edita formatos de ensayo</DialogDescription>
                     </DialogHeader>
                     <div className="w-full h-full relative">
-                        <iframe
-                            key={refreshKey}
-                            src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}&v=${new Date().getTime()}`}
-                            className="w-full h-full border-none"
+                        <SmartIframe
+                            src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
                             title="Compresión Iframe"
                         />
                     </div>
