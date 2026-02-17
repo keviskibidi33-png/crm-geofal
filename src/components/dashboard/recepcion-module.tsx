@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal, Loader2, AlertCircle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,6 +15,118 @@ import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
+
+// --- Smart Iframe Component with Retry Logic ---
+interface SmartIframeProps {
+    src: string;
+    title: string;
+}
+
+function SmartIframe({ src, title }: SmartIframeProps) {
+    const [key, setKey] = useState(0); // Force re-render
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const timeoutRef = useRef<NodeJS.Timeout>();
+
+    const handleLoad = () => {
+        setIsLoading(false);
+        setError(null);
+        setRetryCount(0);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+
+    const handleRetry = useCallback(() => {
+        setIsLoading(true);
+        setError(null);
+        setKey(prev => prev + 1); // Remount iframe
+        setRetryCount(prev => prev + 1);
+    }, []);
+
+    // Watchdog for timeout (Gateway Timeout usually takes 30-60s, but we can be proactive)
+    useEffect(() => {
+        if (!isLoading) return;
+
+        // Exponential backoff for auto-retry
+        // 1st retry: 10s (optimistic)
+        // 2nd retry: 20s
+        // 3rd retry: 40s
+        const timeoutMs = 10000 * Math.pow(2, retryCount); 
+        
+        timeoutRef.current = setTimeout(() => {
+            if (retryCount < 2) {
+                toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`);
+                setTimeout(() => {
+                    toast.dismiss();
+                    handleRetry();
+                }, 1500);
+            } else {
+                setError(`El servicio no responde después de varios intentos (${timeoutMs/1000}s).`);
+                setIsLoading(false);
+            }
+        }, timeoutMs);
+
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, [isLoading, retryCount, handleRetry]);
+
+    const currentSrc = `${src}${src.includes('?') ? '&' : '?'}retry=${retryCount}&t=${Date.now()}`;
+
+    return (
+        <div className="w-full h-full relative bg-gray-50">
+            {isLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
+                    <div className="relative">
+                        <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                        {retryCount > 0 && (
+                            <div className="absolute top-0 right-0 -mr-2 -mt-2 h-5 w-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white animate-bounce">
+                                {retryCount}
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">
+                        Conectando con el módulo... <br/>
+                        <span className="text-xs opacity-75">Esto puede tardar unos segundos si el sistema está "frío".</span>
+                    </p>
+                </div>
+            )}
+            
+            {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center animate-in fade-in zoom-in-95 duration-300">
+                    <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                        <AlertCircle className="h-10 w-10 text-red-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Conexión Interrumpida</h3>
+                    <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">
+                        {error} <br/>
+                        Es posible que el servicio esté reiniciándose o experimentando alta carga.
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => window.location.reload()}>
+                            Recargar Página
+                        </Button>
+                        <Button onClick={handleRetry} className="gap-2 shadow-md hover:shadow-lg transition-all">
+                            <RefreshCw className="h-4 w-4" />
+                            Reintentar Conexión
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <iframe
+                key={key}
+                src={currentSrc}
+                className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                title={title}
+                onLoad={handleLoad}
+                onError={() => setError("Error al cargar el marco de contenido.")}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                loading="eager"
+            />
+        </div>
+    );
+}
 
 export function RecepcionModule() {
     const { recepciones, loading, fetchRecepciones, deleteRecepcion } = useRecepciones()
@@ -290,12 +402,11 @@ export function RecepcionModule() {
                         <DialogDescription>{editId ? 'Formulario de edición de recepción' : 'Formulario de creación de nueva recepción'}</DialogDescription>
                     </DialogHeader>
                     <div className="w-full h-full relative">
-                        <iframe
+                        <SmartIframe
                             src={editId
                                 ? `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/recepciones/${editId}/editar?token=${token || ''}&v=${new Date().getTime()}`
                                 : `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}&v=${new Date().getTime()}`
                             }
-                            className="w-full h-full border-none"
                             title={editId ? 'Editar Recepción' : 'Nueva Recepción'}
                         />
                     </div>
