@@ -6,6 +6,7 @@ import "./globals.css"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/components/providers"
+import { SecurityShield } from "@/components/security-shield"
 
 const inter = Inter({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -46,8 +47,8 @@ export default function RootLayout({
       <body className={`font-sans antialiased h-screen overflow-hidden`} suppressHydrationWarning>
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <SecurityShield />
             {children}
-
           </ThemeProvider>
         </Providers>
       </body>

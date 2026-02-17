@@ -24,28 +24,6 @@ function LoginForm() {
     const [showTerminatedModal, setShowTerminatedModal] = useState(false)
     const searchParams = useSearchParams()
 
-    // Security warning in browser console
-    useState(() => {
-        if (typeof window !== 'undefined') {
-            console.log(
-                '%c⛔ ACCESO AUDITADO',
-                'color:#ff0000;font-size:28px;font-weight:900;text-shadow:1px 1px 2px #000;'
-            )
-            console.log(
-                '%cTODOS LOS INTENTOS DE ACCESO SON REGISTRADOS Y AUDITADOS MEDIANTE IP',
-                'color:#ff4444;font-size:14px;font-weight:700;'
-            )
-            console.log(
-                '%cSE REQUIERE AUTENTICACIÓN VÁLIDA',
-                'color:#ff4444;font-size:14px;font-weight:700;'
-            )
-            console.log(
-                '%cCualquier intento no autorizado será reportado a las autoridades competentes.\nGeofal CRM — Sistema de Gestión Protegido.',
-                'color:#888;font-size:11px;'
-            )
-        }
-    })
-
     // Check for "terminated" signal on mount and clear stale Supabase State
     useState(() => {
         if (typeof window !== 'undefined') {
