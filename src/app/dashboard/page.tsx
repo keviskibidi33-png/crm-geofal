@@ -85,6 +85,7 @@ export default function DashboardPage() {
     if (!hasPermission) {
       // Choose a smart default based on role
       const getRoleDefault = (): ModuleType => {
+        if (role === 'tecnico') return 'tracing';
         if (role.includes('laboratorio')) return 'laboratorio';
         if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial';
         if (role.includes('administracion')) return 'administracion';

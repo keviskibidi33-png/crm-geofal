@@ -447,12 +447,19 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         body: formData,
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || "Error al pre-visualizar")
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        console.error("Error parsing JSON:", text)
+        throw new Error(`Respuesta inválida del servidor (no es JSON). Posible error 500/404.`)
       }
 
-      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.detail || "Error al pre-visualizar")
+      }
+
       setImportPreview(data.preview)
       setImportNumero(data.preview.suggested_numero || "")
       setImportNumeroExists(null)
@@ -487,12 +494,19 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         body: formData,
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || "Error al importar")
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        console.error("Error parsing JSON:", text)
+        throw new Error(`Respuesta inválida del servidor (no es JSON): ${text.substring(0, 50)}...`)
       }
 
-      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.detail || "Error al importar")
+      }
+
       toast.success("Cotización importada exitosamente", {
         id: toastId,
         description: `COT-${data.year}-${data.numero} creada con ${data.parsed_data?.items_count || 0} items`,
