@@ -135,6 +135,11 @@ async function buildUser(session: any): Promise<User> {
         // CRITICAL: Only exact 'admin' role gets full bypass (not 'administrativo' or others)
         const isSuperAdmin = r === 'admin'
 
+        // Alias mapping: DB uses 'verificacion' but sidebar uses 'verificacion_muestras'
+        if (p.verificacion && !p.verificacion_muestras) {
+            p.verificacion_muestras = p.verificacion
+        }
+
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
