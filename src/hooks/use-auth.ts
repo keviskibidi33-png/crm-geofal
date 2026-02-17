@@ -51,9 +51,9 @@ if (typeof window !== 'undefined' && localStorage.getItem(TERMINATED_KEY) === 't
 
 async function fetchProfile(userId: string) {
     try {
-        const { data, error } = await supabase
+        const { data: profile, error } = await supabase
             .from("perfiles")
-            .select("full_name, role, phone, avatar_url, last_force_logout_at, role_definitions!fk_perfiles_role(label, permissions)")
+            .select("full_name, role, phone, avatar_url, last_force_logout_at")
             .eq("id", userId)
             .single()
 
@@ -61,7 +61,21 @@ async function fetchProfile(userId: string) {
             console.error("[Auth] Error fetching profile:", error)
             return null
         }
-        return data
+
+        // Fetch role_definitions separately to avoid PostgREST FK join issues with RLS
+        if (profile?.role) {
+            const { data: roleDef } = await supabase
+                .from("role_definitions")
+                .select("label, permissions")
+                .eq("role_id", profile.role)
+                .single()
+
+            if (roleDef) {
+                return { ...profile, role_definitions: roleDef }
+            }
+        }
+
+        return { ...profile, role_definitions: null }
     } catch (e) {
         console.error("[Auth] Exception fetching profile:", e)
         return null
