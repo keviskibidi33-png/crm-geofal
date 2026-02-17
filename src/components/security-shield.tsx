@@ -54,7 +54,6 @@ export function SecurityShield() {
 
             if ((widthDiff || heightDiff) && !devtoolsDetected) {
                 devtoolsDetected = true
-                console.clear()
                 SECURITY_MSG()
             } else if (!widthDiff && !heightDiff) {
                 devtoolsDetected = false
