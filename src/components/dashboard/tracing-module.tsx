@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useTracing, TracingSummary } from "@/hooks/use-tracing"
@@ -57,6 +57,7 @@ export function TracingModule() {
     // Informe Version History State
     const [informeVersiones, setInformeVersiones] = useState<any[]>([])
     const [loadingVersiones, setLoadingVersiones] = useState(false)
+    const [downloadingStage, setDownloadingStage] = useState<string | null>(null)
 
     const componentRef = useRef<HTMLDivElement>(null)
 
@@ -104,39 +105,49 @@ export function TracingModule() {
         }
     }
 
-    const handleDownloadRecepcionExcel = async (id: number, ot: string) => {
+    const handleDownload = async (url: string, filenamePrefix: string, stageKey: string) => {
+        if (downloadingStage) return
+        setDownloadingStage(stageKey)
         try {
-            const response = await authFetch(`${API_URL}/api/recepcion/${id}/excel`)
-            if (response.ok) {
-                const blob = await response.blob()
-                const url = window.URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `OT-${ot}.xlsx`
-                document.body.appendChild(a)
-                a.click()
-                a.remove()
+            const response = await authFetch(`${API_URL}${url}`)
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                console.error("Download error:", errorData)
+                throw new Error(errorData.detail || "Error al descargar")
             }
-        } catch (error) {
-            console.error("Error downloading excel:", error)
-        }
-    }
+            
+            const blob = await response.blob()
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            
+            // Try to get filename from content-disposition
+            let filename = `${filenamePrefix}.xlsx`
+            const contentDisposition = response.headers.get('Content-Disposition')
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1]
+                }
+            }
+            
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
 
-    const handleDownloadVerificacionExcel = async (id: number) => {
-        try {
-            const response = await authFetch(`${API_URL}/api/verificacion/${id}/exportar`)
-            if (response.ok) {
-                const blob = await response.blob()
-                const url = window.URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `Verificacion-${id}.xlsx`
-                document.body.appendChild(a)
-                a.click()
-                a.remove()
+            // If it's the report, refresh versions
+            if (stageKey === 'informe' && tracingData?.numero_recepcion) {
+                setTimeout(() => fetchInformeVersiones(tracingData.numero_recepcion), 2000)
             }
+
         } catch (error) {
-            console.error("Error downloading excel:", error)
+            console.error("Error downloading file:", error)
+            alert("Error al descargar el archivo. Verifique su sesión y permisos.")
+        } finally {
+            setDownloadingStage(null)
         }
     }
 
@@ -505,16 +516,15 @@ export function TracingModule() {
                                                                         <Button
                                                                             variant="default"
                                                                             size="sm"
+                                                                            disabled={downloadingStage === stage.key}
                                                                             className="gap-2 h-8 text-xs w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                                                                            onClick={() => {
-                                                                                window.open(`${API_URL}${stage.download_url}`, '_blank')
-                                                                                // Refresh versions after download
-                                                                                if (tracingData?.numero_recepcion) {
-                                                                                    setTimeout(() => fetchInformeVersiones(tracingData.numero_recepcion), 2000)
-                                                                                }
-                                                                            }}
+                                                                            onClick={() => handleDownload(stage.download_url!, `Informe-${tracingData?.numero_recepcion}`, stage.key)}
                                                                         >
-                                                                            <Download className="w-3 h-3" />
+                                                                            {downloadingStage === stage.key ? (
+                                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                                            ) : (
+                                                                                <Download className="w-3 h-3" />
+                                                                            )}
                                                                             {stage.status === 'completado' ? 'Generar Informe Final' : 'Generar Informe (Parcial)'}
                                                                         </Button>
                                                                     )}
@@ -554,10 +564,16 @@ export function TracingModule() {
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
+                                                                    disabled={downloadingStage === stage.key}
                                                                     className="mt-3 gap-2 h-8 text-xs w-full sm:w-auto border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
-                                                                    onClick={() => window.open(`${API_URL}${stage.download_url}`, '_blank')}
+                                                                    onClick={() => handleDownload(stage.download_url!, `Original-${stage.key}`, stage.key)}
                                                                 >
-                                                                    <FileText className="w-3 h-3" /> Descargar Excel Original
+                                                                    {downloadingStage === stage.key ? (
+                                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    ) : (
+                                                                        <FileText className="w-3 h-3" />
+                                                                    )}
+                                                                    Descargar Excel Original
                                                                 </Button>
                                                             )}
                                                             {stage.key === 'recepcion' && stage.data?.recepcion_id && (
