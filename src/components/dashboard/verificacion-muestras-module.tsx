@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 export function VerificacionMuestrasModule() {
     const { verificaciones, loading, fetchVerificaciones, fetchVerificacion, deleteVerificacion } = useVerificaciones()
     const [searchTerm, setSearchTerm] = useState("")
@@ -103,9 +104,36 @@ export function VerificacionMuestrasModule() {
         }
     }
 
-    const handleDownloadExcel = (id: number) => {
+    const handleDownloadExcel = async (id: number) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-        window.open(`${API_URL}/api/verificacion/${id}/exportar`, '_blank')
+        try {
+            const response = await authFetch(`${API_URL}/api/verificacion/${id}/exportar`)
+            if (response.ok) {
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                
+                // Try to get filename from headers
+                const contentDisposition = response.headers.get('Content-Disposition')
+                let filename = `Verificacion-${id}.xlsx`
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^"]+)"?/)
+                    if (match && match[1]) filename = match[1]
+                }
+                
+                a.download = filename
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                window.URL.revokeObjectURL(url)
+            } else {
+                toast.error("Error al descargar el archivo")
+            }
+        } catch (error) {
+            console.error("Download error:", error)
+            toast.error("Error de conexión al descargar")
+        }
     }
 
     const filteredData = verificaciones.filter(item =>

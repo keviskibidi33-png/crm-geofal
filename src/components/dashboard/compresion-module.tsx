@@ -136,8 +136,35 @@ export function CompresionModule() {
         }
     }
 
-    const handleDownloadExcel = (id: number) => {
-        window.open(`${API_URL}/api/compresion/${id}/excel`, '_blank')
+    const handleDownloadExcel = async (id: number) => {
+        try {
+            const response = await authFetch(`${API_URL}/api/compresion/${id}/excel`)
+            if (response.ok) {
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                
+                // Try to get filename from headers
+                const contentDisposition = response.headers.get('Content-Disposition')
+                let filename = `Compresion-${id}.xlsx`
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^"]+)"?/)
+                    if (match && match[1]) filename = match[1]
+                }
+                
+                a.download = filename
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                window.URL.revokeObjectURL(url)
+            } else {
+                toast.error("Error al descargar el archivo")
+            }
+        } catch (error) {
+            console.error("Download error:", error)
+            toast.error("Error de conexión al descargar")
+        }
     }
 
     const handleViewDetails = async (item: EnsayoCompresion) => {
