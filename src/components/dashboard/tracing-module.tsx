@@ -373,7 +373,7 @@ export function TracingModule() {
 
             {/* Modal de Detalle Premium */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden">
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden">
                     <DialogHeader className="p-6 bg-primary text-white shrink-0">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
@@ -426,13 +426,13 @@ export function TracingModule() {
                                         <Card className="bg-white dark:bg-slate-800 border-none shadow-sm">
                                             <CardContent className="p-4 flex flex-col gap-1">
                                                 <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Cliente / Solicitante</span>
-                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{tracingData.cliente || 'No especificado'}</span>
+                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{tracingData.cliente || 'No especificado'}</span>
                                             </CardContent>
                                         </Card>
                                         <Card className="bg-white dark:bg-slate-800 border-none shadow-sm">
                                             <CardContent className="p-4 flex flex-col gap-1">
                                                 <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Proyecto Relacionado</span>
-                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{tracingData.proyecto || 'General'}</span>
+                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{tracingData.proyecto || 'General'}</span>
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -632,7 +632,7 @@ export function TracingModule() {
 
             {/* Ensayo Detail Modal */}
             <Dialog open={isEnsayoDetailOpen} onOpenChange={setIsEnsayoDetailOpen}>
-                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
@@ -752,7 +752,7 @@ export function TracingModule() {
 
             {/* Reception Detail Modal */}
             <Dialog open={isRecepcionDetailOpen} onOpenChange={setIsRecepcionDetailOpen}>
-                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -777,7 +777,7 @@ export function TracingModule() {
                                         <div className="space-y-6">
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente / Solicitante</p>
-                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedRecepcion.cliente || '1111'}</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedRecepcion.cliente || '1111'}</p>
                                                 <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ruc || '1111'}</p>
                                             </div>
                                             <div>
@@ -791,7 +791,7 @@ export function TracingModule() {
                                         <div className="space-y-6">
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Proyecto</p>
-                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedRecepcion.proyecto || '1111'}</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedRecepcion.proyecto || '1111'}</p>
                                                 <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ubicacion || '1111'}</p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
@@ -892,7 +892,7 @@ export function TracingModule() {
 
             {/* Verification Detail Modal */}
             <Dialog open={isVerificDetailOpen} onOpenChange={setIsVerificDetailOpen}>
-                <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -917,7 +917,7 @@ export function TracingModule() {
                                         <div className="space-y-6">
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente</p>
-                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedVerific.cliente || 'CLIENTE PRUEBA PATRONES'}</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedVerific.cliente || 'CLIENTE PRUEBA PATRONES'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Documento de Referencia</p>
