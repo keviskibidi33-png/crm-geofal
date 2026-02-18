@@ -21,12 +21,35 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { kpis, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
+    const getStoredAccessToken = useCallback((): string | null => {
+        if (typeof window === "undefined") return null
+        const direct = localStorage.getItem("token")
+        if (direct) return direct
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
+            const raw = localStorage.getItem(key)
+            if (!raw) continue
+            try {
+                const parsed = JSON.parse(raw)
+                if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
+                if (Array.isArray(parsed) && parsed[0]?.access_token) return parsed[0].access_token
+            } catch {
+                // ignore malformed entries
+            }
+        }
+        return null
+    }, [])
+
     const syncIframeToken = useCallback(async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
-        const freshToken = session?.access_token ?? null
+        const freshToken = session?.access_token ?? getStoredAccessToken()
+        if (freshToken && typeof window !== "undefined") {
+            localStorage.setItem("token", freshToken)
+        }
         setAccessToken(freshToken)
         return freshToken
-    }, [])
+    }, [getStoredAccessToken])
 
     // === AUTO-SELECT VIEW BASED ON ROLE ===
     const roleToViewMap: Record<string, ViewMode> = {
