@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
@@ -19,22 +19,140 @@ import {
     Shield,
     FileSearch
 } from "lucide-react"
-import { DialogTitle } from "@/components/ui/dialog"
+import { DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/lib/supabaseClient"
 
 interface ComercialModuleProps {
     user: User
 }
 
+const TOKEN_BRIDGE_TRACE_PREFIX = "[ComercialTokenBridge]"
+
 export function ComercialModule({ user }: ComercialModuleProps) {
     const { kpis, recentChanges, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
+    const [accessToken, setAccessToken] = useState<string | null>(null)
+    const [iframeNonce, setIframeNonce] = useState<number>(() => Date.now())
 
     // KPIs come pre-computed from the hook (lightweight count queries)
     const stats = { total: kpis.total, atrasados: kpis.atrasados, pendientesEnvio: 0, totalMes: kpis.total }
 
     const canWrite = user.permissions?.comercial?.write === true || user.role === "admin"
+
+    const getStoredAccessToken = useCallback((): string | null => {
+        if (typeof window === "undefined") return null
+        const direct = localStorage.getItem("token")
+        if (direct) return direct
+
+        const extractToken = (parsed: any): string | null => {
+            if (!parsed) return null
+            if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
+            if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
+            if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
+            if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
+            return null
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
+            const raw = localStorage.getItem(key)
+            if (!raw) continue
+            try {
+                const parsed = JSON.parse(raw)
+                const token = extractToken(parsed)
+                if (token) return token
+            } catch {
+                // ignore malformed entries
+            }
+        }
+        return null
+    }, [])
+
+    const syncIframeToken = useCallback(async (reason = "generic"): Promise<string | null> => {
+        const startedAt = Date.now()
+        const { data: { session } } = await supabase.auth.getSession()
+        const sessionToken = session?.access_token ?? null
+        const localToken = getStoredAccessToken()
+        let freshToken = sessionToken ?? localToken
+
+        if (!freshToken) {
+            try {
+                const { data } = await supabase.auth.refreshSession()
+                freshToken = data?.session?.access_token ?? getStoredAccessToken()
+            } catch {
+                // ignore refresh failures; fallback chain continues
+            }
+        }
+
+        if (freshToken && typeof window !== "undefined") {
+            localStorage.setItem("token", freshToken)
+        }
+        setAccessToken(freshToken)
+        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} syncIframeToken`, {
+            reason,
+            session: !!sessionToken,
+            local: !!localToken,
+            resolved: !!freshToken,
+            elapsedMs: Date.now() - startedAt,
+        })
+        return freshToken
+    }, [getStoredAccessToken])
+
+    useEffect(() => {
+        syncIframeToken("mount")
+    }, [syncIframeToken])
+
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+                const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
+                const immediateToken = accessToken || getStoredAccessToken()
+                if (immediateToken) {
+                    ;(event.source as Window).postMessage(
+                        { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'comercial_module_immediate' },
+                        '*'
+                    )
+                    console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} immediate token response`, {
+                        requestId,
+                        origin: event.origin,
+                    })
+                }
+
+                syncIframeToken(`request:${requestId || "none"}`).then((freshToken) => {
+                    if (freshToken && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'comercial_module_sync' },
+                            '*'
+                        )
+                        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} refreshed token response`, {
+                            requestId,
+                            origin: event.origin,
+                        })
+                    } else {
+                        console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} token refresh failed for iframe request`, {
+                            requestId,
+                            origin: event.origin,
+                        })
+                    }
+                })
+            }
+
+            if (event.data?.type === 'AUTH_REQUIRED') {
+                console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} AUTH_REQUIRED received from iframe`, {
+                    requestId: event.data?.requestId,
+                    debug: event.data?.debug,
+                    origin: event.origin,
+                })
+                window.location.href = "/login?error=session_expired"
+            }
+        }
+
+        window.addEventListener("message", handleMessage)
+        return () => window.removeEventListener("message", handleMessage)
+    }, [accessToken, getStoredAccessToken, syncIframeToken])
 
     const iframeUrl = process.env.NEXT_PUBLIC_PROGRAMACION_URL ||
         (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
@@ -43,9 +161,24 @@ export function ComercialModule({ user }: ComercialModuleProps) {
 
     const isAdmin = user.role === "admin"
     const encodedRole = encodeURIComponent(user.role)
+    const resolvedAccessToken = useMemo(
+        () => accessToken || (typeof window !== "undefined" ? getStoredAccessToken() : null),
+        [accessToken, getStoredAccessToken]
+    )
+    const tokenParam = resolvedAccessToken ? `&token=${encodeURIComponent(resolvedAccessToken)}` : ""
 
     // Comercial view - include ALL required params
-    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}&v=${Date.now()}`
+    const fullUrl = `${iframeUrl}?mode=comercial&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${iframeNonce}`
+
+    const openModule = useCallback(async () => {
+        const token = await syncIframeToken("open")
+        if (!token) {
+            window.location.href = "/login?error=session_expired"
+            return
+        }
+        setIframeNonce(Date.now())
+        setIsOpen(true)
+    }, [syncIframeToken])
 
     if (isLoading) {
         return (
@@ -96,7 +229,7 @@ export function ComercialModule({ user }: ComercialModuleProps) {
                     </div>
                 </div>
                 <Button
-                    onClick={() => setIsOpen(true)}
+                    onClick={openModule}
                     variant="outline"
                     className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-6 py-4 rounded-lg flex items-center gap-2"
                 >
@@ -233,6 +366,9 @@ export function ComercialModule({ user }: ComercialModuleProps) {
                             <DialogTitle className="font-bold text-zinc-900 text-xs uppercase tracking-widest">
                                 Seguimiento Comercial - Geofal CRM
                             </DialogTitle>
+                            <DialogDescription className="sr-only">
+                                Módulo comercial de programación para seguimiento de entregas y evidencias.
+                            </DialogDescription>
                         </div>
                         <div className="flex items-center gap-3">
                             <DialogPrimitive.Close asChild>
@@ -245,6 +381,7 @@ export function ComercialModule({ user }: ComercialModuleProps) {
 
                     <div className="flex-1 min-h-0 relative bg-zinc-50">
                         <iframe
+                            data-programacion-iframe
                             src={fullUrl}
                             className="w-full h-full border-0 relative z-10"
                             title="Comercial"
