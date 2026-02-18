@@ -144,7 +144,11 @@ export function HumedadModule() {
     const [iframePath, setIframePath] = useState<string>('/')
     const [search, setSearch] = useState('')
 
-    const FRONTEND_URL = process.env.NEXT_PUBLIC_HUMEDAD_FRONTEND_URL || "http://127.0.0.1:3008"
+    const FRONTEND_URL = (
+        process.env.NEXT_PUBLIC_HUMEDAD_FRONTEND_URL ||
+        process.env.NEXT_PUBLIC_HUMEDAD_URL ||
+        "https://humedad.geofal.com.pe"
+    ).replace(/\/+$/, "")
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
     const syncIframeToken = async (): Promise<string | null> => {
@@ -216,6 +220,15 @@ export function HumedadModule() {
             (e.cliente || '').toLowerCase().includes(term)
         )
     })
+
+    const iframeSrc = useMemo(() => {
+        const basePath = iframePath.startsWith('/') ? iframePath : `/${iframePath}`
+        const url = new URL(`${FRONTEND_URL}${basePath}`)
+        if (token) {
+            url.searchParams.set('token', token)
+        }
+        return url.toString()
+    }, [FRONTEND_URL, iframePath, token])
 
     return (
         <div className="space-y-6">
@@ -302,7 +315,7 @@ export function HumedadModule() {
                         <DialogDescription>Formulario de contenido de humedad ASTM D2216</DialogDescription>
                     </DialogHeader>
                     <SmartIframe
-                        src={`${FRONTEND_URL}/?token=${token || ''}`}
+                        src={iframeSrc}
                         title="Humedad CRM"
                     />
                 </DialogContent>
