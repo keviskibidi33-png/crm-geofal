@@ -25,6 +25,16 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         if (typeof window === "undefined") return null
         const direct = localStorage.getItem("token")
         if (direct) return direct
+
+        const extractToken = (parsed: any): string | null => {
+            if (!parsed) return null
+            if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
+            if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
+            if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
+            if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
+            return null
+        }
+
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
             if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
@@ -32,8 +42,8 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             if (!raw) continue
             try {
                 const parsed = JSON.parse(raw)
-                if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-                if (Array.isArray(parsed) && parsed[0]?.access_token) return parsed[0].access_token
+                const token = extractToken(parsed)
+                if (token) return token
             } catch {
                 // ignore malformed entries
             }
@@ -43,7 +53,17 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const syncIframeToken = useCallback(async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
-        const freshToken = session?.access_token ?? getStoredAccessToken()
+        let freshToken = session?.access_token ?? getStoredAccessToken()
+
+        if (!freshToken) {
+            try {
+                const { data } = await supabase.auth.refreshSession()
+                freshToken = data?.session?.access_token ?? getStoredAccessToken()
+            } catch {
+                // ignore refresh failures; fallback chain continues
+            }
+        }
+
         if (freshToken && typeof window !== "undefined") {
             localStorage.setItem("token", freshToken)
         }
