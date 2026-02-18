@@ -114,6 +114,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                     }
                 })
             }
+            if (event.data?.type === 'AUTH_REQUIRED') {
+                window.location.href = "/login?error=session_expired"
+            }
         }
 
         window.addEventListener("message", handleMessage)

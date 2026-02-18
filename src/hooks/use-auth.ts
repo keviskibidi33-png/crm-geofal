@@ -248,6 +248,9 @@ export function useAuth() {
         cachedUser = null
         hasInitialized = false
         clearTerminationState() // Reset termination state on manual/clean logout
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('token')
+        }
         try {
             await deleteSessionAction()
             await supabase.auth.signOut()
@@ -390,6 +393,10 @@ export function useAuth() {
                 return
             }
 
+            if (typeof window !== 'undefined' && session.access_token) {
+                localStorage.setItem('token', session.access_token)
+            }
+
             const newUser = await buildUser(session)
             cachedUser = newUser
             hasInitialized = true
@@ -402,8 +409,14 @@ export function useAuth() {
             if (event === "SIGNED_OUT") {
                 cachedUser = null
                 hasInitialized = false
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token')
+                }
                 if (mountedRef.current) { setUser(null); setLoading(false); }
             } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+                if (session?.access_token && typeof window !== 'undefined') {
+                    localStorage.setItem('token', session.access_token)
+                }
 
                 // Active Defense: If session is terminated, block re-login
                 if (isGlobalSessionTerminated) {

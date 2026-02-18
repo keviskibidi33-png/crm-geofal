@@ -83,6 +83,10 @@ function LoginForm() {
             })
             if (error) throw error
 
+            if (authData.session?.access_token && typeof window !== 'undefined') {
+                localStorage.setItem('token', authData.session.access_token)
+            }
+
             if (authData.user) {
                 const sessionResult = await createSessionAction(authData.user.id)
                 if (sessionResult.error) {
