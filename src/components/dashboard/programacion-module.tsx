@@ -16,6 +16,7 @@ interface ProgramacionModuleProps {
 }
 
 type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
+const TOKEN_BRIDGE_TRACE_PREFIX = "[ProgramacionTokenBridge]"
 
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { kpis, isLoading, realtimeStatus } = useProgramacionData()
@@ -52,9 +53,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         return null
     }, [])
 
-    const syncIframeToken = useCallback(async (): Promise<string | null> => {
+    const syncIframeToken = useCallback(async (reason = "generic"): Promise<string | null> => {
+        const startedAt = Date.now()
         const { data: { session } } = await supabase.auth.getSession()
-        let freshToken = session?.access_token ?? getStoredAccessToken()
+        const sessionToken = session?.access_token ?? null
+        const localToken = getStoredAccessToken()
+        let freshToken = sessionToken ?? localToken
 
         if (!freshToken) {
             try {
@@ -69,6 +73,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             localStorage.setItem("token", freshToken)
         }
         setAccessToken(freshToken)
+        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} syncIframeToken`, {
+            reason,
+            session: !!sessionToken,
+            local: !!localToken,
+            resolved: !!freshToken,
+            elapsedMs: Date.now() - startedAt,
+        })
         return freshToken
     }, [getStoredAccessToken])
 
@@ -105,23 +116,50 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-                syncIframeToken().then((freshToken) => {
+                const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
+                const immediateToken = accessToken || getStoredAccessToken()
+                if (immediateToken) {
+                    ;(event.source as Window).postMessage(
+                        { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'programacion_module_immediate' },
+                        '*'
+                    )
+                    console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} immediate token response`, {
+                        requestId,
+                        origin: event.origin,
+                    })
+                }
+
+                syncIframeToken(`request:${requestId || "none"}`).then((freshToken) => {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: freshToken },
+                            { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'programacion_module_sync' },
                             '*'
                         )
+                        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} refreshed token response`, {
+                            requestId,
+                            origin: event.origin,
+                        })
+                    } else {
+                        console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} token refresh failed for iframe request`, {
+                            requestId,
+                            origin: event.origin,
+                        })
                     }
                 })
             }
             if (event.data?.type === 'AUTH_REQUIRED') {
+                console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} AUTH_REQUIRED received from iframe`, {
+                    requestId: event.data?.requestId,
+                    debug: event.data?.debug,
+                    origin: event.origin,
+                })
                 window.location.href = "/login?error=session_expired"
             }
         }
 
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [syncIframeToken])
+    }, [accessToken, getStoredAccessToken, syncIframeToken])
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {
@@ -235,7 +273,8 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
 
     const encodedRole = encodeURIComponent(user.role)
-    const tokenParam = accessToken ? `&token=${encodeURIComponent(accessToken)}` : ""
+    const resolvedAccessToken = accessToken || (typeof window !== "undefined" ? getStoredAccessToken() : null)
+    const tokenParam = resolvedAccessToken ? `&token=${encodeURIComponent(resolvedAccessToken)}` : ""
     const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${iframeNonce}`
 
     return (
