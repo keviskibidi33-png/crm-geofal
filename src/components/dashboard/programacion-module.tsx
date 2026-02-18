@@ -21,6 +21,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { kpis, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
+    const [iframeNonce, setIframeNonce] = useState<number>(() => Date.now())
     const getStoredAccessToken = useCallback((): string | null => {
         if (typeof window === "undefined") return null
         const direct = localStorage.getItem("token")
@@ -147,7 +148,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const openModule = async (mode: ViewMode) => {
         setCurrentMode(mode)
-        await syncIframeToken()
+        const token = await syncIframeToken()
+        if (!token) {
+            window.location.href = "/login?error=session_expired"
+            return
+        }
+        setIframeNonce(Date.now())
         setIsOpen(true)
     }
 
@@ -227,7 +233,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const encodedRole = encodeURIComponent(user.role)
     const tokenParam = accessToken ? `&token=${encodeURIComponent(accessToken)}` : ""
-    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${Date.now()}`
+    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${iframeNonce}`
 
     return (
         <>

@@ -370,9 +370,16 @@ export function useAuth() {
 
         const init = async () => {
             if (hasInitialized && cachedUser) {
-                setUser(cachedUser)
-                setLoading(false)
-                return
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session) {
+                    setUser(cachedUser)
+                    setLoading(false)
+                    return
+                }
+
+                // Cached identity is stale if Supabase session no longer exists
+                cachedUser = null
+                hasInitialized = false
             }
 
             const { data: { session } } = await supabase.auth.getSession()
@@ -423,6 +430,32 @@ export function useAuth() {
             subscription.unsubscribe()
         }
     }, [])
+
+    // Session coherence guard: if JWT session disappears, drop cached user
+    useEffect(() => {
+        if (!user?.id) return
+
+        let disposed = false
+        const verifySession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session && !disposed) {
+                cachedUser = null
+                hasInitialized = false
+                if (mountedRef.current) {
+                    setUser(null)
+                    setLoading(false)
+                }
+            }
+        }
+
+        verifySession()
+        const timer = setInterval(verifySession, 60 * 1000)
+
+        return () => {
+            disposed = true
+            clearInterval(timer)
+        }
+    }, [user?.id])
 
     const refreshUser = async () => {
         const { data: { session } } = await supabase.auth.getSession()
