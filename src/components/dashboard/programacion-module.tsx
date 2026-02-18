@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
@@ -21,6 +21,12 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { kpis, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
+    const syncIframeToken = useCallback(async (): Promise<string | null> => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const freshToken = session?.access_token ?? null
+        setAccessToken(freshToken)
+        return freshToken
+    }, [])
 
     // === AUTO-SELECT VIEW BASED ON ROLE ===
     const roleToViewMap: Record<string, ViewMode> = {
@@ -47,6 +53,28 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }, [])
 
     useProgramacionIframe(handleIframeUpdate)
+    
+    useEffect(() => {
+        syncIframeToken()
+    }, [syncIframeToken])
+
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+                syncIframeToken().then((freshToken) => {
+                    if (freshToken && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: freshToken },
+                            '*'
+                        )
+                    }
+                })
+            }
+        }
+
+        window.addEventListener("message", handleMessage)
+        return () => window.removeEventListener("message", handleMessage)
+    }, [syncIframeToken])
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {
@@ -76,10 +104,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const openModule = async (mode: ViewMode) => {
         setCurrentMode(mode)
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.access_token) {
-            setAccessToken(session.access_token)
-        }
+        await syncIframeToken()
         setIsOpen(true)
     }
 
@@ -158,7 +183,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
 
     const encodedRole = encodeURIComponent(user.role)
-    const tokenParam = accessToken ? `&token=${accessToken}` : ""
+    const tokenParam = accessToken ? `&token=${encodeURIComponent(accessToken)}` : ""
     const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${Date.now()}`
 
     return (
