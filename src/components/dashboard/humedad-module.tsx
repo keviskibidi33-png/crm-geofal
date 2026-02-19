@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Droplets, Loader2, AlertCircle, RefreshCw, Search, FileSpreadsheet, Eye } from "lucide-react"
+import { Plus, Droplets, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabaseClient"
@@ -22,6 +22,27 @@ import { authFetch } from "@/lib/api-auth"
 interface SmartIframeProps {
     src: string;
     title: string;
+}
+
+interface HumedadEnsayoSummary {
+    id: number
+    numero_ensayo?: string | null
+    numero_ot?: string | null
+    cliente?: string | null
+    muestra?: string | null
+    fecha_documento?: string | null
+    estado?: string | null
+    contenido_humedad?: number | null
+    fecha_creacion?: string | null
+    fecha_actualizacion?: string | null
+}
+
+interface HumedadEnsayoDetail extends HumedadEnsayoSummary {
+    payload?: {
+        realizado_por?: string
+        descripcion_material_excluido?: string
+        observaciones?: string
+    } | null
 }
 
 function SmartIframe({ src, title }: SmartIframeProps) {
@@ -138,10 +159,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 
 export function HumedadModule() {
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
-    const [ensayos, setEnsayos] = useState<any[]>([])
+    const [ensayos, setEnsayos] = useState<HumedadEnsayoSummary[]>([])
+    const [selectedDetail, setSelectedDetail] = useState<HumedadEnsayoDetail | null>(null)
+    const [detailLoading, setDetailLoading] = useState(false)
     const [loading, setLoading] = useState(false)
     const [iframePath, setIframePath] = useState<string>('/')
+    const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
     const [search, setSearch] = useState('')
 
     const FRONTEND_URL = (
@@ -158,12 +183,12 @@ export function HumedadModule() {
         return freshToken
     }
 
-    const fetchEnsayos = async () => {
+    const fetchEnsayos = useCallback(async () => {
         setLoading(true)
         try {
             const res = await authFetch(`${API_URL}/api/humedad/`)
             if (res.ok) {
-                const data = await res.json()
+                const data: HumedadEnsayoSummary[] = await res.json()
                 setEnsayos(data)
             }
         } catch (err) {
@@ -171,12 +196,12 @@ export function HumedadModule() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [API_URL])
 
     useEffect(() => {
         fetchEnsayos()
-        syncIframeToken()
-    }, [])
+        void syncIframeToken()
+    }, [fetchEnsayos])
 
     // Listen for close message from iframe
     useEffect(() => {
@@ -198,18 +223,38 @@ export function HumedadModule() {
         }
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
-    }, [])
+    }, [fetchEnsayos])
 
     const openNewEnsayo = async () => {
         await syncIframeToken()
+        setEditingEnsayoId(null)
+        setIframePath('/')
+        setIsModalOpen(true)
+    }
+
+    const openEditEnsayo = async (id: number) => {
+        await syncIframeToken()
+        setEditingEnsayoId(id)
         setIframePath('/')
         setIsModalOpen(true)
     }
 
     const openDetail = async (id: number) => {
-        await syncIframeToken()
-        setIframePath(`/detalle/${id}`)
-        setIsModalOpen(true)
+        setDetailLoading(true)
+        try {
+            const res = await authFetch(`${API_URL}/api/humedad/${id}`)
+            if (!res.ok) {
+                throw new Error("No se pudo cargar el detalle.")
+            }
+            const data: HumedadEnsayoDetail = await res.json()
+            setSelectedDetail(data)
+            setIsDetailOpen(true)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Error desconocido"
+            toast.error(message)
+        } finally {
+            setDetailLoading(false)
+        }
     }
 
     const filtered = ensayos.filter((e) => {
@@ -227,8 +272,22 @@ export function HumedadModule() {
         if (token) {
             url.searchParams.set('token', token)
         }
+        if (editingEnsayoId) {
+            url.searchParams.set('ensayo_id', String(editingEnsayoId))
+        }
         return url.toString()
-    }, [FRONTEND_URL, iframePath, token])
+    }, [FRONTEND_URL, iframePath, token, editingEnsayoId])
+
+    const formatDate = useCallback((value?: string | null) => {
+        if (!value) return "-"
+        const parsed = new Date(value)
+        if (Number.isNaN(parsed.getTime())) return value
+        return new Intl.DateTimeFormat("es-PE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        }).format(parsed)
+    }, [])
 
     return (
         <div className="space-y-6">
@@ -260,6 +319,10 @@ export function HumedadModule() {
             </div>
 
             <div className="border rounded-xl shadow-sm bg-white">
+                <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
+                    <h3 className="text-sm font-semibold text-slate-900">Historial de Humedad</h3>
+                    <p className="text-xs text-muted-foreground">Registros guardados con acceso a ver detalle y edición.</p>
+                </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -267,7 +330,7 @@ export function HumedadModule() {
                             <TableHead>Cliente</TableHead>
                             <TableHead className="w-36">Fecha</TableHead>
                             <TableHead className="w-32">Estado</TableHead>
-                            <TableHead className="w-24 text-right">Acciones</TableHead>
+                            <TableHead className="w-64 text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -289,16 +352,34 @@ export function HumedadModule() {
                             <TableRow key={ensayo.id} className="hover:bg-slate-50">
                                 <TableCell className="font-semibold">{ensayo.numero_ensayo || 'S/N'}</TableCell>
                                 <TableCell>{ensayo.cliente || '-'}</TableCell>
-                                <TableCell>{ensayo.fecha_documento || '-'}</TableCell>
+                                <TableCell>{formatDate(ensayo.fecha_documento)}</TableCell>
                                 <TableCell>
                                     <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
                                         {ensayo.estado || 'Pendiente'}
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => openDetail(ensayo.id)}>
-                                        <Eye className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 gap-1"
+                                            disabled={detailLoading}
+                                            onClick={() => void openDetail(ensayo.id)}
+                                        >
+                                            <Eye className="h-3.5 w-3.5" />
+                                            Ver detalle
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 gap-1"
+                                            onClick={() => void openEditEnsayo(ensayo.id)}
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                            Editar
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -318,6 +399,29 @@ export function HumedadModule() {
                         src={iframeSrc}
                         title="Humedad CRM"
                     />
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
+                        <DialogDescription>Información guardada del ensayo de humedad.</DialogDescription>
+                    </DialogHeader>
+                    {selectedDetail ? (
+                        <div className="space-y-2 text-sm">
+                            <p><span className="font-semibold">N° Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
+                            <p><span className="font-semibold">N° OT:</span> {selectedDetail.numero_ot || "-"}</p>
+                            <p><span className="font-semibold">Cliente:</span> {selectedDetail.cliente || selectedDetail.muestra || "-"}</p>
+                            <p><span className="font-semibold">Fecha:</span> {formatDate(selectedDetail.fecha_documento)}</p>
+                            <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
+                            <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
+                            <p><span className="font-semibold">Descripción material excluido:</span> {selectedDetail.payload?.descripcion_material_excluido || "-"}</p>
+                            <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No hay detalle disponible.</p>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
