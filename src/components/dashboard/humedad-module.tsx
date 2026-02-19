@@ -261,8 +261,8 @@ export function HumedadModule() {
         const term = search.trim().toLowerCase()
         if (!term) return true
         return (
-            (e.numero_ensayo || '').toLowerCase().includes(term) ||
-            (e.cliente || '').toLowerCase().includes(term)
+            (e.muestra || e.cliente || '').toLowerCase().includes(term) ||
+            (e.numero_ot || '').toLowerCase().includes(term)
         )
     })
 
@@ -304,7 +304,7 @@ export function HumedadModule() {
                 <div className="flex gap-3">
                     <div className="relative">
                         <Input
-                            placeholder="Buscar ensayo o cliente..."
+                            placeholder="Buscar codigo de muestra o N OT..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="pl-10 w-64"
@@ -326,8 +326,8 @@ export function HumedadModule() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-40">N° Ensayo</TableHead>
-                            <TableHead>Cliente</TableHead>
+                            <TableHead className="w-40">Codigo de Muestra</TableHead>
+                            <TableHead>N OT</TableHead>
                             <TableHead className="w-36">Fecha</TableHead>
                             <TableHead className="w-32">Estado</TableHead>
                             <TableHead className="w-64 text-right">Acciones</TableHead>
@@ -350,8 +350,8 @@ export function HumedadModule() {
                         )}
                         {!loading && filtered.map((ensayo) => (
                             <TableRow key={ensayo.id} className="hover:bg-slate-50">
-                                <TableCell className="font-semibold">{ensayo.numero_ensayo || 'S/N'}</TableCell>
-                                <TableCell>{ensayo.cliente || '-'}</TableCell>
+                                <TableCell className="font-semibold">{ensayo.muestra || ensayo.cliente || 'S/N'}</TableCell>
+                                <TableCell>{ensayo.numero_ot || '-'}</TableCell>
                                 <TableCell>{formatDate(ensayo.fecha_documento)}</TableCell>
                                 <TableCell>
                                     <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
@@ -410,9 +410,9 @@ export function HumedadModule() {
                     </DialogHeader>
                     {selectedDetail ? (
                         <div className="space-y-2 text-sm">
+                            <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
+                            <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
                             <p><span className="font-semibold">N° Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
-                            <p><span className="font-semibold">N° OT:</span> {selectedDetail.numero_ot || "-"}</p>
-                            <p><span className="font-semibold">Cliente:</span> {selectedDetail.cliente || selectedDetail.muestra || "-"}</p>
                             <p><span className="font-semibold">Fecha:</span> {formatDate(selectedDetail.fecha_documento)}</p>
                             <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
                             <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
