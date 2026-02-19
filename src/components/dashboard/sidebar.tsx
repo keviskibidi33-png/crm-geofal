@@ -34,6 +34,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "verificacion_muestras", label: "Verificación Muestras", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "Formato", icon: Beaker, adminOnly: true },
   { id: "humedad", label: "Humedad", icon: Beaker, adminOnly: true },
+  { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
@@ -59,8 +60,15 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   // Use granular permissions for filtering
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
+    const isAdmin = user.role === "admin" || user.role === "admin_general"
+
+    // CBR is restricted: only Admin/Gerencia
+    if (module.id === "cbr") {
+      return isAdmin
+    }
+
     // 1. If user is admin, show everything
-    if (user.role === "admin" || user.role === "admin_general") return true
+    if (isAdmin) return true
 
     // 2. If module has specific permission key, check it
     if (user.permissions && user.permissions[module.id]) {

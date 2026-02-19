@@ -20,6 +20,7 @@ import { ComercialModule } from "@/components/dashboard/comercial-module"
 import { AdministracionModule } from "@/components/dashboard/administracion-module"
 import { TracingModule } from "@/components/dashboard/tracing-module"
 import { HumedadModule } from "@/components/dashboard/humedad-module"
+import { CBRModule } from "@/components/dashboard/cbr-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -196,6 +197,12 @@ export default function DashboardPage() {
         return <TracingModule />
       case "humedad":
         return <HumedadModule />
+      case "cbr":
+        return (
+          <RoleGuard user={dashboardUser} allowedRoles={["admin", "admin_general"]}>
+            <CBRModule />
+          </RoleGuard>
+        )
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (
