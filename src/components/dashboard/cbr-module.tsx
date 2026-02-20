@@ -165,6 +165,7 @@ export function CBRModule() {
     const [selectedDetail, setSelectedDetail] = useState<CBREnsayoDetail | null>(null)
     const [detailLoading, setDetailLoading] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [refreshingTable, setRefreshingTable] = useState(false)
     const [iframePath, setIframePath] = useState<string>('/')
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
     const [search, setSearch] = useState('')
@@ -183,16 +184,19 @@ export function CBRModule() {
         return freshToken
     }
 
-    const fetchEnsayos = useCallback(async () => {
+    const fetchEnsayos = useCallback(async (): Promise<boolean> => {
         setLoading(true)
         try {
             const res = await authFetch(`${API_URL}/api/cbr/`)
-            if (res.ok) {
-                const data: CBREnsayoSummary[] = await res.json()
-                setEnsayos(data)
+            if (!res.ok) {
+                return false
             }
+            const data: CBREnsayoSummary[] = await res.json()
+            setEnsayos(data)
+            return true
         } catch (err) {
             console.error('Error fetching cbr ensayos', err)
+            return false
         } finally {
             setLoading(false)
         }
@@ -257,6 +261,21 @@ export function CBRModule() {
         }
     }
 
+    const handleRefreshTable = useCallback(async () => {
+        if (loading || refreshingTable) return
+        setRefreshingTable(true)
+        try {
+            const ok = await fetchEnsayos()
+            if (ok) {
+                toast.success("Tabla de CBR actualizada.")
+            } else {
+                toast.error("No se pudo actualizar la tabla de CBR.")
+            }
+        } finally {
+            setRefreshingTable(false)
+        }
+    }, [fetchEnsayos, loading, refreshingTable])
+
     const filtered = ensayos.filter((e) => {
         const term = search.trim().toLowerCase()
         if (!term) return true
@@ -311,6 +330,19 @@ export function CBRModule() {
                         />
                         <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
                     </div>
+                    <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => void handleRefreshTable()}
+                        disabled={loading || refreshingTable}
+                    >
+                        {refreshingTable ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="h-4 w-4" />
+                        )}
+                        Actualizar
+                    </Button>
                     <Button onClick={openNewEnsayo} className="gap-2">
                         <Plus className="h-4 w-4" />
                         Nuevo Ensayo
