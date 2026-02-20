@@ -89,7 +89,8 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         'administrativo': 'ADMIN',
         'vendor': 'COMERCIAL',
         'laboratorio_lector': 'LAB',
-        'laboratorio_tipificador': 'LAB'
+        'laboratorio_tipificador': 'LAB',
+        'oficina_tecnica_humedad_tipificador': 'LAB'
     }
 
     const rNorm = user.role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -250,7 +251,8 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
     const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
 
-    const isLabEdit = currentMode === 'LAB' && rNorm.includes('laboratorio') && !rNorm.includes('lector')
+    const isLabOperatorRole = (rNorm.includes('laboratorio') || rNorm.includes('tipificador')) && !rNorm.includes('lector')
+    const isLabEdit = currentMode === 'LAB' && isLabOperatorRole
     const isSuperAdmin = rNorm === 'admin'
 
     // Final write permission: 

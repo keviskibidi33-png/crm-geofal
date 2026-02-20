@@ -189,7 +189,7 @@ async function buildUser(session: any): Promise<User> {
                 programacion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
-        } else if (role.includes('laboratorio')) {
+        } else if (role.includes('laboratorio') || role.includes('tipificador')) {
             const isLector = role.includes('lector')
             permissions = {
                 programacion: { read: true, write: !isLector, delete: false },
@@ -212,7 +212,7 @@ async function buildUser(session: any): Promise<User> {
         name: (profile as any)?.full_name || session.user.email?.split("@")[0] || "Usuario",
         email: session.user.email!,
         role: role,
-        roleLabel: roleDef?.label || (role === 'admin' ? "Administrador" : (role === 'laboratorio_lector' || role === 'laboratorio') ? "Control Laboratorio" : profile?.role || "Vendedor"),
+        roleLabel: roleDef?.label || (role === 'admin' ? "Administrador" : (role === 'laboratorio_lector' || role === 'laboratorio' || role.includes('tipificador')) ? "Control Laboratorio" : profile?.role || "Vendedor"),
         permissions: permissions,
         phone: (profile as any)?.phone,
         avatar: (profile as any)?.avatar_url
