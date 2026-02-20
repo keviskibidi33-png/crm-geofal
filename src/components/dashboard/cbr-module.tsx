@@ -328,7 +328,6 @@ export function CBRModule() {
                         <TableRow>
                             <TableHead className="w-40">Codigo de Muestra</TableHead>
                             <TableHead>N OT</TableHead>
-                            <TableHead className="w-36">Fecha</TableHead>
                             <TableHead className="w-32">Estado</TableHead>
                             <TableHead className="w-64 text-right">Acciones</TableHead>
                         </TableRow>
@@ -336,14 +335,14 @@ export function CBRModule() {
                     <TableBody>
                         {loading && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
+                                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
                                     Cargando ensayos...
                                 </TableCell>
                             </TableRow>
                         )}
                         {!loading && filtered.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
+                                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
                                     Sin resultados.
                                 </TableCell>
                             </TableRow>
@@ -352,7 +351,6 @@ export function CBRModule() {
                             <TableRow key={ensayo.id} className="hover:bg-slate-50">
                                 <TableCell className="font-semibold">{ensayo.muestra || ensayo.cliente || 'S/N'}</TableCell>
                                 <TableCell>{ensayo.numero_ot || '-'}</TableCell>
-                                <TableCell>{formatDate(ensayo.fecha_documento)}</TableCell>
                                 <TableCell>
                                     <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
                                         {ensayo.estado || 'Pendiente'}
