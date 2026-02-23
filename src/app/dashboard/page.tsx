@@ -21,6 +21,7 @@ import { AdministracionModule } from "@/components/dashboard/administracion-modu
 import { TracingModule } from "@/components/dashboard/tracing-module"
 import { HumedadModule } from "@/components/dashboard/humedad-module"
 import { CBRModule } from "@/components/dashboard/cbr-module"
+import { ProctorModule } from "@/components/dashboard/proctor-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -203,6 +204,8 @@ export default function DashboardPage() {
             <CBRModule />
           </RoleGuard>
         )
+      case "proctor":
+        return <ProctorModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

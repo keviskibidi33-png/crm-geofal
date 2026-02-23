@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor"
 
 export interface Permission {
     read: boolean
@@ -161,7 +161,8 @@ async function buildUser(session: any): Promise<User> {
                 verificacion_muestras: { read: true, write: true, delete: true },
                 compresion: { read: true, write: true, delete: true },
                 humedad: { read: true, write: true, delete: true },
-                cbr: { read: true, write: true, delete: true }
+                cbr: { read: true, write: true, delete: true },
+                proctor: { read: true, write: true, delete: true }
             }
         }
 
@@ -196,6 +197,7 @@ async function buildUser(session: any): Promise<User> {
                 laboratorio: { read: true, write: !isLector, delete: false },
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
+                proctor: { read: true, write: !isLector, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {
