@@ -143,6 +143,29 @@ async function buildUser(session: any): Promise<User> {
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
+        // Business rule: every authenticated CRM user can read control tables and export excels.
+        // Write/delete remain role-based.
+        p.programacion = {
+            read: true,
+            write: p.programacion?.write || false,
+            delete: p.programacion?.delete || false
+        }
+        p.laboratorio = {
+            read: true,
+            write: p.laboratorio?.write || false,
+            delete: p.laboratorio?.delete || false
+        }
+        p.comercial = {
+            read: true,
+            write: p.comercial?.write || false,
+            delete: p.comercial?.delete || false
+        }
+        p.administracion = {
+            read: true,
+            write: p.administracion?.write || false,
+            delete: p.administracion?.delete || false
+        }
+
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
         if (isSuperAdmin) {
             // Only superadmin gets everything
@@ -186,7 +209,9 @@ async function buildUser(session: any): Promise<User> {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
                 cotizadora: { read: true, write: true, delete: false },
+                laboratorio: { read: true, write: false, delete: false },
                 comercial: { read: true, write: true, delete: false },
+                administracion: { read: true, write: false, delete: false },
                 programacion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
@@ -195,6 +220,8 @@ async function buildUser(session: any): Promise<User> {
             permissions = {
                 programacion: { read: true, write: !isLector, delete: false },
                 laboratorio: { read: true, write: !isLector, delete: false },
+                comercial: { read: true, write: false, delete: false },
+                administracion: { read: true, write: false, delete: false },
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
                 proctor: { read: true, write: !isLector, delete: false },
@@ -203,6 +230,10 @@ async function buildUser(session: any): Promise<User> {
         } else {
             console.log(`[Auth] Minimal fallback for unknown role: ${role}`)
             permissions = {
+                programacion: { read: true, write: false, delete: false },
+                laboratorio: { read: true, write: false, delete: false },
+                comercial: { read: true, write: false, delete: false },
+                administracion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         }
