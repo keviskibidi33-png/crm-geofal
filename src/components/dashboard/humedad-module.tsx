@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Droplets, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil } from "lucide-react"
+import { Plus, Droplets, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabaseClient"
@@ -166,6 +166,7 @@ export function HumedadModule() {
     const [detailLoading, setDetailLoading] = useState(false)
     const [loading, setLoading] = useState(false)
     const [refreshingTable, setRefreshingTable] = useState(false)
+    const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
     const [iframePath, setIframePath] = useState<string>('/')
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
     const [search, setSearch] = useState('')
@@ -187,7 +188,9 @@ export function HumedadModule() {
     const fetchEnsayos = useCallback(async (): Promise<boolean> => {
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/humedad/`)
+            const res = await authFetch(`${API_URL}/api/humedad/?_ts=${Date.now()}`, {
+                cache: "no-store",
+            })
             if (!res.ok) {
                 return false
             }
@@ -246,7 +249,9 @@ export function HumedadModule() {
     const openDetail = async (id: number) => {
         setDetailLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/humedad/${id}`)
+            const res = await authFetch(`${API_URL}/api/humedad/${id}?_ts=${Date.now()}`, {
+                cache: "no-store",
+            })
             if (!res.ok) {
                 throw new Error("No se pudo cargar el detalle.")
             }
@@ -260,6 +265,43 @@ export function HumedadModule() {
             setDetailLoading(false)
         }
     }
+
+    const handleDeleteEnsayo = useCallback(async (id: number) => {
+        const ensayo = ensayos.find((item) => item.id === id)
+        const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
+
+        if (!window.confirm(`¿Eliminar el ensayo de humedad ${ensayoLabel}? Esta acción no se puede deshacer.`)) {
+            return
+        }
+
+        setDeletingEnsayoId(id)
+        try {
+            const res = await authFetch(`${API_URL}/api/humedad/${id}`, {
+                method: "DELETE",
+            })
+
+            if (!res.ok) {
+                let message = "No se pudo eliminar el ensayo."
+                try {
+                    const data = await res.json()
+                    if (typeof data?.detail === "string" && data.detail.trim()) {
+                        message = data.detail
+                    }
+                } catch {
+                    // ignore invalid/non-json body
+                }
+                throw new Error(message)
+            }
+
+            setEnsayos((prev) => prev.filter((row) => row.id !== id))
+            toast.success("Ensayo de humedad eliminado correctamente.")
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Error desconocido"
+            toast.error(message)
+        } finally {
+            setDeletingEnsayoId(null)
+        }
+    }, [API_URL, ensayos])
 
     const handleRefreshTable = useCallback(async () => {
         if (loading || refreshingTable) return
@@ -408,6 +450,20 @@ export function HumedadModule() {
                                         >
                                             <Pencil className="h-3.5 w-3.5" />
                                             Editar
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => void handleDeleteEnsayo(ensayo.id)}
+                                            disabled={deletingEnsayoId === ensayo.id}
+                                        >
+                                            {deletingEnsayoId === ensayo.id ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            )}
+                                            Eliminar
                                         </Button>
                                     </div>
                                 </TableCell>
