@@ -187,7 +187,9 @@ export function CBRModule() {
     const fetchEnsayos = useCallback(async (): Promise<boolean> => {
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/cbr/`)
+            const res = await authFetch(`${API_URL}/api/cbr/?_ts=${Date.now()}`, {
+                cache: "no-store",
+            })
             if (!res.ok) {
                 return false
             }
@@ -246,7 +248,9 @@ export function CBRModule() {
     const openDetail = async (id: number) => {
         setDetailLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/cbr/${id}`)
+            const res = await authFetch(`${API_URL}/api/cbr/${id}?_ts=${Date.now()}`, {
+                cache: "no-store",
+            })
             if (!res.ok) {
                 throw new Error("No se pudo cargar el detalle.")
             }
