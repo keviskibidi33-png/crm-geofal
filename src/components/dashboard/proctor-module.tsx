@@ -285,7 +285,7 @@ export function ProctorModule() {
         const ensayo = ensayos.find((item) => item.id === id)
         const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
 
-        if (!window.confirm(`¿Eliminar el ensayo de proctor ${ensayoLabel}? Esta acción no se puede deshacer.`)) {
+        if (!window.confirm(`¿Enviar a papelera el ensayo de proctor ${ensayoLabel}? Se puede recuperar luego.`)) {
             return
         }
 
@@ -296,7 +296,7 @@ export function ProctorModule() {
             })
 
             if (!res.ok) {
-                let message = "No se pudo eliminar el ensayo."
+                let message = "No se pudo enviar a papelera el ensayo."
                 try {
                     const data = await res.json()
                     if (typeof data?.detail === "string" && data.detail.trim()) {
@@ -309,7 +309,7 @@ export function ProctorModule() {
             }
 
             setEnsayos((prev) => prev.filter((row) => row.id !== id))
-            toast.success("Ensayo de Proctor eliminado correctamente.")
+            toast.success("Ensayo de Proctor enviado a papelera.")
         } catch (error) {
             const message = error instanceof Error ? error.message : "Error desconocido"
             toast.error(message)
