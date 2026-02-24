@@ -64,6 +64,8 @@ const MODULES = [
     { id: "cbr", label: "CBR" },
     { id: "proctor", label: "Proctor" },
     { id: "llp", label: "LLP" },
+    { id: "gran_suelo", label: "Gran Suelo" },
+    { id: "gran_agregado", label: "Gran Agregado" },
     { id: "usuarios", label: "Gestión Usuarios" },
     { id: "auditoria", label: "Auditoría" },
     { id: "permisos", label: "Matriz Permisos" },

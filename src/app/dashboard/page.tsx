@@ -23,6 +23,8 @@ import { HumedadModule } from "@/components/dashboard/humedad-module"
 import { CBRModule } from "@/components/dashboard/cbr-module"
 import { ProctorModule } from "@/components/dashboard/proctor-module"
 import { LLPModule } from "@/components/dashboard/llp-module"
+import { GranSueloModule } from "@/components/dashboard/gran-suelo-module"
+import { GranAgregadoModule } from "@/components/dashboard/gran-agregado-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -209,6 +211,10 @@ export default function DashboardPage() {
         return <ProctorModule />
       case "llp":
         return <LLPModule />
+      case "gran_suelo":
+        return <GranSueloModule />
+      case "gran_agregado":
+        return <GranAgregadoModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (
