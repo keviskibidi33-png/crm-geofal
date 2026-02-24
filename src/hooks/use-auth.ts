@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp"
 
 export interface Permission {
     read: boolean
@@ -166,6 +166,16 @@ async function buildUser(session: any): Promise<User> {
             delete: p.administracion?.delete || false
         }
 
+        // Compatibility fallback: if llp key is missing in older role matrices,
+        // inherit the same access profile from Proctor.
+        if (!p.llp) {
+            p.llp = {
+                read: p.proctor?.read || false,
+                write: p.proctor?.write || false,
+                delete: p.proctor?.delete || false,
+            }
+        }
+
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
         if (isSuperAdmin) {
             // Only superadmin gets everything
@@ -185,7 +195,8 @@ async function buildUser(session: any): Promise<User> {
                 compresion: { read: true, write: true, delete: true },
                 humedad: { read: true, write: true, delete: true },
                 cbr: { read: true, write: true, delete: true },
-                proctor: { read: true, write: true, delete: true }
+                proctor: { read: true, write: true, delete: true },
+                llp: { read: true, write: true, delete: true }
             }
         }
 
@@ -225,6 +236,7 @@ async function buildUser(session: any): Promise<User> {
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
                 proctor: { read: true, write: !isLector, delete: false },
+                llp: { read: true, write: !isLector, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {

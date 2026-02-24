@@ -36,6 +36,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "humedad", label: "Humedad", icon: Beaker, adminOnly: true },
   { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
   { id: "proctor", label: "Proctor", icon: Beaker, adminOnly: true },
+  { id: "llp", label: "LLP", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },

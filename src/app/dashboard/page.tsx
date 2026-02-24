@@ -22,6 +22,7 @@ import { TracingModule } from "@/components/dashboard/tracing-module"
 import { HumedadModule } from "@/components/dashboard/humedad-module"
 import { CBRModule } from "@/components/dashboard/cbr-module"
 import { ProctorModule } from "@/components/dashboard/proctor-module"
+import { LLPModule } from "@/components/dashboard/llp-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -206,6 +207,8 @@ export default function DashboardPage() {
         )
       case "proctor":
         return <ProctorModule />
+      case "llp":
+        return <LLPModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (
