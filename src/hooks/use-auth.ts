@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "equi_arena"
 
 export interface Permission {
     read: boolean
@@ -189,6 +189,13 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.llp?.delete || p.proctor?.delete || false,
             }
         }
+        if (!p.equi_arena) {
+            p.equi_arena = {
+                read: p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
 
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
         if (isSuperAdmin) {
@@ -213,6 +220,7 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: true, delete: true },
                 gran_suelo: { read: true, write: true, delete: true },
                 gran_agregado: { read: true, write: true, delete: true },
+                equi_arena: { read: true, write: true, delete: true },
             }
         }
 
@@ -255,6 +263,7 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: !isLector, delete: false },
                 gran_suelo: { read: true, write: !isLector, delete: false },
                 gran_agregado: { read: true, write: !isLector, delete: false },
+                equi_arena: { read: true, write: !isLector, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {

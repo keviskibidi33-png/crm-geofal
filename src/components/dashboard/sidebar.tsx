@@ -39,6 +39,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "llp", label: "LLP", icon: Beaker, adminOnly: true },
   { id: "gran_suelo", label: "Gran Suelo", icon: Beaker, adminOnly: true },
   { id: "gran_agregado", label: "Gran Agregado", icon: Beaker, adminOnly: true },
+  { id: "equi_arena", label: "EquiArena", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
