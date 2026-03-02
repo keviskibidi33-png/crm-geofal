@@ -207,11 +207,7 @@ export default function DashboardPage() {
       case "humedad":
         return <HumedadModule />
       case "cbr":
-        return (
-          <RoleGuard user={dashboardUser} allowedRoles={["admin", "admin_general"]}>
-            <CBRModule />
-          </RoleGuard>
-        )
+        return <CBRModule />
       case "proctor":
         return <ProctorModule />
       case "llp":

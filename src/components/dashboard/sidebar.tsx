@@ -74,11 +74,6 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       return isAdmin
     }
 
-    // CBR is restricted: only Admin/Gerencia
-    if (module.id === "cbr") {
-      return isAdmin
-    }
-
     // 1. If user is admin, show everything
     if (isAdmin) return true
 

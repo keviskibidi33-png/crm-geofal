@@ -109,6 +109,7 @@ async function fetchRolePermissions(roleId: string): Promise<RolePermissions | n
 
 async function buildUser(session: any): Promise<User> {
     const profile = await fetchProfile(session.user.id)
+    const normalizedEmail = String(session.user.email || "").toLowerCase().trim()
 
     // Capture the current logout timestamp to avoid triggering on it during Live session
     if (profile?.last_force_logout_at) {
@@ -293,6 +294,17 @@ async function buildUser(session: any): Promise<User> {
                 administracion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
+        }
+    }
+
+    // User-specific hotfix: habilitar accesos de Oficina Tecnica 2 segun requerimiento operativo.
+    if (normalizedEmail === "oficinatecnica2@geofal.com.pe") {
+        permissions = {
+            ...(permissions || {}),
+            proctor: { read: true, write: true, delete: false },
+            cbr: { read: true, write: true, delete: false },
+            llp: { read: true, write: true, delete: false },
+            limites: { read: true, write: true, delete: false },
         }
     }
 
