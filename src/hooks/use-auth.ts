@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "equi_arena"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "equi_arena" | "ge_fino" | "ge_grueso"
 
 export interface Permission {
     read: boolean
@@ -196,6 +196,20 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
+        if (!p.ge_fino) {
+            p.ge_fino = {
+                read: p.equi_arena?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.equi_arena?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.equi_arena?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
+        if (!p.ge_grueso) {
+            p.ge_grueso = {
+                read: p.ge_fino?.read || p.equi_arena?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.ge_fino?.write || p.equi_arena?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.ge_fino?.delete || p.equi_arena?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
 
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
         if (isSuperAdmin) {
@@ -221,6 +235,8 @@ async function buildUser(session: any): Promise<User> {
                 gran_suelo: { read: true, write: true, delete: true },
                 gran_agregado: { read: true, write: true, delete: true },
                 equi_arena: { read: true, write: true, delete: true },
+                ge_fino: { read: true, write: true, delete: true },
+                ge_grueso: { read: true, write: true, delete: true },
             }
         }
 
@@ -264,6 +280,8 @@ async function buildUser(session: any): Promise<User> {
                 gran_suelo: { read: true, write: !isLector, delete: false },
                 gran_agregado: { read: true, write: !isLector, delete: false },
                 equi_arena: { read: true, write: !isLector, delete: false },
+                ge_fino: { read: true, write: !isLector, delete: false },
+                ge_grueso: { read: true, write: !isLector, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {

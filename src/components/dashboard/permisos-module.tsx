@@ -67,6 +67,8 @@ const MODULES = [
     { id: "gran_suelo", label: "Gran Suelo" },
     { id: "gran_agregado", label: "Gran Agregado" },
     { id: "equi_arena", label: "EquiArena" },
+    { id: "ge_fino", label: "GE Fino" },
+    { id: "ge_grueso", label: "GE Grueso" },
     { id: "usuarios", label: "Gestión Usuarios" },
     { id: "auditoria", label: "Auditoría" },
     { id: "permisos", label: "Matriz Permisos" },
