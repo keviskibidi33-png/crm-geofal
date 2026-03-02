@@ -23,32 +23,131 @@ interface SmartIframeProps {
 }
 
 function SmartIframe({ src, title }: SmartIframeProps) {
+    const MAX_RETRIES = 2; // 3 intentos en total (0, 1, 2)
+    const RETRY_TOAST_DELAY_MS = 1200;
+    const READY_PING_INTERVAL_MS = 3000;
+
     const [key, setKey] = useState(0); // Force re-render
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const readyPingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const handleLoad = () => {
-        setIsLoading(false);
-        setError(null);
-        setRetryCount(0);
+    const parsedSrc = useMemo(() => {
+        try {
+            return new URL(src);
+        } catch {
+            return null;
+        }
+    }, [src]);
+
+    const expectedOrigin = parsedSrc?.origin ?? null;
+
+    const configurationError = useMemo(() => {
+        if (!parsedSrc) {
+            return "La URL del módulo de recepción es inválida.";
+        }
+
+        const host = parsedSrc.hostname.toLowerCase();
+        if (process.env.NODE_ENV === "production" && (host === "localhost" || host === "127.0.0.1")) {
+            return "Configuración inválida en producción: NEXT_PUBLIC_RECEPCION_FRONTEND_URL apunta a localhost.";
+        }
+
+        return null;
+    }, [parsedSrc]);
+
+    const clearTransientTimers = useCallback(() => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
-    };
+        if (retryTimerRef.current) {
+            clearTimeout(retryTimerRef.current);
+            retryTimerRef.current = null;
+        }
+        if (readyPingRef.current) {
+            clearInterval(readyPingRef.current);
+            readyPingRef.current = null;
+        }
+    }, []);
+
+    const handleLoad = useCallback(() => {
+        clearTransientTimers();
+        setIsLoading(false);
+        setError(null);
+        setRetryCount(0);
+    }, [clearTransientTimers]);
 
     const handleRetry = useCallback(() => {
+        if (configurationError) {
+            clearTransientTimers();
+            setError(configurationError);
+            setIsLoading(false);
+            return;
+        }
+
+        clearTransientTimers();
         setIsLoading(true);
         setError(null);
         setKey(prev => prev + 1); // Remount iframe
         setRetryCount(prev => prev + 1);
-    }, []);
+    }, [clearTransientTimers, configurationError]);
+
+    useEffect(() => {
+        clearTransientTimers();
+        if (configurationError) {
+            setError(configurationError);
+            setIsLoading(false);
+            return;
+        }
+        setError(null);
+        setIsLoading(true);
+        setRetryCount(0);
+    }, [src, configurationError, clearTransientTimers]);
+
+    // Handshake fallback: if iframe code is alive but onLoad was lost, unblocks via postMessage.
+    useEffect(() => {
+        if (!isLoading || !expectedOrigin) return;
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== expectedOrigin) return;
+            if (event.data?.type !== 'IFRAME_READY') return;
+            if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return;
+            handleLoad();
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [isLoading, expectedOrigin, handleLoad]);
+
+    useEffect(() => {
+        if (!isLoading) return;
+
+        const pingIframe = () => {
+            if (!iframeRef.current?.contentWindow) return;
+            iframeRef.current.contentWindow.postMessage(
+                { type: 'PING_IFRAME_READY', source: 'crm-shell' },
+                expectedOrigin ?? '*'
+            );
+        };
+
+        pingIframe();
+        readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS);
+
+        return () => {
+            if (readyPingRef.current) {
+                clearInterval(readyPingRef.current);
+                readyPingRef.current = null;
+            }
+        };
+    }, [isLoading, expectedOrigin, key]);
 
     // Watchdog for timeout (Gateway Timeout usually takes 30-60s, but we can be proactive)
     useEffect(() => {
-        if (!isLoading) return;
+        if (!isLoading || configurationError) return;
 
         // Exponential backoff for auto-retry
         // 1st retry: 20s (given backend speed)
@@ -57,13 +156,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         const timeoutMs = 20000 * Math.pow(2, retryCount); 
         
         timeoutRef.current = setTimeout(() => {
-            if (retryCount < 2) {
-                toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`);
-                setTimeout(() => {
-                    toast.dismiss();
+            if (retryCount < MAX_RETRIES) {
+                const toastId = toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/${MAX_RETRIES + 1})`);
+                retryTimerRef.current = setTimeout(() => {
+                    toast.dismiss(toastId);
                     handleRetry();
-                }, 1500);
+                }, RETRY_TOAST_DELAY_MS);
             } else {
+                clearTransientTimers();
                 setError(`El servicio no responde después de varios intentos (${timeoutMs/1000}s).`);
                 setIsLoading(false);
             }
@@ -75,15 +175,22 @@ function SmartIframe({ src, title }: SmartIframeProps) {
                 timeoutRef.current = null;
             }
         };
-    }, [isLoading, retryCount, handleRetry]);
+    }, [isLoading, retryCount, handleRetry, configurationError, clearTransientTimers]);
+
+    useEffect(() => {
+        return () => {
+            clearTransientTimers();
+        };
+    }, [clearTransientTimers]);
 
     // STABILIZE URL: Only change when retryCount changes
     const currentSrc = useMemo(() => {
-        const url = new URL(src);
+        if (!parsedSrc) return src;
+        const url = new URL(parsedSrc.toString());
         url.searchParams.set('retry', retryCount.toString());
         url.searchParams.set('t', Date.now().toString()); // Still reload on AUTHENTIC retry
         return url.toString();
-    }, [src, retryCount]);
+    }, [parsedSrc, retryCount, src]);
 
     return (
         <div className="w-full h-full relative bg-gray-50">
@@ -127,12 +234,17 @@ function SmartIframe({ src, title }: SmartIframeProps) {
             )}
 
             <iframe
+                ref={iframeRef}
                 key={key}
                 src={currentSrc}
                 className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 title={title}
                 onLoad={handleLoad}
-                onError={() => setError("Error al cargar el marco de contenido.")}
+                onError={() => {
+                    clearTransientTimers();
+                    setIsLoading(false);
+                    setError("Error al cargar el marco de contenido.");
+                }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 loading="eager"
             />
@@ -153,6 +265,15 @@ export function RecepcionModule() {
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { user } = useAuth()
+    const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
+
+    const frontendOrigin = useMemo(() => {
+        try {
+            return new URL(FRONTEND_URL).origin
+        } catch {
+            return null
+        }
+    }, [FRONTEND_URL])
 
     const syncIframeToken = async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -172,6 +293,8 @@ export function RecepcionModule() {
     // Listen for close message from Iframe
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            if (frontendOrigin && event.origin !== frontendOrigin) return
+
             if (event.data?.type === 'CLOSE_MODAL') {
                 setIsModalOpen(false)
                 setEditId(null)
@@ -183,7 +306,7 @@ export function RecepcionModule() {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
                             { type: 'TOKEN_REFRESH', token: freshToken },
-                            '*'
+                            frontendOrigin ?? event.origin ?? '*'
                         )
                     }
                 })
@@ -191,7 +314,7 @@ export function RecepcionModule() {
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [fetchRecepciones])
+    }, [fetchRecepciones, frontendOrigin])
 
     // Sync imported data to Iframe when it opens
     useEffect(() => {
@@ -504,8 +627,8 @@ export function RecepcionModule() {
                     <div className="w-full h-full relative">
                         <SmartIframe
                             src={editId
-                                ? `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/recepciones/${editId}/editar?token=${token || ''}`
-                                : `${process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"}/migration/nueva-recepcion?token=${token || ''}`
+                                ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar?token=${token || ''}`
+                                : `${FRONTEND_URL}/migration/nueva-recepcion?token=${token || ''}`
                             }
                             title={editId ? 'Editar Recepción' : 'Nueva Recepción'}
                         />
