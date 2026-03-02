@@ -26,6 +26,8 @@ import { LLPModule } from "@/components/dashboard/llp-module"
 import { GranSueloModule } from "@/components/dashboard/gran-suelo-module"
 import { GranAgregadoModule } from "@/components/dashboard/gran-agregado-module"
 import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
+import { GeFinoModule } from "@/components/dashboard/ge-fino-module"
+import { GeGruesoModule } from "@/components/dashboard/ge-grueso-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -79,14 +81,16 @@ export default function DashboardPage() {
     if (loading || !user) return;
 
     const role = user.role?.toLowerCase() || "";
+    const isAdmin = role === "admin" || role === "admin_general";
+    const isAdminOnlyModule = activeModule === "permisos";
 
     // 1. Administrators have absolute access - never redirect them
-    if (role === 'admin' || role === 'admin_general') {
+    if (isAdmin) {
       return;
     }
 
     // 2. For other roles, check against their granted permissions
-    const hasPermission = user.permissions && user.permissions[activeModule]?.read;
+    const hasPermission = !isAdminOnlyModule && !!(user.permissions && user.permissions[activeModule]?.read);
 
     if (!hasPermission) {
       // Choose a smart default based on role
@@ -171,7 +175,7 @@ export default function DashboardPage() {
       case "recepcion":
         return <RecepcionModule />
       case "comercial":
-        return <ComercialModule user={dashboardUser} />
+        return <ComercialModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "administracion":
         return <AdministracionModule user={dashboardUser} />
       case "usuarios":
@@ -182,7 +186,7 @@ export default function DashboardPage() {
         )
       case "permisos":
         return (
-          <RoleGuard user={dashboardUser} allowedRoles={["admin"]}>
+          <RoleGuard user={dashboardUser} allowedRoles={["admin", "admin_general"]}>
             <PermisosModule />
           </RoleGuard>
         )
@@ -218,6 +222,10 @@ export default function DashboardPage() {
         return <GranAgregadoModule />
       case "equi_arena":
         return <EquiArenaModule />
+      case "ge_fino":
+        return <GeFinoModule />
+      case "ge_grueso":
+        return <GeGruesoModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

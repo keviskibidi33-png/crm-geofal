@@ -40,6 +40,8 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "gran_suelo", label: "Gran Suelo", icon: Beaker, adminOnly: true },
   { id: "gran_agregado", label: "Gran Agregado", icon: Beaker, adminOnly: true },
   { id: "equi_arena", label: "EquiArena", icon: Beaker, adminOnly: true },
+  { id: "ge_fino", label: "GE Fino", icon: Beaker, adminOnly: true },
+  { id: "ge_grueso", label: "GE Grueso", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
@@ -66,6 +68,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
     const isAdmin = user.role === "admin" || user.role === "admin_general"
+
+    // Permisos: solo visible para roles admin.
+    if (module.id === "permisos") {
+      return isAdmin
+    }
 
     // CBR is restricted: only Admin/Gerencia
     if (module.id === "cbr") {

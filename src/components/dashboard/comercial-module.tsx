@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { User } from "@/hooks/use-auth"
+import { User, ModuleType } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
 import { Button } from "@/components/ui/button"
@@ -17,20 +17,25 @@ import {
     Zap,
     History,
     Shield,
-    FileSearch
+    FileSearch,
+    Users,
+    FolderKanban,
+    FileText
 } from "lucide-react"
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabaseClient"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface ComercialModuleProps {
     user: User
+    onNavigateModule?: (module: ModuleType) => void
 }
 
 const TOKEN_BRIDGE_TRACE_PREFIX = "[ComercialTokenBridge]"
 
-export function ComercialModule({ user }: ComercialModuleProps) {
+export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps) {
     const { kpis, recentChanges, isLoading, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -180,6 +185,21 @@ export function ComercialModule({ user }: ComercialModuleProps) {
         setIsOpen(true)
     }, [syncIframeToken])
 
+    const quickLinks: Array<{ id: ModuleType; label: string; icon: typeof Users }> = [
+        { id: "clientes", label: "Clientes", icon: Users },
+        { id: "proyectos", label: "Proyectos", icon: FolderKanban },
+        { id: "cotizadora", label: "Cotizadora", icon: FileText },
+    ]
+
+    const handleQuickNavigate = useCallback(
+        (module: ModuleType) => {
+            if (onNavigateModule) {
+                onNavigateModule(module)
+            }
+        },
+        [onNavigateModule]
+    )
+
     if (isLoading) {
         return (
             <div className="h-full w-full flex items-center justify-center">
@@ -217,26 +237,61 @@ export function ComercialModule({ user }: ComercialModuleProps) {
                 </div>
             </div>
 
-            {/* Fila superior: Tabla Acceso Directo */}
-            <div className="flex items-center justify-between bg-white px-6 py-3 rounded-xl border border-zinc-200 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="p-2 bg-zinc-100 rounded-lg text-zinc-600">
-                        <FileSearch className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-zinc-900">Matriz de Seguimiento Comercial</h4>
-                        <p className="text-[11px] text-zinc-500 font-medium">Gestión de fechas de entrega y evidencias.</p>
-                    </div>
-                </div>
-                <Button
-                    onClick={openModule}
-                    variant="outline"
-                    className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-6 py-4 rounded-lg flex items-center gap-2"
-                >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    ABRIR TABLA COMERCIAL
-                </Button>
-            </div>
+            {/* Fila superior: Accesos Comerciales + Tabla */}
+            <Card className="border border-zinc-200 shadow-sm bg-white">
+                <CardContent className="p-0">
+                    <Accordion type="single" collapsible defaultValue="accesos-comercial" className="w-full">
+                        <AccordionItem value="accesos-comercial" className="border-b-0">
+                            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-zinc-100 rounded-lg text-zinc-600">
+                                        <FileSearch className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-sm font-bold text-zinc-900">Accesos Comerciales</h4>
+                                        <p className="text-[11px] text-zinc-500 font-medium">Clientes, proyectos, cotizaciones y tabla comercial.</p>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 pb-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-2">
+                                        {quickLinks.map((item) => {
+                                            const Icon = item.icon
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    onClick={() => handleQuickNavigate(item.id)}
+                                                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-zinc-700 hover:bg-white hover:text-zinc-900 transition-colors"
+                                                >
+                                                    <Icon className="w-5 h-5 text-zinc-500" />
+                                                    <span className="text-base font-medium">{item.label}</span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+
+                                    <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/40 px-5 py-4">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-zinc-900">Tabla Comercial</h4>
+                                            <p className="text-[11px] text-zinc-500 font-medium">Seguimiento de fechas de entrega y evidencias.</p>
+                                        </div>
+                                        <Button
+                                            onClick={openModule}
+                                            variant="outline"
+                                            className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-5 py-4 rounded-lg flex items-center gap-2"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                            ABRIR TABLA
+                                        </Button>
+                                    </div>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </CardContent>
+            </Card>
 
             {/* Cuadro de Últimos Cambios */}
             <Card className="border border-zinc-200 shadow-sm bg-zinc-50/50">
