@@ -25,6 +25,7 @@ import { ProctorModule } from "@/components/dashboard/proctor-module"
 import { LLPModule } from "@/components/dashboard/llp-module"
 import { GranSueloModule } from "@/components/dashboard/gran-suelo-module"
 import { GranAgregadoModule } from "@/components/dashboard/gran-agregado-module"
+import { AbraModule } from "@/components/dashboard/abra-module"
 import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
 import { GeFinoModule } from "@/components/dashboard/ge-fino-module"
 import { GeGruesoModule } from "@/components/dashboard/ge-grueso-module"
@@ -216,6 +217,8 @@ export default function DashboardPage() {
         return <GranSueloModule />
       case "gran_agregado":
         return <GranAgregadoModule />
+      case "abra":
+        return <AbraModule />
       case "equi_arena":
         return <EquiArenaModule />
       case "ge_fino":

@@ -115,6 +115,7 @@ crm-geofal/
 | `NEXT_PUBLIC_CBR_FRONTEND_URL` | ❌ | URL del frontend embebido de CBR |
 | `NEXT_PUBLIC_PROCTOR_FRONTEND_URL` | ❌ | URL del frontend embebido de Proctor |
 | `NEXT_PUBLIC_LLP_FRONTEND_URL` | ❌ | URL del frontend embebido de LLP |
+| `NEXT_PUBLIC_ABRA_FRONTEND_URL` | ❌ | URL del frontend embebido de ABRA |
 
 ## 👥 Roles y Permisos
 

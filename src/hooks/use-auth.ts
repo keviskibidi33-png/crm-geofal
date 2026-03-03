@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "equi_arena" | "ge_fino" | "ge_grueso"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "equi_arena" | "ge_fino" | "ge_grueso"
 
 export interface Permission {
     read: boolean
@@ -190,25 +190,32 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.llp?.delete || p.proctor?.delete || false,
             }
         }
-        if (!p.equi_arena) {
-            p.equi_arena = {
+        if (!p.abra) {
+            p.abra = {
                 read: p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
                 write: p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
                 delete: p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
+        if (!p.equi_arena) {
+            p.equi_arena = {
+                read: p.abra?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.abra?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.abra?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
         if (!p.ge_fino) {
             p.ge_fino = {
-                read: p.equi_arena?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
-                write: p.equi_arena?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
-                delete: p.equi_arena?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+                read: p.equi_arena?.read || p.abra?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.equi_arena?.write || p.abra?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.equi_arena?.delete || p.abra?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
         if (!p.ge_grueso) {
             p.ge_grueso = {
-                read: p.ge_fino?.read || p.equi_arena?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
-                write: p.ge_fino?.write || p.equi_arena?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
-                delete: p.ge_fino?.delete || p.equi_arena?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+                read: p.ge_fino?.read || p.equi_arena?.read || p.abra?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.ge_fino?.write || p.equi_arena?.write || p.abra?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.ge_fino?.delete || p.equi_arena?.delete || p.abra?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
 
@@ -235,6 +242,7 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: true, delete: true },
                 gran_suelo: { read: true, write: true, delete: true },
                 gran_agregado: { read: true, write: true, delete: true },
+                abra: { read: true, write: true, delete: true },
                 equi_arena: { read: true, write: true, delete: true },
                 ge_fino: { read: true, write: true, delete: true },
                 ge_grueso: { read: true, write: true, delete: true },
@@ -280,6 +288,7 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: !isLector, delete: false },
                 gran_suelo: { read: true, write: !isLector, delete: false },
                 gran_agregado: { read: true, write: !isLector, delete: false },
+                abra: { read: true, write: !isLector, delete: false },
                 equi_arena: { read: true, write: !isLector, delete: false },
                 ge_fino: { read: true, write: !isLector, delete: false },
                 ge_grueso: { read: true, write: !isLector, delete: false },
