@@ -67,6 +67,7 @@ const MODULES = [
     { id: "gran_suelo", label: "Gran Suelo" },
     { id: "gran_agregado", label: "Gran Agregado" },
     { id: "abra", label: "ABRA" },
+    { id: "abrass", label: "ABRASS" },
     { id: "peso_unitario", label: "Peso Unitario" },
     { id: "tamiz", label: "Tamiz" },
     { id: "equi_arena", label: "EquiArena" },

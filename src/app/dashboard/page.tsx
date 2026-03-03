@@ -26,6 +26,7 @@ import { LLPModule } from "@/components/dashboard/llp-module"
 import { GranSueloModule } from "@/components/dashboard/gran-suelo-module"
 import { GranAgregadoModule } from "@/components/dashboard/gran-agregado-module"
 import { AbraModule } from "@/components/dashboard/abra-module"
+import { AbrassModule } from "@/components/dashboard/abrass-module"
 import { PesoUnitarioModule } from "@/components/dashboard/peso-unitario-module"
 import { TamizModule } from "@/components/dashboard/tamiz-module"
 import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
@@ -221,6 +222,8 @@ export default function DashboardPage() {
         return <GranAgregadoModule />
       case "abra":
         return <AbraModule />
+      case "abrass":
+        return <AbrassModule />
       case "peso_unitario":
         return <PesoUnitarioModule />
       case "tamiz":

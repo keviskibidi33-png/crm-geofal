@@ -40,6 +40,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "gran_suelo", label: "Gran Suelo", icon: Beaker, adminOnly: true },
   { id: "gran_agregado", label: "Gran Agregado", icon: Beaker, adminOnly: true },
   { id: "abra", label: "ABRA", icon: Beaker, adminOnly: true },
+  { id: "abrass", label: "ABRASS", icon: Beaker, adminOnly: true },
   { id: "peso_unitario", label: "Peso Unitario", icon: Beaker, adminOnly: true },
   { id: "tamiz", label: "Tamiz", icon: Beaker, adminOnly: true },
   { id: "equi_arena", label: "EquiArena", icon: Beaker, adminOnly: true },
