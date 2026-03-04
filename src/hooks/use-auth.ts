@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
 
 export interface Permission {
     read: boolean
@@ -176,6 +176,13 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.proctor?.delete || false,
             }
         }
+        if (!p.cont_humedad) {
+            p.cont_humedad = {
+                read: p.humedad?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.humedad?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.humedad?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
         if (!p.gran_suelo) {
             p.gran_suelo = {
                 read: p.llp?.read || p.proctor?.read || false,
@@ -258,6 +265,7 @@ async function buildUser(session: any): Promise<User> {
                 verificacion_muestras: { read: true, write: true, delete: true },
                 compresion: { read: true, write: true, delete: true },
                 humedad: { read: true, write: true, delete: true },
+                cont_humedad: { read: true, write: true, delete: true },
                 cbr: { read: true, write: true, delete: true },
                 proctor: { read: true, write: true, delete: true },
                 llp: { read: true, write: true, delete: true },
@@ -308,6 +316,7 @@ async function buildUser(session: any): Promise<User> {
                 administracion: { read: true, write: false, delete: false },
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
+                cont_humedad: { read: true, write: !isLector, delete: false },
                 proctor: { read: true, write: !isLector, delete: false },
                 llp: { read: true, write: !isLector, delete: false },
                 gran_suelo: { read: true, write: !isLector, delete: false },

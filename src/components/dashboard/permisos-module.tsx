@@ -61,6 +61,7 @@ const MODULES = [
     { id: "compresion", label: "Compresión" },
     { id: "tracing", label: "Tracing" },
     { id: "humedad", label: "Humedad" },
+    { id: "cont_humedad", label: "Contenido Humedad" },
     { id: "cbr", label: "CBR" },
     { id: "proctor", label: "Proctor" },
     { id: "llp", label: "LLP" },

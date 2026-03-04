@@ -9,7 +9,7 @@ Sistema de gestión de relaciones con clientes (CRM) para Geofal, construido con
 - **Cotizaciones**: Módulo integrado para visualizar cotizaciones generadas
 - **Usuarios**: Sistema de roles (Admin/Vendedor)
 - **Dashboard**: Métricas y estadísticas en tiempo real
-- **Laboratorio Embebido**: módulos iframe para Humedad, CBR, Proctor, LLP, ABRA, ABRASS, Peso Unitario y Tamiz con bridge de token
+- **Laboratorio Embebido**: módulos iframe para Humedad, Contenido Humedad, CBR, Proctor, LLP, ABRA, ABRASS, Peso Unitario y Tamiz con bridge de token
 
 ## 📋 Requisitos Previos
 
@@ -112,6 +112,7 @@ crm-geofal/
 | `NEXT_PUBLIC_COTIZADOR_URL` | ❌ | URL del cotizador embebido |
 | `NEXT_PUBLIC_API_URL` | ❌ | URL de la API de cotizaciones |
 | `NEXT_PUBLIC_HUMEDAD_FRONTEND_URL` | ❌ | URL del frontend embebido de Humedad |
+| `NEXT_PUBLIC_CONT_HUMEDAD_FRONTEND_URL` | ❌ | URL del frontend embebido de Contenido Humedad |
 | `NEXT_PUBLIC_CBR_FRONTEND_URL` | ❌ | URL del frontend embebido de CBR |
 | `NEXT_PUBLIC_PROCTOR_FRONTEND_URL` | ❌ | URL del frontend embebido de Proctor |
 | `NEXT_PUBLIC_LLP_FRONTEND_URL` | ❌ | URL del frontend embebido de LLP |

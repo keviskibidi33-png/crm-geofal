@@ -20,6 +20,7 @@ import { ComercialModule } from "@/components/dashboard/comercial-module"
 import { AdministracionModule } from "@/components/dashboard/administracion-module"
 import { TracingModule } from "@/components/dashboard/tracing-module"
 import { HumedadModule } from "@/components/dashboard/humedad-module"
+import { ContHumedadModule } from "@/components/dashboard/cont-humedad-module"
 import { CBRModule } from "@/components/dashboard/cbr-module"
 import { ProctorModule } from "@/components/dashboard/proctor-module"
 import { LLPModule } from "@/components/dashboard/llp-module"
@@ -210,6 +211,8 @@ export default function DashboardPage() {
         return <TracingModule />
       case "humedad":
         return <HumedadModule />
+      case "cont_humedad":
+        return <ContHumedadModule />
       case "cbr":
         return <CBRModule />
       case "proctor":
