@@ -71,6 +71,7 @@ const MODULES = [
     { id: "abrass", label: "ABRASS" },
     { id: "peso_unitario", label: "Peso Unitario" },
     { id: "tamiz", label: "Tamiz" },
+    { id: "planas", label: "Planas" },
     { id: "equi_arena", label: "EquiArena" },
     { id: "ge_fino", label: "GE Fino" },
     { id: "ge_grueso", label: "GE Grueso" },
