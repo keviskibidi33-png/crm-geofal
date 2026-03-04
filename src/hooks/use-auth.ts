@@ -119,6 +119,7 @@ async function buildUser(session: any): Promise<User> {
     // Role initialization
     const roleFromProfile = profile?.role || session.user.user_metadata?.role || "vendor"
     const role = roleFromProfile.toLowerCase() as UserRole
+    const rNorm = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     const roleDef = Array.isArray(profile?.role_definitions) ? profile?.role_definitions[0] : profile?.role_definitions
 
     // 1. Prioritize permissions from database (Supabase Join or API)
@@ -293,7 +294,6 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // Process permissions
-    const rNorm = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     const isSuperAdminFinal = rNorm === 'admin'  // Only exact 'admin' role
 
 
@@ -359,6 +359,30 @@ async function buildUser(session: any): Promise<User> {
             cbr: { read: true, write: true, delete: false },
             llp: { read: true, write: true, delete: false },
             limites: { read: true, write: true, delete: false },
+        }
+    }
+
+    // Commercial scope lock:
+    // Roles comerciales/vendedores only see their business modules.
+    const isCommercialScopedRole =
+        rNorm.includes('asesor') ||
+        rNorm.includes('vendedor') ||
+        rNorm.includes('vendor') ||
+        rNorm === 'comercial'
+
+    if (isCommercialScopedRole) {
+        const source = (permissions || {}) as RolePermissions
+        const pick = (key: string): Permission => ({
+            read: source[key]?.read === true,
+            write: source[key]?.write === true,
+            delete: source[key]?.delete === true,
+        })
+
+        permissions = {
+            clientes: pick('clientes'),
+            proyectos: pick('proyectos'),
+            cotizadora: pick('cotizadora'),
+            comercial: pick('comercial'),
         }
     }
 
