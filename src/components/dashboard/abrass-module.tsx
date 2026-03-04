@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
+import { resolveFrontendModuleUrl } from "@/lib/frontend-url"
 
 interface SmartIframeProps {
   src: string
@@ -94,10 +95,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
   }, [isLoading, retryCount, handleRetry])
 
   const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
-    return url.toString()
+    try {
+      const url = new URL(src)
+      url.searchParams.set("retry", retryCount.toString())
+      url.searchParams.set("t", Date.now().toString())
+      return url.toString()
+    } catch {
+      return src
+    }
   }, [src, retryCount])
 
   return (
@@ -155,11 +160,11 @@ export function AbrassModule() {
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
 
-  const FRONTEND_URL = (
-    process.env.NEXT_PUBLIC_ABRASS_FRONTEND_URL ||
-    process.env.NEXT_PUBLIC_ABRASS_URL ||
-    "https://abrass.geofal.com.pe"
-  ).replace(/\/+$/, "")
+  const FRONTEND_URL = resolveFrontendModuleUrl(
+    process.env.NEXT_PUBLIC_ABRASS_FRONTEND_URL || process.env.NEXT_PUBLIC_ABRASS_URL,
+    "https://abrass.geofal.com.pe",
+    "ABRASS",
+  )
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
   const syncIframeToken = async (): Promise<string | null> => {
@@ -280,10 +285,14 @@ export function AbrassModule() {
   })
 
   const iframeSrc = useMemo(() => {
-    const url = new URL(FRONTEND_URL)
-    if (token) url.searchParams.set("token", token)
-    if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
-    return url.toString()
+    try {
+      const url = new URL(FRONTEND_URL)
+      if (token) url.searchParams.set("token", token)
+      if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
+      return url.toString()
+    } catch {
+      return FRONTEND_URL
+    }
   }, [FRONTEND_URL, token, editingEnsayoId])
 
   const formatDate = useCallback((value?: string | null) => {
