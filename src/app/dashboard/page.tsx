@@ -31,6 +31,7 @@ import { AbrassModule } from "@/components/dashboard/abrass-module"
 import { PesoUnitarioModule } from "@/components/dashboard/peso-unitario-module"
 import { TamizModule } from "@/components/dashboard/tamiz-module"
 import { PlanasModule } from "@/components/dashboard/planas-module"
+import { CarasModule } from "@/components/dashboard/caras-module"
 import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
 import { GeFinoModule } from "@/components/dashboard/ge-fino-module"
 import { GeGruesoModule } from "@/components/dashboard/ge-grueso-module"
@@ -234,6 +235,8 @@ export default function DashboardPage() {
         return <TamizModule />
       case "planas":
         return <PlanasModule />
+      case "caras":
+        return <CarasModule />
       case "equi_arena":
         return <EquiArenaModule />
       case "ge_fino":

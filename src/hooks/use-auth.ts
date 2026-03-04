@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
 
 export interface Permission {
     read: boolean
@@ -233,11 +233,18 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.tamiz?.delete || p.cont_humedad?.delete || p.humedad?.delete || false,
             }
         }
+        if (!p.caras) {
+            p.caras = {
+                read: p.planas?.read || p.tamiz?.read || p.peso_unitario?.read || p.abrass?.read || p.abra?.read || p.gran_agregado?.read || false,
+                write: p.planas?.write || p.tamiz?.write || p.peso_unitario?.write || p.abrass?.write || p.abra?.write || p.gran_agregado?.write || false,
+                delete: p.planas?.delete || p.tamiz?.delete || p.peso_unitario?.delete || p.abrass?.delete || p.abra?.delete || p.gran_agregado?.delete || false,
+            }
+        }
         if (!p.equi_arena) {
             p.equi_arena = {
-                read: p.planas?.read || p.tamiz?.read || p.peso_unitario?.read || p.abrass?.read || p.abra?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
-                write: p.planas?.write || p.tamiz?.write || p.peso_unitario?.write || p.abrass?.write || p.abra?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
-                delete: p.planas?.delete || p.tamiz?.delete || p.peso_unitario?.delete || p.abrass?.delete || p.abra?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+                read: p.caras?.read || p.planas?.read || p.tamiz?.read || p.peso_unitario?.read || p.abrass?.read || p.abra?.read || p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.caras?.write || p.planas?.write || p.tamiz?.write || p.peso_unitario?.write || p.abrass?.write || p.abra?.write || p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.caras?.delete || p.planas?.delete || p.tamiz?.delete || p.peso_unitario?.delete || p.abrass?.delete || p.abra?.delete || p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
         if (!p.ge_fino) {
@@ -275,6 +282,7 @@ async function buildUser(session: any): Promise<User> {
                 humedad: { read: true, write: true, delete: true },
                 cont_humedad: { read: true, write: true, delete: true },
                 planas: { read: true, write: true, delete: true },
+                caras: { read: true, write: true, delete: true },
                 cbr: { read: true, write: true, delete: true },
                 proctor: { read: true, write: true, delete: true },
                 llp: { read: true, write: true, delete: true },
@@ -334,6 +342,7 @@ async function buildUser(session: any): Promise<User> {
                 peso_unitario: { read: true, write: !isLector, delete: false },
                 tamiz: { read: true, write: !isLector, delete: false },
                 planas: { read: true, write: !isLector, delete: false },
+                caras: { read: true, write: !isLector, delete: false },
                 equi_arena: { read: true, write: !isLector, delete: false },
                 ge_fino: { read: true, write: !isLector, delete: false },
                 ge_grueso: { read: true, write: !isLector, delete: false },

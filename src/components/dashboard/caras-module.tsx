@@ -24,7 +24,7 @@ interface SmartIframeProps {
   title: string
 }
 
-interface AbraEnsayoSummary {
+interface CarasEnsayoSummary {
   id: number
   numero_ensayo?: string | null
   numero_ot?: string | null
@@ -32,16 +32,17 @@ interface AbraEnsayoSummary {
   muestra?: string | null
   fecha_documento?: string | null
   estado?: string | null
-  desgaste_promedio_pct?: number | null
+  masa_muestra_retenida_g?: number | null
   fecha_creacion?: string | null
   fecha_actualizacion?: string | null
 }
 
-interface AbraEnsayoDetail extends AbraEnsayoSummary {
+interface CarasEnsayoDetail extends CarasEnsayoSummary {
   payload?: {
     realizado_por?: string
-    requiere_lavado?: string
-    observaciones?: string
+    metodo_determinacion?: string
+    fraccionada?: boolean | null
+    nota?: string
   } | null
 }
 
@@ -147,12 +148,12 @@ function SmartIframe({ src, title }: SmartIframeProps) {
   )
 }
 
-export function AbraModule() {
+export function CarasModule() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [token, setToken] = useState<string | null>(null)
-  const [ensayos, setEnsayos] = useState<AbraEnsayoSummary[]>([])
-  const [selectedDetail, setSelectedDetail] = useState<AbraEnsayoDetail | null>(null)
+  const [ensayos, setEnsayos] = useState<CarasEnsayoSummary[]>([])
+  const [selectedDetail, setSelectedDetail] = useState<CarasEnsayoDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [refreshingTable, setRefreshingTable] = useState(false)
@@ -161,9 +162,9 @@ export function AbraModule() {
   const [search, setSearch] = useState("")
 
   const FRONTEND_URL = resolveFrontendModuleUrl(
-    process.env.NEXT_PUBLIC_ABRA_FRONTEND_URL || process.env.NEXT_PUBLIC_ABRA_URL,
-    "https://abra.geofal.com.pe",
-    "ABRA",
+    process.env.NEXT_PUBLIC_CARAS_FRONTEND_URL || process.env.NEXT_PUBLIC_CARAS_URL,
+    "https://caras.geofal.com.pe",
+    "CARAS",
   )
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -179,15 +180,15 @@ export function AbraModule() {
   const fetchEnsayos = useCallback(async (): Promise<boolean> => {
     setLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/abra/?_ts=${Date.now()}`, {
+      const res = await authFetch(`${API_URL}/api/caras/?_ts=${Date.now()}`, {
         cache: "no-store",
       })
       if (!res.ok) return false
-      const data: AbraEnsayoSummary[] = await res.json()
+      const data: CarasEnsayoSummary[] = await res.json()
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching ABRA ensayos", err)
+      console.error("Error fetching Caras ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -195,7 +196,7 @@ export function AbraModule() {
   }, [API_URL])
 
   useEffect(() => {
-    fetchEnsayos()
+    void fetchEnsayos()
     void syncIframeToken()
   }, [fetchEnsayos])
 
@@ -203,7 +204,7 @@ export function AbraModule() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
-        fetchEnsayos()
+        void fetchEnsayos()
       }
       if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -232,9 +233,9 @@ export function AbraModule() {
   const openDetail = async (id: number) => {
     setDetailLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/abra/${id}?_ts=${Date.now()}`, { cache: "no-store" })
+      const res = await authFetch(`${API_URL}/api/caras/${id}?_ts=${Date.now()}`, { cache: "no-store" })
       if (!res.ok) throw new Error("No se pudo cargar el detalle.")
-      const data: AbraEnsayoDetail = await res.json()
+      const data: CarasEnsayoDetail = await res.json()
       setSelectedDetail(data)
       setIsDetailOpen(true)
     } catch (error) {
@@ -250,7 +251,9 @@ export function AbraModule() {
     setRefreshingTable(true)
     try {
       const ok = await fetchEnsayos()
-      toast[ok ? "success" : "error"](ok ? "Tabla de ABRA actualizada." : "No se pudo actualizar la tabla de ABRA.")
+      toast[ok ? "success" : "error"](
+        ok ? "Tabla de Caras actualizada." : "No se pudo actualizar la tabla de Caras.",
+      )
     } finally {
       setRefreshingTable(false)
     }
@@ -260,14 +263,14 @@ export function AbraModule() {
     async (id: number) => {
       const ensayo = ensayos.find((item) => item.id === id)
       const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
-      if (!window.confirm(`Enviar a papelera el ensayo de ABRA ${ensayoLabel}? Se puede recuperar luego.`)) return
+      if (!window.confirm(`Enviar a papelera el ensayo de Caras ${ensayoLabel}? Se puede recuperar luego.`)) return
 
       setDeletingEnsayoId(id)
       try {
-        const res = await authFetch(`${API_URL}/api/abra/${id}`, { method: "DELETE" })
+        const res = await authFetch(`${API_URL}/api/caras/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de ABRA enviado a papelera.")
+        toast.success("Ensayo de Caras enviado a papelera.")
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
         toast.error(message)
@@ -302,6 +305,12 @@ export function AbraModule() {
     return new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed)
   }, [])
 
+  const formatFraccionada = useCallback((value: boolean | null | undefined) => {
+    if (value === true) return "Si"
+    if (value === false) return "No"
+    return "-"
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -310,8 +319,8 @@ export function AbraModule() {
             <FlaskConical className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">ABRASION ASTM C535-16</h2>
-            <p className="text-muted-foreground">Ensayo de abrasión Los Angeles.</p>
+            <h2 className="text-2xl font-bold tracking-tight">CARAS ASTM D5821-13</h2>
+            <p className="text-muted-foreground">Determinacion del porcentaje de particulas fracturadas.</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -337,7 +346,7 @@ export function AbraModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial de ABRA</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial de Caras</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table>
@@ -394,17 +403,17 @@ export function AbraModule() {
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">ABRA - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Caras - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
           <DialogHeader className="hidden">
-            <DialogTitle>Ensayo ABRA</DialogTitle>
-            <DialogDescription>Formulario ABRASION ASTM C535-16</DialogDescription>
+            <DialogTitle>Ensayo Caras</DialogTitle>
+            <DialogDescription>Formulario Caras ASTM D5821-13</DialogDescription>
           </DialogHeader>
-          <SmartIframe src={iframeSrc} title="ABRA CRM" />
+          <SmartIframe src={iframeSrc} title="Caras CRM" />
         </DialogContent>
       </Dialog>
 
@@ -412,7 +421,7 @@ export function AbraModule() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-            <DialogDescription>Informacion guardada del Ensayo ABRA.</DialogDescription>
+            <DialogDescription>Informacion guardada del Ensayo Caras.</DialogDescription>
           </DialogHeader>
           {selectedDetail ? (
             <div className="space-y-2 text-sm">
@@ -432,16 +441,19 @@ export function AbraModule() {
                 <span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}
               </p>
               <p>
-                <span className="font-semibold">Desgaste promedio (%):</span> {selectedDetail.desgaste_promedio_pct ?? "-"}
+                <span className="font-semibold">Masa muestra retenida (g):</span> {selectedDetail.masa_muestra_retenida_g ?? "-"}
               </p>
               <p>
                 <span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}
               </p>
               <p>
-                <span className="font-semibold">Requiere lavado:</span> {selectedDetail.payload?.requiere_lavado || "-"}
+                <span className="font-semibold">Metodo determinacion:</span> {selectedDetail.payload?.metodo_determinacion || "-"}
               </p>
               <p>
-                <span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}
+                <span className="font-semibold">Fraccionada:</span> {formatFraccionada(selectedDetail.payload?.fraccionada)}
+              </p>
+              <p>
+                <span className="font-semibold">Nota:</span> {selectedDetail.payload?.nota || "-"}
               </p>
             </div>
           ) : (
@@ -452,4 +464,3 @@ export function AbraModule() {
     </div>
   )
 }
-
