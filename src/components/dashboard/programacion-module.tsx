@@ -242,7 +242,10 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://127.0.0.1:3001')
 
-    const isAdmin = rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('administra') || rNorm.includes('direc') || rNorm.includes('jefe')
+    const isSuperAdmin = rNorm === 'admin'
+    const isAdminGeneral = rNorm === 'admin_general' || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')
+    const isAdmin = isSuperAdmin || isAdminGeneral
+    const isAdminReadOnlyUser = (user.email || '').toLowerCase().trim() === 'asesorcomercial1@geofal.com.pe'
 
     const modeToPermissionKey: Record<string, string> = {
         'LAB': 'laboratorio',
@@ -253,7 +256,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const isLabOperatorRole = (rNorm.includes('laboratorio') || rNorm.includes('tipificador')) && !rNorm.includes('lector')
     const isLabEdit = currentMode === 'LAB' && isLabOperatorRole
-    const isSuperAdmin = rNorm === 'admin'
 
     // Final write permission: 
     // - Superadmins always can write
@@ -272,6 +274,10 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                 user.permissions?.[permissionKey]?.write ||
                 user.permissions?.['programacion']?.write || false
         }
+    }
+
+    if (currentMode === 'ADMIN' && isAdminReadOnlyUser) {
+        canWrite = false
     }
 
     const encodedRole = encodeURIComponent(user.role)
