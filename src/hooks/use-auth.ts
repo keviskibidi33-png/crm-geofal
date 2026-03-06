@@ -371,6 +371,16 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    // User-specific policy: asesorcomercial1 can edit COMERCIAL,
+    // but ADMINISTRACION must stay read-only.
+    if (normalizedEmail === "asesorcomercial1@geofal.com.pe") {
+        permissions = {
+            ...(permissions || {}),
+            comercial: { read: true, write: true, delete: false },
+            administracion: { read: true, write: false, delete: false },
+        }
+    }
+
     // Commercial scope lock:
     // Roles comerciales/vendedores only see their business modules.
     const isCommercialScopedRole =
