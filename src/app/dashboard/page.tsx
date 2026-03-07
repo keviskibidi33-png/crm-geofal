@@ -259,7 +259,7 @@ export default function DashboardPage() {
       <DashboardSidebar activeModule={activeModule} setActiveModule={setActiveModule} user={dashboardUser} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader user={dashboardUser} setActiveModule={setActiveModule} />
-        <main className="flex-1 overflow-auto p-6">{renderModule()}</main>
+        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{renderModule()}</main>
       </div>
 
       {/* Visual Indicator Removed to avoid Z-index conflict with Dialog */}
