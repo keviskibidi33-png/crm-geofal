@@ -295,24 +295,20 @@ export function EquiArenaModule() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <FlaskConical className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Equivalente de Arena ASTM D2419-22</h2>
-            <p className="text-muted-foreground">Determinación del valor equivalente de arena.</p>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          $1<div className="min-w-0">
+            $1<p className="text-sm sm:text-base text-muted-foreground">Determinación del valor equivalente de arena.</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
+          <div className="relative w-full sm:flex-1 sm:min-w-[260px] lg:w-80 lg:flex-none">
             <Input
               placeholder="Buscar codigo de muestra o N OT..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 w-64"
+              className="pl-10 w-full"
             />
             <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
@@ -332,7 +328,7 @@ export function EquiArenaModule() {
           <h3 className="text-sm font-semibold text-slate-900">Historial de EquiArena</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
-        <Table>
+        <Table className="min-w-[860px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-40">Codigo de Muestra</TableHead>
@@ -369,10 +365,10 @@ export function EquiArenaModule() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="sm" className="h-8 gap-1" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
-                        <Eye className="h-3.5 w-3.5" /> Ver detalle
+                        <Eye className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Ver detalle</span>
                       </Button>
                       <Button variant="ghost" size="sm" className="h-8 gap-1" onClick={() => void openEditEnsayo(ensayo.id)}>
-                        <Pencil className="h-3.5 w-3.5" /> Editar
+                        <Pencil className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Editar</span>
                       </Button>
                       <Button
                         variant="ghost"
@@ -381,7 +377,7 @@ export function EquiArenaModule() {
                         onClick={() => void handleDeleteEnsayo(ensayo.id)}
                         disabled={deletingEnsayoId === ensayo.id}
                       >
-                        {deletingEnsayoId === ensayo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Eliminar
+                        {deletingEnsayoId === ensayo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} <span className="hidden xl:inline">Eliminar</span>
                       </Button>
                     </div>
                   </TableCell>
