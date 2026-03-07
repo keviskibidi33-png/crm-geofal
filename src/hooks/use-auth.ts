@@ -405,6 +405,26 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    // Strict technical scope:
+    // technical lab roles must only access their explicitly approved soil modules.
+    const isStrictTecnicoRole = rNorm === 'tecnico' || rNorm === 'tecnico_no_lab_write'
+    if (isStrictTecnicoRole) {
+        const source = (permissions || {}) as RolePermissions
+        const pick = (key: string): Permission => ({
+            read: source[key]?.read === true,
+            write: source[key]?.write === true,
+            delete: source[key]?.delete === true,
+        })
+
+        permissions = {
+            proctor: pick('proctor'),
+            cbr: pick('cbr'),
+            llp: pick('llp'),
+            humedad: pick('humedad'),
+            cont_humedad: pick('cont_humedad'),
+        }
+    }
+
 
     return {
         id: session.user.id,
