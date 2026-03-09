@@ -120,7 +120,7 @@ export async function middleware(req: NextRequest) {
 
         // Laboratorio Routes
         if (pathname.startsWith('/laboratorio') || pathname.startsWith('/programacion')) {
-            const allowedRoles = ['admin', 'admin_general', 'laboratorio_tipificador', 'laboratorio_lector', 'administrativo', 'asesor comercial']
+            const allowedRoles = ['admin', 'admin_general', 'laboratorio_tipificador', 'laboratorio_lector', 'administrativo', 'auxiliar_comercial', 'asesor comercial']
             if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }
@@ -128,7 +128,7 @@ export async function middleware(req: NextRequest) {
 
         // Comercial / Operativo Routes
         if (pathname.startsWith('/comercial') || pathname.startsWith('/cotizaciones') || pathname.startsWith('/clientes') || pathname.startsWith('/proyectos')) {
-            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'asesor comercial']
+            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'asesor comercial']
             if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }

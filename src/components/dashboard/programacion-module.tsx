@@ -88,6 +88,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         'admin': 'ADMIN',
         'administrativo': 'ADMIN',
         'vendor': 'COMERCIAL',
+        'auxiliar_comercial': 'COMERCIAL',
         'laboratorio_lector': 'LAB',
         'laboratorio_tipificador': 'LAB',
         'oficina_tecnica_humedad_tipificador': 'LAB'
@@ -245,7 +246,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const isSuperAdmin = rNorm === 'admin'
     const isAdminGeneral = rNorm === 'admin_general' || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')
     const isAdmin = isSuperAdmin || isAdminGeneral
-    const isAdminReadOnlyUser = (user.email || '').toLowerCase().trim() === 'asesorcomercial1@geofal.com.pe'
 
     const modeToPermissionKey: Record<string, string> = {
         'LAB': 'laboratorio',
@@ -257,11 +257,10 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const isLabOperatorRole = (rNorm.includes('laboratorio') || rNorm.includes('tipificador')) && !rNorm.includes('lector')
     const isLabEdit = currentMode === 'LAB' && isLabOperatorRole
 
-    // Final write permission: 
+    // Final write permission:
     // - Superadmins always can write
-    // - Other admins can write to non-LAB views
     // - Lab staff can write to LAB
-    // - Other roles follow their explicit permissions
+    // - COM and ADMIN strictly follow their own module permission
     let canWrite = isSuperAdmin || isLabEdit
 
     if (!canWrite) {
@@ -269,15 +268,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             // Strict block for LAB for everyone else
             canWrite = user.permissions?.[permissionKey]?.write || false
         } else {
-            // Normal admin/explicit logic for COM/ADMIN
-            canWrite = isAdmin ||
-                user.permissions?.[permissionKey]?.write ||
-                user.permissions?.['programacion']?.write || false
+            // COM/ADMIN respect explicit module permission only
+            canWrite = isAdmin || user.permissions?.[permissionKey]?.write || false
         }
-    }
-
-    if (currentMode === 'ADMIN' && isAdminReadOnlyUser) {
-        canWrite = false
     }
 
     const encodedRole = encodeURIComponent(user.role)
