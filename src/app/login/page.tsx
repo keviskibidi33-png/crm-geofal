@@ -234,8 +234,8 @@ function LoginForm() {
                             <p className="text-sm text-zinc-600 px-4 leading-relaxed">
                                 Por motivos de seguridad y control de licencias, solo se permite **una sesión activa simultánea** por usuario.
                             </p>
-                            <p className="text-xs text-zinc-400 italic">
-                                Por favor, cierra la sesión en el otro dispositivo o espera 2 minutos de inactividad para poder ingresar aquí.
+                                <p className="text-xs text-zinc-400 italic">
+                                Por favor, cierra la sesión en el otro dispositivo o espera 20 minutos de inactividad para poder ingresar aquí.
                             </p>
                         </CardContent>
                         <CardFooter className="pb-8 pt-2">

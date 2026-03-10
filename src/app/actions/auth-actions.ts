@@ -277,6 +277,8 @@ export async function createSessionAction(userId: string) {
     })
 
     try {
+        const SESSION_GHOST_MINUTES = 20
+        const SESSION_GHOST_WINDOW_MS = SESSION_GHOST_MINUTES * 60 * 1000
         const sessionId = randomUUID()
         const cookieStore = await cookies()
 
@@ -307,9 +309,9 @@ export async function createSessionAction(userId: string) {
             const lastSeen = lastSeenStr ? new Date(lastSeenStr).getTime() : 0
             const now = new Date().getTime()
 
-            // Si el último latido (heartbeat) fue hace más de 2 minutos (120s),
+            // Si el último latido (heartbeat) fue hace más de 20 minutos,
             // consideramos que es una "señal falsa" (sesión fantasma/cerrada a la fuerza).
-            const isTrulyAlive = (now - lastSeen) < (2 * 60 * 1000)
+            const isTrulyAlive = (now - lastSeen) < SESSION_GHOST_WINDOW_MS
 
             if (!isTrulyAlive) {
                 console.log(`[SessionGuard] Sesión fantasma detectada para ${userId} (Sin latidos). Limpiando...`)
@@ -357,6 +359,42 @@ export async function createSessionAction(userId: string) {
     } catch (err: any) {
         console.error("Create session error:", err)
         return { error: "Error al crear sesión segura" }
+    }
+}
+
+export async function refreshSessionAction() {
+    if (!supabaseServiceKey) return { error: "Falta Service Role Key" }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    try {
+        const cookieStore = await cookies()
+        const sessionId = cookieStore.get('crm_session')?.value
+
+        if (!sessionId) {
+            return { error: "No hay cookie de sesión activa" }
+        }
+
+        const { error: updateError, data } = await supabaseAdmin
+            .from('active_sessions')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('session_id', sessionId)
+            .select()
+
+        if (updateError) {
+            return { error: updateError.message }
+        }
+
+        if (!data || data.length === 0) {
+            return { error: "Sesión no encontrada" }
+        }
+
+        return { success: true }
+    } catch (err: any) {
+        console.error("Refresh session error:", err)
+        return { error: "Error al refrescar sesión" }
     }
 }
 

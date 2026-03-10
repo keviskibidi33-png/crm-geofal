@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
-import { deleteSessionAction } from "@/app/actions/auth-actions"
+import { deleteSessionAction, refreshSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
 export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
@@ -312,7 +312,7 @@ async function buildUser(session: any): Promise<User> {
         // Admin protection: If matrix fails, Admin STILL gets everything
         if (isSuperAdminFinal) {
             permissions = enforcePermissions({})
-        } else if (rNorm.includes('asesor') || rNorm.includes('vendedor') || rNorm.includes('vendor')) {
+        } else if (rNorm.includes('asesor') || rNorm.includes('vendedor') || rNorm.includes('vendor') || rNorm.includes('auxiliar')) {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
@@ -377,6 +377,7 @@ async function buildUser(session: any): Promise<User> {
         rNorm.includes('asesor') ||
         rNorm.includes('vendedor') ||
         rNorm.includes('vendor') ||
+        rNorm.includes('auxiliar') ||
         rNorm === 'comercial'
 
     if (isCommercialScopedRole) {
@@ -392,6 +393,8 @@ async function buildUser(session: any): Promise<User> {
             proyectos: pick('proyectos'),
             cotizadora: pick('cotizadora'),
             comercial: pick('comercial'),
+            programacion: pick('programacion'),
+            configuracion: pick('configuracion'),
         }
     }
 
@@ -563,6 +566,7 @@ export function useAuth() {
         const sendHeartbeat = async () => {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
             try {
+                await refreshSessionAction()
                 await authFetch(`${apiUrl}/users/heartbeat`, {
                     method: 'POST',
                     body: JSON.stringify({ user_id: currentUserId })
