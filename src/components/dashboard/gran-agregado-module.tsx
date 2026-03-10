@@ -297,8 +297,12 @@ export function GranAgregadoModule() {
     <div className="space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          $1<div className="min-w-0">
-            $1<p className="text-sm sm:text-base text-muted-foreground">Ensayo de tamizado para agregados.</p>
+          <div className="shrink-0 p-2 rounded-lg bg-primary/10">
+            <FlaskConical className="h-6 w-6 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">GRANULOMETRIA AGREGADOS ASTM C136/C136M-25</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Ensayo de tamizado para agregados.</p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -439,3 +443,4 @@ export function GranAgregadoModule() {
     </div>
   )
 }
+
