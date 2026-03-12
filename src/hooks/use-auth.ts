@@ -41,6 +41,11 @@ let lastSeenLogoutAt: string | null = null
 let isGlobalSessionTerminated = false
 const SESSION_TERMINATED_EVENT = "crm-session-terminated"
 const TERMINATED_KEY = "crm_is_terminated"
+const SESSION_REFRESH_THROTTLE_MS = 60 * 1000
+let lastSessionRefreshAt = 0
+let refreshInFlight: Promise<void> | null = null
+let globalActivityListenerUserId: string | null = null
+let globalActivityListenerCleanup: (() => void) | null = null
 
 // Initialize global state from localStorage if available (Persistence)
 if (typeof window !== 'undefined' && localStorage.getItem(TERMINATED_KEY) === 'true') {
@@ -431,6 +436,30 @@ async function buildUser(session: any): Promise<User> {
     }
 }
 
+async function refreshAuthSession() {
+    const now = Date.now()
+    if (now - lastSessionRefreshAt < SESSION_REFRESH_THROTTLE_MS) return
+    if (refreshInFlight) return
+    lastSessionRefreshAt = now
+    refreshInFlight = (async () => {
+        try {
+            const { data, error } = await supabase.auth.refreshSession()
+            if (error) return
+            if (data?.session?.access_token && typeof window !== 'undefined') {
+                localStorage.setItem('token', data.session.access_token)
+            }
+            if (data?.session) {
+                await refreshSessionAction()
+            }
+        } catch (e) {
+            // Ignore refresh errors (session may be genuinely expired)
+        } finally {
+            refreshInFlight = null
+        }
+    })()
+    return refreshInFlight
+}
+
 
 // Function to reset cache (useful for fresh login)
 export function resetAuthCache() {
@@ -584,6 +613,44 @@ export function useAuth() {
         }
     }, [user?.id, isSessionTerminated]) // Depend on isSessionTerminated
 
+    // Refresh auth session when the tab becomes active again.
+    useEffect(() => {
+        const currentUserId = user?.id
+        if (!currentUserId || isSessionTerminated) {
+            if (globalActivityListenerCleanup) {
+                globalActivityListenerCleanup()
+                globalActivityListenerCleanup = null
+                globalActivityListenerUserId = null
+            }
+            return
+        }
+
+        if (globalActivityListenerUserId === currentUserId) return
+
+        if (globalActivityListenerCleanup) {
+            globalActivityListenerCleanup()
+            globalActivityListenerCleanup = null
+        }
+
+        const handleActivity = () => {
+            if (document.visibilityState !== "visible") return
+            void refreshAuthSession()
+        }
+
+        window.addEventListener("focus", handleActivity)
+        document.addEventListener("visibilitychange", handleActivity)
+
+        globalActivityListenerCleanup = () => {
+            window.removeEventListener("focus", handleActivity)
+            document.removeEventListener("visibilitychange", handleActivity)
+        }
+        globalActivityListenerUserId = currentUserId
+
+        return () => {
+            // Global cleanup is handled when user changes or logs out
+        }
+    }, [user?.id, isSessionTerminated])
+
     useEffect(() => {
         mountedRef.current = true
 
@@ -667,7 +734,18 @@ export function useAuth() {
         let disposed = false
         const verifySession = async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (!session && !disposed) {
+            if (session || disposed) return
+
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+            if (!refreshError && refreshData?.session) {
+                if (typeof window !== 'undefined' && refreshData.session.access_token) {
+                    localStorage.setItem('token', refreshData.session.access_token)
+                }
+                await refreshSessionAction()
+                return
+            }
+
+            if (!disposed) {
                 cachedUser = null
                 hasInitialized = false
                 if (mountedRef.current) {

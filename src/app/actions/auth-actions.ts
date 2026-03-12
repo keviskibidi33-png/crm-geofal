@@ -6,6 +6,20 @@ import { randomUUID } from "crypto"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const DEFAULT_SESSION_DAYS = 30
+const SESSION_COOKIE_MAX_AGE_DAYS = Number.parseInt(process.env.CRM_SESSION_MAX_AGE_DAYS ?? "", 10)
+const SESSION_COOKIE_MAX_AGE_SECONDS =
+    (Number.isFinite(SESSION_COOKIE_MAX_AGE_DAYS) && SESSION_COOKIE_MAX_AGE_DAYS > 0
+        ? SESSION_COOKIE_MAX_AGE_DAYS
+        : DEFAULT_SESSION_DAYS) * 24 * 60 * 60
+
+const SESSION_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS
+}
 
 // Helper to verify admin role
 async function verifyAdminRole(): Promise<true | string> {
@@ -347,13 +361,7 @@ export async function createSessionAction(userId: string) {
             .eq('id', userId)
 
         // 2. Set HTTP-only cookie
-        cookieStore.set('crm_session', sessionId, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 60 * 60 * 24 * 7 // 1 week
-        })
+        cookieStore.set('crm_session', sessionId, SESSION_COOKIE_OPTIONS)
 
         return { success: true }
     } catch (err: any) {
@@ -390,6 +398,9 @@ export async function refreshSessionAction() {
         if (!data || data.length === 0) {
             return { error: "Sesión no encontrada" }
         }
+
+        // Sliding expiration: refresh cookie on activity
+        cookieStore.set('crm_session', sessionId, SESSION_COOKIE_OPTIONS)
 
         return { success: true }
     } catch (err: any) {
