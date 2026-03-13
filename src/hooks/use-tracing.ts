@@ -48,19 +48,26 @@ export function useTracing() {
         setError(null);
 
         try {
-            const response = await authFetch(`${API_URL}/api/tracing/flujo/${encodeURIComponent(numeroRecepcion)}`);
+            const response = await authFetch(
+                `${API_URL}/api/tracing/flujo/${encodeURIComponent(numeroRecepcion)}?_ts=${Date.now()}`,
+                { cache: "no-store" }
+            );
+            const payload = await response.json().catch(() => null);
             if (!response.ok) {
                 if (response.status === 404) {
                     setError("No se encontró información para este número de recepción.");
                 } else {
-                    throw new Error(`Error del servidor: ${response.status}`);
+                    throw new Error(
+                        payload?.detail ||
+                        payload?.message ||
+                        `Error del servidor: ${response.status}`
+                    );
                 }
                 setTracingData(null);
                 return;
             }
 
-            const data = await response.json();
-            setTracingData(data);
+            setTracingData(payload);
         } catch (err: any) {
             console.error("Error fetching tracing:", err);
             setError(err.message || "Error al conectar con el servidor.");
@@ -75,9 +82,17 @@ export function useTracing() {
         setError(null);
 
         try {
-            const response = await authFetch(`${API_URL}/api/tracing/listar`);
+            const response = await authFetch(
+                `${API_URL}/api/tracing/listar?_ts=${Date.now()}`,
+                { cache: "no-store" }
+            );
             if (!response.ok) {
-                throw new Error(`Error al cargar la lista: ${response.status}`);
+                const payload = await response.json().catch(() => null);
+                throw new Error(
+                    payload?.detail ||
+                    payload?.message ||
+                    `Error al cargar la lista: ${response.status}`
+                );
             }
 
             const data = await response.json();
