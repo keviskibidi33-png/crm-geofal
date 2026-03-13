@@ -274,38 +274,37 @@ export function TracingModule() {
 
     return (
         <div className="h-full flex flex-col space-y-6 p-6 overflow-hidden">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-center gap-4">
+                    <div className="flex items-center gap-2">
                         <Zap className="w-8 h-8 text-yellow-500" />
-                        Seguimiento de trabajos
-                    </h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2">
-                        <Download className="w-4 h-4" />
-                        Exportar Lista
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => fetchTracingList()} disabled={loadingList} className="gap-2">
-                        <RefreshCw className={cn("w-4 h-4", loadingList && "animate-spin")} />
-                        Actualizar
-                    </Button>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                            Seguimiento de trabajos
+                        </h1>
+                    </div>
+                    <div className="flex justify-center">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                                placeholder="Buscar por cliente o número de recepción..."
+                                className="pl-10 h-8 text-sm bg-muted/30 border border-transparent focus-visible:ring-1"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2">
+                            <Download className="w-4 h-4" />
+                            Exportar Lista
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchTracingList()} disabled={loadingList} className="gap-2">
+                            <RefreshCw className={cn("w-4 h-4", loadingList && "animate-spin")} />
+                            Actualizar
+                        </Button>
+                    </div>
                 </div>
             </div>
-
-            <Card className="border-none shadow-sm bg-muted/30">
-                <CardContent className="p-3">
-                    <div className="relative max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                        <Input
-                            placeholder="Buscar por cliente o número de recepción..."
-                            className="pl-10 h-8 text-sm border-none focus-visible:ring-1"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
 
             <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
                 <Table>
