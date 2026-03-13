@@ -358,7 +358,7 @@ export function HumedadModule() {
                       <Droplets className="h-6 w-6 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight">HUMEDAD ASTM D2216-19</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight">Humedad Suelo ASTM D2216-19</h2>
                         <p className="text-sm sm:text-base text-muted-foreground">ASTM D2216-19 — Reportes</p>
                     </div>
                 </div>
