@@ -121,6 +121,13 @@ crm-geofal/
 | `NEXT_PUBLIC_PESO_UNITARIO_FRONTEND_URL` | ❌ | URL del frontend embebido de Peso Unitario |
 | `NEXT_PUBLIC_TAMIZ_FRONTEND_URL` | ❌ | URL del frontend embebido de Tamiz |
 | `NEXT_PUBLIC_PLANAS_FRONTEND_URL` | ❌ | URL del frontend embebido de Planas |
+| `NEXT_PUBLIC_CARAS_FRONTEND_URL` | ❌ | URL del frontend embebido de Caras |
+| `NEXT_PUBLIC_CD_FRONTEND_URL` | ❌ | URL del frontend embebido de CD |
+| `NEXT_PUBLIC_PH_FRONTEND_URL` | ❌ | URL del frontend embebido de PH |
+| `NEXT_PUBLIC_CLORO_SOLUBLE_FRONTEND_URL` | ❌ | URL del frontend embebido de Cloro Soluble |
+| `NEXT_PUBLIC_SALES_SOLUBLES_FRONTEND_URL` | ❌ | URL del frontend embebido de Sales Solubles |
+| `NEXT_PUBLIC_SULFATOS_SOLUBLES_FRONTEND_URL` | ❌ | URL del frontend embebido de Sulfatos Solubles |
+| `NEXT_PUBLIC_COMPRESION_NO_CONFINADA_FRONTEND_URL` | ❌ | URL del frontend embebido de Compresion No Confinada |
 
 ## 👥 Roles y Permisos
 

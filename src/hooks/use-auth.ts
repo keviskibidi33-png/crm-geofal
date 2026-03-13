@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction, refreshSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
     read: boolean

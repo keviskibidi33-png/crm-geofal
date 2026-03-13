@@ -35,6 +35,12 @@ import { CarasModule } from "@/components/dashboard/caras-module"
 import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
 import { GeFinoModule } from "@/components/dashboard/ge-fino-module"
 import { GeGruesoModule } from "@/components/dashboard/ge-grueso-module"
+import { CDModule } from "@/components/dashboard/cd-module"
+import { PHModule } from "@/components/dashboard/ph-module"
+import { CloroSolubleModule } from "@/components/dashboard/cloro-soluble-module"
+import { SalesSolublesModule } from "@/components/dashboard/sales-solubles-module"
+import { SulfatosSolublesModule } from "@/components/dashboard/sulfatos-solubles-module"
+import { CompresionNoConfinadaModule } from "@/components/dashboard/compresion-no-confinada-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
@@ -243,6 +249,18 @@ export default function DashboardPage() {
         return <GeFinoModule />
       case "ge_grueso":
         return <GeGruesoModule />
+      case "cd":
+        return <CDModule />
+      case "ph":
+        return <PHModule />
+      case "cloro_soluble":
+        return <CloroSolubleModule />
+      case "sales_solubles":
+        return <SalesSolublesModule />
+      case "sulfatos_solubles":
+        return <SulfatosSolublesModule />
+      case "compresion_no_confinada":
+        return <CompresionNoConfinadaModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (
