@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useVerificaciones, VerificacionMuestra } from "@/hooks/use-verificaciones"
+import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
@@ -132,6 +133,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 export function VerificacionMuestrasModule() {
     const { verificaciones, loading, fetchVerificaciones, deleteVerificacion } = useVerificaciones()
+    const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [iframePath, setIframePath] = useState("/nuevo") // Default route for iframe
@@ -139,6 +141,8 @@ export function VerificacionMuestrasModule() {
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
+    const canWrite = user?.role === "admin" || user?.permissions?.verificacion_muestras?.write === true
+    const canDelete = user?.role === "admin" || user?.permissions?.verificacion_muestras?.delete === true
 
     const syncIframeToken = async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -179,6 +183,10 @@ export function VerificacionMuestrasModule() {
     }, [fetchVerificaciones])
 
     const handleOpenModal = async (path: string) => {
+        if (!canWrite) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para editar verificaciones." })
+            return
+        }
         await syncIframeToken()
         setIframePath(path)
         setIsModalOpen(true)
@@ -211,6 +219,11 @@ export function VerificacionMuestrasModule() {
     }
 
     const handleDelete = async (id: number) => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para eliminar verificaciones." })
+            return
+        }
+
         const success = await deleteVerificacion(id)
         if (success) {
             toast.success("Verificación eliminada correctamente")
@@ -267,10 +280,12 @@ export function VerificacionMuestrasModule() {
                     <Button variant="outline" size="icon" onClick={() => fetchVerificaciones()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button onClick={() => handleOpenModal("/nuevo")} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nueva Verificación
-                    </Button>
+                    {canWrite && (
+                        <Button onClick={() => handleOpenModal("/nuevo")} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Nueva Verificación
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -330,32 +345,36 @@ export function VerificacionMuestrasModule() {
                                             </Button>
 
                                             {/* Edit (Iframe Modal) */}
-                                            <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/editar/${item.id}`)}>
-                                                <Pencil className="h-4 w-4 text-blue-600" />
-                                            </Button>
+                                            {canWrite && (
+                                                <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/editar/${item.id}`)}>
+                                                    <Pencil className="h-4 w-4 text-blue-600" />
+                                                </Button>
+                                            )}
 
                                             {/* Delete */}
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Eliminará la verificación {item.numero_verificacion}. Esta acción no se puede deshacer.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
-                                                            Eliminar
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            {canDelete && (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Eliminará la verificación {item.numero_verificacion}. Esta acción no se puede deshacer.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                                Eliminar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

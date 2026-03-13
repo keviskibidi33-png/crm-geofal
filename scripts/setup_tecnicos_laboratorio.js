@@ -1,5 +1,11 @@
 const { createClient } = require("@supabase/supabase-js")
 require("dotenv").config({ path: ".env.local" })
+const {
+  TECNICO_ROLE_NAME,
+  TECNICO_ROLE_LABEL,
+  TECNICO_ROLE_DESCRIPTION,
+  TECNICO_ROLE_PERMISSIONS,
+} = require("./tecnico_role_config")
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -13,17 +19,10 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-const ROLE_NAME = "tecnico"
-const ROLE_LABEL = "Tecnico de Laboratorio"
-const ROLE_DESCRIPTION = "Acceso tecnico a Proctor, CBR, Humedad y LLP"
-
-const REQUIRED_MODULE_PERMISSIONS = {
-  proctor: { read: true, write: true, delete: false },
-  cbr: { read: true, write: true, delete: false },
-  llp: { read: true, write: true, delete: false },
-  humedad: { read: true, write: true, delete: false },
-  cont_humedad: { read: true, write: true, delete: false },
-}
+const ROLE_NAME = TECNICO_ROLE_NAME
+const ROLE_LABEL = TECNICO_ROLE_LABEL
+const ROLE_DESCRIPTION = TECNICO_ROLE_DESCRIPTION
+const REQUIRED_MODULE_PERMISSIONS = TECNICO_ROLE_PERMISSIONS
 
 const USERS = [
   {

@@ -1,5 +1,11 @@
 
 const { createClient } = require('@supabase/supabase-js');
+const {
+  TECNICO_ROLE_NAME,
+  TECNICO_ROLE_LABEL,
+  TECNICO_ROLE_DESCRIPTION,
+  TECNICO_ROLE_PERMISSIONS,
+} = require('./tecnico_role_config');
 
 // Load environment variables manually or use dotenv if available
 // Assuming we run this from crm-geofal root where .env.local exists
@@ -20,34 +26,12 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   }
 });
 
-const ROLE_NAME = 'tecnico';
-const ROLE_LABEL = 'Técnico de Laboratorio';
+const ROLE_NAME = TECNICO_ROLE_NAME;
+const ROLE_LABEL = TECNICO_ROLE_LABEL;
 const USER_EMAIL = 'tecnico1@geofal.com.pe';
 const USER_PASSWORD = 'tecnico@geofal2026-';
 
-const PERMISSIONS = {
-  // Core modules requested
-  recepcion: { read: true, write: true, delete: false },
-  verificacion_muestras: { read: true, write: true, delete: false },
-  compresion: { read: true, write: true, delete: false },
-  
-  // Tracking/Scheduling
-  programacion: { read: true, write: true, delete: false },
-  laboratorio: { read: true, write: true, delete: false }, // General lab access
-  
-  // Basic access
-  configuracion: { read: true, write: false, delete: false },
-  
-  // Others (default false)
-  clientes: { read: true, write: false, delete: false }, // Technicians might need to see clients
-  proyectos: { read: true, write: false, delete: false }, // Technicians might need to see projects
-  cotizadora: { read: false, write: false, delete: false },
-  comercial: { read: false, write: false, delete: false },
-  administracion: { read: false, write: false, delete: false },
-  usuarios: { read: false, write: false, delete: false },
-  auditoria: { read: false, write: false, delete: false },
-  permisos: { read: false, write: false, delete: false }
-};
+const PERMISSIONS = TECNICO_ROLE_PERMISSIONS;
 
 async function main() {
   console.log(`Starting setup for role '${ROLE_NAME}' and user '${USER_EMAIL}'...`);
@@ -59,7 +43,7 @@ async function main() {
     .upsert({
       role_id: ROLE_NAME,
       label: ROLE_LABEL,
-      description: 'Acceso a Recepción, Verificación, Compresión y Tracking',
+      description: TECNICO_ROLE_DESCRIPTION,
       permissions: PERMISSIONS,
       is_system: false,
       updated_at: new Date().toISOString()
@@ -139,7 +123,7 @@ async function main() {
   console.log('Updating perfiles table...');
   
   // Check if profile exists
-  const { data: profile, error: profileGetError } = await supabase
+  const { error: profileGetError } = await supabase
     .from('perfiles')
     .select('*')
     .eq('id', userId)

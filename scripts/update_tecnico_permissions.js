@@ -1,5 +1,11 @@
 
 const { createClient } = require('@supabase/supabase-js');
+const {
+  TECNICO_ROLE_NAME,
+  TECNICO_ROLE_LABEL,
+  TECNICO_ROLE_DESCRIPTION,
+  TECNICO_ROLE_PERMISSIONS,
+} = require('./tecnico_role_config');
 
 // Load environment variables manually or use dotenv if available
 require('dotenv').config({ path: '.env.local' });
@@ -19,13 +25,13 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   }
 });
 
-const ROLE_NAME = 'tecnico';
+const ROLE_NAME = TECNICO_ROLE_NAME;
 
 async function main() {
   console.log(`Updating permissions for role '${ROLE_NAME}'...`);
 
   // Fetch existing role definition to preserve other fields
-  const { data: roleDef, error: fetchError } = await supabase
+  const { error: fetchError } = await supabase
     .from('role_definitions')
     .select('*')
     .eq('role_id', ROLE_NAME)
@@ -36,26 +42,7 @@ async function main() {
     process.exit(1);
   }
 
-  const currentPermissions = roleDef.permissions || {};
-  
-  // Update permissions
-  const newPermissions = {
-    ...currentPermissions,
-    // Disable access to Clientes and Proyectos
-    clientes: { read: false, write: false, delete: false },
-    proyectos: { read: false, write: false, delete: false },
-    
-    // Enable access to Tracing (Seguimiento)
-    tracing: { read: true, write: true, delete: false },
-    
-    // Ensure other modules remain as intended (re-asserting for clarity)
-    recepcion: { read: true, write: true, delete: false },
-    verificacion_muestras: { read: true, write: true, delete: false },
-    compresion: { read: true, write: true, delete: false },
-    programacion: { read: true, write: true, delete: false },
-    laboratorio: { read: true, write: true, delete: false },
-    configuracion: { read: true, write: false, delete: false },
-  };
+  const newPermissions = TECNICO_ROLE_PERMISSIONS;
 
   console.log('New Permissions:', JSON.stringify(newPermissions, null, 2));
 
@@ -63,6 +50,8 @@ async function main() {
   const { error: updateError } = await supabase
     .from('role_definitions')
     .update({
+      label: TECNICO_ROLE_LABEL,
+      description: TECNICO_ROLE_DESCRIPTION,
       permissions: newPermissions,
       updated_at: new Date().toISOString()
     })

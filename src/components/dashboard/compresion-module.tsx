@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
+import { useAuth } from "@/hooks/use-auth"
 
 interface EnsayoCompresion {
     id: number
@@ -141,6 +142,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 
 export function CompresionModule() {
+    const { user } = useAuth()
     const [ensayos, setEnsayos] = useState<EnsayoCompresion[]>([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -151,6 +153,8 @@ export function CompresionModule() {
     const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const canWrite = user?.role === "admin" || user?.permissions?.compresion?.write === true
+    const canDelete = user?.role === "admin" || user?.permissions?.compresion?.delete === true
 
     const FRONTEND_URL = process.env.NEXT_PUBLIC_COMPRESION_FRONTEND_URL || "http://127.0.0.1:5175"
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -209,6 +213,10 @@ export function CompresionModule() {
     }, [fetchEnsayos])
 
     const handleOpenModal = async (path: string) => {
+        if (!canWrite) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para editar F. Probetas." })
+            return
+        }
         await syncIframeToken()
         setIframePath(path)
         setIsModalOpen(true)
@@ -236,6 +244,11 @@ export function CompresionModule() {
     }
 
     const handleDelete = async (id: number) => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para eliminar formatos." })
+            return
+        }
+
         try {
             const response = await authFetch(`${API_URL}/api/compresion/${id}`, {
                 method: 'DELETE'
@@ -327,10 +340,12 @@ export function CompresionModule() {
                     <Button variant="outline" size="icon" onClick={fetchEnsayos} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button onClick={() => handleOpenModal("/compresion")} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nuevo Formato
-                    </Button>
+                    {canWrite && (
+                        <Button onClick={() => handleOpenModal("/compresion")} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Nuevo Formato
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -395,32 +410,36 @@ export function CompresionModule() {
                                             </Button>
 
                                             {/* Edit */}
-                                            <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/compresion?id=${item.id}`)}>
-                                                <Pencil className="h-4 w-4 text-blue-600" />
-                                            </Button>
+                                            {canWrite && (
+                                                <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/compresion?id=${item.id}`)}>
+                                                    <Pencil className="h-4 w-4 text-blue-600" />
+                                                </Button>
+                                            )}
 
                                             {/* Delete */}
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Eliminará el ensayo OT {item.numero_ot}. Esta acción no se puede deshacer.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
-                                                            Eliminar
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            {canDelete && (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Eliminará el ensayo OT {item.numero_ot}. Esta acción no se puede deshacer.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                                Eliminar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

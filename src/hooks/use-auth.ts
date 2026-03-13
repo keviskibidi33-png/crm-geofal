@@ -308,6 +308,7 @@ async function buildUser(session: any): Promise<User> {
 
     // Process permissions
     const isSuperAdminFinal = rNorm === 'admin'  // Only exact 'admin' role
+    const isStrictTecnicoRole = rNorm === 'tecnico' || rNorm === 'tecnico_no_lab_write'
 
 
     if (permissions && Object.keys(permissions).length > 0) {
@@ -326,6 +327,15 @@ async function buildUser(session: any): Promise<User> {
                 comercial: { read: true, write: true, delete: false },
                 administracion: { read: true, write: false, delete: false },
                 programacion: { read: true, write: false, delete: false },
+                configuracion: { read: true, write: false, delete: false }
+            }
+        } else if (isStrictTecnicoRole) {
+            const canEditLab = rNorm !== 'tecnico_no_lab_write'
+            permissions = {
+                tracing: { read: true, write: false, delete: false },
+                recepcion: { read: true, write: false, delete: false },
+                verificacion_muestras: { read: true, write: canEditLab, delete: false },
+                compresion: { read: true, write: canEditLab, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else if (role.includes('laboratorio') || role.includes('tipificador')) {
@@ -405,7 +415,6 @@ async function buildUser(session: any): Promise<User> {
 
     // Strict technical scope:
     // technical lab roles must only access their explicitly approved soil modules.
-    const isStrictTecnicoRole = rNorm === 'tecnico' || rNorm === 'tecnico_no_lab_write'
     if (isStrictTecnicoRole) {
         const source = (permissions || {}) as RolePermissions
         const pick = (key: string): Permission => ({
@@ -415,11 +424,11 @@ async function buildUser(session: any): Promise<User> {
         })
 
         permissions = {
-            proctor: pick('proctor'),
-            cbr: pick('cbr'),
-            llp: pick('llp'),
-            humedad: pick('humedad'),
-            cont_humedad: pick('cont_humedad'),
+            tracing: pick('tracing'),
+            recepcion: pick('recepcion'),
+            verificacion_muestras: pick('verificacion_muestras'),
+            compresion: pick('compresion'),
+            configuracion: pick('configuracion'),
         }
     }
 

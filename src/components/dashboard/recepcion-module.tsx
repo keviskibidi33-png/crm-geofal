@@ -264,8 +264,9 @@ export function RecepcionModule() {
     const [isImporting, setIsImporting] = useState(false)
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { user } = useAuth()
+    const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
+    const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
     const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
 
     const frontendOrigin = useMemo(() => {
@@ -365,6 +366,10 @@ export function RecepcionModule() {
     }
 
     const handleEdit = async (recepcion: Recepcion) => {
+        if (!canWrite) {
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            return
+        }
         await syncIframeToken()
         setEditId(recepcion.id)
         setIsDetailOpen(false)
@@ -372,6 +377,10 @@ export function RecepcionModule() {
     }
 
     const handleCreate = async () => {
+        if (!canWrite) {
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            return
+        }
         await syncIframeToken()
         setEditId(null)
         setImportedData(null)
@@ -379,6 +388,12 @@ export function RecepcionModule() {
     }
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!canWrite) {
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            if (fileInputRef.current) fileInputRef.current.value = ""
+            return
+        }
+
         const file = e.target.files?.[0]
         if (!file) return
 
@@ -431,6 +446,11 @@ export function RecepcionModule() {
     )
 
     const handleDelete = async (id: number) => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para eliminar recepciones." })
+            return
+        }
+
         const success = await deleteRecepcion(id)
         if (success) {
             toast.success("Recepción Probetas eliminada correctamente")
@@ -510,18 +530,22 @@ export function RecepcionModule() {
                     <Button variant="outline" size="icon" onClick={() => fetchRecepciones()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button 
-                        onClick={() => fileInputRef.current?.click()} 
-                        disabled={isImporting}
-                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                        {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        Importar Recepción Probetas
-                    </Button>
-                    <Button onClick={handleCreate} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nueva Recepción Probetas
-                    </Button>
+                    {canWrite && (
+                        <Button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            disabled={isImporting}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                            {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            Importar Recepción Probetas
+                        </Button>
+                    )}
+                    {canWrite && (
+                        <Button onClick={handleCreate} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Nueva Recepción Probetas
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -583,32 +607,36 @@ export function RecepcionModule() {
                                             <Button variant="ghost" size="icon" onClick={() => openDetail(item)}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                <Pencil className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Esta acción no se puede deshacer. Esto eliminará permanentemente la recepción
-                                                            <span className="font-bold text-foreground"> {item.numero_recepcion} </span>
-                                                            y la orden de trabajo asociada.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                            Eliminar
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            {canWrite && (
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Esta acción no se puede deshacer. Esto eliminará permanentemente la recepción
+                                                                <span className="font-bold text-foreground"> {item.numero_recepcion} </span>
+                                                                y la orden de trabajo asociada.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                                Eliminar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -788,10 +816,12 @@ export function RecepcionModule() {
                         <div className="flex-1 text-xs text-muted-foreground flex items-center">
                             ID Referencia: {selectedRecepcion?.id}
                         </div>
-                        <Button variant="outline" onClick={() => selectedRecepcion && handleEdit(selectedRecepcion)} className="gap-2">
-                            <Pencil className="h-4 w-4" />
-                            Editar
-                        </Button>
+                        {canWrite && (
+                            <Button variant="outline" onClick={() => selectedRecepcion && handleEdit(selectedRecepcion)} className="gap-2">
+                                <Pencil className="h-4 w-4" />
+                                Editar
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)} className="gap-2">
                             <FileSpreadsheet className="h-4 w-4" />
                             Descargar Excel

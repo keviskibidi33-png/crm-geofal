@@ -34,8 +34,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/api-auth"
+import { useAuth } from "@/hooks/use-auth"
+import { toast } from "sonner"
 
 export function TracingModule() {
+    const { user } = useAuth()
     const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -58,6 +61,7 @@ export function TracingModule() {
     const [informeVersiones, setInformeVersiones] = useState<any[]>([])
     const [loadingVersiones, setLoadingVersiones] = useState(false)
     const [downloadingStage, setDownloadingStage] = useState<string | null>(null)
+    const canDelete = user?.role === "admin" || user?.permissions?.tracing?.delete === true
 
     const componentRef = useRef<HTMLDivElement>(null)
 
@@ -201,6 +205,11 @@ export function TracingModule() {
     }
 
     const handleDeleteTracing = async (numero: string) => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Seguimiento." })
+            return
+        }
+
         if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el registro ${numero} de la trazabilidad? Esta acción no se puede deshacer.`)) {
             return
         }
@@ -208,9 +217,9 @@ export function TracingModule() {
         const success = await deleteTracing(numero)
         if (success) {
             setIsDetailOpen(false)
-            alert("Registro eliminado con éxito.")
+            toast.success("Registro eliminado con exito.")
         } else {
-            alert("No se pudo eliminar el registro.")
+            toast.error("No se pudo eliminar el registro.")
         }
     }
 
@@ -357,14 +366,16 @@ export function TracingModule() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2 px-2" onClick={(e) => e.stopPropagation()}>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="hover:bg-red-50 hover:text-red-500 rounded-full h-8 w-8"
-                                                onClick={() => handleDeleteTracing(item.numero_recepcion)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="hover:bg-red-50 hover:text-red-500 rounded-full h-8 w-8"
+                                                    onClick={() => handleDeleteTracing(item.numero_recepcion)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
                                             <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-white transition-all rounded-full h-8 w-8" onClick={() => handleOpenDetail(item.numero_recepcion)}>
                                                 <ChevronRight className="w-4 h-4" />
                                             </Button>
@@ -404,15 +415,17 @@ export function TracingModule() {
                                     </Badge>
                                 )}
                                 {!loading && tracingData && (
-                                    <Button 
-                                        variant="destructive" 
-                                        size="sm" 
-                                        onClick={() => handleDeleteTracing(tracingData.numero_recepcion)} 
-                                        className="gap-2 bg-red-600/50 hover:bg-red-600 text-white border-none"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        Eliminar de Historial
-                                    </Button>
+                                    canDelete ? (
+                                        <Button 
+                                            variant="destructive" 
+                                            size="sm" 
+                                            onClick={() => handleDeleteTracing(tracingData.numero_recepcion)} 
+                                            className="gap-2 bg-red-600/50 hover:bg-red-600 text-white border-none"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Eliminar de Historial
+                                        </Button>
+                                    ) : null
                                 )}
                             </div>
                         </div>
