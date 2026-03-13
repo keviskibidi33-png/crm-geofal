@@ -2,17 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Calendar, Trash2, FileSpreadsheet, X, Eye, Pencil, MoreHorizontal, Loader2, AlertCircle, Upload } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, AlertCircle, Upload } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { ScrollArea } from "@/components/ui/scroll-area"
+
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 
@@ -264,6 +264,7 @@ export function RecepcionModule() {
     const [isImporting, setIsImporting] = useState(false)
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { user } = useAuth()
     const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
 
@@ -324,7 +325,7 @@ export function RecepcionModule() {
                 for (let i = 0; i < iframes.length; i++) {
                     const iframe = iframes[i];
                     // Match by title or src
-                    if (iframe.title === 'Nueva Recepción') {
+                    if (iframe.title === 'Nueva Recepción Probetas') {
                         console.log('[RecepcionModule] Syncing imported data to iframe...');
                         iframe.contentWindow?.postMessage({
                             type: 'IMPORT_DATA',
@@ -432,7 +433,7 @@ export function RecepcionModule() {
     const handleDelete = async (id: number) => {
         const success = await deleteRecepcion(id)
         if (success) {
-            toast.success("Recepción eliminada correctamente")
+            toast.success("Recepción Probetas eliminada correctamente")
             if (selectedRecepcion?.id === id) {
                 setIsDetailOpen(false)
             }
@@ -495,7 +496,7 @@ export function RecepcionModule() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Recepciones</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Recepción Probetas</h1>
                     <p className="text-muted-foreground">Gestiona los registros de ingreso y órdenes de trabajo</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -515,11 +516,11 @@ export function RecepcionModule() {
                         className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                         {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        Importar Recepción
+                        Importar Recepción Probetas
                     </Button>
                     <Button onClick={handleCreate} className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Nueva Recepción
+                        Nueva Recepción Probetas
                     </Button>
                 </div>
             </div>
@@ -542,7 +543,7 @@ export function RecepcionModule() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[120px]">Recepción</TableHead>
+                            <TableHead className="w-[120px]">Recepción Probetas</TableHead>
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
                             <TableHead className="text-center">Muestras</TableHead>
@@ -621,7 +622,7 @@ export function RecepcionModule() {
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                     <DialogHeader className="hidden">
-                        <DialogTitle>{editId ? 'Editar Recepción' : 'Nueva Recepción'}</DialogTitle>
+                        <DialogTitle>{editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}</DialogTitle>
                         <DialogDescription>{editId ? 'Formulario de edición de recepción' : 'Formulario de creación de nueva recepción'}</DialogDescription>
                     </DialogHeader>
                     <div className="w-full h-full relative">
@@ -630,7 +631,7 @@ export function RecepcionModule() {
                                 ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar?token=${token || ''}`
                                 : `${FRONTEND_URL}/migration/nueva-recepcion?token=${token || ''}`
                             }
-                            title={editId ? 'Editar Recepción' : 'Nueva Recepción'}
+                            title={editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}
                         />
                     </div>
                 </DialogContent>
@@ -660,7 +661,7 @@ export function RecepcionModule() {
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
-                            Detalle de Recepción {selectedRecepcion?.numero_recepcion}
+                            Detalle de Recepción Probetas {selectedRecepcion?.numero_recepcion}
                         </DialogTitle>
                         <DialogDescription>
                             Información completa de la orden de trabajo {selectedRecepcion?.numero_ot}
@@ -698,7 +699,7 @@ export function RecepcionModule() {
                                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fechas</p>
                                         <div className="grid grid-cols-2 gap-2 text-sm">
                                             <div>
-                                                <span className="text-muted-foreground">Recepción:</span> <span className="font-medium">{formatDate(selectedRecepcion.fecha_recepcion)}</span>
+                                                <span className="text-muted-foreground">Recepción Probetas:</span> <span className="font-medium">{formatDate(selectedRecepcion.fecha_recepcion)}</span>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground">Conclusión Est.:</span> <span className="font-medium">{formatDate(selectedRecepcion.fecha_estimada_culminacion)}</span>

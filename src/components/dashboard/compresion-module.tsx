@@ -11,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface EnsayoCompresion {
     id: number
@@ -164,7 +163,7 @@ export function CompresionModule() {
     }
 
     // Fetch ensayos from API
-    const fetchEnsayos = async () => {
+    const fetchEnsayos = useCallback(async () => {
         setLoading(true)
         try {
             const response = await authFetch(`${API_URL}/api/compresion/`)
@@ -177,14 +176,14 @@ export function CompresionModule() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [API_URL])
 
     useEffect(() => {
         fetchEnsayos()
 
         // Get session token to pass to iframe
         syncIframeToken()
-    }, [])
+    }, [fetchEnsayos])
 
     // Listen for close message from Iframe
     useEffect(() => {
@@ -207,7 +206,7 @@ export function CompresionModule() {
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [])
+    }, [fetchEnsayos])
 
     const handleOpenModal = async (path: string) => {
         await syncIframeToken()
@@ -247,7 +246,7 @@ export function CompresionModule() {
             } else {
                 toast.error("Error al eliminar el ensayo")
             }
-        } catch (error) {
+        } catch {
             toast.error("Error de conexión")
         }
     }
@@ -293,7 +292,7 @@ export function CompresionModule() {
                 const data = await response.json()
                 setSelectedEnsayo(data)
             }
-        } catch (error) {
+        } catch {
             // Keep showing basic list data
         } finally {
             setLoadingEnsayo(false)
@@ -321,8 +320,8 @@ export function CompresionModule() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Formatos de Ensayo</h1>
-                    <p className="text-muted-foreground">Gestión y control de formatos de ensayo de compresión de muestras</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">F. Probetas</h1>
+                    <p className="text-muted-foreground">Gestión y control de formatos de ensayo de compresión de probetas</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={fetchEnsayos} disabled={loading}>
@@ -471,7 +470,7 @@ export function CompresionModule() {
                     <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <FileText className="h-5 w-5 text-primary" />
-                            Detalle de Formato de Ensayo
+                            Detalle de F. Probetas
                         </DialogTitle>
                         <DialogDescription>
                             Información completa del formato OT {selectedEnsayo?.numero_ot}

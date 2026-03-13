@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { RefreshCw, Plus, Search, FileText, Trash2, Eye, Pencil, FileSpreadsheet, Clock, ChevronLeft, Building2, MapPin, User, Mail, Phone, Calendar, AlertCircle, Loader2 } from "lucide-react"
+import { RefreshCw, Plus, Search, FileText, Trash2, Eye, Pencil, FileSpreadsheet, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -10,8 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useVerificaciones, VerificacionMuestra } from "@/hooks/use-verificaciones"
 import { toast } from "sonner"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 
@@ -133,15 +131,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     );
 }
 export function VerificacionMuestrasModule() {
-    const { verificaciones, loading, fetchVerificaciones, fetchVerificacion, deleteVerificacion } = useVerificaciones()
+    const { verificaciones, loading, fetchVerificaciones, deleteVerificacion } = useVerificaciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [iframePath, setIframePath] = useState("/nuevo") // Default route for iframe
     const [selectedVerificacion, setSelectedVerificacion] = useState<VerificacionMuestra | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
-    const [isDetailLoading, setIsDetailLoading] = useState(false)
-    const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [token, setToken] = useState<string | null>(null)
+    const [showExitConfirm, setShowExitConfirm] = useState(false)
 
     const syncIframeToken = async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
@@ -263,7 +260,7 @@ export function VerificacionMuestrasModule() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Verificación Muestras</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Verificación Probetas</h1>
                     <p className="text-muted-foreground">Gestión y control de verificaciones de muestras</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -299,7 +296,7 @@ export function VerificacionMuestrasModule() {
                             <TableHead>Cliente</TableHead>
                             <TableHead>Verificado Por</TableHead>
                             <TableHead>Fecha Verificación</TableHead>
-                            <TableHead className="text-center">Muestras</TableHead>
+                            <TableHead className="text-center">Probetas</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -378,7 +375,7 @@ export function VerificacionMuestrasModule() {
                     <div className="w-full h-full relative">
                         <SmartIframe
                             src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
-                            title="Verificación Muestras Iframe"
+                            title="Verificación Probetas Iframe"
                         />
                     </div>
                 </DialogContent>
@@ -450,7 +447,7 @@ export function VerificacionMuestrasModule() {
                                         <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm">
                                             {selectedVerificacion.muestras_verificadas?.length || 0}
                                         </span>
-                                        Muestras Verificadas
+                                        Probetas Verificadas
                                     </h3>
                                     <div className="rounded-md border overflow-x-auto">
                                         <Table className="min-w-[1800px]">
@@ -518,7 +515,7 @@ export function VerificacionMuestrasModule() {
                                                 {(!selectedVerificacion.muestras_verificadas || selectedVerificacion.muestras_verificadas.length === 0) && (
                                                     <TableRow>
                                                         <TableCell colSpan={23} className="text-center text-muted-foreground py-8">
-                                                            No hay muestras registradas en esta verificación.
+                                                            No hay probetas registradas en esta verificación.
                                                         </TableCell>
                                                     </TableRow>
                                                 )}
