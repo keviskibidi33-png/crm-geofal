@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
@@ -48,6 +48,7 @@ import { useAuth, type User, type UserRole, type ModuleType } from "@/hooks/use-
 import { Loader2 } from "lucide-react"
 
 export default function DashboardPage() {
+  const initRedirectedRef = useRef(false)
   const [activeModule, setActiveModule] = useState<ModuleType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("crm-active-module") as ModuleType
@@ -74,6 +75,25 @@ export default function DashboardPage() {
   useEffect(() => {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  // Force initial landing to control modules for specific roles
+  useEffect(() => {
+    if (loading || !user || initRedirectedRef.current) return
+
+    const role = user.role?.toLowerCase() || ""
+    const getControlDefault = (): ModuleType | null => {
+      if (role.includes('laboratorio')) return 'laboratorio'
+      if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial'
+      if (role.includes('administracion')) return 'administracion'
+      return null
+    }
+
+    const controlDefault = getControlDefault()
+    initRedirectedRef.current = true
+    if (controlDefault && activeModule !== controlDefault) {
+      setActiveModule(controlDefault)
+    }
+  }, [loading, user?.id, activeModule])
 
   useEffect(() => {
     // Only redirect if NOT loading, and NO user, and session is NOT terminated
