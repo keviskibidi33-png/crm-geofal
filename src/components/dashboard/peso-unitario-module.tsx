@@ -304,7 +304,7 @@ export function PesoUnitarioModule() {
             <Scale className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">PESO UNITARIO ASTM C29/C29M-23</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">PESO UNITARIO ASTM C29/C29M-23</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Ensayo de densidad aparente y contenido de vacios en agregados.</p>
           </div>
         </div>

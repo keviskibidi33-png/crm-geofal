@@ -304,7 +304,7 @@ export function GeFinoModule() {
             <FlaskConical className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">GE FINO ASTM C128-25</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">GE FINO ASTM C128-25</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Densidad relativa y absorcion de agregado fino.</p>
           </div>
         </div>

@@ -305,7 +305,7 @@ export function GeGruesoModule() {
             <FlaskConical className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">GE GRUESO ASTM C127-25</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">GE GRUESO ASTM C127-25</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Densidad relativa y absorcion de agregado grueso.</p>
           </div>
         </div>

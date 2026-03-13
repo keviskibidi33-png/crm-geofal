@@ -358,7 +358,7 @@ export function ProctorModule() {
                       <FlaskConical className="h-6 w-6 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">PROCTOR ASTM D1557-12(2021)</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">PROCTOR ASTM D1557-12(2021)</h2>
                         <p className="text-sm sm:text-base text-muted-foreground">Laboratory compaction characteristics of soil</p>
                     </div>
                 </div>

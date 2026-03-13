@@ -303,7 +303,7 @@ export function GranSueloModule() {
                       <FlaskConical className="h-6 w-6 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">GRANULOMETRIA SUELOS ASTM D6913/D6913M-17</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">GRANULOMETRIA SUELOS ASTM D6913/D6913M-17</h2>
                         <p className="text-sm sm:text-base text-muted-foreground">Ensayo de tamizado para suelos.</p>
                     </div>
                 </div>

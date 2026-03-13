@@ -302,7 +302,7 @@ export function SulfatosSolublesModule() {
             <Beaker className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">ENSAYO Sulfatos Solubles</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Sulfato Suelo</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Registro y exportacion de ensayos.</p>
           </div>
         </div>
@@ -329,7 +329,7 @@ export function SulfatosSolublesModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial Sulfatos Solubles</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial Sulfato Suelo</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table className="min-w-[860px]">
@@ -386,7 +386,7 @@ export function SulfatosSolublesModule() {
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">Sulfatos Solubles - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Sulfato Suelo - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
       </div>
 

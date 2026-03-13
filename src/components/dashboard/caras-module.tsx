@@ -319,7 +319,7 @@ export function CarasModule() {
             <FlaskConical className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">CARAS ASTM D5821-13</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">CARAS ASTM D5821-13</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Determinacion del porcentaje de particulas fracturadas.</p>
           </div>
         </div>

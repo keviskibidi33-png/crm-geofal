@@ -304,7 +304,7 @@ export function ContHumedadModule() {
             <Scale className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">CONTENIDO DE HUMEDAD ASTM C566-25</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Humedad AG ASTM C566-25</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Ensayo de contenido de humedad para agregados.</p>
           </div>
         </div>

@@ -360,7 +360,7 @@ export function LLPModule() {
                       <FlaskConical className="h-6 w-6 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">LLP ASTM D4318-17e1</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Limite ASTM D4318-17e1</h2>
                         <p className="text-sm sm:text-base text-muted-foreground">Laboratory Liquid limit and plasticity index of soils</p>
                     </div>
                 </div>
@@ -396,7 +396,7 @@ export function LLPModule() {
 
             <div className="border rounded-xl shadow-sm bg-white">
                 <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-                    <h3 className="text-sm font-semibold text-slate-900">Historial de LLP</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">Historial de Limite</h3>
                     <p className="text-xs text-muted-foreground">Registros guardados con acceso a ver detalle y edición.</p>
                 </div>
                 <Table className="min-w-[860px]">
@@ -470,7 +470,7 @@ export function LLPModule() {
                             </TableRow>
                         ))}
                     </TableBody>
-                    <TableCaption className="text-xs text-muted-foreground">LLP — listado con búsqueda y acceso rápido.</TableCaption>
+                    <TableCaption className="text-xs text-muted-foreground">Limite — listado con búsqueda y acceso rápido.</TableCaption>
                 </Table>
             </div>
 

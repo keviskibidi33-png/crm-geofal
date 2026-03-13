@@ -304,7 +304,7 @@ export function PlanasModule() {
             <Scale className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">PLANAS Y ALARGADAS ASTM D4791-19</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">PLANAS Y ALARGADAS ASTM D4791-19</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Ensayo de particulas planas y alargadas en agregado grueso.</p>
           </div>
         </div>

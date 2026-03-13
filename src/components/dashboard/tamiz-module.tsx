@@ -303,7 +303,7 @@ export function TamizModule() {
             <Scale className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight break-words">TAMIZ ASTM C117-23</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Malla 200 ASTM C117-23</h2>
             <p className="text-sm sm:text-base text-muted-foreground">Ensayo de lavado en tamiz No. 200 para agregados.</p>
           </div>
         </div>
@@ -330,7 +330,7 @@ export function TamizModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial de Tamiz</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial de Malla 200</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table className="min-w-[860px]">
@@ -387,7 +387,7 @@ export function TamizModule() {
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">Tamiz - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Malla 200 - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
       </div>
 
