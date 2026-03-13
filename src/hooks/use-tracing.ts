@@ -28,6 +28,7 @@ export interface TracingSummary {
     numero_recepcion: string;
     cliente?: string;
     fecha?: string;
+    fecha_entrega?: string;
     stages: StageSummary[];
 }
 

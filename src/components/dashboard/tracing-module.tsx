@@ -218,11 +218,15 @@ export function TracingModule() {
         // Implementación simple de exportación a CSV desde el frontend
         if (!tracingList.length) return
 
-        const headers = ["Numero Recepcion", "Cliente", "Fecha", "Recepcion", "Verificacion", "Compresion", "Informe"]
+        const headers = ["Numero Recepcion", "Cliente", "Fecha Entrega", "Recepcion", "Verificacion", "Compresion", "Informe"]
         const rows = tracingList.map(item => [
             item.numero_recepcion,
             item.cliente || "",
-            item.fecha ? new Date(item.fecha).toLocaleDateString() : "",
+            item.fecha_entrega
+                ? new Date(item.fecha_entrega).toLocaleDateString()
+                : item.fecha
+                    ? new Date(item.fecha).toLocaleDateString()
+                    : "",
             item.stages.find(s => s.key === 'recepcion')?.status || "-",
             item.stages.find(s => s.key === 'verificacion')?.status || "-",
             item.stages.find(s => s.key === 'compresion')?.status || "-",
@@ -274,9 +278,8 @@ export function TracingModule() {
                 <div className="flex flex-col gap-1">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         <Zap className="w-8 h-8 text-yellow-500" />
-                        Seguimiento de Flujo (Tracing)
+                        Seguimiento de trabajos
                     </h1>
-                    <p className="text-muted-foreground">Monitoreo masivo del ciclo de vida de las muestras</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2">
@@ -291,12 +294,12 @@ export function TracingModule() {
             </div>
 
             <Card className="border-none shadow-sm bg-muted/30">
-                <CardContent className="p-4">
-                    <div className="relative">
+                <CardContent className="p-3">
+                    <div className="relative max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                         <Input
                             placeholder="Buscar por cliente o número de recepción..."
-                            className="pl-10 h-10 border-none focus-visible:ring-1"
+                            className="pl-10 h-8 text-sm border-none focus-visible:ring-1"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -310,7 +313,7 @@ export function TracingModule() {
                         <TableRow>
                             <TableHead className="w-[180px]">Número Recepción</TableHead>
                             <TableHead>Cliente</TableHead>
-                            <TableHead className="w-[120px]">Fecha</TableHead>
+                            <TableHead className="w-[140px]">Fecha entrega</TableHead>
                             <TableHead className="text-center w-[240px]">Estado por Etapa</TableHead>
                             <TableHead className="text-right w-[100px]">Acciones</TableHead>
                         </TableRow>
@@ -338,7 +341,11 @@ export function TracingModule() {
                                     <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
                                     <TableCell className="font-medium max-w-[200px] truncate">{item.cliente || '-'}</TableCell>
                                     <TableCell className="text-muted-foreground text-xs">
-                                        {item.fecha ? new Date(item.fecha).toLocaleDateString() : '-'}
+                                        {item.fecha_entrega
+                                            ? new Date(item.fecha_entrega).toLocaleDateString()
+                                            : item.fecha
+                                                ? new Date(item.fecha).toLocaleDateString()
+                                                : '-'}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex justify-center gap-6">

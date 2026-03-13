@@ -27,6 +27,7 @@ interface SidebarProps {
 }
 
 const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
+  { id: "tracing", label: "Seguimiento", icon: Activity },
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
@@ -62,7 +63,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "permisos", label: "Permisos", icon: Shield, adminOnly: true },
   { id: "auditoria", label: "Auditoría", icon: Activity, adminOnly: true },
   { id: "configuracion", label: "Configuración", icon: Settings },
-  { id: "tracing", label: "Seguimiento (Tracing)", icon: Activity },
 ]
 
 
