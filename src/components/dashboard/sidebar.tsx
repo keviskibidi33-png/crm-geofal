@@ -3,8 +3,8 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, ChevronLeft, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
