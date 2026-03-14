@@ -157,7 +157,7 @@ export function CompresionNoConfinadaModule() {
   const FRONTEND_URL = (
     process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_FRONTEND_URL ||
     process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_URL ||
-    "https://compresion-no-confinada.geofal.com.pe"
+    "https://comp.noconfinada.geofal.com.pe"
   ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
