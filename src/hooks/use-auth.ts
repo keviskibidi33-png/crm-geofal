@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction, refreshSessionAction } from "@/app/actions/auth-actions"
 
-export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | string
+export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
 export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
@@ -309,7 +309,7 @@ async function buildUser(session: any): Promise<User> {
     // Process permissions
     const isSuperAdminFinal = rNorm === 'admin'  // Only exact 'admin' role
     const isStrictTecnicoRole = rNorm === 'tecnico' || rNorm === 'tecnico_no_lab_write'
-
+    const isTecnicoSuelosRole = rNorm === 'tecnico_suelos'
 
     if (permissions && Object.keys(permissions).length > 0) {
         permissions = enforcePermissions(permissions)
@@ -336,6 +336,32 @@ async function buildUser(session: any): Promise<User> {
                 recepcion: { read: true, write: false, delete: false },
                 verificacion_muestras: { read: true, write: canEditLab, delete: false },
                 compresion: { read: true, write: canEditLab, delete: false },
+                configuracion: { read: true, write: false, delete: false }
+            }
+        } else if (isTecnicoSuelosRole) {
+            permissions = {
+                humedad: { read: true, write: true, delete: false },
+                cont_humedad: { read: true, write: true, delete: false },
+                cbr: { read: true, write: true, delete: false },
+                proctor: { read: true, write: true, delete: false },
+                llp: { read: true, write: true, delete: false },
+                gran_suelo: { read: true, write: true, delete: false },
+                gran_agregado: { read: true, write: true, delete: false },
+                abra: { read: true, write: true, delete: false },
+                abrass: { read: true, write: true, delete: false },
+                peso_unitario: { read: true, write: true, delete: false },
+                tamiz: { read: true, write: true, delete: false },
+                planas: { read: true, write: true, delete: false },
+                caras: { read: true, write: true, delete: false },
+                equi_arena: { read: true, write: true, delete: false },
+                ge_fino: { read: true, write: true, delete: false },
+                ge_grueso: { read: true, write: true, delete: false },
+                cd: { read: true, write: true, delete: false },
+                ph: { read: true, write: true, delete: false },
+                cloro_soluble: { read: true, write: true, delete: false },
+                sales_solubles: { read: true, write: true, delete: false },
+                sulfatos_solubles: { read: true, write: true, delete: false },
+                compresion_no_confinada: { read: true, write: true, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         } else if (role.includes('laboratorio') || role.includes('tipificador')) {
@@ -438,7 +464,7 @@ async function buildUser(session: any): Promise<User> {
         name: (profile as any)?.full_name || session.user.email?.split("@")[0] || "Usuario",
         email: session.user.email!,
         role: role,
-        roleLabel: roleDef?.label || (role === 'admin' ? "Administrador" : (role === 'laboratorio_lector' || role === 'laboratorio' || role.includes('tipificador')) ? "Control Laboratorio" : profile?.role || "Vendedor"),
+        roleLabel: roleDef?.label || (role === 'admin' ? "Administrador" : role === 'tecnico_suelos' ? "Tecnico Laboratorio Suelos" : (role === 'laboratorio_lector' || role === 'laboratorio' || role.includes('tipificador')) ? "Control Laboratorio" : profile?.role || "Vendedor"),
         permissions: permissions,
         phone: (profile as any)?.phone,
         avatar: (profile as any)?.avatar_url
