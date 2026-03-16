@@ -29,6 +29,11 @@ export interface User {
     avatar?: string
 }
 
+const CONTROL_ACCESS_REVOKED_EMAILS = new Set([
+    "tecnico2@geofal.com.pe",
+    "tecnico3@geofal.com.pe",
+])
+
 // Module-level cache - persists across component re-mounts
 let cachedUser: User | null = null
 let hasInitialized = false
@@ -455,6 +460,14 @@ async function buildUser(session: any): Promise<User> {
             verificacion_muestras: pick('verificacion_muestras'),
             compresion: pick('compresion'),
             configuracion: pick('configuracion'),
+        }
+    }
+
+    if (CONTROL_ACCESS_REVOKED_EMAILS.has(normalizedEmail)) {
+        permissions = {
+            ...(permissions || {}),
+            laboratorio: { read: false, write: false, delete: false },
+            comercial: { read: false, write: false, delete: false },
         }
     }
 

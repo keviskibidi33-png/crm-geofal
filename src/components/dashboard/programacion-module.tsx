@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
@@ -17,9 +17,14 @@ interface ProgramacionModuleProps {
 
 type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 const TOKEN_BRIDGE_TRACE_PREFIX = "[ProgramacionTokenBridge]"
+const VIEW_MODE_PERMISSION_KEY: Record<ViewMode, 'laboratorio' | 'comercial' | 'administracion'> = {
+    'LAB': 'laboratorio',
+    'COMERCIAL': 'comercial',
+    'ADMIN': 'administracion'
+}
 
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
-    const { kpis, isLoading, realtimeStatus } = useProgramacionData()
+    const { kpis, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [iframeNonce, setIframeNonce] = useState<number>(() => Date.now())
@@ -95,6 +100,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
 
     const rNorm = user.role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const isSuperAdmin = rNorm === 'admin'
+    const isAdminGeneral = rNorm === 'admin_general' || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')
+    const isAdmin = isSuperAdmin || isAdminGeneral
 
     const getInitialMode = (): ViewMode => {
         if (roleToViewMap[rNorm]) return roleToViewMap[rNorm]
@@ -104,6 +112,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
 
     const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
+    const availableModes = useMemo(
+        () =>
+            (['LAB', 'COMERCIAL', 'ADMIN'] as ViewMode[]).filter((mode) =>
+                isAdmin || user.permissions?.[VIEW_MODE_PERMISSION_KEY[mode]]?.read === true
+            ),
+        [isAdmin, user.permissions]
+    )
 
     const handleIframeUpdate = useCallback(() => {
         // No-op: shell KPIs auto-refresh via their own realtime subscription
@@ -114,6 +129,15 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     useEffect(() => {
         syncIframeToken()
     }, [syncIframeToken])
+
+    useEffect(() => {
+        if (availableModes.length > 0 && !availableModes.includes(currentMode)) {
+            setCurrentMode(availableModes[0])
+        }
+        if (availableModes.length === 0 && isOpen) {
+            setIsOpen(false)
+        }
+    }, [availableModes, currentMode, isOpen])
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -190,6 +214,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }
 
     const openModule = async (mode: ViewMode) => {
+        if (!availableModes.includes(mode)) {
+            return
+        }
         setCurrentMode(mode)
         const token = await syncIframeToken()
         if (!token) {
@@ -243,16 +270,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             ? 'https://programacion.geofal.com.pe'
             : 'http://127.0.0.1:3001')
 
-    const isSuperAdmin = rNorm === 'admin'
-    const isAdminGeneral = rNorm === 'admin_general' || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')
-    const isAdmin = isSuperAdmin || isAdminGeneral
-
-    const modeToPermissionKey: Record<string, string> = {
-        'LAB': 'laboratorio',
-        'COMERCIAL': 'comercial',
-        'ADMIN': 'administracion'
-    }
-    const permissionKey = modeToPermissionKey[currentMode] || 'programacion'
+    const permissionKey = VIEW_MODE_PERMISSION_KEY[currentMode] || 'programacion'
 
     const isLabOperatorRole = (rNorm.includes('laboratorio') || rNorm.includes('tipificador')) && !rNorm.includes('lector')
     const isLabEdit = currentMode === 'LAB' && isLabOperatorRole
@@ -329,9 +347,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
                 <div className="space-y-3">
                     <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Módulos de Gestión</h2>
-                    <ModuleRow mode="LAB" />
-                    <ModuleRow mode="COMERCIAL" />
-                    <ModuleRow mode="ADMIN" />
+                    {availableModes.length > 0 ? (
+                        availableModes.map((mode) => <ModuleRow key={mode} mode={mode} />)
+                    ) : (
+                        <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
+                            No tienes acceso a vistas de control disponibles.
+                        </div>
+                    )}
                 </div>
             </div>
 
