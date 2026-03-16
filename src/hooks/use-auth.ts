@@ -408,12 +408,41 @@ async function buildUser(session: any): Promise<User> {
 
     // User-specific hotfix: habilitar accesos de Oficina Tecnica 2 segun requerimiento operativo.
     if (normalizedEmail === "oficinatecnica2@geofal.com.pe") {
+        const grantWrite = (): Permission => ({
+            read: true,
+            write: true,
+            delete: false,
+        })
+
         permissions = {
             ...(permissions || {}),
-            proctor: { read: true, write: true, delete: false },
-            cbr: { read: true, write: true, delete: false },
-            llp: { read: true, write: true, delete: false },
-            limites: { read: true, write: true, delete: false },
+            laboratorio: grantWrite(),
+            programacion: grantWrite(),
+            recepcion: grantWrite(),
+            verificacion_muestras: grantWrite(),
+            compresion: grantWrite(),
+            humedad: grantWrite(),
+            cont_humedad: grantWrite(),
+            planas: grantWrite(),
+            caras: grantWrite(),
+            cbr: grantWrite(),
+            proctor: grantWrite(),
+            llp: grantWrite(),
+            gran_suelo: grantWrite(),
+            gran_agregado: grantWrite(),
+            abra: grantWrite(),
+            abrass: grantWrite(),
+            peso_unitario: grantWrite(),
+            tamiz: grantWrite(),
+            equi_arena: grantWrite(),
+            ge_fino: grantWrite(),
+            ge_grueso: grantWrite(),
+            cd: grantWrite(),
+            ph: grantWrite(),
+            cloro_soluble: grantWrite(),
+            sales_solubles: grantWrite(),
+            sulfatos_solubles: grantWrite(),
+            compresion_no_confinada: grantWrite(),
         }
     }
 
