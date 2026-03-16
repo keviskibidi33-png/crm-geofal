@@ -468,6 +468,7 @@ async function buildUser(session: any): Promise<User> {
             ...(permissions || {}),
             laboratorio: { read: false, write: false, delete: false },
             comercial: { read: false, write: false, delete: false },
+            administracion: { read: false, write: false, delete: false },
         }
     }
 
