@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
@@ -153,6 +153,8 @@ export function CompresionModule() {
     const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [pendingDeleteEnsayo, setPendingDeleteEnsayo] = useState<EnsayoCompresion | null>(null)
+    const [deleteConfirmText, setDeleteConfirmText] = useState("")
     const canWrite = user?.role === "admin" || user?.permissions?.compresion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.compresion?.delete === true
 
@@ -246,7 +248,7 @@ export function CompresionModule() {
     const handleDelete = async (id: number) => {
         if (!canDelete) {
             toast.error("Acceso denegado", { description: "No tienes permisos para eliminar formatos." })
-            return
+            return false
         }
 
         try {
@@ -255,12 +257,48 @@ export function CompresionModule() {
             })
             if (response.ok) {
                 toast.success("Ensayo eliminado correctamente")
+                if (selectedEnsayo?.id === id) {
+                    setIsDetailOpen(false)
+                    setSelectedEnsayo(null)
+                }
                 fetchEnsayos()
+                return true
             } else {
                 toast.error("Error al eliminar el ensayo")
+                return false
             }
         } catch {
             toast.error("Error de conexión")
+            return false
+        }
+    }
+
+    const openDeleteModal = (ensayo: EnsayoCompresion) => {
+        setPendingDeleteEnsayo(ensayo)
+        setDeleteConfirmText("")
+    }
+
+    const closeDeleteModal = () => {
+        setPendingDeleteEnsayo(null)
+        setDeleteConfirmText("")
+    }
+
+    const deleteMatchTarget = String(
+        pendingDeleteEnsayo?.numero_recepcion || pendingDeleteEnsayo?.numero_ot || ""
+    ).trim()
+    const deleteDisplayTarget = pendingDeleteEnsayo
+        ? `${pendingDeleteEnsayo.numero_ot} / ${pendingDeleteEnsayo.numero_recepcion}`
+        : ""
+    const isDeleteMatch =
+        deleteMatchTarget !== "" &&
+        deleteConfirmText.trim().toUpperCase() === deleteMatchTarget.toUpperCase()
+
+    const confirmDeleteEnsayo = async () => {
+        if (!pendingDeleteEnsayo || !isDeleteMatch) return
+
+        const success = await handleDelete(pendingDeleteEnsayo.id)
+        if (success) {
+            closeDeleteModal()
         }
     }
 
@@ -418,27 +456,15 @@ export function CompresionModule() {
 
                                             {/* Delete */}
                                             {canDelete && (
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                Eliminará el ensayo OT {item.numero_ot}. Esta acción no se puede deshacer.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
-                                                                Eliminar
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                    title="Eliminar"
+                                                    onClick={() => openDeleteModal(item)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             )}
                                         </div>
                                     </TableCell>
@@ -464,6 +490,48 @@ export function CompresionModule() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={pendingDeleteEnsayo !== null} onOpenChange={(open) => { if (!open) closeDeleteModal() }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Eliminar formato de F. Probetas</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-3">
+                            <span className="block">
+                                Esta acción no se puede deshacer. Para confirmar, escribe el número de recepción:
+                            </span>
+                            <span className="block rounded-md border border-red-200 bg-red-50 px-3 py-2 font-mono text-sm font-semibold text-red-700">
+                                {deleteDisplayTarget || "-"}
+                            </span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                            Escribe <span className="font-mono font-semibold">{deleteMatchTarget || "-"}</span> para confirmar.
+                        </p>
+                        <Input
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            placeholder={`Escribe "${deleteMatchTarget || "número de recepción"}"`}
+                            autoComplete="off"
+                            data-lpignore="true"
+                            className="font-mono"
+                        />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={closeDeleteModal}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={!isDeleteMatch}
+                            onClick={(event) => {
+                                event.preventDefault()
+                                void confirmDeleteEnsayo()
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Unsaved changes confirmation */}
             <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
