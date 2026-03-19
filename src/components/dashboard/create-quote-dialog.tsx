@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { AlertCircle, ExternalLink } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { supabase } from "@/lib/supabaseClient"
 
@@ -29,24 +28,81 @@ interface CreateQuoteDialogProps {
   quoteId?: string
 }
 export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSuccess, proyectoId, clienteId, quoteId }: CreateQuoteDialogProps) {
-  const [token, setToken] = useState<string | null>(null)
+  const [iframeToken, setIframeToken] = useState<string | null>(null)
+  const liveTokenRef = useRef<string | null>(null)
   const baseUrl = iframeUrl ?? process.env.NEXT_PUBLIC_COTIZADOR_URL ?? DEFAULT_COTIZADOR_URL
 
-  // Get session token to pass to iframe
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) setToken(session.access_token)
+  const getStoredAccessToken = useCallback((): string | null => {
+    if (typeof window === "undefined") return null
+
+    const directToken = localStorage.getItem("token")
+    if (directToken) return directToken
+
+    const keys = Object.keys(localStorage)
+    for (const key of keys) {
+      if (!/^sb-.*-auth-token$/.test(key)) continue
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      try {
+        const parsed = JSON.parse(raw)
+        if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
+        if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
+      } catch {
+        // ignore malformed entries
+      }
     }
-    getSession()
+    return null
   }, [])
+
+  const syncIframeToken = useCallback(async (reason = "generic", bootstrap = false): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const sessionToken = session?.access_token ?? null
+    const localToken = getStoredAccessToken()
+    let freshToken = sessionToken ?? localToken
+
+    if (!freshToken) {
+      try {
+        const { data } = await supabase.auth.refreshSession()
+        freshToken = data?.session?.access_token ?? getStoredAccessToken()
+      } catch {
+        // ignore refresh failures; child will handle session expiry if truly needed
+      }
+    }
+
+    liveTokenRef.current = freshToken
+    if (freshToken && typeof window !== "undefined") {
+      localStorage.setItem("token", freshToken)
+    }
+    if (bootstrap) {
+      setIframeToken(freshToken)
+    }
+
+    console.info("[CotizadoraBridge] syncIframeToken", {
+      reason,
+      session: !!sessionToken,
+      local: !!localToken,
+      resolved: !!freshToken,
+      bootstrap,
+    })
+
+    return freshToken
+  }, [getStoredAccessToken])
+
+  useEffect(() => {
+    if (!open) {
+      setIframeToken(null)
+      liveTokenRef.current = null
+      return
+    }
+    void syncIframeToken("dialog-open", true)
+  }, [open, syncIframeToken])
 
   // Build URL with user params and context for auto-fill
   let resolvedIframeUrl = baseUrl
   const params = new URLSearchParams()
 
   // Pass auth token
-  if (token) params.set('token', token)
+  if (iframeToken) params.set('token', iframeToken)
 
   if (user) {
     params.set('user_id', user.id)
@@ -70,13 +126,38 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
     const handleMessage = (event: MessageEvent) => {
       // Auto-refresh: iframe requests a fresh token before expiry
       if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session && event.source) {
-            (event.source as Window).postMessage(
-              { type: 'TOKEN_REFRESH', token: session.access_token },
+        const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
+        const immediateToken = liveTokenRef.current || getStoredAccessToken()
+
+        if (immediateToken) {
+          ;(event.source as Window).postMessage(
+            { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'create_quote_dialog_immediate' },
+            '*'
+          )
+        }
+
+        syncIframeToken(`request:${requestId || "none"}`).then((freshToken) => {
+          if (freshToken && event.source) {
+            ;(event.source as Window).postMessage(
+              { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'create_quote_dialog_sync' },
               '*'
             )
           }
+        })
+        return
+      }
+
+      if (event.data?.type === 'AUTH_REQUIRED' && event.source) {
+        const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
+        syncIframeToken(`auth-required:${requestId || "none"}`).then((freshToken) => {
+          if (freshToken && event.source) {
+            ;(event.source as Window).postMessage(
+              { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'create_quote_dialog_recovery' },
+              '*'
+            )
+            return
+          }
+          toast.error("No se pudo renovar la sesión de la cotizadora. Reabre el módulo.")
         })
         return
       }
@@ -118,7 +199,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [onOpenChange, onSuccess])
+  }, [getStoredAccessToken, onOpenChange, onSuccess, syncIframeToken, user])
 
   const handleUnavailable = () => {
     toast.error("Cotizadora no configurada", {
@@ -166,12 +247,22 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
         <div className="flex-1 overflow-hidden">
           <div className="h-full bg-white overflow-hidden flex flex-col">
             {iframeAvailable ? (
-              <iframe
-                src={resolvedIframeUrl}
-                className="w-full flex-1 border-0 rounded-b-lg"
-                title="Generador de Cotizaciones"
-                allow="clipboard-write"
-              />
+              iframeToken ? (
+                <iframe
+                  src={resolvedIframeUrl}
+                  className="w-full flex-1 border-0 rounded-b-lg"
+                  title="Generador de Cotizaciones"
+                  allow="clipboard-write"
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center px-8">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-base font-medium">Sincronizando sesión segura</p>
+                  <p className="text-sm text-muted-foreground">
+                    Espera un momento mientras se renueva el acceso de la cotizadora.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center px-8">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
