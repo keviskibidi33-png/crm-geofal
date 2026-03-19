@@ -293,8 +293,9 @@ export async function createSessionAction(userId: string) {
     try {
         const SESSION_GHOST_MINUTES = 20
         const SESSION_GHOST_WINDOW_MS = SESSION_GHOST_MINUTES * 60 * 1000
-        const sessionId = randomUUID()
+        const freshSessionId = randomUUID()
         const cookieStore = await cookies()
+        const currentSessionId = cookieStore.get('crm_session')?.value
 
         // 0. Preliminary check (Role and Status)
         const { data: profile } = await supabaseAdmin
@@ -305,6 +306,47 @@ export async function createSessionAction(userId: string) {
 
         if (profile && profile.activo === false) {
             return { error: "Su cuenta ha sido desactivada. Contacte al administrador. (Error: Perfil Inactivo)" }
+        }
+
+        if (currentSessionId) {
+            const { data: currentSession, error: currentSessionError } = await supabaseAdmin
+                .from('active_sessions')
+                .select('session_id, user_id')
+                .eq('session_id', currentSessionId)
+                .maybeSingle()
+
+            if (currentSessionError) {
+                throw currentSessionError
+            }
+
+            if (!currentSession) {
+                cookieStore.delete('crm_session')
+            } else if (currentSession.user_id === userId) {
+                const { error: reuseSessionError } = await supabaseAdmin
+                    .from('active_sessions')
+                    .update({
+                        last_login_at: new Date().toISOString(),
+                        device_info: "browser"
+                    })
+                    .eq('session_id', currentSessionId)
+
+                if (reuseSessionError) {
+                    throw reuseSessionError
+                }
+
+                const { error: profileUpdateError } = await supabaseAdmin
+                    .from('perfiles')
+                    .update({ last_seen_at: new Date().toISOString() })
+                    .eq('id', userId)
+
+                if (profileUpdateError) {
+                    throw profileUpdateError
+                }
+
+                cookieStore.set('crm_session', currentSessionId, SESSION_COOKIE_OPTIONS)
+
+                return { success: true, reused: true }
+            }
         }
 
         // 1. Session Protection Logic (Heartbeat-based "Smart Detection")
@@ -347,7 +389,7 @@ export async function createSessionAction(userId: string) {
             .from('active_sessions')
             .insert({
                 user_id: userId,
-                session_id: sessionId,
+                session_id: freshSessionId,
                 last_login_at: new Date().toISOString(),
                 device_info: "browser"
             })
@@ -361,7 +403,7 @@ export async function createSessionAction(userId: string) {
             .eq('id', userId)
 
         // 2. Set HTTP-only cookie
-        cookieStore.set('crm_session', sessionId, SESSION_COOKIE_OPTIONS)
+        cookieStore.set('crm_session', freshSessionId, SESSION_COOKIE_OPTIONS)
 
         return { success: true }
     } catch (err: any) {

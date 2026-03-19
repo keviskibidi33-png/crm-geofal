@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { Loader2, Lock, Mail, Activity } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { resetAuthCache } from "@/hooks/use-auth"
 import { createSessionAction } from "@/app/actions/auth-actions"
+import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { cn } from "@/lib/utils"
 
@@ -23,34 +24,57 @@ function LoginForm() {
     const router = useRouter()
     const [showTerminatedModal, setShowTerminatedModal] = useState(false)
     const searchParams = useSearchParams()
+    const errorParam = searchParams.get('error')
 
-    // Check for "terminated" signal on mount and clear stale Supabase State
-    useState(() => {
-        if (typeof window !== 'undefined') {
-            const isTerminatedLocal = localStorage.getItem("crm_is_terminated") === 'true'
-            const errorParam = searchParams.get('error')
+    useEffect(() => {
+        if (typeof window === 'undefined') return
 
-            if (isTerminatedLocal || errorParam === 'force_logout') {
-                setShowTerminatedModal(true)
-            }
-
-            // --- FIX FOR 404/REFRESH TOKEN ISSUE ---
-            // Clear any stale Supabase tokens that might cause "Invalid Refresh Token" errors
-            // or hydration issues.
+        const clearSupabaseState = () => {
             try {
-                const keysToRemove = []
+                const keysToRemove: string[] = []
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i)
                     if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
                         keysToRemove.push(key)
                     }
                 }
-                keysToRemove.forEach(k => localStorage.removeItem(k))
-            } catch (e) {
-                // Ignore errors
+                keysToRemove.forEach((key) => localStorage.removeItem(key))
+                localStorage.removeItem('token')
+            } catch {
+                // Ignore cleanup errors on forced logout recovery.
             }
         }
-    })
+
+        let cancelled = false
+        const syncExistingSession = async () => {
+            const isTerminatedLocal = localStorage.getItem("crm_is_terminated") === 'true'
+            const isForcedLogout = errorParam === 'force_logout'
+
+            if (isTerminatedLocal || isForcedLogout) {
+                setShowTerminatedModal(true)
+                clearSupabaseState()
+                return
+            }
+
+            const { data: { session } } = await supabase.auth.getSession()
+            if (cancelled || !session?.user) return
+
+            const serverSession = await verifySessionConsistencyAction(session.user.id)
+            if (cancelled || serverSession?.isValid === false) return
+
+            if (session.access_token) {
+                localStorage.setItem('token', session.access_token)
+            }
+            resetAuthCache()
+            router.replace("/dashboard")
+        }
+
+        syncExistingSession()
+
+        return () => {
+            cancelled = true
+        }
+    }, [errorParam, router])
 
     const handleTerminatedConfirm = () => {
         if (typeof window !== 'undefined') {
@@ -112,7 +136,7 @@ function LoginForm() {
             }
 
             resetAuthCache()
-            window.location.href = "/"
+            window.location.href = "/dashboard"
         } catch (error: any) {
             let errorMessage = error.message || "Ocurrió un error al intentar autenticar"
             if (errorMessage.includes("Invalid login credentials")) {
