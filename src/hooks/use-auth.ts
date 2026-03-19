@@ -47,6 +47,7 @@ let isGlobalSessionTerminated = false
 const SESSION_TERMINATED_EVENT = "crm-session-terminated"
 const TERMINATED_KEY = "crm_is_terminated"
 const SESSION_REFRESH_THROTTLE_MS = 60 * 1000
+const SESSION_LOSS_GRACE_MS = 3 * 60 * 1000
 let lastSessionRefreshAt = 0
 let refreshInFlight: Promise<void> | null = null
 let globalActivityListenerUserId: string | null = null
@@ -810,9 +811,13 @@ export function useAuth() {
         if (!user?.id) return
 
         let disposed = false
+        let sessionLossStartedAt: number | null = null
         const verifySession = async () => {
             const { data: { session } } = await supabase.auth.getSession()
-            if (session || disposed) return
+            if (session || disposed) {
+                sessionLossStartedAt = null
+                return
+            }
 
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
             if (!refreshError && refreshData?.session) {
@@ -820,6 +825,20 @@ export function useAuth() {
                     localStorage.setItem('token', refreshData.session.access_token)
                 }
                 await refreshSessionAction()
+                sessionLossStartedAt = null
+                return
+            }
+
+            if (typeof document !== 'undefined' && document.visibilityState !== "visible") {
+                return
+            }
+
+            if (!sessionLossStartedAt) {
+                sessionLossStartedAt = Date.now()
+                return
+            }
+
+            if ((Date.now() - sessionLossStartedAt) < SESSION_LOSS_GRACE_MS) {
                 return
             }
 

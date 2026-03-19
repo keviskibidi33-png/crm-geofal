@@ -10,6 +10,7 @@ import { Clock, CheckCircle2, AlertTriangle, FlaskConical, Briefcase, Building2,
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { supabase } from "@/lib/supabaseClient"
+import { toast } from "sonner"
 
 interface ProgramacionModuleProps {
     user: User
@@ -130,6 +131,16 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         syncIframeToken()
     }, [syncIframeToken])
 
+    const handleIframeSessionFailure = useCallback((reason: string) => {
+        console.warn(`${TOKEN_BRIDGE_TRACE_PREFIX} preserving shell session after iframe auth failure`, {
+            reason,
+            currentMode,
+        })
+        setIsOpen(false)
+        setIframeNonce(Date.now())
+        toast.error("No se pudo renovar la sesión del módulo. Vuelve a abrirlo.")
+    }, [currentMode])
+
     useEffect(() => {
         if (availableModes.length > 0 && !availableModes.includes(currentMode)) {
             setCurrentMode(availableModes[0])
@@ -179,13 +190,22 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                     debug: event.data?.debug,
                     origin: event.origin,
                 })
-                window.location.href = "/login?error=session_expired"
+                syncIframeToken(`auth-required:${event.data?.requestId || "none"}`).then((freshToken) => {
+                    if (freshToken && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: freshToken, requestId: event.data?.requestId, source: 'programacion_module_recovery' },
+                            '*'
+                        )
+                        return
+                    }
+                    handleIframeSessionFailure(`auth_required:${event.data?.requestId || "none"}`)
+                })
             }
         }
 
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [accessToken, getStoredAccessToken, syncIframeToken])
+    }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, syncIframeToken])
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {
@@ -220,7 +240,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         setCurrentMode(mode)
         const token = await syncIframeToken()
         if (!token) {
-            window.location.href = "/login?error=session_expired"
+            handleIframeSessionFailure(`open:${mode}`)
             return
         }
         setIframeNonce(Date.now())

@@ -21,6 +21,7 @@ import { DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabaseClient"
+import { toast } from "sonner"
 
 interface AdministracionModuleProps {
     user: User
@@ -103,6 +104,15 @@ export function AdministracionModule({ user }: AdministracionModuleProps) {
         syncIframeToken("mount")
     }, [syncIframeToken])
 
+    const handleIframeSessionFailure = useCallback((reason: string) => {
+        console.warn(`${TOKEN_BRIDGE_TRACE_PREFIX} preserving shell session after iframe auth failure`, {
+            reason,
+        })
+        setIsOpen(false)
+        setIframeNonce(Date.now())
+        toast.error("No se pudo renovar la sesión del módulo. Vuelve a abrirlo.")
+    }, [])
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
@@ -144,13 +154,22 @@ export function AdministracionModule({ user }: AdministracionModuleProps) {
                     debug: event.data?.debug,
                     origin: event.origin,
                 })
-                window.location.href = "/login?error=session_expired"
+                syncIframeToken(`auth-required:${event.data?.requestId || "none"}`).then((freshToken) => {
+                    if (freshToken && event.source) {
+                        (event.source as Window).postMessage(
+                            { type: 'TOKEN_REFRESH', token: freshToken, requestId: event.data?.requestId, source: 'administracion_module_recovery' },
+                            '*'
+                        )
+                        return
+                    }
+                    handleIframeSessionFailure(`auth_required:${event.data?.requestId || "none"}`)
+                })
             }
         }
 
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [accessToken, getStoredAccessToken, syncIframeToken])
+    }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, syncIframeToken])
 
     const iframeUrl = process.env.NEXT_PUBLIC_PROGRAMACION_URL ||
         (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
@@ -171,12 +190,12 @@ export function AdministracionModule({ user }: AdministracionModuleProps) {
     const openModule = useCallback(async () => {
         const token = await syncIframeToken("open")
         if (!token) {
-            window.location.href = "/login?error=session_expired"
+            handleIframeSessionFailure("open:administracion")
             return
         }
         setIframeNonce(Date.now())
         setIsOpen(true)
-    }, [syncIframeToken])
+    }, [handleIframeSessionFailure, syncIframeToken])
 
     if (isLoading) {
         return (
