@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { startTransition, useState, useEffect, useRef, useCallback } from "react"
 import { Bell, Search, Settings, Sun, Moon, Building2, FolderKanban, FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type User, type ModuleType } from "@/hooks/use-auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 
 interface HeaderProps {
   user: User
@@ -21,6 +21,30 @@ interface SearchResult {
   subtitle: string
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
+async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promise<SearchResult[]> {
+  const params = new URLSearchParams()
+  if (query.trim()) {
+    params.set("q", query.trim())
+    params.set("limit", "10")
+  } else {
+    params.set("limit", "7")
+  }
+
+  const response = await authFetch(`${API_URL}/dashboard/search?${params.toString()}`, {
+    method: "GET",
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Dashboard search failed: ${response.status}`)
+  }
+
+  const payload = await response.json()
+  return Array.isArray(payload?.data) ? payload.data : []
+}
+
 export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const { signOut } = useAuth()
@@ -30,6 +54,7 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   const [showResults, setShowResults] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const searchAbortRef = useRef<AbortController | null>(null)
 
   const handleLogout = async () => {
     await signOut()
@@ -44,174 +69,54 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
     if (searchQuery.length > 0 || searchResults.length > 0) return
 
     setIsSearching(true)
-    const suggestions: SearchResult[] = []
+    searchAbortRef.current?.abort()
+    const controller = new AbortController()
+    searchAbortRef.current = controller
 
     try {
-      // Get 3 most recent clients
-      const { data: recentClients } = await supabase
-        .from("clientes")
-        .select("id, empresa, nombre, ruc")
-        .order("created_at", { ascending: false })
-        .limit(3)
-
-      if (recentClients) {
-        recentClients.forEach((c) => {
-          suggestions.push({
-            id: c.id,
-            type: "cliente",
-            title: c.empresa || c.nombre || "Sin nombre",
-            subtitle: c.ruc ? `RUC: ${c.ruc}` : "Cliente reciente",
-          })
-        })
-      }
-
-      // Get 2 most recent projects
-      const { data: recentProjects } = await supabase
-        .from("proyectos")
-        .select("id, nombre, estado")
-        .order("created_at", { ascending: false })
-        .limit(2)
-
-      if (recentProjects) {
-        recentProjects.forEach((p) => {
-          suggestions.push({
-            id: p.id,
-            type: "proyecto",
-            title: p.nombre || "Sin nombre",
-            subtitle: `Estado: ${p.estado || "N/A"}`,
-          })
-        })
-      }
-
-      if (suggestions.length > 0) {
+      const suggestions = await fetchDashboardSearch("", controller.signal)
+      startTransition(() => {
         setSearchResults(suggestions)
-        setShowResults(true)
-      }
+        setShowResults(suggestions.length > 0)
+      })
     } catch (error) {
+      if (controller.signal.aborted) return
       console.error("Error loading suggestions:", error)
     } finally {
-      setIsSearching(false)
+      if (searchAbortRef.current === controller) {
+        setIsSearching(false)
+      }
     }
   }, [searchQuery, searchResults.length])
 
   // Debounced search function
   const performSearch = useCallback(async (query: string) => {
-    if (query.length < 2) {
+    if (query.trim().length < 2) {
+      searchAbortRef.current?.abort()
       setSearchResults([])
       setShowResults(false)
+      setIsSearching(false)
       return
     }
 
     setIsSearching(true)
-    const results: SearchResult[] = []
-    // Use % for SQL LIKE wildcards (PostgREST standard)
-    const searchPattern = `%${query}%`
+    searchAbortRef.current?.abort()
+    const controller = new AbortController()
+    searchAbortRef.current = controller
 
     try {
-      // Search clients by empresa (business name)
-      const { data: clientsByEmpresa, error: clientsError } = await supabase
-        .from("clientes")
-        .select("id, empresa, nombre, ruc, email")
-        .ilike("empresa", searchPattern)
-        .limit(5)
-
-      if (!clientsError && clientsByEmpresa) {
-        clientsByEmpresa.forEach((c) => {
-          results.push({
-            id: c.id,
-            type: "cliente",
-            title: c.empresa || c.nombre || "Sin nombre",
-            subtitle: c.ruc ? `RUC: ${c.ruc}` : c.email || "Sin contacto",
-          })
-        })
-      }
-
-      // Also search clients by nombre (contact name)
-      const { data: clientsByNombre } = await supabase
-        .from("clientes")
-        .select("id, empresa, nombre, ruc, email")
-        .ilike("nombre", searchPattern)
-        .limit(5)
-
-      if (clientsByNombre) {
-        clientsByNombre.forEach((c) => {
-          if (!results.find(r => r.type === "cliente" && r.id === c.id)) {
-            results.push({
-              id: c.id,
-              type: "cliente",
-              title: c.nombre || c.empresa || "Sin nombre",
-              subtitle: c.ruc ? `RUC: ${c.ruc}` : c.email || "Sin contacto",
-            })
-          }
-        })
-      }
-
-      // Also search by RUC if query looks like a number
-      if (/^\d+$/.test(query)) {
-        const { data: clientsByRuc } = await supabase
-          .from("clientes")
-          .select("id, empresa, nombre, ruc, email")
-          .ilike("ruc", searchPattern)
-          .limit(3)
-
-        if (clientsByRuc) {
-          clientsByRuc.forEach((c) => {
-            if (!results.find(r => r.type === "cliente" && r.id === c.id)) {
-              results.push({
-                id: c.id,
-                type: "cliente",
-                title: c.empresa || c.nombre || "Sin nombre",
-                subtitle: c.ruc ? `RUC: ${c.ruc}` : "Sin RUC",
-              })
-            }
-          })
-        }
-      }
-
-      // Search projects
-      const { data: projects, error: projectsError } = await supabase
-        .from("proyectos")
-        .select("id, nombre, estado")
-        .ilike("nombre", searchPattern)
-        .limit(5)
-
-      if (!projectsError && projects) {
-        projects.forEach((p) => {
-          results.push({
-            id: p.id,
-            type: "proyecto",
-            title: p.nombre || "Sin nombre",
-            subtitle: `Estado: ${p.estado || "N/A"}`,
-          })
-        })
-      }
-
-      // Search quotes only if query matches quote format (COT or numbers)
-      if (query.toUpperCase().includes("COT") || /^\d+$/.test(query)) {
-        const { data: quotes, error: quotesError } = await supabase
-          .from("cotizaciones")
-          .select("id, numero, total")
-          .ilike("numero", searchPattern)
-          .limit(5)
-
-        if (!quotesError && quotes) {
-          quotes.forEach((q) => {
-            results.push({
-              id: q.id,
-              type: "cotizacion",
-              title: q.numero || "Sin número",
-              subtitle: q.total ? `S/ ${Number(q.total).toLocaleString()}` : "Sin monto",
-            })
-          })
-        }
-      }
-
-      setSearchResults(results)
-      setShowResults(results.length > 0)
+      const results = await fetchDashboardSearch(query, controller.signal)
+      startTransition(() => {
+        setSearchResults(results)
+        setShowResults(results.length > 0)
+      })
     } catch (error) {
+      if (controller.signal.aborted) return
       console.error("Search error:", error)
     } finally {
-      setIsSearching(false)
+      if (searchAbortRef.current === controller) {
+        setIsSearching(false)
+      }
     }
   }, [])
 
@@ -257,7 +162,13 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
     }
 
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+      searchAbortRef.current?.abort()
+    }
   }, [])
 
   const getResultIcon = (type: SearchResult["type"]) => {
