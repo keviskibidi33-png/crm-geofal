@@ -1,51 +1,79 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ComponentType } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
-import { ClientesModule } from "@/components/dashboard/clientes-module"
-import { CotizadoraModule } from "@/components/dashboard/cotizadora-module"
-import { ConfiguracionModule } from "@/components/dashboard/configuracion-module"
-import { UsuariosModule } from "@/components/dashboard/usuarios-module"
-import { ProyectosModule } from "@/components/dashboard/proyectos-module"
-import { AuditoriaModule } from "@/components/dashboard/auditoria-module"
-import { ProgramacionModule } from "@/components/dashboard/programacion-module"
-import { VerificacionMuestrasModule } from "@/components/dashboard/verificacion-muestras-module"
-import { CompresionModule } from "@/components/dashboard/compresion-module"
-import { LaboratorioModule } from "@/components/dashboard/laboratorio-module"
-import { RecepcionModule } from "@/components/dashboard/recepcion-module"
-import { ComercialModule } from "@/components/dashboard/comercial-module"
-import { AdministracionModule } from "@/components/dashboard/administracion-module"
-import { TracingModule } from "@/components/dashboard/tracing-module"
-import { HumedadModule } from "@/components/dashboard/humedad-module"
-import { ContHumedadModule } from "@/components/dashboard/cont-humedad-module"
-import { CBRModule } from "@/components/dashboard/cbr-module"
-import { ProctorModule } from "@/components/dashboard/proctor-module"
-import { LLPModule } from "@/components/dashboard/llp-module"
-import { GranSueloModule } from "@/components/dashboard/gran-suelo-module"
-import { GranAgregadoModule } from "@/components/dashboard/gran-agregado-module"
-import { AbraModule } from "@/components/dashboard/abra-module"
-import { AbrassModule } from "@/components/dashboard/abrass-module"
-import { PesoUnitarioModule } from "@/components/dashboard/peso-unitario-module"
-import { TamizModule } from "@/components/dashboard/tamiz-module"
-import { PlanasModule } from "@/components/dashboard/planas-module"
-import { CarasModule } from "@/components/dashboard/caras-module"
-import { EquiArenaModule } from "@/components/dashboard/equi-arena-module"
-import { GeFinoModule } from "@/components/dashboard/ge-fino-module"
-import { GeGruesoModule } from "@/components/dashboard/ge-grueso-module"
-import { CDModule } from "@/components/dashboard/cd-module"
-import { PHModule } from "@/components/dashboard/ph-module"
-import { CloroSolubleModule } from "@/components/dashboard/cloro-soluble-module"
-import { SalesSolublesModule } from "@/components/dashboard/sales-solubles-module"
-import { SulfatosSolublesModule } from "@/components/dashboard/sulfatos-solubles-module"
-import { CompresionNoConfinadaModule } from "@/components/dashboard/compresion-no-confinada-module"
 import { RoleGuard } from "@/components/dashboard/role-guard"
-import { PermisosModule } from "@/components/dashboard/permisos-module"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
-import { useAuth, type User, type UserRole, type ModuleType } from "@/hooks/use-auth"
+import { Button } from "@/components/ui/button"
+import { resetAuthCache, useAuth, type ModuleType } from "@/hooks/use-auth"
+import { supabase } from "@/lib/supabaseClient"
 import { Loader2 } from "lucide-react"
+
+function DashboardModuleFallback() {
+  return (
+    <div className="flex min-h-[320px] w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm">
+      <div className="flex items-center gap-3 text-sm font-medium">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Cargando módulo...
+      </div>
+    </div>
+  )
+}
+
+function dashboardDynamic<TProps>(loader: () => Promise<ComponentType<TProps>>) {
+  return dynamic<TProps>(
+    async () => {
+      const component = await loader()
+      return { default: component }
+    },
+    {
+      loading: () => <DashboardModuleFallback />,
+      ssr: false,
+    },
+  )
+}
+
+const ClientesModule = dashboardDynamic(async () => (await import("@/components/dashboard/clientes-module")).ClientesModule)
+const CotizadoraModule = dashboardDynamic(async () => (await import("@/components/dashboard/cotizadora-module")).CotizadoraModule)
+const ConfiguracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/configuracion-module")).ConfiguracionModule)
+const UsuariosModule = dashboardDynamic(async () => (await import("@/components/dashboard/usuarios-module")).UsuariosModule)
+const ProyectosModule = dashboardDynamic(async () => (await import("@/components/dashboard/proyectos-module")).ProyectosModule)
+const AuditoriaModule = dashboardDynamic(async () => (await import("@/components/dashboard/auditoria-module")).AuditoriaModule)
+const ProgramacionModule = dashboardDynamic(async () => (await import("@/components/dashboard/programacion-module")).ProgramacionModule)
+const VerificacionMuestrasModule = dashboardDynamic(async () => (await import("@/components/dashboard/verificacion-muestras-module")).VerificacionMuestrasModule)
+const CompresionModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-module")).CompresionModule)
+const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
+const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
+const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
+const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
+const TracingModule = dashboardDynamic(async () => (await import("@/components/dashboard/tracing-module")).TracingModule)
+const HumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/humedad-module")).HumedadModule)
+const ContHumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/cont-humedad-module")).ContHumedadModule)
+const CBRModule = dashboardDynamic(async () => (await import("@/components/dashboard/cbr-module")).CBRModule)
+const ProctorModule = dashboardDynamic(async () => (await import("@/components/dashboard/proctor-module")).ProctorModule)
+const LLPModule = dashboardDynamic(async () => (await import("@/components/dashboard/llp-module")).LLPModule)
+const GranSueloModule = dashboardDynamic(async () => (await import("@/components/dashboard/gran-suelo-module")).GranSueloModule)
+const GranAgregadoModule = dashboardDynamic(async () => (await import("@/components/dashboard/gran-agregado-module")).GranAgregadoModule)
+const AbraModule = dashboardDynamic(async () => (await import("@/components/dashboard/abra-module")).AbraModule)
+const AbrassModule = dashboardDynamic(async () => (await import("@/components/dashboard/abrass-module")).AbrassModule)
+const PesoUnitarioModule = dashboardDynamic(async () => (await import("@/components/dashboard/peso-unitario-module")).PesoUnitarioModule)
+const TamizModule = dashboardDynamic(async () => (await import("@/components/dashboard/tamiz-module")).TamizModule)
+const PlanasModule = dashboardDynamic(async () => (await import("@/components/dashboard/planas-module")).PlanasModule)
+const CarasModule = dashboardDynamic(async () => (await import("@/components/dashboard/caras-module")).CarasModule)
+const EquiArenaModule = dashboardDynamic(async () => (await import("@/components/dashboard/equi-arena-module")).EquiArenaModule)
+const GeFinoModule = dashboardDynamic(async () => (await import("@/components/dashboard/ge-fino-module")).GeFinoModule)
+const GeGruesoModule = dashboardDynamic(async () => (await import("@/components/dashboard/ge-grueso-module")).GeGruesoModule)
+const CDModule = dashboardDynamic(async () => (await import("@/components/dashboard/cd-module")).CDModule)
+const PHModule = dashboardDynamic(async () => (await import("@/components/dashboard/ph-module")).PHModule)
+const CloroSolubleModule = dashboardDynamic(async () => (await import("@/components/dashboard/cloro-soluble-module")).CloroSolubleModule)
+const SalesSolublesModule = dashboardDynamic(async () => (await import("@/components/dashboard/sales-solubles-module")).SalesSolublesModule)
+const SulfatosSolublesModule = dashboardDynamic(async () => (await import("@/components/dashboard/sulfatos-solubles-module")).SulfatosSolublesModule)
+const CompresionNoConfinadaModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-no-confinada-module")).CompresionNoConfinadaModule)
+const PermisosModule = dashboardDynamic(async () => (await import("@/components/dashboard/permisos-module")).PermisosModule)
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
@@ -62,9 +90,33 @@ export default function DashboardPage() {
     }
     return false
   })
-  const { user, loading, isSessionTerminated, signOut } = useAuth()
+  const { user, loading, isSessionTerminated, signOut, bootstrapError, retryBootstrap } = useAuth()
   const [securityViolation, setSecurityViolation] = useState(false)
   const router = useRouter()
+
+  const clearLocalSessionState = () => {
+    if (typeof window !== "undefined") {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith("sb-") || key.includes("supabase") || key === "token" || key === "crm_is_terminated")) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key))
+    }
+
+    resetAuthCache()
+
+    void supabase.auth.signOut().catch((error) => {
+      console.error("[AuthBootstrap]", {
+        stage: "buildUser",
+        message: error instanceof Error ? error.message : "No se pudo limpiar la sesión local.",
+      })
+    })
+
+    router.replace("/login")
+  }
 
 
   useEffect(() => {
@@ -93,11 +145,11 @@ export default function DashboardPage() {
     if (controlDefault && activeModule !== controlDefault) {
       setActiveModule(controlDefault)
     }
-  }, [loading, user?.id, activeModule])
+  }, [loading, user, activeModule])
 
   useEffect(() => {
     // Only redirect if NOT loading, and NO user, and session is NOT terminated
-    if (!loading && !user && !isSessionTerminated) {
+    if (!loading && !user && !isSessionTerminated && !bootstrapError) {
       // Grace period: Wait 2s to see if a termination event comes in via Realtime
       const timer = setTimeout(() => {
         // Double check session status inside timeout
@@ -107,7 +159,7 @@ export default function DashboardPage() {
       }, 2000)
       return () => clearTimeout(timer)
     }
-  }, [user, loading, router, isSessionTerminated])
+  }, [user, loading, router, isSessionTerminated, bootstrapError])
 
   // Handle module authorization and security checks
   useEffect(() => {
@@ -143,7 +195,7 @@ export default function DashboardPage() {
         setActiveModule(defaultModule);
       }
     }
-  }, [loading, user?.id, activeModule]); // Watch activeModule for security
+  }, [loading, user, activeModule]); // Watch activeModule for security
 
   // Session Consistency Check (Security)
   useEffect(() => {
@@ -175,6 +227,36 @@ export default function DashboardPage() {
           open={true}
           onConfirm={signOut}
         />
+      </div>
+      )
+  }
+
+  if (bootstrapError && !user) {
+    return (
+      <div className="h-screen w-full bg-zinc-950 text-zinc-100 flex items-center justify-center px-6">
+        <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 shadow-2xl">
+          <div className="space-y-3">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-400">Arranque del CRM</p>
+            <h1 className="text-2xl font-semibold text-white">No se pudo cargar tu sesión</h1>
+            <p className="text-sm leading-6 text-zinc-300">{bootstrapError}</p>
+            <p className="text-sm leading-6 text-zinc-400">
+              Puedes reintentar el arranque o volver al login para limpiar la sesión local antes de ingresar de nuevo.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button className="sm:flex-1" onClick={() => void retryBootstrap()}>
+              Reintentar
+            </Button>
+            <Button
+              variant="outline"
+              className="border-zinc-700 bg-transparent text-zinc-100 hover:bg-zinc-800 sm:flex-1"
+              onClick={clearLocalSessionState}
+            >
+              Ir a login
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }

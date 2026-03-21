@@ -17,6 +17,24 @@ import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { cn } from "@/lib/utils"
 
+const SESSION_SYNC_TIMEOUT_MS = 5000
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs)
+
+        promise
+            .then((value) => {
+                clearTimeout(timeoutId)
+                resolve(value)
+            })
+            .catch((error) => {
+                clearTimeout(timeoutId)
+                reject(error)
+            })
+    })
+}
+
 function LoginForm() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -29,7 +47,7 @@ function LoginForm() {
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        const clearSupabaseState = () => {
+        const clearSupabaseState = async () => {
             try {
                 const keysToRemove: string[] = []
                 for (let i = 0; i < localStorage.length; i++) {
@@ -40,9 +58,16 @@ function LoginForm() {
                 }
                 keysToRemove.forEach((key) => localStorage.removeItem(key))
                 localStorage.removeItem('token')
+                localStorage.removeItem('crm_is_terminated')
             } catch {
                 // Ignore cleanup errors on forced logout recovery.
             }
+
+            resetAuthCache()
+
+            void supabase.auth.signOut().catch(() => {
+                // Ignore signOut cleanup failures on login recovery.
+            })
         }
 
         let cancelled = false
@@ -52,24 +77,49 @@ function LoginForm() {
 
             if (isTerminatedLocal || isForcedLogout) {
                 setShowTerminatedModal(true)
-                clearSupabaseState()
+                void clearSupabaseState()
                 return
             }
 
-            const { data: { session } } = await supabase.auth.getSession()
-            if (cancelled || !session?.user) return
+            try {
+                const { data: { session } } = await withTimeout(
+                    supabase.auth.getSession(),
+                    SESSION_SYNC_TIMEOUT_MS,
+                    "La sesión previa tardó demasiado en responder.",
+                )
+                if (cancelled || !session?.user) return
 
-            const serverSession = await verifySessionConsistencyAction(session.user.id)
-            if (cancelled || serverSession?.isValid === false) return
+                const serverSession = await withTimeout(
+                    verifySessionConsistencyAction(session.user.id),
+                    SESSION_SYNC_TIMEOUT_MS,
+                    "La validación del servidor tardó demasiado en responder.",
+                )
+                if (cancelled) return
 
-            if (session.access_token) {
-                localStorage.setItem('token', session.access_token)
+                if (serverSession?.isValid === false) {
+                    await clearSupabaseState()
+                    toast.error("Sesión previa no restaurada", {
+                        description: "Inicia sesión nuevamente para continuar.",
+                    })
+                    return
+                }
+
+                if (session.access_token) {
+                    localStorage.setItem('token', session.access_token)
+                }
+                resetAuthCache()
+                router.replace("/dashboard")
+            } catch {
+                await clearSupabaseState()
+                if (!cancelled) {
+                    toast.error("Sesión previa no restaurada", {
+                        description: "Inicia sesión nuevamente para continuar.",
+                    })
+                }
             }
-            resetAuthCache()
-            router.replace("/dashboard")
         }
 
-        syncExistingSession()
+        void syncExistingSession()
 
         return () => {
             cancelled = true

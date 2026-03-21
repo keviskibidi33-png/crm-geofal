@@ -37,7 +37,6 @@ const CONTROL_ACCESS_REVOKED_EMAILS = new Set([
 // Module-level cache - persists across component re-mounts
 let cachedUser: User | null = null
 let hasInitialized = false
-let globalSessionStart = new Date().toISOString() // GLOBAL TIME FOR LOGOUT COMPARISON
 
 // --- Singleton Channel Management ---
 let globalChannel: any = null
@@ -46,12 +45,32 @@ let lastSeenLogoutAt: string | null = null
 let isGlobalSessionTerminated = false
 const SESSION_TERMINATED_EVENT = "crm-session-terminated"
 const TERMINATED_KEY = "crm_is_terminated"
+const BOOTSTRAP_TIMEOUT_MS = 8000
 const SESSION_REFRESH_THROTTLE_MS = 60 * 1000
 const SESSION_LOSS_GRACE_MS = 3 * 60 * 1000
 let lastSessionRefreshAt = 0
 let refreshInFlight: Promise<void> | null = null
 let globalActivityListenerUserId: string | null = null
 let globalActivityListenerCleanup: (() => void) | null = null
+
+type BootstrapStage = "getSession" | "buildUser" | "fetchProfile" | "fetchRoleDefinition"
+
+class AuthBootstrapError extends Error {
+    stage: BootstrapStage
+
+    constructor(stage: BootstrapStage, message: string) {
+        super(message)
+        this.name = "AuthBootstrapError"
+        this.stage = stage
+    }
+}
+
+const BOOTSTRAP_TIMEOUT_MESSAGES: Record<BootstrapStage, string> = {
+    getSession: "No se pudo recuperar tu sesión del CRM a tiempo.",
+    buildUser: "No se pudo cargar tu acceso al CRM a tiempo.",
+    fetchProfile: "La lectura del perfil tardó demasiado.",
+    fetchRoleDefinition: "La lectura de permisos tardó demasiado.",
+}
 
 // Initialize global state from localStorage if available (Persistence)
 if (typeof window !== 'undefined' && localStorage.getItem(TERMINATED_KEY) === 'true') {
@@ -60,13 +79,79 @@ if (typeof window !== 'undefined' && localStorage.getItem(TERMINATED_KEY) === 't
 
 // --- Helper Functions (Hoisted) ---
 
+function getErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof AuthBootstrapError) return error.message
+    if (error instanceof Error && error.message) return error.message
+    return fallback
+}
+
+function logBootstrapError(stage: BootstrapStage, error: unknown, startedAt: number) {
+    console.error("[AuthBootstrap]", {
+        stage,
+        message: getErrorMessage(error, BOOTSTRAP_TIMEOUT_MESSAGES[stage]),
+        elapsedMs: Date.now() - startedAt,
+    })
+}
+
+function attachAbortSignal<T>(query: T, signal?: AbortSignal): T {
+    if (!signal) return query
+    const abortableQuery = query as T & { abortSignal?: (nextSignal: AbortSignal) => T }
+    if (typeof abortableQuery.abortSignal === "function") {
+        return abortableQuery.abortSignal(signal)
+    }
+    return query
+}
+
+async function withTimeout<T>(
+    stage: BootstrapStage,
+    task: (signal?: AbortSignal) => Promise<T>,
+    timeoutMs: number = BOOTSTRAP_TIMEOUT_MS,
+    timeoutMessage: string = BOOTSTRAP_TIMEOUT_MESSAGES[stage],
+): Promise<T> {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+    try {
+        return await Promise.race([
+            task(controller?.signal),
+            new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    controller?.abort()
+                    reject(new AuthBootstrapError(stage, timeoutMessage))
+                }, timeoutMs)
+            }),
+        ])
+    } catch (error) {
+        if (error instanceof AuthBootstrapError) {
+            throw error
+        }
+        const message = controller?.signal.aborted
+            ? timeoutMessage
+            : getErrorMessage(error, timeoutMessage)
+        throw new AuthBootstrapError(stage, message)
+    } finally {
+        if (timeoutId) {
+            clearTimeout(timeoutId)
+        }
+    }
+}
+
 async function fetchProfile(userId: string) {
     try {
-        const { data: profile, error } = await supabase
-            .from("perfiles")
-            .select("full_name, role, phone, avatar_url, last_force_logout_at")
-            .eq("id", userId)
-            .single()
+        const { data: profile, error } = await withTimeout(
+            "fetchProfile",
+            async (signal) => {
+                const query = attachAbortSignal(
+                    supabase
+                        .from("perfiles")
+                        .select("full_name, role, phone, avatar_url, last_force_logout_at")
+                        .eq("id", userId)
+                        .single(),
+                    signal,
+                )
+                return await query
+            },
+        )
 
         console.log("[Auth] Profile query result:", { profile, error })
 
@@ -77,11 +162,20 @@ async function fetchProfile(userId: string) {
 
         // Fetch role_definitions separately to avoid PostgREST FK join issues with RLS
         if (profile?.role) {
-            const { data: roleDef, error: roleError } = await supabase
-                .from("role_definitions")
-                .select("label, permissions")
-                .eq("role_id", profile.role)
-                .single()
+            const { data: roleDef, error: roleError } = await withTimeout(
+                "fetchRoleDefinition",
+                async (signal) => {
+                    const query = attachAbortSignal(
+                        supabase
+                            .from("role_definitions")
+                            .select("label, permissions")
+                            .eq("role_id", profile.role)
+                            .single(),
+                        signal,
+                    )
+                    return await query
+                },
+            )
 
             console.log("[Auth] RoleDef query result:", { roleDef, roleError, roleId: profile.role })
 
@@ -95,6 +189,9 @@ async function fetchProfile(userId: string) {
         console.log("[Auth] Returning profile WITHOUT roleDef")
         return { ...profile, role_definitions: null }
     } catch (e) {
+        if (e instanceof AuthBootstrapError) {
+            throw e
+        }
         console.error("[Auth] Exception fetching profile:", e)
         return null
     }
@@ -530,7 +627,7 @@ async function refreshAuthSession() {
             if (data?.session) {
                 await refreshSessionAction()
             }
-        } catch (e) {
+        } catch {
             // Ignore refresh errors (session may be genuinely expired)
         } finally {
             refreshInFlight = null
@@ -544,20 +641,28 @@ async function refreshAuthSession() {
 export function resetAuthCache() {
     cachedUser = null
     hasInitialized = false
-    globalSessionStart = new Date().toISOString()
+    lastSeenLogoutAt = null
+    lastSessionRefreshAt = 0
     if (globalChannel) {
         supabase.removeChannel(globalChannel)
         globalChannel = null
         globalChannelUserId = null
+    }
+    if (globalActivityListenerCleanup) {
+        globalActivityListenerCleanup()
+        globalActivityListenerCleanup = null
+        globalActivityListenerUserId = null
     }
 }
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(cachedUser)
     const [loading, setLoading] = useState(!hasInitialized)
+    const [bootstrapError, setBootstrapError] = useState<string | null>(null)
     // Force sync with module variable
     const [isSessionTerminated, setIsSessionTerminated] = useState(isGlobalSessionTerminated)
     const mountedRef = useRef(true)
+    const bootstrapAuthRef = useRef<() => Promise<void>>(async () => { })
 
     // Force re-check on every render (even if state failed)
     const effectiveSessionTerminated = isSessionTerminated || isGlobalSessionTerminated
@@ -568,6 +673,7 @@ export function useAuth() {
 
     const signOut = async () => {
         setLoading(true)
+        setBootstrapError(null)
         cachedUser = null
         hasInitialized = false
         clearTerminationState() // Reset termination state on manual/clean logout
@@ -597,7 +703,88 @@ export function useAuth() {
         if (typeof window !== 'undefined') localStorage.removeItem(TERMINATED_KEY)
     }
 
+    bootstrapAuthRef.current = async () => {
+        const bootstrapStartedAt = Date.now()
+        if (mountedRef.current) {
+            setLoading(true)
+            setBootstrapError(null)
+        }
 
+        try {
+            if (hasInitialized && cachedUser) {
+                const { data: { session: cachedSession } } = await withTimeout(
+                    "getSession",
+                    async () => await supabase.auth.getSession(),
+                )
+
+                if (cachedSession) {
+                    if (mountedRef.current) {
+                        setUser(cachedUser)
+                        setBootstrapError(null)
+                        setLoading(false)
+                    }
+                    return
+                }
+
+                cachedUser = null
+                hasInitialized = false
+            }
+
+            const { data: { session } } = await withTimeout(
+                "getSession",
+                async () => await supabase.auth.getSession(),
+            )
+
+            if (!session) {
+                cachedUser = null
+                hasInitialized = true
+                if (mountedRef.current) {
+                    setUser(null)
+                    setBootstrapError(null)
+                    setLoading(false)
+                }
+                return
+            }
+
+            if (typeof window !== 'undefined' && session.access_token) {
+                localStorage.setItem('token', session.access_token)
+            }
+
+            const newUser = await withTimeout(
+                "buildUser",
+                async () => await buildUser(session),
+            )
+
+            cachedUser = newUser
+            hasInitialized = true
+            if (mountedRef.current) {
+                setUser(newUser)
+                setBootstrapError(null)
+                setLoading(false)
+            }
+        } catch (error) {
+            const normalizedError = error instanceof AuthBootstrapError
+                ? error
+                : new AuthBootstrapError("buildUser", getErrorMessage(error, BOOTSTRAP_TIMEOUT_MESSAGES.buildUser))
+
+            if (normalizedError.stage === "getSession") {
+                cachedUser = null
+            }
+
+            hasInitialized = true
+            logBootstrapError(normalizedError.stage, normalizedError, bootstrapStartedAt)
+
+            if (mountedRef.current) {
+                setUser(null)
+                setBootstrapError(normalizedError.message)
+                setLoading(false)
+            }
+        }
+    }
+
+    const retryBootstrap = async () => {
+        await bootstrapAuthRef.current()
+    }
 
     // --- Heartbeat & Realtime Guard ---
     useEffect(() => {
@@ -679,7 +866,7 @@ export function useAuth() {
                     method: 'POST',
                     body: JSON.stringify({ user_id: currentUserId })
                 })
-            } catch (err) { }
+            } catch { }
         }
 
         sendHeartbeat()
@@ -733,44 +920,15 @@ export function useAuth() {
     useEffect(() => {
         mountedRef.current = true
 
-        const init = async () => {
-            if (hasInitialized && cachedUser) {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session) {
-                    setUser(cachedUser)
-                    setLoading(false)
-                    return
-                }
-
-                // Cached identity is stale if Supabase session no longer exists
-                cachedUser = null
-                hasInitialized = false
-            }
-
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                cachedUser = null
-                hasInitialized = true
-                if (mountedRef.current) { setUser(null); setLoading(false); }
-                return
-            }
-
-            if (typeof window !== 'undefined' && session.access_token) {
-                localStorage.setItem('token', session.access_token)
-            }
-
-            const newUser = await buildUser(session)
-            cachedUser = newUser
-            hasInitialized = true
-            if (mountedRef.current) { setUser(newUser); setLoading(false); }
-        }
-
-        init()
+        void bootstrapAuthRef.current()
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_OUT") {
                 cachedUser = null
                 hasInitialized = false
+                if (mountedRef.current) {
+                    setBootstrapError(null)
+                }
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('token')
                 }
@@ -790,12 +948,7 @@ export function useAuth() {
                 }
 
                 if (session && session.user.id !== cachedUser?.id) {
-                    globalSessionStart = new Date().toISOString()
-                    buildUser(session).then(newUser => {
-                        cachedUser = newUser
-                        hasInitialized = true
-                        if (mountedRef.current) { setUser(newUser); setLoading(false); }
-                    })
+                    void bootstrapAuthRef.current()
                 }
             }
         })
@@ -862,13 +1015,34 @@ export function useAuth() {
     }, [user?.id])
 
     const refreshUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-            const newUser = await buildUser(session)
-            cachedUser = newUser
-            setUser(newUser)
+        try {
+            const { data: { session } } = await withTimeout(
+                "getSession",
+                async () => await supabase.auth.getSession(),
+            )
+            if (session) {
+                const newUser = await withTimeout(
+                    "buildUser",
+                    async () => await buildUser(session),
+                )
+                cachedUser = newUser
+                setUser(newUser)
+            }
+        } catch (error) {
+            const normalizedError = error instanceof AuthBootstrapError
+                ? error
+                : new AuthBootstrapError("buildUser", getErrorMessage(error, BOOTSTRAP_TIMEOUT_MESSAGES.buildUser))
+            logBootstrapError(normalizedError.stage, normalizedError, Date.now())
         }
     }
 
-    return { user, loading, signOut, refreshUser, isSessionTerminated: effectiveSessionTerminated }
+    return {
+        user,
+        loading,
+        signOut,
+        refreshUser,
+        isSessionTerminated: effectiveSessionTerminated,
+        bootstrapError,
+        retryBootstrap,
+    }
 }
