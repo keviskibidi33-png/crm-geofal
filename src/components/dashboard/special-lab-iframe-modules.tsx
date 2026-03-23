@@ -62,8 +62,9 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const handleLoad = () => {
+  const handleReady = useCallback(() => {
     setIsLoading(false)
     setError(null)
     setRetryCount(0)
@@ -71,7 +72,7 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-  }
+  }, [])
 
   const handleRetry = useCallback(() => {
     setIsLoading(true)
@@ -104,6 +105,17 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
       }
     }
   }, [handleRetry, isLoading, retryCount])
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== "IFRAME_READY") return
+      if (event.source !== iframeRef.current?.contentWindow) return
+      handleReady()
+    }
+
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [handleReady])
 
   const currentSrc = useMemo(() => {
     const url = new URL(src)
@@ -141,11 +153,11 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
       )}
 
       <iframe
+        ref={iframeRef}
         key={key}
         src={currentSrc}
         className={`h-full w-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
         title={title}
-        onLoad={handleLoad}
         onError={() => setError("Error al cargar el iframe.")}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         loading="eager"
