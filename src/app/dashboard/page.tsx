@@ -73,6 +73,13 @@ const CloroSolubleModule = dashboardDynamic(async () => (await import("@/compone
 const SalesSolublesModule = dashboardDynamic(async () => (await import("@/components/dashboard/sales-solubles-module")).SalesSolublesModule)
 const SulfatosSolublesModule = dashboardDynamic(async () => (await import("@/components/dashboard/sulfatos-solubles-module")).SulfatosSolublesModule)
 const CompresionNoConfinadaModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-no-confinada-module")).CompresionNoConfinadaModule)
+const ContMatOrganicaModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).ContMatOrganicaModule)
+const TerronesFinoGruesoModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).TerronesFinoGruesoModule)
+const AzulMetilenoModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).AzulMetilenoModule)
+const PartLivianasModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).PartLivianasModule)
+const ImpOrganicasModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).ImpOrganicasModule)
+const SulMagnesioModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).SulMagnesioModule)
+const AngularidadModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).AngularidadModule)
 const PermisosModule = dashboardDynamic(async () => (await import("@/components/dashboard/permisos-module")).PermisosModule)
 
 export default function DashboardPage() {
@@ -363,6 +370,20 @@ export default function DashboardPage() {
         return <SulfatosSolublesModule />
       case "compresion_no_confinada":
         return <CompresionNoConfinadaModule />
+      case "cont_mat_organica":
+        return <ContMatOrganicaModule />
+      case "terrones_fino_grueso":
+        return <TerronesFinoGruesoModule />
+      case "azul_metileno":
+        return <AzulMetilenoModule />
+      case "part_livianas":
+        return <PartLivianasModule />
+      case "imp_organicas":
+        return <ImpOrganicasModule />
+      case "sul_magnesio":
+        return <SulMagnesioModule />
+      case "angularidad":
+        return <AngularidadModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

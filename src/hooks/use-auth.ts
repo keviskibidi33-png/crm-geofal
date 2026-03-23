@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { deleteSessionAction, refreshSessionAction } from "@/app/actions/auth-actions"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
     read: boolean
@@ -306,6 +306,55 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.llp?.delete || p.proctor?.delete || false,
             }
         }
+        if (!p.cont_mat_organica) {
+            p.cont_mat_organica = {
+                read: p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
+                write: p.gran_agregado?.write || p.llp?.write || p.proctor?.write || false,
+                delete: p.gran_agregado?.delete || p.llp?.delete || p.proctor?.delete || false,
+            }
+        }
+        if (!p.terrones_fino_grueso) {
+            p.terrones_fino_grueso = {
+                read: p.cont_mat_organica?.read || p.gran_agregado?.read || false,
+                write: p.cont_mat_organica?.write || p.gran_agregado?.write || false,
+                delete: p.cont_mat_organica?.delete || p.gran_agregado?.delete || false,
+            }
+        }
+        if (!p.azul_metileno) {
+            p.azul_metileno = {
+                read: p.terrones_fino_grueso?.read || p.cont_mat_organica?.read || p.gran_agregado?.read || false,
+                write: p.terrones_fino_grueso?.write || p.cont_mat_organica?.write || p.gran_agregado?.write || false,
+                delete: p.terrones_fino_grueso?.delete || p.cont_mat_organica?.delete || p.gran_agregado?.delete || false,
+            }
+        }
+        if (!p.part_livianas) {
+            p.part_livianas = {
+                read: p.azul_metileno?.read || p.gran_agregado?.read || false,
+                write: p.azul_metileno?.write || p.gran_agregado?.write || false,
+                delete: p.azul_metileno?.delete || p.gran_agregado?.delete || false,
+            }
+        }
+        if (!p.imp_organicas) {
+            p.imp_organicas = {
+                read: p.part_livianas?.read || p.azul_metileno?.read || p.gran_agregado?.read || false,
+                write: p.part_livianas?.write || p.azul_metileno?.write || p.gran_agregado?.write || false,
+                delete: p.part_livianas?.delete || p.azul_metileno?.delete || p.gran_agregado?.delete || false,
+            }
+        }
+        if (!p.sul_magnesio) {
+            p.sul_magnesio = {
+                read: p.imp_organicas?.read || p.part_livianas?.read || p.gran_agregado?.read || false,
+                write: p.imp_organicas?.write || p.part_livianas?.write || p.gran_agregado?.write || false,
+                delete: p.imp_organicas?.delete || p.part_livianas?.delete || p.gran_agregado?.delete || false,
+            }
+        }
+        if (!p.angularidad) {
+            p.angularidad = {
+                read: p.sul_magnesio?.read || p.ge_fino?.read || p.gran_agregado?.read || false,
+                write: p.sul_magnesio?.write || p.ge_fino?.write || p.gran_agregado?.write || false,
+                delete: p.sul_magnesio?.delete || p.ge_fino?.delete || p.gran_agregado?.delete || false,
+            }
+        }
         if (!p.abra) {
             p.abra = {
                 read: p.gran_agregado?.read || p.llp?.read || p.proctor?.read || false,
@@ -396,6 +445,13 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: true, delete: true },
                 gran_suelo: { read: true, write: true, delete: true },
                 gran_agregado: { read: true, write: true, delete: true },
+                cont_mat_organica: { read: true, write: true, delete: true },
+                terrones_fino_grueso: { read: true, write: true, delete: true },
+                azul_metileno: { read: true, write: true, delete: true },
+                part_livianas: { read: true, write: true, delete: true },
+                imp_organicas: { read: true, write: true, delete: true },
+                sul_magnesio: { read: true, write: true, delete: true },
+                angularidad: { read: true, write: true, delete: true },
                 abra: { read: true, write: true, delete: true },
                 abrass: { read: true, write: true, delete: true },
                 peso_unitario: { read: true, write: true, delete: true },
@@ -450,6 +506,13 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: true, delete: false },
                 gran_suelo: { read: true, write: true, delete: false },
                 gran_agregado: { read: true, write: true, delete: false },
+                cont_mat_organica: { read: true, write: true, delete: false },
+                terrones_fino_grueso: { read: true, write: true, delete: false },
+                azul_metileno: { read: true, write: true, delete: false },
+                part_livianas: { read: true, write: true, delete: false },
+                imp_organicas: { read: true, write: true, delete: false },
+                sul_magnesio: { read: true, write: true, delete: false },
+                angularidad: { read: true, write: true, delete: false },
                 abra: { read: true, write: true, delete: false },
                 abrass: { read: true, write: true, delete: false },
                 peso_unitario: { read: true, write: true, delete: false },
@@ -481,6 +544,13 @@ async function buildUser(session: any): Promise<User> {
                 llp: { read: true, write: !isLector, delete: false },
                 gran_suelo: { read: true, write: !isLector, delete: false },
                 gran_agregado: { read: true, write: !isLector, delete: false },
+                cont_mat_organica: { read: true, write: !isLector, delete: false },
+                terrones_fino_grueso: { read: true, write: !isLector, delete: false },
+                azul_metileno: { read: true, write: !isLector, delete: false },
+                part_livianas: { read: true, write: !isLector, delete: false },
+                imp_organicas: { read: true, write: !isLector, delete: false },
+                sul_magnesio: { read: true, write: !isLector, delete: false },
+                angularidad: { read: true, write: !isLector, delete: false },
                 abra: { read: true, write: !isLector, delete: false },
                 abrass: { read: true, write: !isLector, delete: false },
                 peso_unitario: { read: true, write: !isLector, delete: false },
@@ -528,6 +598,13 @@ async function buildUser(session: any): Promise<User> {
             llp: grantWrite(),
             gran_suelo: grantWrite(),
             gran_agregado: grantWrite(),
+            cont_mat_organica: grantWrite(),
+            terrones_fino_grueso: grantWrite(),
+            azul_metileno: grantWrite(),
+            part_livianas: grantWrite(),
+            imp_organicas: grantWrite(),
+            sul_magnesio: grantWrite(),
+            angularidad: grantWrite(),
             abra: grantWrite(),
             abrass: grantWrite(),
             peso_unitario: grantWrite(),
