@@ -735,8 +735,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const hasActiveFilters = searchQuery || statusFilter !== "all" || dateFilter !== "all" || clienteFilter !== "all" || vendedorFilter !== "all"
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-120px)]">
-      <div className="w-full h-full flex flex-col gap-4 min-w-0 overflow-hidden">
+    <div className="flex min-h-[calc(100vh-120px)] gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         {/* Header Row */}
         <div className="flex items-center justify-between">
           <div>
@@ -933,9 +933,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         </div>
 
         {/* High-Density Table */}
-        <Card className="flex-1 min-h-0 overflow-hidden">
-          <div className="flex h-full flex-col">
-            <ScrollArea className="flex-1">
+        <Card className="overflow-hidden">
+          <div className="flex flex-col">
+            <div className="overflow-x-auto">
               {filteredQuotes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
@@ -946,7 +946,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
               </div>
             ) : (
               <Table>
-                <TableHeader className="sticky top-0 bg-card z-10">
+                <TableHeader className="bg-card">
                   <TableRow className="hover:bg-transparent border-b">
                     <TableHead className="text-xs font-semibold px-4 py-3 w-[100px]">ID</TableHead>
                     <TableHead className="text-xs font-semibold px-4 py-3 max-w-[300px] xl:max-w-[400px]">Cliente / Proyecto</TableHead>
@@ -1053,7 +1053,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                 </TableBody>
               </Table>
             )}
-            </ScrollArea>
+            </div>
 
             {filteredQuotes.length > itemsPerPage && (
               <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
