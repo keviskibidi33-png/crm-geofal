@@ -2,6 +2,8 @@
 
 import { useEffect } from "react"
 
+const SHOW_SECURITY_CONSOLE_BANNER = process.env.NEXT_PUBLIC_SHOW_SECURITY_CONSOLE_BANNER === 'true'
+
 const SECURITY_MSG = () => {
     console.log(
         '%c⛔ ACCESO AUDITADO',
@@ -25,8 +27,9 @@ export function SecurityShield() {
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return
 
-        // --- Show warning on load ---
-        SECURITY_MSG()
+        if (SHOW_SECURITY_CONSOLE_BANNER) {
+            SECURITY_MSG()
+        }
 
         // --- Right-click protection ---
         const handleContextMenu = (e: MouseEvent) => {
@@ -52,7 +55,7 @@ export function SecurityShield() {
             const widthDiff = window.outerWidth - window.innerWidth > 200
             const heightDiff = window.outerHeight - window.innerHeight > 300
 
-            if ((widthDiff || heightDiff) && !devtoolsDetected) {
+            if ((widthDiff || heightDiff) && !devtoolsDetected && SHOW_SECURITY_CONSOLE_BANNER) {
                 devtoolsDetected = true
                 SECURITY_MSG()
             } else if (!widthDiff && !heightDiff) {

@@ -71,6 +71,7 @@ function SmartIframe({
   const MAX_RETRIES = 2
   const RETRY_TOAST_DELAY_MS = 1200
   const READY_PING_INTERVAL_MS = 3000
+  const READY_PING_GRACE_MS = 1200
   const [key, setKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -181,6 +182,7 @@ function SmartIframe({
   useEffect(() => {
     if (!isLoading) return
 
+    let startPingTimeout: NodeJS.Timeout | null = null
     const pingIframe = () => {
       if (!iframeRef.current?.contentWindow) return
       try {
@@ -193,16 +195,21 @@ function SmartIframe({
       }
     }
 
-    pingIframe()
-    readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS) as unknown as NodeJS.Timeout
+    startPingTimeout = setTimeout(() => {
+      pingIframe()
+      readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS) as unknown as NodeJS.Timeout
+    }, READY_PING_GRACE_MS)
 
     return () => {
+      if (startPingTimeout) {
+        clearTimeout(startPingTimeout)
+      }
       if (readyPingRef.current) {
         clearInterval(readyPingRef.current)
         readyPingRef.current = null
       }
     }
-  }, [expectedOrigin, isLoading, key])
+  }, [READY_PING_GRACE_MS, expectedOrigin, isLoading, key])
 
   useEffect(() => {
     if (!isLoading || configurationError) return
@@ -308,13 +315,18 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
     [config.fallbackFrontendUrl, config.frontendUrl, config.routePath],
   )
   const [iframeBaseUrl, setIframeBaseUrl] = useState(preferredFrontendUrl)
-  const frontendOrigin = useMemo(() => {
-    try {
-      return new URL(iframeBaseUrl).origin
-    } catch {
-      return null
+  const allowedIframeOrigins = useMemo(() => {
+    const origins = new Set<string>()
+    for (const candidate of [iframeBaseUrl, preferredFrontendUrl, config.fallbackFrontendUrl]) {
+      if (!candidate) continue
+      try {
+        origins.add(new URL(candidate).origin)
+      } catch {
+        // ignore malformed URLs and keep known-good origins only
+      }
     }
-  }, [iframeBaseUrl])
+    return origins
+  }, [config.fallbackFrontendUrl, iframeBaseUrl, preferredFrontendUrl])
 
   useEffect(() => {
     setIframeBaseUrl(preferredFrontendUrl)
@@ -356,7 +368,7 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (frontendOrigin && event.origin !== frontendOrigin) return
+      if (allowedIframeOrigins.size > 0 && !allowedIframeOrigins.has(event.origin)) return
 
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
@@ -367,7 +379,7 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
           if (freshToken && event.source) {
             ;(event.source as Window).postMessage(
               { type: "TOKEN_REFRESH", token: freshToken, requestId: typeof event.data?.requestId === "string" ? event.data.requestId : undefined },
-              frontendOrigin ?? event.origin ?? "*",
+              event.origin,
             )
           }
         })
@@ -375,7 +387,7 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
     }
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos, frontendOrigin])
+  }, [allowedIframeOrigins, fetchEnsayos])
 
   const openNewEnsayo = async () => {
     await syncIframeToken()

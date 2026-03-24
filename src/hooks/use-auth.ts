@@ -34,6 +34,14 @@ const CONTROL_ACCESS_REVOKED_EMAILS = new Set([
     "tecnico3@geofal.com.pe",
 ])
 
+const AUTH_DEBUG_LOGS = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEBUG_AUTH === "true"
+
+function authDebugLog(...args: unknown[]) {
+    if (AUTH_DEBUG_LOGS) {
+        console.log(...args)
+    }
+}
+
 // Module-level cache - persists across component re-mounts
 let cachedUser: User | null = null
 let hasInitialized = false
@@ -153,7 +161,7 @@ async function fetchProfile(userId: string) {
             },
         )
 
-        console.log("[Auth] Profile query result:", { profile, error })
+        authDebugLog("[Auth] Profile query result:", { profile, error })
 
         if (error) {
             console.error("[Auth] Error fetching profile:", error)
@@ -177,16 +185,16 @@ async function fetchProfile(userId: string) {
                 },
             )
 
-            console.log("[Auth] RoleDef query result:", { roleDef, roleError, roleId: profile.role })
+            authDebugLog("[Auth] RoleDef query result:", { roleDef, roleError, roleId: profile.role })
 
             if (roleDef) {
                 const result = { ...profile, role_definitions: roleDef }
-                console.log("[Auth] Final profile with roleDef:", result)
+                authDebugLog("[Auth] Final profile with roleDef:", result)
                 return result
             }
         }
 
-        console.log("[Auth] Returning profile WITHOUT roleDef")
+        authDebugLog("[Auth] Returning profile WITHOUT roleDef")
         return { ...profile, role_definitions: null }
     } catch (e) {
         if (e instanceof AuthBootstrapError) {
@@ -233,7 +241,7 @@ async function buildUser(session: any): Promise<User> {
     // 1. Prioritize permissions from database (Supabase Join or API)
     let permissions = roleDef?.permissions
     if (!permissions || Object.keys(permissions).length === 0) {
-        console.log(`[Auth] No permissions from Supabase join, fetching from API for role: ${roleFromProfile}`)
+        authDebugLog(`[Auth] No permissions from Supabase join, fetching from API for role: ${roleFromProfile}`)
         permissions = await fetchRolePermissions(roleFromProfile)
     }
 
@@ -473,7 +481,7 @@ async function buildUser(session: any): Promise<User> {
     if (permissions && Object.keys(permissions).length > 0) {
         permissions = enforcePermissions(permissions)
     } else {
-        console.log("[Auth] No matrix permissions found, using role-based safety fallbacks")
+        authDebugLog("[Auth] No matrix permissions found, using role-based safety fallbacks")
         // Admin protection: If matrix fails, Admin STILL gets everything
         if (isSuperAdminFinal) {
             permissions = enforcePermissions({})
@@ -563,7 +571,7 @@ async function buildUser(session: any): Promise<User> {
                 configuracion: { read: true, write: false, delete: false }
             }
         } else {
-            console.log(`[Auth] Minimal fallback for unknown role: ${role}`)
+            authDebugLog(`[Auth] Minimal fallback for unknown role: ${role}`)
             permissions = {
                 programacion: { read: true, write: false, delete: false },
                 laboratorio: { read: true, write: false, delete: false },
