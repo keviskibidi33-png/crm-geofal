@@ -57,42 +57,141 @@ const resolveModuleFrontendUrl = (routePath: string, specificUrl?: string, fallb
 }
 
 function SmartIframe({ src, title }: { src: string; title: string }) {
+  const MAX_RETRIES = 2
+  const RETRY_TOAST_DELAY_MS = 1200
+  const READY_PING_INTERVAL_MS = 3000
   const [key, setKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const readyPingRef = useRef<NodeJS.Timeout | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const completeLoad = useCallback(() => {
-    setIsLoading(false)
-    setError(null)
-    setRetryCount(0)
+  const parsedSrc = useMemo(() => {
+    try {
+      return new URL(src)
+    } catch {
+      return null
+    }
+  }, [src])
+
+  const expectedOrigin = parsedSrc?.origin ?? null
+
+  const configurationError = useMemo(() => {
+    if (!parsedSrc) {
+      return "La URL del módulo es inválida."
+    }
+
+    const host = parsedSrc.hostname.toLowerCase()
+    if (process.env.NODE_ENV === "production" && (host === "localhost" || host === "127.0.0.1")) {
+      return "Configuración inválida en producción: el módulo apunta a localhost."
+    }
+
+    return null
+  }, [parsedSrc])
+
+  const clearTransientTimers = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current)
+      retryTimerRef.current = null
+    }
+    if (readyPingRef.current) {
+      clearInterval(readyPingRef.current)
+      readyPingRef.current = null
+    }
   }, [])
 
+  const completeLoad = useCallback(() => {
+    clearTransientTimers()
+    setIsLoading(false)
+    setError(null)
+    setRetryCount(0)
+  }, [clearTransientTimers])
+
   const handleRetry = useCallback(() => {
+    if (configurationError) {
+      clearTransientTimers()
+      setError(configurationError)
+      setIsLoading(false)
+      return
+    }
+
+    clearTransientTimers()
     setIsLoading(true)
     setError(null)
     setKey((prev) => prev + 1)
     setRetryCount((prev) => prev + 1)
-  }, [])
+  }, [clearTransientTimers, configurationError])
+
+  useEffect(() => {
+    clearTransientTimers()
+
+    if (configurationError) {
+      setError(configurationError)
+      setIsLoading(false)
+      return
+    }
+
+    setError(null)
+    setIsLoading(true)
+    setRetryCount(0)
+  }, [clearTransientTimers, configurationError, src])
+
+  useEffect(() => {
+    if (!isLoading || !expectedOrigin) return
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== expectedOrigin) return
+      if (event.data?.type !== "IFRAME_READY") return
+      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
+      completeLoad()
+    }
+
+    window.addEventListener("message", onMessage)
+    return () => window.removeEventListener("message", onMessage)
+  }, [completeLoad, expectedOrigin, isLoading])
 
   useEffect(() => {
     if (!isLoading) return
 
+    const pingIframe = () => {
+      if (!iframeRef.current?.contentWindow) return
+      iframeRef.current.contentWindow.postMessage(
+        { type: "PING_IFRAME_READY", source: "crm-shell" },
+        expectedOrigin ?? "*",
+      )
+    }
+
+    pingIframe()
+    readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS) as unknown as NodeJS.Timeout
+
+    return () => {
+      if (readyPingRef.current) {
+        clearInterval(readyPingRef.current)
+        readyPingRef.current = null
+      }
+    }
+  }, [expectedOrigin, isLoading, key])
+
+  useEffect(() => {
+    if (!isLoading || configurationError) return
+
     const timeoutMs = 20000 * Math.pow(2, retryCount)
     timeoutRef.current = setTimeout(() => {
-      if (retryCount < 2) {
-        toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
-        setTimeout(() => {
-          toast.dismiss()
+      if (retryCount < MAX_RETRIES) {
+        const toastId = toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/${MAX_RETRIES + 1})`)
+        retryTimerRef.current = setTimeout(() => {
+          toast.dismiss(toastId)
           handleRetry()
-        }, 1500)
+        }, RETRY_TOAST_DELAY_MS)
       } else {
+        clearTransientTimers()
         setError(`El servicio no responde despues de varios intentos (${timeoutMs / 1000}s).`)
         setIsLoading(false)
       }
@@ -104,25 +203,20 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
         timeoutRef.current = null
       }
     }
-  }, [handleRetry, isLoading, retryCount])
+  }, [MAX_RETRIES, RETRY_TOAST_DELAY_MS, clearTransientTimers, configurationError, handleRetry, isLoading, retryCount])
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.type !== "IFRAME_READY") return
-      if (event.source !== iframeRef.current?.contentWindow) return
-      completeLoad()
-    }
-
-    window.addEventListener("message", onMessage)
-    return () => window.removeEventListener("message", onMessage)
-  }, [completeLoad])
+  useEffect(() => () => clearTransientTimers(), [clearTransientTimers])
 
   const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
+    if (!parsedSrc) return src
+    const url = new URL(parsedSrc.toString())
+    if (retryCount > 0) {
+      url.searchParams.set("retry", retryCount.toString())
+    } else {
+      url.searchParams.delete("retry")
+    }
     return url.toString()
-  }, [retryCount, src])
+  }, [parsedSrc, retryCount, src])
 
   return (
     <div className="relative h-full w-full bg-gray-50">
@@ -159,7 +253,11 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
         className={`h-full w-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
         title={title}
         onLoad={completeLoad}
-        onError={() => setError("Error al cargar el iframe.")}
+        onError={() => {
+          clearTransientTimers()
+          setIsLoading(false)
+          setError("Error al cargar el iframe.")
+        }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         loading="eager"
       />
@@ -180,6 +278,14 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+  const frontendOrigin = useMemo(() => {
+    try {
+      const baseUrl = config.frontendUrl || resolveModuleFrontendUrl(config.routePath)
+      return new URL(baseUrl).origin
+    } catch {
+      return null
+    }
+  }, [config.frontendUrl, config.routePath])
 
   const syncIframeToken = async (): Promise<string | null> => {
     const {
@@ -213,21 +319,26 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (frontendOrigin && event.origin !== frontendOrigin) return
+
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
         void fetchEnsayos()
       }
       if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session && event.source) {
-            ;(event.source as Window).postMessage({ type: "TOKEN_REFRESH", token: session.access_token }, "*")
+        syncIframeToken().then((freshToken) => {
+          if (freshToken && event.source) {
+            ;(event.source as Window).postMessage(
+              { type: "TOKEN_REFRESH", token: freshToken, requestId: typeof event.data?.requestId === "string" ? event.data.requestId : undefined },
+              frontendOrigin ?? event.origin ?? "*",
+            )
           }
         })
       }
     }
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos])
+  }, [fetchEnsayos, frontendOrigin])
 
   const openNewEnsayo = async () => {
     await syncIframeToken()
