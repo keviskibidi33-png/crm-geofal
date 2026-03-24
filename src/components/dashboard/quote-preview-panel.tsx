@@ -2,7 +2,6 @@
 
 import { Download, Eye, FileText, Building2, User2, Package, Clock, CheckCircle2, XCircle, AlertCircle, ChevronDown, Loader2, Mail, Phone, Trash2, UploadCloud } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {

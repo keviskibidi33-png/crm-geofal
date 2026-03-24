@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react"
-import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X, UploadCloud, FileUp } from "lucide-react"
+import { useState, useCallback, useEffect, useMemo, useRef, useDeferredValue } from "react"
+import { Plus, FileText, Clock, DollarSign, Loader2, RefreshCw, Search, Calendar, Building2, User2, Download, Eye, X, UploadCloud, FileUp, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -31,8 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { isToday, isThisWeek, isThisMonth, parseISO, format } from "date-fns"
-import { es } from "date-fns/locale"
+import { isToday, isThisWeek, isThisMonth, parseISO } from "date-fns"
 import { logActionClient as logAction } from "@/lib/audit-client"
 
 export interface Quote {
@@ -53,9 +52,15 @@ export interface Quote {
   proyectoNombre: string
   itemsJson: any[]
   objectKey: string
+  correoVendedor?: string
+  telefonoComercial?: string
+  plazoDias?: number
+  condicionPago?: string
+  condicionesTextos?: string[]
+  detailsLoaded?: boolean
 }
 
-interface DbQuoteRow {
+interface DbQuoteListRow {
   id: string
   numero: string
   year: number
@@ -72,11 +77,23 @@ interface DbQuoteRow {
   fecha_emision: string | null
   created_at: string
   items_count: number | null
-  items_json: any[] | null
   object_key: string | null
 }
 
-const mapDbQuoteToUi = (row: any): Quote => ({
+interface DbQuoteDetailRow {
+  id: string
+  cliente_email: string | null
+  cliente_telefono: string | null
+  cliente_contacto: string | null
+  items_json: any[] | null
+  correo_vendedor: string | null
+  telefono_comercial: string | null
+  plazo_dias: number | null
+  condicion_pago: string | null
+  condiciones_textos: string[] | null
+}
+
+const mapDbQuoteToUi = (row: DbQuoteListRow): Quote => ({
   id: row.id,
   numero: row.numero,
   year: row.year,
@@ -86,14 +103,29 @@ const mapDbQuoteToUi = (row: any): Quote => ({
   owner: row.vendedor_nombre || "Sistema",
   ownerId: row.user_created || "",
   fecha: row.fecha_emision ? String(row.fecha_emision) : row.created_at.split("T")[0],
-  itemsCount: row.items_count || (row.items_json ? row.items_json.length : 0),
+  itemsCount: row.items_count || 0,
   clienteRuc: row.cliente_ruc || "",
+  clienteEmail: "",
+  clienteTelefono: "",
+  clienteContacto: "",
+  proyectoNombre: row.proyecto || "Sin Proyecto",
+  itemsJson: [],
+  objectKey: row.object_key || "",
+  detailsLoaded: false,
+})
+
+const mergeQuoteDetails = (quote: Quote, row: DbQuoteDetailRow): Quote => ({
+  ...quote,
   clienteEmail: row.cliente_email || "",
   clienteTelefono: row.cliente_telefono || "",
   clienteContacto: row.cliente_contacto || "",
-  proyectoNombre: row.proyecto || "Sin Proyecto",
   itemsJson: row.items_json || [],
-  objectKey: row.object_key || "",
+  correoVendedor: row.correo_vendedor || "",
+  telefonoComercial: row.telefono_comercial || "",
+  plazoDias: row.plazo_dias ?? undefined,
+  condicionPago: row.condicion_pago || "",
+  condicionesTextos: row.condiciones_textos || [],
+  detailsLoaded: true,
 })
 
 // Helper functions moved outside component for performance
@@ -118,6 +150,8 @@ interface CotizadoraModuleProps {
   user: User
 }
 
+const DEFAULT_QUOTES_PER_PAGE = 20
+
 export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -131,9 +165,17 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all")
   const [clienteFilter, setClienteFilter] = useState<string>("all")
   const [vendedorFilter, setVendedorFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      return Number(localStorage.getItem("cotizadoraItemsPerPage")) || DEFAULT_QUOTES_PER_PAGE
+    }
+    return DEFAULT_QUOTES_PER_PAGE
+  })
 
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingQuoteDetailsId, setLoadingQuoteDetailsId] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -152,18 +194,29 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [importCondicionSearch, setImportCondicionSearch] = useState("")
   // const { toast } = useToast() // Replaced by Sonner
   const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
+  const deferredSearchQuery = useDeferredValue(searchQuery)
+  const quotesRef = useRef<Quote[]>([])
+  const detailRequestsRef = useRef<Map<string, Promise<Quote>>>(new Map())
+
+  useEffect(() => {
+    quotesRef.current = quotes
+  }, [quotes])
+
+  useEffect(() => {
+    localStorage.setItem("cotizadoraItemsPerPage", itemsPerPage.toString())
+  }, [itemsPerPage])
 
   const fetchQuotes = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from("cotizaciones")
-        .select("*")
+        .select("id, numero, year, cliente_nombre, cliente_ruc, proyecto, total, estado, vendedor_nombre, user_created, fecha_emision, created_at, items_count, object_key")
         .eq("visibilidad", "visible")
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      setQuotes((data || []).map(mapDbQuoteToUi))
+      setQuotes((data || []).map((row) => mapDbQuoteToUi(row as DbQuoteListRow)))
     } catch (err: any) {
       toast.error("Error al cargar cotizaciones", {
         description: err.message,
@@ -172,6 +225,68 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setLoading(false)
     }
   }, [])
+
+  const loadQuoteDetails = useCallback(async (quoteId: string) => {
+    const cachedQuote = quotesRef.current.find((quote) => quote.id === quoteId)
+    if (!cachedQuote) {
+      throw new Error("No se encontró la cotización seleccionada.")
+    }
+
+    if (cachedQuote.detailsLoaded) {
+      return cachedQuote
+    }
+
+    const pendingRequest = detailRequestsRef.current.get(quoteId)
+    if (pendingRequest) {
+      return pendingRequest
+    }
+
+    const request = (async () => {
+      setLoadingQuoteDetailsId(quoteId)
+
+      const { data, error } = await supabase
+        .from("cotizaciones")
+        .select("id, cliente_email, cliente_telefono, cliente_contacto, items_json, correo_vendedor, telefono_comercial, plazo_dias, condicion_pago, condiciones_textos")
+        .eq("id", quoteId)
+        .single()
+
+      if (error) {
+        throw error
+      }
+
+      const detailedQuote = mergeQuoteDetails(cachedQuote, data as DbQuoteDetailRow)
+      setQuotes((previous) => previous.map((quote) => quote.id === quoteId ? detailedQuote : quote))
+
+      return detailedQuote
+    })()
+      .finally(() => {
+        detailRequestsRef.current.delete(quoteId)
+        setLoadingQuoteDetailsId((current) => current === quoteId ? null : current)
+      })
+
+    detailRequestsRef.current.set(quoteId, request)
+
+    return request
+  }, [])
+
+  const openPreview = useCallback((quote: Quote) => {
+    setPreviewQuote(quote)
+
+    if (quote.detailsLoaded) {
+      return
+    }
+
+    void loadQuoteDetails(quote.id)
+      .then((detailedQuote) => {
+        setPreviewQuote((current) => current?.id === detailedQuote.id ? detailedQuote : current)
+        setSelectedQuote((current) => current?.id === detailedQuote.id ? detailedQuote : current)
+      })
+      .catch((err: any) => {
+        toast.error("No se pudo cargar el detalle", {
+          description: err.message,
+        })
+      })
+  }, [loadQuoteDetails])
 
   useEffect(() => {
     fetchQuotes()
@@ -192,13 +307,14 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const filteredQuotes = useMemo(() => {
     return quotes.filter((q) => {
       const quoteDate = parseISO(q.fecha)
+      const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase()
 
       // Search query (cliente, numero, proyecto)
-      const matchesSearch = searchQuery === "" ||
-        q.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.proyectoNombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.clienteRuc.includes(searchQuery)
+      const matchesSearch = normalizedSearchQuery === "" ||
+        q.cliente.toLowerCase().includes(normalizedSearchQuery) ||
+        q.numero.toLowerCase().includes(normalizedSearchQuery) ||
+        q.proyectoNombre.toLowerCase().includes(normalizedSearchQuery) ||
+        q.clienteRuc.includes(deferredSearchQuery.trim())
 
       // Status filter
       const matchesStatus = statusFilter === "all" || q.estado === statusFilter
@@ -217,7 +333,24 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       return matchesSearch && matchesStatus && matchesDate && matchesCliente && matchesVendedor
     })
-  }, [quotes, searchQuery, statusFilter, dateFilter, clienteFilter, vendedorFilter])
+  }, [quotes, deferredSearchQuery, statusFilter, dateFilter, clienteFilter, vendedorFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuotes.length / itemsPerPage))
+
+  const paginatedQuotes = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return filteredQuotes.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredQuotes, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [deferredSearchQuery, statusFilter, dateFilter, clienteFilter, vendedorFilter, itemsPerPage])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   // Stats calculations
   const stats = useMemo(() => {
@@ -420,6 +553,21 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const openViewDialog = (quote: Quote) => {
     setSelectedQuote(quote)
     setIsViewDialogOpen(true)
+
+    if (quote.detailsLoaded) {
+      return
+    }
+
+    void loadQuoteDetails(quote.id)
+      .then((detailedQuote) => {
+        setSelectedQuote((current) => current?.id === detailedQuote.id ? detailedQuote : current)
+        setPreviewQuote((current) => current?.id === detailedQuote.id ? detailedQuote : current)
+      })
+      .catch((err: any) => {
+        toast.error("No se pudo cargar el detalle", {
+          description: err.message,
+        })
+      })
   }
 
   // --- Import Excel Handlers ---
@@ -451,7 +599,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       let data
       try {
         data = JSON.parse(text)
-      } catch (e) {
+      } catch {
         console.error("Error parsing JSON:", text)
         throw new Error(`Respuesta inválida del servidor (no es JSON). Posible error 500/404.`)
       }
@@ -498,7 +646,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       let data
       try {
         data = JSON.parse(text)
-      } catch (e) {
+      } catch {
         console.error("Error parsing JSON:", text)
         throw new Error(`Respuesta inválida del servidor (no es JSON): ${text.substring(0, 50)}...`)
       }
@@ -581,6 +729,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setDateFilter("all")
     setClienteFilter("all")
     setVendedorFilter("all")
+    setCurrentPage(1)
   }
 
   const hasActiveFilters = searchQuery || statusFilter !== "all" || dateFilter !== "all" || clienteFilter !== "all" || vendedorFilter !== "all"
@@ -739,6 +888,18 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </SelectContent>
           </Select>
 
+          <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
+            <SelectTrigger className="w-[130px] h-9 text-xs">
+              <SelectValue placeholder="Filas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 filas</SelectItem>
+              <SelectItem value="20">20 filas</SelectItem>
+              <SelectItem value="50">50 filas</SelectItem>
+              <SelectItem value="100">100 filas</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Vendedor Filter (Admin only) */}
           {user.role === "admin" && (
             <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
@@ -767,13 +928,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
           <div className="ml-auto text-xs text-muted-foreground">
             {filteredQuotes.length} resultados
+            {filteredQuotes.length > 0 ? ` • Página ${currentPage} de ${totalPages}` : ""}
           </div>
         </div>
 
         {/* High-Density Table */}
-        <Card className="flex-1 overflow-hidden">
-          <ScrollArea className="h-[calc(100vh-340px)]">
-            {filteredQuotes.length === 0 ? (
+        <Card className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex h-full flex-col">
+            <ScrollArea className="flex-1">
+              {filteredQuotes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
                 <h3 className="text-base font-semibold text-muted-foreground mb-1">Sin resultados</h3>
@@ -796,11 +959,11 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredQuotes.map((quote) => (
+                  {paginatedQuotes.map((quote) => (
                     <TableRow
                       key={quote.id}
                       className={`cursor-pointer group transition-colors ${previewQuote?.id === quote.id ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-secondary/30'}`}
-                      onClick={() => setPreviewQuote(quote)}
+                      onClick={() => openPreview(quote)}
                     >
                       <TableCell className="px-4 py-2.5">
                         <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
@@ -890,7 +1053,80 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                 </TableBody>
               </Table>
             )}
-          </ScrollArea>
+            </ScrollArea>
+
+            {filteredQuotes.length > itemsPerPage && (
+              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {(currentPage - 1) * itemsPerPage + 1} -{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredQuotes.length)} de {filteredQuotes.length} cotizaciones
+                </p>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {(() => {
+                    const pages: Array<number | "ellipsis-start" | "ellipsis-end"> = []
+                    const showEllipsis = totalPages > 7
+
+                    if (!showEllipsis) {
+                      for (let page = 1; page <= totalPages; page += 1) pages.push(page)
+                    } else if (currentPage <= 4) {
+                      for (let page = 1; page <= 5; page += 1) pages.push(page)
+                      pages.push("ellipsis-end", totalPages)
+                    } else if (currentPage >= totalPages - 3) {
+                      pages.push(1, "ellipsis-start")
+                      for (let page = totalPages - 4; page <= totalPages; page += 1) pages.push(page)
+                    } else {
+                      pages.push(1, "ellipsis-start")
+                      for (let page = currentPage - 1; page <= currentPage + 1; page += 1) pages.push(page)
+                      pages.push("ellipsis-end", totalPages)
+                    }
+
+                    return pages.map((page, index) => {
+                      if (page === "ellipsis-start" || page === "ellipsis-end") {
+                        return (
+                          <span key={`${page}-${index}`} className="px-2 text-sm text-muted-foreground">
+                            ...
+                          </span>
+                        )
+                      }
+
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    })
+                  })()}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
 
@@ -908,7 +1144,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             onDelete={(quote) => { setPreviewQuote(quote); setIsDeleteConfirmOpen(true) }}
             onEdit={(quote) => { setSelectedQuote(quote); setIsDialogOpen(true) }}
             onUpload={handleUploadClick}
-            isUpdating={updatingStatus || uploadingFile}
+            isUpdating={updatingStatus || uploadingFile || loadingQuoteDetailsId === previewQuote?.id}
           />
         </SheetContent>
       </Sheet>
