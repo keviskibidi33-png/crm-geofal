@@ -21,6 +21,7 @@ import {
 type SpecialModuleConfig = {
   apiSlug: string
   frontendUrl?: string
+  fallbackFrontendUrl?: string
   routePath: string
   title: string
   historyTitle: string
@@ -56,7 +57,17 @@ const resolveModuleFrontendUrl = (routePath: string, specificUrl?: string, fallb
   return `${SHARED_SPECIAL_MODULE_URL}${routePath}`
 }
 
-function SmartIframe({ src, title }: { src: string; title: string }) {
+function SmartIframe({
+  src,
+  title,
+  expectedModule,
+  onModuleMismatch,
+}: {
+  src: string
+  title: string
+  expectedModule?: string
+  onModuleMismatch?: (detectedModule: string | null) => boolean
+}) {
   const MAX_RETRIES = 2
   const RETRY_TOAST_DELAY_MS = 1200
   const READY_PING_INTERVAL_MS = 3000
@@ -150,22 +161,36 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
       if (event.origin !== expectedOrigin) return
       if (event.data?.type !== "IFRAME_READY") return
       if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
+      const detectedModule = typeof event.data?.module === "string" ? event.data.module : null
+      if (expectedModule && detectedModule && detectedModule !== expectedModule) {
+        clearTransientTimers()
+        const handled = onModuleMismatch?.(detectedModule) ?? false
+        if (!handled) {
+          setError(`El iframe respondió como "${detectedModule}" cuando se esperaba "${expectedModule}".`)
+          setIsLoading(false)
+        }
+        return
+      }
       completeLoad()
     }
 
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [completeLoad, expectedOrigin, isLoading])
+  }, [clearTransientTimers, completeLoad, expectedModule, expectedOrigin, isLoading, onModuleMismatch])
 
   useEffect(() => {
     if (!isLoading) return
 
     const pingIframe = () => {
       if (!iframeRef.current?.contentWindow) return
-      iframeRef.current.contentWindow.postMessage(
-        { type: "PING_IFRAME_READY", source: "crm-shell" },
-        expectedOrigin ?? "*",
-      )
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          { type: "PING_IFRAME_READY", source: "crm-shell" },
+          expectedOrigin ?? "*",
+        )
+      } catch {
+        // Ignore the initial about:blank origin mismatch while the iframe is still navigating.
+      }
     }
 
     pingIframe()
@@ -278,14 +303,26 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+  const preferredFrontendUrl = useMemo(
+    () => resolveModuleFrontendUrl(config.routePath, config.frontendUrl, config.fallbackFrontendUrl),
+    [config.fallbackFrontendUrl, config.frontendUrl, config.routePath],
+  )
+  const [iframeBaseUrl, setIframeBaseUrl] = useState(preferredFrontendUrl)
   const frontendOrigin = useMemo(() => {
     try {
-      const baseUrl = config.frontendUrl || resolveModuleFrontendUrl(config.routePath)
-      return new URL(baseUrl).origin
+      return new URL(iframeBaseUrl).origin
     } catch {
       return null
     }
-  }, [config.frontendUrl, config.routePath])
+  }, [iframeBaseUrl])
+
+  useEffect(() => {
+    setIframeBaseUrl(preferredFrontendUrl)
+    setIsModalOpen(false)
+    setIsDetailOpen(false)
+    setEditingEnsayoId(null)
+    setSelectedDetail(null)
+  }, [config.apiSlug, preferredFrontendUrl])
 
   const syncIframeToken = async (): Promise<string | null> => {
     const {
@@ -407,11 +444,27 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
   })
 
   const iframeSrc = useMemo(() => {
-    const url = new URL(config.frontendUrl || resolveModuleFrontendUrl(config.routePath))
+    const url = new URL(iframeBaseUrl)
     if (token) url.searchParams.set("token", token)
     if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
     return url.toString()
-  }, [config.frontendUrl, config.routePath, editingEnsayoId, token])
+  }, [editingEnsayoId, iframeBaseUrl, token])
+
+  const handleIframeModuleMismatch = useCallback((detectedModule: string | null) => {
+    const fallbackFrontendUrl = config.fallbackFrontendUrl ? normalizeBaseUrl(config.fallbackFrontendUrl) : null
+    if (fallbackFrontendUrl && fallbackFrontendUrl !== iframeBaseUrl) {
+      toast.error(
+        `Se detectó "${detectedModule ?? "otro módulo"}" en ${config.title}. Reintentando con el host oficial.`,
+      )
+      setIframeBaseUrl(fallbackFrontendUrl)
+      return true
+    }
+
+    toast.error(
+      `El iframe de ${config.title} respondió como "${detectedModule ?? "otro módulo"}". Verifica la URL pública del shell.`,
+    )
+    return false
+  }, [config.fallbackFrontendUrl, config.title, iframeBaseUrl])
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
@@ -518,7 +571,12 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
             <DialogTitle>Ensayo {config.title}</DialogTitle>
             <DialogDescription>Formulario {config.title}</DialogDescription>
           </DialogHeader>
-          <SmartIframe src={iframeSrc} title={`${config.title} CRM`} />
+          <SmartIframe
+            src={iframeSrc}
+            title={`${config.title} CRM`}
+            expectedModule={config.apiSlug}
+            onModuleMismatch={handleIframeModuleMismatch}
+          />
         </DialogContent>
       </Dialog>
 
@@ -548,29 +606,29 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
 }
 
 export function ContMatOrganicaModule() {
-  return <SpecialLabModule config={{ apiSlug: "cont-mat-organica", frontendUrl: resolveModuleFrontendUrl("/cont-mat-organica", process.env.NEXT_PUBLIC_CONT_MAT_ORGANICA_URL, "https://cont.mat.organicas.geofal.com.pe"), routePath: "/cont-mat-organica", title: "Contenido Materia Organica", historyTitle: "Historial Contenido Materia Organica" }} />
+  return <SpecialLabModule config={{ apiSlug: "cont-mat-organica", frontendUrl: process.env.NEXT_PUBLIC_CONT_MAT_ORGANICA_URL, fallbackFrontendUrl: "https://cont.mat.organicas.geofal.com.pe", routePath: "/cont-mat-organica", title: "Contenido Materia Organica", historyTitle: "Historial Contenido Materia Organica" }} />
 }
 
 export function TerronesFinoGruesoModule() {
-  return <SpecialLabModule config={{ apiSlug: "terrones-fino-grueso", frontendUrl: resolveModuleFrontendUrl("/terrones-fino-grueso", process.env.NEXT_PUBLIC_TERRONES_FINO_GRUESO_URL, "https://terrones.finogrueso.geofal.com.pe"), routePath: "/terrones-fino-grueso", title: "Terrones Fino Grueso", historyTitle: "Historial Terrones Fino Grueso" }} />
+  return <SpecialLabModule config={{ apiSlug: "terrones-fino-grueso", frontendUrl: process.env.NEXT_PUBLIC_TERRONES_FINO_GRUESO_URL, fallbackFrontendUrl: "https://terrones.finogrueso.geofal.com.pe", routePath: "/terrones-fino-grueso", title: "Terrones Fino Grueso", historyTitle: "Historial Terrones Fino Grueso" }} />
 }
 
 export function AzulMetilenoModule() {
-  return <SpecialLabModule config={{ apiSlug: "azul-metileno", frontendUrl: resolveModuleFrontendUrl("/azul-metileno", process.env.NEXT_PUBLIC_AZUL_METILENO_URL, "https://azul.metileno.geofal.com.pe"), routePath: "/azul-metileno", title: "Azul Metileno", historyTitle: "Historial Azul Metileno" }} />
+  return <SpecialLabModule config={{ apiSlug: "azul-metileno", frontendUrl: process.env.NEXT_PUBLIC_AZUL_METILENO_URL, fallbackFrontendUrl: "https://azul.metileno.geofal.com.pe", routePath: "/azul-metileno", title: "Azul Metileno", historyTitle: "Historial Azul Metileno" }} />
 }
 
 export function PartLivianasModule() {
-  return <SpecialLabModule config={{ apiSlug: "part-livianas", frontendUrl: resolveModuleFrontendUrl("/part-livianas", process.env.NEXT_PUBLIC_PART_LIVIANAS_URL, "https://part.livianasfinasgrueso.geofal.com.pe"), routePath: "/part-livianas", title: "Particulas Livianas", historyTitle: "Historial Particulas Livianas" }} />
+  return <SpecialLabModule config={{ apiSlug: "part-livianas", frontendUrl: process.env.NEXT_PUBLIC_PART_LIVIANAS_URL, fallbackFrontendUrl: "https://part.livianasfinasgrueso.geofal.com.pe", routePath: "/part-livianas", title: "Particulas Livianas", historyTitle: "Historial Particulas Livianas" }} />
 }
 
 export function ImpOrganicasModule() {
-  return <SpecialLabModule config={{ apiSlug: "imp-organicas", frontendUrl: resolveModuleFrontendUrl("/imp-organicas", process.env.NEXT_PUBLIC_IMP_ORGANICAS_URL, "https://imp.organicas.geofal.com.pe"), routePath: "/imp-organicas", title: "Impurezas Organicas", historyTitle: "Historial Impurezas Organicas" }} />
+  return <SpecialLabModule config={{ apiSlug: "imp-organicas", frontendUrl: process.env.NEXT_PUBLIC_IMP_ORGANICAS_URL, fallbackFrontendUrl: "https://imp.organicas.geofal.com.pe", routePath: "/imp-organicas", title: "Impurezas Organicas", historyTitle: "Historial Impurezas Organicas" }} />
 }
 
 export function SulMagnesioModule() {
-  return <SpecialLabModule config={{ apiSlug: "sul-magnesio", frontendUrl: resolveModuleFrontendUrl("/sul-magnesio", process.env.NEXT_PUBLIC_SUL_MAGNESIO_URL, "https://sul.magnesio.geofal.com.pe"), routePath: "/sul-magnesio", title: "Sulfato de Magnesio", historyTitle: "Historial Sulfato de Magnesio" }} />
+  return <SpecialLabModule config={{ apiSlug: "sul-magnesio", frontendUrl: process.env.NEXT_PUBLIC_SUL_MAGNESIO_URL, fallbackFrontendUrl: "https://sul.magnesio.geofal.com.pe", routePath: "/sul-magnesio", title: "Sulfato de Magnesio", historyTitle: "Historial Sulfato de Magnesio" }} />
 }
 
 export function AngularidadModule() {
-  return <SpecialLabModule config={{ apiSlug: "angularidad", frontendUrl: resolveModuleFrontendUrl("/angularidad", process.env.NEXT_PUBLIC_ANGULARIDAD_URL, "https://angularidad.geofal.com.pe"), routePath: "/angularidad", title: "Angularidad", historyTitle: "Historial Angularidad" }} />
+  return <SpecialLabModule config={{ apiSlug: "angularidad", frontendUrl: process.env.NEXT_PUBLIC_ANGULARIDAD_URL, fallbackFrontendUrl: "https://angularidad.geofal.com.pe", routePath: "/angularidad", title: "Angularidad", historyTitle: "Historial Angularidad" }} />
 }
