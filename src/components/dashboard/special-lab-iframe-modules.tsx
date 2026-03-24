@@ -64,7 +64,7 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const handleReady = useCallback(() => {
+  const completeLoad = useCallback(() => {
     setIsLoading(false)
     setError(null)
     setRetryCount(0)
@@ -110,12 +110,12 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type !== "IFRAME_READY") return
       if (event.source !== iframeRef.current?.contentWindow) return
-      handleReady()
+      completeLoad()
     }
 
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [handleReady])
+  }, [completeLoad])
 
   const currentSrc = useMemo(() => {
     const url = new URL(src)
@@ -158,6 +158,7 @@ function SmartIframe({ src, title }: { src: string; title: string }) {
         src={currentSrc}
         className={`h-full w-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
         title={title}
+        onLoad={completeLoad}
         onError={() => setError("Error al cargar el iframe.")}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         loading="eager"
