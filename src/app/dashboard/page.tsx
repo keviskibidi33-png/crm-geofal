@@ -135,19 +135,23 @@ export default function DashboardPage() {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
 
+  const getPreferredControlModule = (role: string, permissions?: Record<string, { read: boolean }>): ModuleType | null => {
+    if (permissions?.laboratorio?.read) return "laboratorio"
+    if (permissions?.comercial?.read) return "comercial"
+    if (permissions?.administracion?.read) return "administracion"
+
+    if (role.includes('laboratorio')) return 'laboratorio'
+    if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial'
+    if (role.includes('administracion')) return 'administracion'
+    return null
+  }
+
   // Force initial landing to control modules for specific roles
   useEffect(() => {
     if (loading || !user || initRedirectedRef.current) return
 
     const role = user.role?.toLowerCase() || ""
-    const getControlDefault = (): ModuleType | null => {
-      if (role.includes('laboratorio')) return 'laboratorio'
-      if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial'
-      if (role.includes('administracion')) return 'administracion'
-      return null
-    }
-
-    const controlDefault = getControlDefault()
+    const controlDefault = getPreferredControlModule(role, user.permissions)
     initRedirectedRef.current = true
     if (controlDefault && activeModule !== controlDefault) {
       setActiveModule(controlDefault)
@@ -188,9 +192,8 @@ export default function DashboardPage() {
       // Choose a smart default based on role
       const getRoleDefault = (): ModuleType => {
         if (role === 'tecnico') return 'tracing';
-        if (role.includes('laboratorio')) return 'laboratorio';
-        if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial';
-        if (role.includes('administracion')) return 'administracion';
+        const preferredControl = getPreferredControlModule(role, user.permissions);
+        if (preferredControl) return preferredControl;
         return 'clientes';
       }
 
