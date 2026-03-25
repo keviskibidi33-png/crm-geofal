@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { User } from "@/hooks/use-auth"
 import { useProgramacionData } from "@/hooks/use-programacion-data"
 import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
@@ -11,6 +11,7 @@ import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
+import { resolveFrontendModuleUrl } from "@/lib/frontend-url"
 
 interface ProgramacionModuleProps {
     user: User
@@ -18,17 +19,32 @@ interface ProgramacionModuleProps {
 
 type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
 const TOKEN_BRIDGE_TRACE_PREFIX = "[ProgramacionTokenBridge]"
+const BRIDGE_DEBUG_LOGS = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEBUG_IFRAME_BRIDGE === "true"
 const VIEW_MODE_PERMISSION_KEY: Record<ViewMode, 'laboratorio' | 'comercial' | 'administracion'> = {
     'LAB': 'laboratorio',
     'COMERCIAL': 'comercial',
     'ADMIN': 'administracion'
 }
 
+const bridgeInfo = (message: string, payload?: unknown) => {
+    if (BRIDGE_DEBUG_LOGS) {
+        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} ${message}`, payload)
+    }
+}
+
+const bridgeWarn = (message: string, payload?: unknown) => {
+    if (BRIDGE_DEBUG_LOGS) {
+        console.warn(`${TOKEN_BRIDGE_TRACE_PREFIX} ${message}`, payload)
+    }
+}
+
 export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     const { kpis, realtimeStatus } = useProgramacionData()
     const [isOpen, setIsOpen] = useState(false)
     const [accessToken, setAccessToken] = useState<string | null>(null)
-    const [iframeNonce, setIframeNonce] = useState<number>(() => Date.now())
+    const [iframeToken, setIframeToken] = useState<string | null>(null)
+    const [iframeReloadKey, setIframeReloadKey] = useState(0)
+    const iframeRef = useRef<HTMLIFrameElement | null>(null)
     const getStoredAccessToken = useCallback((): string | null => {
         if (typeof window === "undefined") return null
         const direct = localStorage.getItem("token")
@@ -79,7 +95,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             localStorage.setItem("token", freshToken)
         }
         setAccessToken(freshToken)
-        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} syncIframeToken`, {
+        bridgeInfo("syncIframeToken", {
             reason,
             session: !!sessionToken,
             local: !!localToken,
@@ -121,6 +137,25 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         [isAdmin, user.permissions]
     )
 
+    const iframeUrl = useMemo(() => {
+        const fallbackUrl = process.env.NODE_ENV === "production"
+            ? "https://programacion.geofal.com.pe"
+            : "http://localhost:8472"
+        return resolveFrontendModuleUrl(
+            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
+            fallbackUrl,
+            "programacion-control",
+        )
+    }, [])
+
+    const iframeOrigin = useMemo(() => {
+        try {
+            return new URL(iframeUrl).origin
+        } catch {
+            return null
+        }
+    }, [iframeUrl])
+
     const handleIframeUpdate = useCallback(() => {
         // No-op: shell KPIs auto-refresh via their own realtime subscription
     }, [])
@@ -132,12 +167,13 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }, [syncIframeToken])
 
     const handleIframeSessionFailure = useCallback((reason: string) => {
-        console.warn(`${TOKEN_BRIDGE_TRACE_PREFIX} preserving shell session after iframe auth failure`, {
+        bridgeWarn("preserving shell session after iframe auth failure", {
             reason,
             currentMode,
         })
         setIsOpen(false)
-        setIframeNonce(Date.now())
+        setIframeToken(null)
+        setIframeReloadKey((current) => current + 1)
         toast.error("No se pudo renovar la sesión del módulo. Vuelve a abrirlo.")
     }, [currentMode])
 
@@ -151,16 +187,22 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
     }, [availableModes, currentMode, isOpen])
 
     useEffect(() => {
+        if (!isOpen) return
+
         const handleMessage = (event: MessageEvent) => {
+            if (!event.source) return
+            if (iframeOrigin && event.origin !== iframeOrigin) return
+            if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
+
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
                 const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
                 const immediateToken = accessToken || getStoredAccessToken()
                 if (immediateToken) {
                     ;(event.source as Window).postMessage(
                         { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'programacion_module_immediate' },
-                        '*'
+                        event.origin
                     )
-                    console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} immediate token response`, {
+                    bridgeInfo("immediate token response", {
                         requestId,
                         origin: event.origin,
                     })
@@ -170,9 +212,9 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
                             { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'programacion_module_sync' },
-                            '*'
+                            event.origin
                         )
-                        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} refreshed token response`, {
+                        bridgeInfo("refreshed token response", {
                             requestId,
                             origin: event.origin,
                         })
@@ -194,7 +236,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
                             { type: 'TOKEN_REFRESH', token: freshToken, requestId: event.data?.requestId, source: 'programacion_module_recovery' },
-                            '*'
+                            event.origin
                         )
                         return
                     }
@@ -205,7 +247,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, syncIframeToken])
+    }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, iframeOrigin, isOpen, syncIframeToken])
 
     const getModuleConfig = (mode: ViewMode) => {
         switch (mode) {
@@ -243,7 +285,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
             handleIframeSessionFailure(`open:${mode}`)
             return
         }
-        setIframeNonce(Date.now())
+        setIframeToken(token)
         setIsOpen(true)
     }
 
@@ -285,10 +327,6 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
     const currentConfig = getModuleConfig(currentMode)
     const { title, icon: Icon } = currentConfig
-    const iframeUrl = process.env.NEXT_PUBLIC_PROGRAMACION_URL ||
-        (typeof window !== 'undefined' && window.location.hostname === 'crm.geofal.com.pe'
-            ? 'https://programacion.geofal.com.pe'
-            : 'http://127.0.0.1:3001')
 
     const permissionKey = VIEW_MODE_PERMISSION_KEY[currentMode] || 'programacion'
 
@@ -311,10 +349,25 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
         }
     }
 
-    const encodedRole = encodeURIComponent(user.role)
-    const resolvedAccessToken = accessToken || (typeof window !== "undefined" ? getStoredAccessToken() : null)
-    const tokenParam = resolvedAccessToken ? `&token=${encodeURIComponent(resolvedAccessToken)}` : ""
-    const fullUrl = `${iframeUrl}?mode=${currentMode.toLowerCase()}&userId=${user.id}&role=${encodedRole}&canWrite=${canWrite}&isAdmin=${isAdmin}${tokenParam}&v=${iframeNonce}`
+    const fullUrl = useMemo(() => {
+        const url = new URL(iframeUrl)
+        url.searchParams.set("mode", currentMode.toLowerCase())
+        url.searchParams.set("userId", user.id)
+        url.searchParams.set("role", user.role)
+        url.searchParams.set("canWrite", String(canWrite))
+        url.searchParams.set("isAdmin", String(isAdmin))
+        if (iframeToken) {
+            url.searchParams.set("token", iframeToken)
+        } else {
+            url.searchParams.delete("token")
+        }
+        if (iframeReloadKey > 0) {
+            url.searchParams.set("retry", String(iframeReloadKey))
+        } else {
+            url.searchParams.delete("retry")
+        }
+        return url.toString()
+    }, [canWrite, currentMode, iframeReloadKey, iframeToken, iframeUrl, isAdmin, user.id, user.role])
 
     return (
         <>
@@ -400,6 +453,7 @@ export function ProgramacionModule({ user }: ProgramacionModuleProps) {
 
                     <div className="flex-1 min-h-0 relative">
                         <iframe
+                            ref={iframeRef}
                             data-programacion-iframe
                             src={fullUrl}
                             className="w-full h-full border-0"
