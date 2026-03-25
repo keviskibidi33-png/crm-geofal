@@ -133,6 +133,25 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
         toast.error("No se pudo renovar la sesión del módulo. Vuelve a abrirlo.")
     }, [])
 
+    const iframeUrl = useMemo(() => {
+        const fallbackUrl = process.env.NODE_ENV === "production"
+            ? "https://programacion.geofal.com.pe"
+            : "http://localhost:8472"
+        return resolveFrontendModuleUrl(
+            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
+            fallbackUrl,
+            "programacion-laboratorio",
+        )
+    }, [])
+
+    const iframeOrigin = useMemo(() => {
+        try {
+            return new URL(iframeUrl).origin
+        } catch {
+            return null
+        }
+    }, [iframeUrl])
+
     useEffect(() => {
         if (!isOpen) return
 
@@ -196,25 +215,6 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
     }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, iframeOrigin, isOpen, syncIframeToken])
-
-    const iframeUrl = useMemo(() => {
-        const fallbackUrl = process.env.NODE_ENV === "production"
-            ? "https://programacion.geofal.com.pe"
-            : "http://localhost:8472"
-        return resolveFrontendModuleUrl(
-            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
-            fallbackUrl,
-            "programacion-laboratorio",
-        )
-    }, [])
-
-    const iframeOrigin = useMemo(() => {
-        try {
-            return new URL(iframeUrl).origin
-        } catch {
-            return null
-        }
-    }, [iframeUrl])
 
     const isAdmin = user.role === "admin"
     const fullUrl = useMemo(() => {
