@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import {
     Dialog,
@@ -14,10 +14,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Loader2, Plus, Trash2, User, Star, Phone, Mail, Briefcase, CheckCircle2, Users } from "lucide-react"
+import { Loader2, Plus, Trash2, Star, Phone, Mail, Briefcase, CheckCircle2, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
+
+const CONTACT_SELECT_FIELDS = "id, nombre, email, telefono, cargo, es_principal"
 
 interface Contact {
     id: string
@@ -27,6 +29,17 @@ interface Contact {
     cargo: string | null
     es_principal: boolean
 }
+
+const sortContacts = (contacts: Contact[]) =>
+    [...contacts].sort((left, right) => {
+        if (left.es_principal !== right.es_principal) {
+            return left.es_principal ? -1 : 1
+        }
+        return left.nombre.localeCompare(right.nombre, "es", { sensitivity: "base" })
+    })
+
+const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Ocurrió un error inesperado."
 
 interface ContactAgendaDialogProps {
     clienteId: string | null
@@ -57,54 +70,59 @@ export function ContactAgendaDialog({
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false)
     // const { toast } = useToast() // Replaced by Sonner
 
-    const fetchContacts = async () => {
+    const fetchContacts = useCallback(async () => {
         if (!clienteId) return
         setIsLoading(true)
         try {
             const { data, error } = await supabase
                 .from("contactos")
-                .select("*")
+                .select(CONTACT_SELECT_FIELDS)
                 .eq("cliente_id", clienteId)
                 .order("es_principal", { ascending: false })
                 .order("nombre", { ascending: true })
 
             if (error) throw error
-            setContacts(data || [])
-        } catch (err: any) {
-            toast.error("Error", { description: err.message })
+            setContacts(sortContacts((data as Contact[] | null) || []))
+        } catch (err) {
+            toast.error("Error", { description: getErrorMessage(err) })
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [clienteId])
 
     useEffect(() => {
         if (open && clienteId) {
-            fetchContacts()
+            void fetchContacts()
             setShowAddForm(false)
         }
-    }, [open, clienteId])
+    }, [clienteId, fetchContacts, open])
 
     const handleAddContact = async () => {
         if (!clienteId || !newContact.nombre) return
         setIsSaving(true)
         try {
-            const { error } = await supabase.from("contactos").insert({
-                cliente_id: clienteId,
-                nombre: newContact.nombre,
-                email: newContact.email || null,
-                telefono: newContact.telefono || null,
-                cargo: newContact.cargo || null,
-                es_principal: contacts.length === 0 // First contact is principal by default
-            })
+            const isFirstContact = contacts.length === 0
+            const { data, error } = await supabase
+                .from("contactos")
+                .insert({
+                    cliente_id: clienteId,
+                    nombre: newContact.nombre,
+                    email: newContact.email || null,
+                    telefono: newContact.telefono || null,
+                    cargo: newContact.cargo || null,
+                    es_principal: isFirstContact,
+                })
+                .select(CONTACT_SELECT_FIELDS)
+                .single()
 
             if (error) throw error
             toast.success("Contacto agregado")
             setNewContact({ nombre: "", email: "", telefono: "", cargo: "" })
             setShowAddForm(false)
-            fetchContacts()
-            if (contacts.length === 0) onPrincipalUpdated?.()
-        } catch (err: any) {
-            toast.error("Error", { description: err.message })
+            setContacts((current) => sortContacts([...current, data as Contact]))
+            if (isFirstContact) onPrincipalUpdated?.()
+        } catch (err) {
+            toast.error("Error", { description: getErrorMessage(err) })
         } finally {
             setIsSaving(false)
         }
@@ -126,9 +144,9 @@ export function ContactAgendaDialog({
             const { error } = await supabase.from("contactos").delete().eq("id", contactToDelete.id)
             if (error) throw error
             toast.success("Contacto eliminado", { description: `Se ha eliminado a ${contactToDelete.nombre}` })
-            fetchContacts()
-        } catch (err: any) {
-            toast.error("Error", { description: err.message })
+            setContacts((current) => current.filter((contact) => contact.id !== contactToDelete.id))
+        } catch (err) {
+            toast.error("Error", { description: getErrorMessage(err) })
         } finally {
             setIsSaving(false)
             setIsConfirmDeleteOpen(false)
@@ -141,23 +159,42 @@ export function ContactAgendaDialog({
         setIsSaving(true)
         try {
             // 1. Quitar principal a todos
-            await supabase.from("contactos").update({ es_principal: false }).eq("cliente_id", clienteId)
+            const { error: resetError } = await supabase
+                .from("contactos")
+                .update({ es_principal: false })
+                .eq("cliente_id", clienteId)
+            if (resetError) throw resetError
 
             // 2. Setear nuevo principal
-            await supabase.from("contactos").update({ es_principal: true }).eq("id", contact.id)
+            const { error: principalError } = await supabase
+                .from("contactos")
+                .update({ es_principal: true })
+                .eq("id", contact.id)
+            if (principalError) throw principalError
 
             // 3. Mirror en tabla clientes para acceso rápido (nombre, email, tel)
-            await supabase.from("clientes").update({
-                nombre: contact.nombre,
-                email: contact.email,
-                telefono: contact.telefono
-            }).eq("id", clienteId)
+            const { error: clientError } = await supabase
+                .from("clientes")
+                .update({
+                    nombre: contact.nombre,
+                    email: contact.email,
+                    telefono: contact.telefono,
+                })
+                .eq("id", clienteId)
+            if (clientError) throw clientError
 
             toast.success("Principal actualizado", { description: `${contact.nombre} es ahora el contacto principal.` })
-            fetchContacts()
+            setContacts((current) =>
+                sortContacts(
+                    current.map((currentContact) => ({
+                        ...currentContact,
+                        es_principal: currentContact.id === contact.id,
+                    }))
+                )
+            )
             onPrincipalUpdated?.()
-        } catch (err: any) {
-            toast.error("Error", { description: err.message })
+        } catch (err) {
+            toast.error("Error", { description: getErrorMessage(err) })
         } finally {
             setIsSaving(false)
         }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useCallback, useEffect, useDeferredValue } from "react"
 import {
   Plus,
   FolderKanban,
@@ -38,7 +38,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { deleteProjectAction } from "@/app/actions/delete-actions"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -72,7 +72,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { CreateProjectDialog } from "./create-project-dialog"
 import { CloseProjectDialog } from "./close-project-dialog"
 import { CreateQuoteDialog } from "./create-quote-dialog"
@@ -139,10 +138,27 @@ interface DbProjectRow {
   fecha_fin: string | null
   motivo_perdida: string | null
   created_at: string
+  contacto_principal_id: string | null
+  monto_final?: number | null
   clientes?: { nombre: string; empresa: string; ruc: string }
+  cotizaciones?: Array<{ total: number | null; estado: string | null }>
+  contactos?: { nombre: string | null; cargo: string | null; email: string | null; telefono: string | null } | null
 }
 
-const mapDbProjectToUi = (row: any): Project => {
+type ProjectQuoteHistoryRow = {
+  id: string
+  numero: string
+  year: number
+  total: number | null
+  estado: string | null
+  fecha_emision: string | null
+  created_at: string
+  object_key: string | null
+  proyecto: string | null
+  proyecto_id: string | null
+}
+
+const mapDbProjectToUi = (row: DbProjectRow): Project => {
   let etapa = row.etapa as Project["etapa"]
   if (row.estado === "completado") {
     etapa = "ventas_archivadas"
@@ -209,6 +225,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const deferredSearchQuery = useDeferredValue(searchQuery)
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('proyectosViewMode') as "grid" | "list") || "grid"
@@ -255,7 +272,23 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       const { data, error } = await supabase
         .from("proyectos")
         .select(`
-          *,
+          id,
+          nombre,
+          descripcion,
+          cliente_id,
+          ubicacion,
+          direccion,
+          vendedor_id,
+          estado,
+          etapa,
+          presupuesto,
+          progreso,
+          fecha_inicio,
+          fecha_fin,
+          motivo_perdida,
+          created_at,
+          contacto_principal_id,
+          monto_final,
           clientes (nombre, empresa, ruc),
           cotizaciones (total, estado),
           contactos!proyectos_contacto_principal_id_fkey (nombre, cargo, email, telefono)
@@ -264,7 +297,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      setProjects((data || []).map(mapDbProjectToUi))
+      setProjects(((data as DbProjectRow[] | null) || []).map(mapDbProjectToUi))
     } catch (err: any) {
       toast.error("Error al cargar proyectos", {
         description: err.message,
@@ -293,12 +326,12 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   const [projectQuotes, setProjectQuotes] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
-  const fetchProjectQuotes = async (projectId: string) => {
+  const fetchProjectQuotes = async (projectId: string, projectName?: string) => {
     setLoadingHistory(true)
     try {
       const { data, error } = await supabase
         .from("cotizaciones")
-        .select("*")
+        .select("id, numero, year, total, estado, fecha_emision, created_at, object_key, proyecto, proyecto_id")
         .eq("proyecto_id", projectId) // Ajustar según nombre real de la columna si es diferente
         .eq("visibilidad", "visible")
         .order("created_at", { ascending: false })
@@ -307,15 +340,15 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         // Reintento con filtro por texto si proyecto_id no existe o falla (fallback dinámico)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("cotizaciones")
-          .select("*")
-          .eq("proyecto", selectedProject?.nombre)
+          .select("id, numero, year, total, estado, fecha_emision, created_at, object_key, proyecto, proyecto_id")
+          .eq("proyecto", projectName || "")
           .eq("visibilidad", "visible")
           .order("created_at", { ascending: false })
 
         if (fallbackError) throw fallbackError
-        setProjectQuotes(fallbackData || [])
+        setProjectQuotes((fallbackData as ProjectQuoteHistoryRow[] | null) || [])
       } else {
-        setProjectQuotes(data || [])
+        setProjectQuotes((data as ProjectQuoteHistoryRow[] | null) || [])
       }
     } catch (err: any) {
       console.error("Error fetching quotes:", err)
@@ -330,7 +363,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   const handleOpenHistory = (project: Project) => {
     setSelectedProject(project)
     setIsHistoryDialogOpen(true)
-    fetchProjectQuotes(project.id)
+    fetchProjectQuotes(project.id, project.nombre)
   }
 
   const handleDownloadQuote = async (quote: any) => {
@@ -363,17 +396,20 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
   }, [projects])
 
   const filteredProjects = useMemo(() => {
+    const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase()
+
     return projects.filter((project) => {
       const matchesTab = project.etapa === activeTab
       const matchesSearch =
-        project.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (project.ruc && project.ruc.toLowerCase().includes(searchQuery.toLowerCase()))
+        normalizedSearchQuery === "" ||
+        project.nombre.toLowerCase().includes(normalizedSearchQuery) ||
+        project.cliente.toLowerCase().includes(normalizedSearchQuery) ||
+        (project.ruc && project.ruc.toLowerCase().includes(normalizedSearchQuery))
       const matchesEstado = estadoFilter === "todos" || project.estado === estadoFilter
       const matchesCliente = clienteFilter === "todos" || project.empresa === clienteFilter
       return matchesTab && matchesSearch && matchesEstado && matchesCliente
     })
-  }, [projects, activeTab, searchQuery, estadoFilter, clienteFilter])
+  }, [projects, activeTab, deferredSearchQuery, estadoFilter, clienteFilter])
 
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage)
   const paginatedProjects = filteredProjects.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -541,41 +577,6 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       setIsCloseDialogOpen(false);
       setSelectedProject(null);
     }
-  }
-
-  const startExecution = async (projectId: string) => {
-    if (!canWrite) {
-      toast.error("Acceso denegado", { description: "No tienes permisos para iniciar la ejecución." })
-      return
-    }
-    const { error } = await supabase
-      .from("proyectos")
-      .update({ estado: "en_ejecucion", etapa: "ventas" })
-      .eq("id", projectId)
-
-    if (error) {
-      toast.error("Error", {
-        description: "No se pudo iniciar la ejecución del proyecto",
-      })
-      return
-    }
-
-    setProjects((prev) =>
-      prev.map((p) => (p.id === projectId && p.estado === "venta_ganada" ? { ...p, estado: "en_ejecucion", etapa: "ventas" } : p)),
-    )
-
-    toast.success("Proyecto iniciado", {
-      description: "El proyecto ahora está en ejecución",
-    })
-
-    // Log action
-    logAction({
-      user_id: user.id,
-      user_name: user.name,
-      action: `Inició ejecución de proyecto: ${projects.find(p => p.id === projectId)?.nombre || 'Proyecto'}`,
-      module: "PROYECTOS",
-    })
-
   }
 
   const changeProjectStatus = async (projectId: string, newStatus: Project["estado"]) => {

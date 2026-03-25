@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useDeferredValue } from "react"
 import {
   Plus,
   Users,
@@ -19,22 +19,17 @@ import {
   Trash2,
   FolderKanban,
   FileText,
-  Calendar,
   Clock,
-  AlertTriangle,
   RefreshCw,
   Loader2,
   MapPin,
   Copy,
-  Check,
-  ExternalLink,
   ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -113,7 +108,11 @@ type DbClientRow = {
   tasa_conversion: number | null
 }
 
-const mapDbClientToUi = (row: any): Client => ({
+type DbClientWithContactsRow = DbClientRow & {
+  contactos?: Array<{ cargo: string | null; es_principal?: boolean | null }>
+}
+
+const mapDbClientToUi = (row: DbClientWithContactsRow): Client => ({
   id: row.id,
   nombre: row.nombre,
   email: row.email,
@@ -200,6 +199,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const deferredSearchQuery = useDeferredValue(searchQuery)
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('clientesViewMode') as "grid" | "list") || "grid"
@@ -233,15 +233,30 @@ export function ClientesModule({ user }: ClientesModuleProps) {
       const { data, error } = await supabase
         .from("clientes")
         .select(`
-          *,
-          contactos (cargo)
+          id,
+          nombre,
+          email,
+          telefono,
+          direccion,
+          empresa,
+          ruc,
+          tipo_documento,
+          estado,
+          sector,
+          fecha_registro,
+          cotizaciones,
+          proyectos,
+          proyectos_ganados,
+          valor_total,
+          tasa_conversion,
+          contactos (cargo, es_principal)
         `)
         .eq("contactos.es_principal", true)
         .is("deleted_at", null)
         .order("fecha_registro", { ascending: false })
 
       if (error) throw error
-      setClients((data as any[] | null)?.map(mapDbClientToUi) ?? [])
+      setClients((data as DbClientWithContactsRow[] | null)?.map(mapDbClientToUi) ?? [])
     } catch (error) {
       const message = error instanceof Error ? error.message : "No fue posible cargar los clientes"
       setFetchError(message)
@@ -272,12 +287,15 @@ export function ClientesModule({ user }: ClientesModuleProps) {
   }
 
   const filteredClients = useMemo(() => {
+    const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase()
+
     return clients.filter((client) => {
       const matchesSearch =
-        client.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        client.empresa.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (client.ruc && client.ruc.toLowerCase().includes(searchQuery.toLowerCase()))
+        normalizedSearchQuery === "" ||
+        client.nombre.toLowerCase().includes(normalizedSearchQuery) ||
+        client.empresa.toLowerCase().includes(normalizedSearchQuery) ||
+        (client.email && client.email.toLowerCase().includes(normalizedSearchQuery)) ||
+        (client.ruc && client.ruc.toLowerCase().includes(normalizedSearchQuery))
       const matchesEstado = estadoFilter === "todos" || client.estado === estadoFilter
       const matchesSector = sectorFilter === "todos" || client.sector === sectorFilter
 
@@ -290,7 +308,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
 
       return matchesSearch && matchesEstado && matchesSector && matchesAntiguedad
     })
-  }, [clients, searchQuery, estadoFilter, sectorFilter, antiguedadFilter])
+  }, [clients, deferredSearchQuery, estadoFilter, sectorFilter, antiguedadFilter])
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage)
   const paginatedClients = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)

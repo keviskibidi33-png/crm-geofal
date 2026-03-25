@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
-import { Loader2, Building, MapPin, DollarSign, Briefcase, Calendar, User as UserIcon, Info } from "lucide-react"
+import { Loader2, Building, MapPin, DollarSign, Briefcase, Calendar, User as UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Check, ChevronsUpDown } from "lucide-react"
@@ -24,6 +23,8 @@ import { type User } from "@/hooks/use-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { ContactSelector } from "./contact-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
+
+const CLIENT_PREVIEW_LIMIT = 50
 
 interface CreateProjectDialogProps {
   open: boolean
@@ -59,6 +60,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
   const [openClientePopover, setOpenClientePopover] = useState(false)
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null)
   const [selectedContacto, setSelectedContacto] = useState<string | null>(null)
+  const deferredClienteSearch = useDeferredValue(clienteSearch)
   // const { toast } = useToast() // Replaced by Sonner
 
   const {
@@ -76,32 +78,44 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
       .is("deleted_at", null)
       .order("empresa", { ascending: true })
 
-    if (!error && data) {
-      setClientes(data.map(c => ({
-        ...c,
-        proyectos_count: c.proyectos || 0,
-        cotizaciones_pendientes: c.cotizaciones || 0
-      })))
+    if (error) {
+      toast.error("Error", {
+        description: error.message || "No se pudo cargar la lista de empresas.",
+      })
+      return
     }
+
+    setClientes(data.map(c => ({
+      ...c,
+      proyectos_count: c.proyectos || 0,
+      cotizaciones_pendientes: c.cotizaciones || 0
+    })))
   }, [])
 
-  // Filtrar clientes por búsqueda con múltiples palabras
-  const clientesFiltrados = useCallback(() => {
-    if (!clienteSearch || clienteSearch.length < 2) return clientes.slice(0, 50)
+  const filteredClientes = useMemo(() => {
+    const normalizedSearch = deferredClienteSearch.trim().toLowerCase()
+    if (!normalizedSearch || normalizedSearch.length < 2) {
+      return clientes.slice(0, CLIENT_PREVIEW_LIMIT)
+    }
 
-    const palabras = clienteSearch.toLowerCase().split(/\s+/).filter(p => p.length > 0)
+    const palabras = normalizedSearch.split(/\s+/).filter((palabra) => palabra.length > 0)
 
-    const filtrados = clientes.filter(c => {
-      const textoCompleto = `${c.empresa} ${c.ruc} ${c.nombre}`.toLowerCase()
-      return palabras.every(palabra => textoCompleto.includes(palabra))
-    })
+    return clientes
+      .filter((cliente) => {
+        const textoCompleto = `${cliente.empresa} ${cliente.ruc} ${cliente.nombre}`.toLowerCase()
+        return palabras.every((palabra) => textoCompleto.includes(palabra))
+      })
+      .slice(0, CLIENT_PREVIEW_LIMIT)
+  }, [clientes, deferredClienteSearch])
 
-    return filtrados.slice(0, 50)
-  }, [clientes, clienteSearch])
+  const selectedClienteData = useMemo(
+    () => clientes.find((cliente) => cliente.id === selectedCliente) ?? null,
+    [clientes, selectedCliente]
+  )
 
   useEffect(() => {
     if (open) {
-      fetchClientes()
+      void fetchClientes()
       setClienteSearch('')
       setSelectedCliente(null)
       setSelectedContacto(null)
@@ -159,9 +173,9 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
       setSelectedContacto(null)
       onOpenChange(false)
       onSuccess?.()
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Error", {
-        description: err.message || "No se pudo crear el proyecto.",
+        description: err instanceof Error ? err.message : "No se pudo crear el proyecto.",
       })
     } finally {
       setIsLoading(false)
@@ -239,7 +253,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
                           className="w-full h-10 justify-between text-xs font-semibold bg-white rounded-xl border-slate-200 shadow-none hover:bg-white"
                         >
                           {selectedCliente
-                            ? clientes.find((c) => c.id === selectedCliente)?.empresa
+                            ? selectedClienteData?.empresa
                             : "Buscar empresa..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -257,12 +271,12 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
                               No se encontraron empresas.
                             </CommandEmpty>
                             <CommandGroup>
-                              {clientesFiltrados().length >= 50 && clienteSearch.length >= 2 && (
+                              {filteredClientes.length >= CLIENT_PREVIEW_LIMIT && deferredClienteSearch.trim().length >= 2 && (
                                 <div className="px-2 py-2 bg-yellow-50 border-b border-yellow-200 text-[10px] text-yellow-800">
-                                  Mostrando primeros 50 resultados. Escribe más palabras para filtrar mejor.
+                                  Mostrando primeras {CLIENT_PREVIEW_LIMIT} empresas. Escribe más palabras para filtrar mejor.
                                 </div>
                               )}
-                              {clientesFiltrados().map((cliente) => (
+                              {filteredClientes.map((cliente) => (
                                 <CommandItem
                                   key={cliente.id}
                                   value={cliente.id}

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { AlertCircle, ExternalLink } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { supabase } from "@/lib/supabaseClient"
 
@@ -27,10 +27,27 @@ interface CreateQuoteDialogProps {
   clienteId?: string
   quoteId?: string
 }
+
+const COTIZADORA_BRIDGE_DEBUG = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEBUG_IFRAME_BRIDGE === "true"
+
+const cotizadoraDebugLog = (message: string, payload?: unknown) => {
+  if (COTIZADORA_BRIDGE_DEBUG) {
+    console.info(`[CotizadoraBridge] ${message}`, payload)
+  }
+}
+
 export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSuccess, proyectoId, clienteId, quoteId }: CreateQuoteDialogProps) {
   const [iframeToken, setIframeToken] = useState<string | null>(null)
   const liveTokenRef = useRef<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const baseUrl = iframeUrl ?? process.env.NEXT_PUBLIC_COTIZADOR_URL ?? DEFAULT_COTIZADOR_URL
+  const iframeOrigin = useMemo(() => {
+    try {
+      return new URL(baseUrl).origin
+    } catch {
+      return null
+    }
+  }, [baseUrl])
 
   const getStoredAccessToken = useCallback((): string | null => {
     if (typeof window === "undefined") return null
@@ -77,7 +94,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
       setIframeToken(freshToken)
     }
 
-    console.info("[CotizadoraBridge] syncIframeToken", {
+    cotizadoraDebugLog("syncIframeToken", {
       reason,
       session: !!sessionToken,
       local: !!localToken,
@@ -124,6 +141,10 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (!open || !event.source) return
+      if (iframeOrigin && event.origin !== iframeOrigin) return
+      if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
+
       // Auto-refresh: iframe requests a fresh token before expiry
       if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
         const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
@@ -132,7 +153,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
         if (immediateToken) {
           ;(event.source as Window).postMessage(
             { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'create_quote_dialog_immediate' },
-            '*'
+            event.origin
           )
         }
 
@@ -140,7 +161,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
           if (freshToken && event.source) {
             ;(event.source as Window).postMessage(
               { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'create_quote_dialog_sync' },
-              '*'
+              event.origin
             )
           }
         })
@@ -153,7 +174,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
           if (freshToken && event.source) {
             ;(event.source as Window).postMessage(
               { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'create_quote_dialog_recovery' },
-              '*'
+              event.origin
             )
             return
           }
@@ -177,9 +198,6 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
         const quote = event.data.quote || event.data.payload?.quote
         const quoteCode = quote?.code || (quote?.numero && quote?.year ? `COT-${quote.numero}-${quote.year}` : null)
 
-        // Console log for debugging
-        console.log("CreateQuoteDialog received message:", event.data, "Derived Code:", quoteCode)
-
         if (user) {
           logAction({
             user_id: user.id,
@@ -199,7 +217,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [getStoredAccessToken, onOpenChange, onSuccess, syncIframeToken, user])
+  }, [getStoredAccessToken, iframeOrigin, onOpenChange, onSuccess, open, syncIframeToken, user])
 
   const handleUnavailable = () => {
     toast.error("Cotizadora no configurada", {
@@ -249,6 +267,7 @@ export function CreateQuoteDialog({ open, onOpenChange, iframeUrl, user, onSucce
             {iframeAvailable ? (
               iframeToken ? (
                 <iframe
+                  ref={iframeRef}
                   src={resolvedIframeUrl}
                   className="w-full flex-1 border-0 rounded-b-lg"
                   title="Generador de Cotizaciones"

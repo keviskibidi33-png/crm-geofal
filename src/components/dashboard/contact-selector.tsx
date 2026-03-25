@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import {
     Select,
@@ -23,6 +23,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
+const CONTACT_SELECT_FIELDS = "id, nombre, email, telefono, cargo, es_principal"
+
 interface Contact {
     id: string
     nombre: string
@@ -31,6 +33,17 @@ interface Contact {
     cargo: string | null
     es_principal: boolean
 }
+
+const sortContacts = (contacts: Contact[]) =>
+    [...contacts].sort((left, right) => {
+        if (left.es_principal !== right.es_principal) {
+            return left.es_principal ? -1 : 1
+        }
+        return left.nombre.localeCompare(right.nombre, "es", { sensitivity: "base" })
+    })
+
+const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Ocurrió un error inesperado."
 
 interface ContactSelectorProps {
     clienteId: string | null
@@ -58,35 +71,47 @@ export function ContactSelector({ clienteId, value, onValueChange, disabled }: C
             return
         }
 
+        let cancelled = false
+
         const fetchContacts = async () => {
             setLoading(true)
             try {
                 const { data, error } = await supabase
                     .from("contactos")
-                    .select("*")
+                    .select(CONTACT_SELECT_FIELDS)
                     .eq("cliente_id", clienteId)
                     .order("es_principal", { ascending: false })
                     .order("nombre", { ascending: true })
 
                 if (error) throw error
-                setContacts(data || [])
+                if (cancelled) return
+
+                const nextContacts = sortContacts((data as Contact[] | null) || [])
+                setContacts(nextContacts)
 
                 // Auto-seleccionar contacto principal si existe
-                if (data && data.length > 0 && !value) {
-                    const principal = data.find((c) => c.es_principal)
+                if (nextContacts.length > 0 && !value) {
+                    const principal = nextContacts.find((contact) => contact.es_principal)
                     if (principal) {
                         onValueChange(principal.id)
                     }
                 }
-            } catch (err: any) {
+            } catch (err) {
+                if (cancelled) return
                 console.error("Error cargando contactos:", err)
             } finally {
-                setLoading(false)
+                if (!cancelled) {
+                    setLoading(false)
+                }
             }
         }
 
-        fetchContacts()
-    }, [clienteId])
+        void fetchContacts()
+
+        return () => {
+            cancelled = true
+        }
+    }, [clienteId, onValueChange, value])
 
     const handleCreateContact = async () => {
         if (!clienteId || !newContact.nombre.trim()) {
@@ -111,13 +136,13 @@ export function ContactSelector({ clienteId, value, onValueChange, disabled }: C
                     cargo: newContact.cargo.trim() || null,
                     es_principal: esPrincipal,
                 })
-                .select()
+                .select(CONTACT_SELECT_FIELDS)
                 .single()
 
             if (error) throw error
 
             // Agregar a la lista y seleccionar automáticamente
-            setContacts((prev) => [...prev, data])
+            setContacts((prev) => sortContacts([...prev, data as Contact]))
             onValueChange(data.id)
 
             toast.success("Contacto creado", {
@@ -127,9 +152,9 @@ export function ContactSelector({ clienteId, value, onValueChange, disabled }: C
             // Reset form
             setNewContact({ nombre: "", email: "", telefono: "", cargo: "" })
             setShowAddForm(false)
-        } catch (err: any) {
+        } catch (err) {
             toast.error("Error al crear contacto", {
-                description: err.message,
+                description: getErrorMessage(err),
             })
         } finally {
             setLoading(false)
