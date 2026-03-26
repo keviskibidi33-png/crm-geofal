@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react"
-import { useAuth } from "@/hooks/use-auth"
 import { authFetch } from "@/lib/api-auth"
 
 export interface Muestra {
@@ -55,8 +54,32 @@ export interface Recepcion {
     created_at?: string
 }
 
+function normalizeMuestras(rawMuestras: unknown): Muestra[] {
+    const parsedMuestras =
+        typeof rawMuestras === "string" ? JSON.parse(rawMuestras) : rawMuestras
+
+    if (!Array.isArray(parsedMuestras)) {
+        return []
+    }
+
+    const getSortableNumber = (value: unknown, fallback: number) => {
+        const parsedValue = Number(value)
+        return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallback
+    }
+
+    return [...parsedMuestras].sort((left, right) => {
+        const leftItem = getSortableNumber(left?.item_numero, Number.MAX_SAFE_INTEGER)
+        const rightItem = getSortableNumber(right?.item_numero, Number.MAX_SAFE_INTEGER)
+
+        if (leftItem !== rightItem) {
+            return leftItem - rightItem
+        }
+
+        return getSortableNumber(left?.id, 0) - getSortableNumber(right?.id, 0)
+    })
+}
+
 export function useRecepciones() {
-    const { user } = useAuth()
     const [recepciones, setRecepciones] = useState<Recepcion[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -77,7 +100,7 @@ export function useRecepciones() {
             // Parse JSONB fields if they come as string string (backend usually returns objects for JSONB if using sqlalchemy properly, but let's be safe)
             const parsedData = data.map((r: any) => ({
                 ...r,
-                muestras: typeof r.muestras === 'string' ? JSON.parse(r.muestras) : r.muestras
+                muestras: normalizeMuestras(r.muestras)
             }))
 
             setRecepciones(parsedData)
