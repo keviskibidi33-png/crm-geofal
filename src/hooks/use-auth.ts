@@ -650,6 +650,8 @@ async function buildUser(session: any): Promise<User> {
             ph:                      grantWrite(), // PH Suelo
             cd:                      grantWrite(), // Corte Directo
             compresion_no_confinada: grantWrite(), // Compresión No Confinada (Confinado)
+            tamiz:                   grantWrite(), // Malla 200
+            sales_solubles:          grantWrite(), // Sales Solubles
         }
     }
 
