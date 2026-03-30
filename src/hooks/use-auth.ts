@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
-import { deleteSessionAction, refreshSessionAction } from "@/app/actions/auth-actions"
+import { getOrCreateBrowserId } from "@/lib/browser-session"
+import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
+export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "oficina_tecnica" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
     read: boolean
@@ -629,6 +630,29 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    // User-specific hotfix: Beatriz Parinango García (oficinatecnica6) — acceso adicional a
+    // Granulometría Fino/Grueso, Cloruros, Sulfatos, PH, Corte Directo y Compresión No Confinada.
+    if (normalizedEmail === "oficinatecnica6@geofal.com.pe") {
+        const grantWrite = (): Permission => ({
+            read: true,
+            write: true,
+            delete: false,
+        })
+
+        permissions = {
+            ...(permissions || {}),
+            gran_suelo:              grantWrite(), // Granulometría Fino (suelo)
+            gran_agregado:           grantWrite(), // Granulometría Grueso (agregado)
+            ge_fino:                 grantWrite(), // GE Fino
+            ge_grueso:               grantWrite(), // GE Grueso
+            cloro_soluble:           grantWrite(), // Cloruros
+            sulfatos_solubles:       grantWrite(), // Sulfatos
+            ph:                      grantWrite(), // PH Suelo
+            cd:                      grantWrite(), // Corte Directo
+            compresion_no_confinada: grantWrite(), // Compresión No Confinada (Confinado)
+        }
+    }
+
     // Commercial scope lock:
     // Roles comerciales/vendedores only see their business modules.
     const isCommercialScopedRole =
@@ -710,7 +734,7 @@ async function refreshAuthSession() {
                 localStorage.setItem('token', data.session.access_token)
             }
             if (data?.session) {
-                await refreshSessionAction()
+                await refreshServerSession(getOrCreateBrowserId())
             }
         } catch {
             // Ignore refresh errors (session may be genuinely expired)
@@ -766,7 +790,7 @@ export function useAuth() {
             localStorage.removeItem('token')
         }
         try {
-            await deleteSessionAction()
+            await deleteServerSession()
             await supabase.auth.signOut()
             resetAuthCache() // Cleanup channel and global state
             if (mountedRef.current) {
@@ -946,7 +970,7 @@ export function useAuth() {
         const sendHeartbeat = async () => {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
             try {
-                await refreshSessionAction()
+                await refreshServerSession(getOrCreateBrowserId())
                 await authFetch(`${apiUrl}/users/heartbeat`, {
                     method: 'POST',
                     body: JSON.stringify({ user_id: currentUserId })
@@ -1062,7 +1086,7 @@ export function useAuth() {
                 if (typeof window !== 'undefined' && refreshData.session.access_token) {
                     localStorage.setItem('token', refreshData.session.access_token)
                 }
-                await refreshSessionAction()
+                await refreshServerSession(getOrCreateBrowserId())
                 sessionLossStartedAt = null
                 return
             }
