@@ -22,9 +22,12 @@ interface SmartIframeProps {
     title: string;
 }
 
+const RECEPCION_IFRAME_RETRY_TIMEOUTS_MS = [12000, 20000, 30000] as const;
+
 function SmartIframe({ src, title }: SmartIframeProps) {
     const MAX_RETRIES = 2; // 3 intentos en total (0, 1, 2)
     const RETRY_TOAST_DELAY_MS = 1200;
+    const READY_PING_GRACE_MS = 1200;
     const READY_PING_INTERVAL_MS = 3000;
 
     const [key, setKey] = useState(0); // Force re-render
@@ -82,7 +85,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         }
     }, []);
 
-    const handleLoad = useCallback(() => {
+    const completeLoad = useCallback(() => {
         clearTransientTimers();
         setIsLoading(false);
         setError(null);
@@ -124,44 +127,51 @@ function SmartIframe({ src, title }: SmartIframeProps) {
             if (event.origin !== expectedOrigin) return;
             if (event.data?.type !== 'IFRAME_READY') return;
             if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return;
-            handleLoad();
+            completeLoad();
         };
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [isLoading, expectedOrigin, handleLoad]);
+    }, [isLoading, expectedOrigin, completeLoad]);
 
     useEffect(() => {
         if (!isLoading) return;
 
+        let startPingTimeout: ReturnType<typeof setTimeout> | null = null;
         const pingIframe = () => {
             if (!iframeRef.current?.contentWindow) return;
-            iframeRef.current.contentWindow.postMessage(
-                { type: 'PING_IFRAME_READY', source: 'crm-shell' },
-                expectedOrigin ?? '*'
-            );
+            try {
+                iframeRef.current.contentWindow.postMessage(
+                    { type: 'PING_IFRAME_READY', source: 'crm-shell' },
+                    expectedOrigin ?? '*'
+                );
+            } catch {
+                // Ignore origin mismatch while the iframe is still on the initial about:blank
+                // or when the remote page failed before adopting the target origin.
+            }
         };
 
-        pingIframe();
-        readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS);
+        startPingTimeout = setTimeout(() => {
+            pingIframe();
+            readyPingRef.current = setInterval(pingIframe, READY_PING_INTERVAL_MS);
+        }, READY_PING_GRACE_MS);
 
         return () => {
+            if (startPingTimeout) {
+                clearTimeout(startPingTimeout);
+            }
             if (readyPingRef.current) {
                 clearInterval(readyPingRef.current);
                 readyPingRef.current = null;
             }
         };
-    }, [isLoading, expectedOrigin, key]);
+    }, [isLoading, expectedOrigin, key, READY_PING_GRACE_MS]);
 
     // Watchdog for timeout (Gateway Timeout usually takes 30-60s, but we can be proactive)
     useEffect(() => {
         if (!isLoading || configurationError) return;
 
-        // Exponential backoff for auto-retry
-        // 1st retry: 20s (given backend speed)
-        // 2nd retry: 40s
-        // 3rd retry: 80s
-        const timeoutMs = 20000 * Math.pow(2, retryCount); 
+        const timeoutMs = RECEPCION_IFRAME_RETRY_TIMEOUTS_MS[Math.min(retryCount, RECEPCION_IFRAME_RETRY_TIMEOUTS_MS.length - 1)];
         
         timeoutRef.current = setTimeout(() => {
             if (retryCount < MAX_RETRIES) {
@@ -247,7 +257,10 @@ function SmartIframe({ src, title }: SmartIframeProps) {
                 src={currentSrc}
                 className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 title={title}
-                onLoad={handleLoad}
+                onLoad={() => {
+                    // A network response alone is not enough to mark the iframe as healthy.
+                    // We only unblock the UI after the microfrontend confirms readiness via IFRAME_READY.
+                }}
                 onError={() => {
                     clearTransientTimers();
                     setIsLoading(false);
@@ -272,6 +285,7 @@ export function RecepcionModule() {
     const [isImporting, setIsImporting] = useState(false)
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const importedDataSentRef = useRef(false)
     const { user } = useAuth()
     const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
@@ -305,6 +319,15 @@ export function RecepcionModule() {
         const handleMessage = (event: MessageEvent) => {
             if (frontendOrigin && event.origin !== frontendOrigin) return
 
+            if (event.data?.type === 'IFRAME_READY' && event.source && isModalOpen && importedData && !editId && !importedDataSentRef.current) {
+                console.log('[RecepcionModule] Syncing imported data to iframe after IFRAME_READY...')
+                ;(event.source as Window).postMessage(
+                    { type: 'IMPORT_DATA', data: importedData },
+                    event.origin
+                )
+                importedDataSentRef.current = true
+            }
+
             if (event.data?.type === 'CLOSE_MODAL') {
                 setIsModalOpen(false)
                 setEditId(null)
@@ -324,31 +347,11 @@ export function RecepcionModule() {
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [fetchRecepciones, frontendOrigin])
+    }, [editId, fetchRecepciones, frontendOrigin, importedData, isModalOpen])
 
-    // Sync imported data to Iframe when it opens
     useEffect(() => {
-        if (isModalOpen && importedData && !editId) {
-            const sendData = () => {
-                const iframes = document.getElementsByTagName('iframe');
-                for (let i = 0; i < iframes.length; i++) {
-                    const iframe = iframes[i];
-                    // Match by title or src
-                    if (iframe.title === 'Nueva Recepción Probetas') {
-                        console.log('[RecepcionModule] Syncing imported data to iframe...');
-                        iframe.contentWindow?.postMessage({
-                            type: 'IMPORT_DATA',
-                            data: importedData
-                        }, '*');
-                    }
-                }
-            };
-            
-            // Wait for iframe content to be ready
-            const timer = setTimeout(sendData, 3000); 
-            return () => clearTimeout(timer);
-        }
-    }, [isModalOpen, importedData, editId])
+        importedDataSentRef.current = false
+    }, [importedData, editId, isModalOpen])
 
     // Refresh when modal closes
     const handleModalOpenChange = (open: boolean) => {
