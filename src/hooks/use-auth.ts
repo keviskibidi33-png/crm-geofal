@@ -655,6 +655,26 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    // User-specific hotfix: Johanie (oficiatecnica5) — acceso a
+    // Proctor, CBR, Granulometría (fino/grueso), Abrasión y Malla No. 200.
+    if (normalizedEmail === "oficiatecnica5@geofal.com.pe") {
+        const grantWrite = (): Permission => ({
+            read: true,
+            write: true,
+            delete: false,
+        })
+
+        permissions = {
+            ...(permissions || {}),
+            proctor:       grantWrite(), // Proctor
+            cbr:           grantWrite(), // CBR
+            gran_suelo:    grantWrite(), // Granulometría Fino (suelo)
+            gran_agregado: grantWrite(), // Granulometría Grueso (agregado)
+            abra:          grantWrite(), // Abrasión
+            tamiz:         grantWrite(), // Malla No. 200
+        }
+    }
+
     // Commercial scope lock:
     // Roles comerciales/vendedores only see their business modules.
     const isCommercialScopedRole =
