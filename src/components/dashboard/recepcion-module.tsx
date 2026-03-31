@@ -52,6 +52,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         }
 
         const host = parsedSrc.hostname.toLowerCase();
+        if (
+            typeof window !== "undefined" &&
+            (host === "localhost" || host === "127.0.0.1") &&
+            parsedSrc.origin.toLowerCase() === window.location.origin.toLowerCase()
+        ) {
+            return "Configuración local inválida: NEXT_PUBLIC_RECEPCION_FRONTEND_URL apunta al mismo origen del CRM. Usa la URL real del microfrontend de Recepción.";
+        }
+
         if (process.env.NODE_ENV === "production" && (host === "localhost" || host === "127.0.0.1")) {
             return "Configuración inválida en producción: NEXT_PUBLIC_RECEPCION_FRONTEND_URL apunta a localhost.";
         }

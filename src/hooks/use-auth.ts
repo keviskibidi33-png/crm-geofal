@@ -631,7 +631,8 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // User-specific hotfix: Beatriz Parinango García (oficinatecnica6) — acceso adicional a
-    // Granulometría Fino/Grueso, Cloruros, Sulfatos, PH, Corte Directo y Compresión No Confinada.
+    // Granulometría Fino/Grueso, LLP, Terrones, Partículas Livianas, Cloruros, Sulfatos, PH,
+    // Corte Directo y Compresión No Confinada.
     if (normalizedEmail === "oficinatecnica6@geofal.com.pe") {
         const grantWrite = (): Permission => ({
             read: true,
@@ -643,6 +644,9 @@ async function buildUser(session: any): Promise<User> {
             ...(permissions || {}),
             gran_suelo:              grantWrite(), // Granulometría Fino (suelo)
             gran_agregado:           grantWrite(), // Granulometría Grueso (agregado)
+            llp:                     grantWrite(), // Límites
+            terrones_fino_grueso:    grantWrite(), // Terrones de grava y fino
+            part_livianas:           grantWrite(), // Partículas livianas
             ge_fino:                 grantWrite(), // GE Fino
             ge_grueso:               grantWrite(), // GE Grueso
             cloro_soluble:           grantWrite(), // Cloruros
