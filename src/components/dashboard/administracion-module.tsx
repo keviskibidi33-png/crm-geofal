@@ -132,10 +132,10 @@ export function AdministracionModule({ user }: AdministracionModuleProps) {
 
     const iframeUrl = useMemo(() => {
         const fallbackUrl = process.env.NODE_ENV === "production"
-            ? "https://programacion.geofal.com.pe"
-            : "http://localhost:8472"
+            ? "https://administracion.geofal.com.pe"
+            : "http://localhost:8475"
         return resolveFrontendModuleUrl(
-            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
+            process.env.NEXT_PUBLIC_PROGRAMACION_ADMINISTRACION_URL || process.env.NEXT_PUBLIC_PROGRAMACION_URL,
             fallbackUrl,
             "programacion-administracion",
         )

@@ -17,6 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type ModuleType, type User } from "@/hooks/use-auth"
+import { canAccessDashboardModule } from "@/lib/control-module-access"
 
 interface SidebarProps {
   activeModule: ModuleType
@@ -64,6 +65,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker, adminOnly: true },
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
+  { id: "oficina_tecnica", label: "Control Oficina Técnica", icon: ClipboardList },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
@@ -89,20 +91,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   const filteredModules = modules.filter((module) => {
     const isAdmin = user.role === "admin" || user.role === "admin_general"
 
-    // Permisos: solo visible para roles admin.
-    if (module.id === "permisos") {
-      return isAdmin
-    }
-
-    // 1. If user is admin, show everything
     if (isAdmin) return true
-
-    // 2. If module has specific permission key, check it
-    if (user.permissions && user.permissions[module.id]) {
-      return user.permissions[module.id].read === true
-    }
-
-    return false
+    return canAccessDashboardModule(module.id, user.role, user.permissions)
   })
 
   const { theme, setTheme } = useTheme()

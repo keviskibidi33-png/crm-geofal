@@ -139,10 +139,10 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
 
     const iframeUrl = useMemo(() => {
         const fallbackUrl = process.env.NODE_ENV === "production"
-            ? "https://programacion.geofal.com.pe"
-            : "http://localhost:8472"
+            ? "https://comercial.geofal.com.pe"
+            : "http://localhost:8474"
         return resolveFrontendModuleUrl(
-            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
+            process.env.NEXT_PUBLIC_PROGRAMACION_COMERCIAL_URL || process.env.NEXT_PUBLIC_PROGRAMACION_URL,
             fallbackUrl,
             "programacion-comercial",
         )

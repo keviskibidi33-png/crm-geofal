@@ -138,7 +138,7 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
             ? "https://programacion.geofal.com.pe"
             : "http://localhost:8472"
         return resolveFrontendModuleUrl(
-            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
+            process.env.NEXT_PUBLIC_PROGRAMACION_LABORATORIO_URL || process.env.NEXT_PUBLIC_PROGRAMACION_URL,
             fallbackUrl,
             "programacion-laboratorio",
         )

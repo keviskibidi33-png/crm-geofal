@@ -11,9 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner"
 import { Loader2, Lock, Mail, Activity } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
+import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { resetAuthCache } from "@/hooks/use-auth"
-import { createSessionAction } from "@/app/actions/auth-actions"
-import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
+import { createServerSession, verifyServerSessionConsistency } from "@/lib/session-api"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { cn } from "@/lib/utils"
 
@@ -90,7 +90,7 @@ function LoginForm() {
                 if (cancelled || !session?.user) return
 
                 const serverSession = await withTimeout(
-                    verifySessionConsistencyAction(session.user.id),
+                    verifyServerSessionConsistency(session.user.id),
                     SESSION_SYNC_TIMEOUT_MS,
                     "La validación del servidor tardó demasiado en responder.",
                 )
@@ -162,7 +162,7 @@ function LoginForm() {
             }
 
             if (authData.user) {
-                const sessionResult = await createSessionAction(authData.user.id)
+                const sessionResult = await createServerSession(authData.user.id, getOrCreateBrowserId())
                 if (sessionResult.error) {
                     if (sessionResult.code === 'SESSION_EXISTS') {
                         await supabase.auth.signOut()

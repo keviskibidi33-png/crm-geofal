@@ -3,14 +3,15 @@
 import { useState, useEffect, useRef, type ComponentType } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { verifySessionConsistencyAction } from "@/app/actions/verify-session"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { Button } from "@/components/ui/button"
 import { resetAuthCache, useAuth, type ModuleType } from "@/hooks/use-auth"
+import { verifyServerSessionConsistency } from "@/lib/session-api"
 import { supabase } from "@/lib/supabaseClient"
+import { canAccessDashboardModule, getPreferredControlModule } from "@/lib/control-module-access"
 import { Loader2 } from "lucide-react"
 
 function DashboardModuleFallback() {
@@ -47,6 +48,7 @@ const ProgramacionModule = dashboardDynamic(async () => (await import("@/compone
 const VerificacionMuestrasModule = dashboardDynamic(async () => (await import("@/components/dashboard/verificacion-muestras-module")).VerificacionMuestrasModule)
 const CompresionModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-module")).CompresionModule)
 const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
+const OficinaTecnicaModule = dashboardDynamic(async () => (await import("@/components/dashboard/oficina-tecnica-module")).OficinaTecnicaModule)
 const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
 const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
@@ -135,23 +137,11 @@ export default function DashboardPage() {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
 
-  const getPreferredControlModule = (role: string, permissions?: Record<string, { read: boolean }>): ModuleType | null => {
-    if (permissions?.laboratorio?.read) return "laboratorio"
-    if (permissions?.comercial?.read) return "comercial"
-    if (permissions?.administracion?.read) return "administracion"
-
-    if (role.includes('laboratorio')) return 'laboratorio'
-    if (role.includes('comercial') || role.includes('vendedor') || role.includes('vendor') || role.includes('asesor')) return 'comercial'
-    if (role.includes('administracion')) return 'administracion'
-    return null
-  }
-
   // Force initial landing to control modules for specific roles
   useEffect(() => {
     if (loading || !user || initRedirectedRef.current) return
 
-    const role = user.role?.toLowerCase() || ""
-    const controlDefault = getPreferredControlModule(role, user.permissions)
+    const controlDefault = getPreferredControlModule(user.role, user.permissions)
     initRedirectedRef.current = true
     if (controlDefault && activeModule !== controlDefault) {
       setActiveModule(controlDefault)
@@ -186,13 +176,13 @@ export default function DashboardPage() {
     }
 
     // 2. For other roles, check against their granted permissions
-    const hasPermission = !isAdminOnlyModule && !!(user.permissions && user.permissions[activeModule]?.read);
+    const hasPermission = !isAdminOnlyModule && canAccessDashboardModule(activeModule, user.role, user.permissions);
 
     if (!hasPermission) {
       // Choose a smart default based on role
       const getRoleDefault = (): ModuleType => {
         if (role === 'tecnico') return 'tracing';
-        const preferredControl = getPreferredControlModule(role, user.permissions);
+        const preferredControl = getPreferredControlModule(user.role, user.permissions);
         if (preferredControl) return preferredControl;
         return 'clientes';
       }
@@ -210,7 +200,7 @@ export default function DashboardPage() {
   // Session Consistency Check (Security)
   useEffect(() => {
     if (!loading && user) {
-      verifySessionConsistencyAction(user.id).then((result) => {
+      verifyServerSessionConsistency(user.id).then((result) => {
         if (result && !result.isValid) {
           // If mismatch is detected, show modal instead of redirecting immediately
           setSecurityViolation(true)
@@ -297,6 +287,8 @@ export default function DashboardPage() {
         return <ProgramacionModule user={dashboardUser} />
       case "laboratorio":
         return <LaboratorioModule user={dashboardUser} />
+      case "oficina_tecnica":
+        return <OficinaTecnicaModule user={dashboardUser} />
       case "recepcion":
         return <RecepcionModule />
       case "comercial":

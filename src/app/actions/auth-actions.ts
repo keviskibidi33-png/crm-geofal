@@ -21,6 +21,10 @@ const SESSION_COOKIE_OPTIONS = {
     maxAge: SESSION_COOKIE_MAX_AGE_SECONDS
 }
 
+function normalizeBrowserDeviceInfo(browserId?: string | null) {
+    return browserId ? `browser:${browserId}` : "browser"
+}
+
 // Helper to verify admin role
 async function verifyAdminRole(): Promise<true | string> {
     const cookieStore = await cookies()
@@ -283,7 +287,7 @@ export async function deleteUserAction(userId: string) {
         return { error: `Error durante el proceso de eliminación: ${err.message || 'Error desconocido'}` }
     }
 }
-export async function createSessionAction(userId: string) {
+export async function createSessionAction(userId: string, browserId?: string) {
     if (!supabaseServiceKey) return { error: "Falta Service Role Key" }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -296,6 +300,7 @@ export async function createSessionAction(userId: string) {
         const freshSessionId = randomUUID()
         const cookieStore = await cookies()
         const currentSessionId = cookieStore.get('crm_session')?.value
+        const deviceInfo = normalizeBrowserDeviceInfo(browserId)
 
         // 0. Preliminary check (Role and Status)
         const { data: profile } = await supabaseAdmin
@@ -326,7 +331,7 @@ export async function createSessionAction(userId: string) {
                     .from('active_sessions')
                     .update({
                         last_login_at: new Date().toISOString(),
-                        device_info: "browser"
+                        device_info: deviceInfo
                     })
                     .eq('session_id', currentSessionId)
 
@@ -354,6 +359,37 @@ export async function createSessionAction(userId: string) {
             .from('active_sessions')
             .select('session_id, last_login_at, device_info')
             .eq('user_id', userId)
+
+        const reclaimableBrowserSession = browserId
+            ? existingSessions?.find((session) => session.device_info === deviceInfo)
+            : undefined
+
+        if (reclaimableBrowserSession) {
+            const { error: reclaimSessionError } = await supabaseAdmin
+                .from('active_sessions')
+                .update({
+                    last_login_at: new Date().toISOString(),
+                    device_info: deviceInfo,
+                })
+                .eq('session_id', reclaimableBrowserSession.session_id)
+
+            if (reclaimSessionError) {
+                throw reclaimSessionError
+            }
+
+            const { error: profileUpdateError } = await supabaseAdmin
+                .from('perfiles')
+                .update({ last_seen_at: new Date().toISOString() })
+                .eq('id', userId)
+
+            if (profileUpdateError) {
+                throw profileUpdateError
+            }
+
+            cookieStore.set('crm_session', reclaimableBrowserSession.session_id, SESSION_COOKIE_OPTIONS)
+
+            return { success: true, reused: true, reclaimed: true }
+        }
 
         const rawRole = profile?.role?.toLowerCase() || ""
         const isLabLector = rawRole.includes('laboratorio') && rawRole.includes('lector')
@@ -391,7 +427,7 @@ export async function createSessionAction(userId: string) {
                 user_id: userId,
                 session_id: freshSessionId,
                 last_login_at: new Date().toISOString(),
-                device_info: "browser"
+                device_info: deviceInfo
             })
 
         if (dbError) throw dbError
@@ -412,7 +448,7 @@ export async function createSessionAction(userId: string) {
     }
 }
 
-export async function refreshSessionAction() {
+export async function refreshSessionAction(browserId?: string) {
     if (!supabaseServiceKey) return { error: "Falta Service Role Key" }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -422,6 +458,7 @@ export async function refreshSessionAction() {
     try {
         const cookieStore = await cookies()
         const sessionId = cookieStore.get('crm_session')?.value
+        const deviceInfo = normalizeBrowserDeviceInfo(browserId)
 
         if (!sessionId) {
             return { error: "No hay cookie de sesión activa" }
@@ -429,7 +466,10 @@ export async function refreshSessionAction() {
 
         const { error: updateError, data } = await supabaseAdmin
             .from('active_sessions')
-            .update({ last_login_at: new Date().toISOString() })
+            .update({
+                last_login_at: new Date().toISOString(),
+                device_info: deviceInfo,
+            })
             .eq('session_id', sessionId)
             .select()
 
