@@ -61,6 +61,8 @@ export function TracingModule() {
     const [informeVersiones, setInformeVersiones] = useState<any[]>([])
     const [loadingVersiones, setLoadingVersiones] = useState(false)
     const [downloadingStage, setDownloadingStage] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 100
     const canDelete = user?.role === "admin" || user?.permissions?.tracing?.delete === true
 
     const componentRef = useRef<HTMLDivElement>(null)
@@ -281,6 +283,23 @@ export function TracingModule() {
         item.cliente?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage))
+    const safeCurrentPage = Math.min(currentPage, totalPages)
+    const paginatedList = filteredList.slice(
+        (safeCurrentPage - 1) * itemsPerPage,
+        safeCurrentPage * itemsPerPage
+    )
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm])
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages)
+        }
+    }, [currentPage, totalPages])
+
     return (
         <div className="h-full flex flex-col space-y-6 p-6 overflow-hidden">
             <div className="flex flex-col gap-4">
@@ -344,7 +363,7 @@ export function TracingModule() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredList.map((item) => (
+                            paginatedList.map((item) => (
                                 <TableRow key={item.numero_recepcion} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => handleOpenDetail(item.numero_recepcion)}>
                                     <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
                                     <TableCell className="font-medium max-w-[200px] truncate">{item.cliente || '-'}</TableCell>
@@ -386,6 +405,38 @@ export function TracingModule() {
                         )}
                     </TableBody>
                 </Table>
+                {!loadingList && filteredList.length > 0 && (
+                    <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
+                        <span className="text-muted-foreground">
+                            Mostrando {(safeCurrentPage - 1) * itemsPerPage + 1}
+                            {' - '}
+                            {Math.min(safeCurrentPage * itemsPerPage, filteredList.length)}
+                            {' de '}
+                            {filteredList.length}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={safeCurrentPage <= 1}
+                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            >
+                                Anterior
+                            </Button>
+                            <span className="min-w-[88px] text-center font-medium">
+                                Página {safeCurrentPage} / {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={safeCurrentPage >= totalPages}
+                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal de Detalle Premium */}

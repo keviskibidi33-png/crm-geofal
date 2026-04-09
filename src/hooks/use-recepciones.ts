@@ -91,9 +91,10 @@ export function useRecepciones() {
         setLoading(true)
         setError(null)
         try {
-            const res = await authFetch(`${API_URL}/api/recepcion/?limit=100`, {
+            const res = await authFetch(`${API_URL}/api/recepcion/?limit=1000`, {
                 method: "GET",
             })
+
             if (!res.ok) throw new Error("Error fetching recepciones")
             const data = await res.json()
 
