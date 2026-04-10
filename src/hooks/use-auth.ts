@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
 
-export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
+export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "jefe_laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
 export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "oficina_tecnica" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
