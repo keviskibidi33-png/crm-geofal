@@ -139,7 +139,6 @@ interface DbProjectRow {
   motivo_perdida: string | null
   created_at: string
   contacto_principal_id: string | null
-  monto_final?: number | null
   clientes?: { nombre: string; empresa: string; ruc: string }
   cotizaciones?: Array<{ total: number | null; estado: string | null }>
   contactos?: { nombre: string | null; cargo: string | null; email: string | null; telefono: string | null } | null
@@ -197,7 +196,7 @@ const mapDbProjectToUi = (row: DbProjectRow): Project => {
     presupuesto: row.presupuesto || 0,
     montoTotal: montoTotal > 0 ? montoTotal : (row.presupuesto || 0),
     montoAprobado,
-    montoFinal: row.monto_final || montoAprobado,
+    montoFinal: montoAprobado,
     progreso: row.progreso,
     motivoPerdida: row.motivo_perdida as Project["motivoPerdida"],
     descripcion: row.descripcion || "",
@@ -288,7 +287,6 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           motivo_perdida,
           created_at,
           contacto_principal_id,
-          monto_final,
           clientes (nombre, empresa, ruc),
           cotizaciones (total, estado),
           contactos!proyectos_contacto_principal_id_fkey (nombre, cargo, email, telefono)
@@ -531,9 +529,8 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           estado: resultado,
           etapa: newEtapa,
           fecha_fin: cierreDate,
-          presupuesto: finalAmount, // We use presupuesto as the final amount storage in DB for simplicity if monto_final doesn't exist, but checking mapDbProjectToUi...
+          presupuesto: finalAmount,
           motivo_perdida: motivoPerdida,
-          notas_cierre: notasCierre,
           progreso: finalProgreso
         })
         .eq("id", projectId);
@@ -550,7 +547,6 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
               fechaFin: cierreDate,
               montoFinal: finalAmount,
               motivoPerdida,
-              notasCierre,
               progreso: finalProgreso,
             }
             : p,
