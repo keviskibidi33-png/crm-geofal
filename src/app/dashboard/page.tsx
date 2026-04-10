@@ -12,7 +12,8 @@ import { resetAuthCache, useAuth, type ModuleType } from "@/hooks/use-auth"
 import { verifyServerSessionConsistency } from "@/lib/session-api"
 import { supabase } from "@/lib/supabaseClient"
 import { canAccessDashboardModule, getPreferredControlModule } from "@/lib/control-module-access"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye } from "lucide-react"
+import { toast } from "sonner"
 
 function DashboardModuleFallback() {
   return (
@@ -196,6 +197,23 @@ export default function DashboardPage() {
       }
     }
   }, [loading, user, activeModule]); // Watch activeModule for security
+
+  // Show read-only notification when entering a module without write access
+  useEffect(() => {
+    if (loading || !user) return;
+    const role = user.role?.toLowerCase() || "";
+    const isAdmin = role === "admin" || role === "admin_general";
+    if (isAdmin) return;
+
+    const perm = user.permissions?.[activeModule];
+    if (perm?.read === true && perm?.write !== true) {
+      toast.info("Solo lectura", {
+        description: "Tienes acceso de visualización en este módulo. No puedes crear, editar ni eliminar registros.",
+        icon: <Eye className="h-4 w-4" />,
+        duration: 4000,
+      });
+    }
+  }, [loading, user, activeModule]);
 
   // Session Consistency Check (Security)
   useEffect(() => {

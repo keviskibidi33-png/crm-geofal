@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Lock } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -28,11 +28,11 @@ interface SidebarProps {
   onToggleCollapse: () => void
 }
 
-const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean; showLocked?: boolean }[] = [
+const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { id: "tracing", label: "Seguimiento", icon: Activity },
-  { id: "clientes", label: "Clientes", icon: Users, showLocked: true },
-  { id: "proyectos", label: "Proyectos", icon: FolderKanban, showLocked: true },
-  { id: "cotizadora", label: "Cotizadora", icon: FileText, showLocked: true },
+  { id: "clientes", label: "Clientes", icon: Users },
+  { id: "proyectos", label: "Proyectos", icon: FolderKanban },
+  { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
@@ -67,8 +67,8 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "oficina_tecnica", label: "Control Oficina Técnica", icon: ClipboardList },
-  { id: "comercial", label: "Control Comercial", icon: ClipboardList, showLocked: true },
-  { id: "administracion", label: "Control Administración", icon: Shield, showLocked: true },
+  { id: "comercial", label: "Control Comercial", icon: ClipboardList },
+  { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
   { id: "permisos", label: "Permisos", icon: Shield, adminOnly: true },
   { id: "auditoria", label: "Auditoría", icon: Activity, adminOnly: true },
@@ -93,14 +93,14 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     const isAdmin = user.role === "admin" || user.role === "admin_general"
 
     if (isAdmin) return true
-    if (module.showLocked) return true
     return canAccessDashboardModule(module.id, user.role, user.permissions)
   })
 
-  const isModuleLocked = (moduleId: ModuleType): boolean => {
+  const isModuleReadOnly = (moduleId: ModuleType): boolean => {
     const isAdmin = user.role === "admin" || user.role === "admin_general"
     if (isAdmin) return false
-    return !canAccessDashboardModule(moduleId, user.role, user.permissions)
+    const perm = user.permissions?.[moduleId]
+    return perm?.read === true && perm?.write !== true
   }
 
   const { theme, setTheme } = useTheme()
@@ -230,26 +230,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           const Icon = module.icon
           const isActive = activeModule === module.id
 
-          const locked = isModuleLocked(module.id)
+          const readOnly = isModuleReadOnly(module.id)
 
-          const button = locked ? (
-            <button
-              key={module.id}
-              onClick={() => toast.error("Sección bloqueada", { description: "No tienes acceso a este módulo. Contacta al administrador." })}
-              className={cn(
-                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 cursor-not-allowed",
-                collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3",
-                "text-sidebar-foreground/30 hover:bg-transparent",
-              )}
-            >
-              <div className="relative shrink-0">
-                <Icon className="h-5 w-5 opacity-40" />
-                <Lock className="h-2.5 w-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground" />
-              </div>
-              {!collapsed && <span className="flex-1 text-left truncate opacity-50">{module.label}</span>}
-              {!collapsed && <Lock className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
-            </button>
-          ) : (
+          const button = (
             <button
               key={module.id}
               onClick={() => handleModuleClick(module.id)}
@@ -263,7 +246,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span className="flex-1 text-left truncate">{module.label}</span>}
-              {!collapsed && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
+              {!collapsed && readOnly && <Eye className="h-3.5 w-3.5 text-amber-500/70 shrink-0" />}
+              {!collapsed && !readOnly && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
             </button>
           )
 
@@ -272,7 +256,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
               <Tooltip key={module.id}>
                 <TooltipTrigger asChild>{button}</TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>
-                  <p>{module.label}{locked ? " 🔒" : ""}</p>
+                  <p>{module.label}{readOnly ? " (Solo lectura)" : ""}</p>
                 </TooltipContent>
               </Tooltip>
             )
