@@ -269,11 +269,10 @@ async function buildUser(session: any): Promise<User> {
             write: p.programacion?.write || false,
             delete: p.programacion?.delete || false
         }
+        // Laboratorio: always readable for all users (lab overview)
+        p.laboratorio = { read: true, write: p.laboratorio?.write || false, delete: p.laboratorio?.delete || false }
         // Control modules: only enforce read:true if already present in permissions matrix.
         // This prevents lab-only roles from seeing commercial/admin dashboards.
-        if (p.laboratorio) {
-            p.laboratorio = { read: true, write: p.laboratorio?.write || false, delete: p.laboratorio?.delete || false }
-        }
         if (p.comercial) {
             p.comercial = { read: true, write: p.comercial?.write || false, delete: p.comercial?.delete || false }
         }
