@@ -539,8 +539,6 @@ async function buildUser(session: any): Promise<User> {
             permissions = {
                 programacion: { read: true, write: !isLector, delete: false },
                 laboratorio: { read: true, write: !isLector, delete: false },
-                comercial: { read: true, write: false, delete: false },
-                administracion: { read: true, write: false, delete: false },
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
                 cont_humedad: { read: true, write: !isLector, delete: false },
@@ -571,8 +569,6 @@ async function buildUser(session: any): Promise<User> {
             permissions = {
                 programacion: { read: true, write: false, delete: false },
                 laboratorio: { read: true, write: false, delete: false },
-                comercial: { read: true, write: false, delete: false },
-                administracion: { read: true, write: false, delete: false },
                 configuracion: { read: true, write: false, delete: false }
             }
         }

@@ -56,7 +56,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     useEffect(() => {
         if (!isLoading) return;
 
-        const timeoutMs = 20000 * Math.pow(2, retryCount); 
+        const timeoutMs = 12000 + (retryCount * 6000); 
         
         timeoutRef.current = setTimeout(() => {
             if (retryCount < 2) {

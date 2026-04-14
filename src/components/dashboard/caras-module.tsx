@@ -73,7 +73,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
   useEffect(() => {
     if (!isLoading) return
 
-    const timeoutMs = 20000 * Math.pow(2, retryCount)
+    const timeoutMs = 12000 + (retryCount * 6000)
     timeoutRef.current = setTimeout(() => {
       if (retryCount < 2) {
         toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
