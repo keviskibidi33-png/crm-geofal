@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/api-auth"
 
 export interface Muestra {
@@ -52,11 +52,33 @@ export interface Recepcion {
     muestras: Muestra[] | any
     estado?: string
     created_at?: string
+    muestras_count?: number
 }
 
+export interface RecepcionesPaginationState {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+}
+
+export interface FetchRecepcionesParams {
+    page?: number
+    pageSize?: number
+    search?: string
+}
+
+const DEFAULT_PAGE_SIZE = 25
+
 function normalizeMuestras(rawMuestras: unknown): Muestra[] {
-    const parsedMuestras =
-        typeof rawMuestras === "string" ? JSON.parse(rawMuestras) : rawMuestras
+    let parsedMuestras = rawMuestras
+    if (typeof rawMuestras === "string") {
+        try {
+            parsedMuestras = JSON.parse(rawMuestras)
+        } catch {
+            parsedMuestras = []
+        }
+    }
 
     if (!Array.isArray(parsedMuestras)) {
         return []
@@ -83,28 +105,66 @@ export function useRecepciones() {
     const [recepciones, setRecepciones] = useState<Recepcion[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [pagination, setPagination] = useState<RecepcionesPaginationState>({
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        total: 0,
+        totalPages: 1,
+    })
+    const lastQueryRef = useRef<Required<FetchRecepcionesParams>>({
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        search: "",
+    })
 
     // Unified Backend URL
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
-    const fetchRecepciones = useCallback(async () => {
+    const fetchRecepciones = useCallback(async (params: FetchRecepcionesParams = {}) => {
+        const nextQuery: Required<FetchRecepcionesParams> = {
+            page: Math.max(1, Number(params.page ?? lastQueryRef.current.page ?? 1)),
+            pageSize: Math.max(1, Math.min(100, Number(params.pageSize ?? lastQueryRef.current.pageSize ?? DEFAULT_PAGE_SIZE))),
+            search: String(params.search ?? lastQueryRef.current.search ?? "").trim(),
+        }
+        lastQueryRef.current = nextQuery
+
         setLoading(true)
         setError(null)
         try {
-            const res = await authFetch(`${API_URL}/api/recepcion/?limit=1000`, {
+            const url = new URL(`${API_URL}/api/recepcion/paginated`)
+            url.searchParams.set("page", String(nextQuery.page))
+            url.searchParams.set("page_size", String(nextQuery.pageSize))
+            if (nextQuery.search) {
+                url.searchParams.set("q", nextQuery.search)
+            }
+
+            const res = await authFetch(url.toString(), {
                 method: "GET",
             })
 
             if (!res.ok) throw new Error("Error fetching recepciones")
             const data = await res.json()
 
-            // Parse JSONB fields if they come as string string (backend usually returns objects for JSONB if using sqlalchemy properly, but let's be safe)
-            const parsedData = data.map((r: any) => ({
+            const items = Array.isArray(data?.items) ? data.items : []
+            const parsedData = items.map((r: any) => ({
                 ...r,
-                muestras: normalizeMuestras(r.muestras)
+                muestras_count: Number(r?.muestras_count ?? 0),
+                muestras: [],
             }))
 
             setRecepciones(parsedData)
+            const nextPagination: RecepcionesPaginationState = {
+                page: Math.max(1, Number(data?.page ?? nextQuery.page)),
+                pageSize: Math.max(1, Number(data?.page_size ?? nextQuery.pageSize)),
+                total: Math.max(0, Number(data?.total ?? 0)),
+                totalPages: Math.max(1, Number(data?.total_pages ?? 1)),
+            }
+            setPagination(nextPagination)
+            lastQueryRef.current = {
+                page: nextPagination.page,
+                pageSize: nextPagination.pageSize,
+                search: nextQuery.search,
+            }
         } catch (err: any) {
             console.error(err)
             setError(err.message)
@@ -113,30 +173,43 @@ export function useRecepciones() {
         }
     }, [API_URL])
 
-    const deleteRecepcion = async (id: number) => {
+    const refreshRecepciones = useCallback(async () => {
+        await fetchRecepciones(lastQueryRef.current)
+    }, [fetchRecepciones])
+
+    const getRecepcionById = useCallback(async (id: number): Promise<Recepcion> => {
+        const res = await authFetch(`${API_URL}/api/recepcion/${id}`, {
+            method: "GET",
+        })
+        if (!res.ok) throw new Error("Error fetching recepción detail")
+        const data = await res.json()
+        return {
+            ...data,
+            muestras: normalizeMuestras(data?.muestras),
+        }
+    }, [API_URL])
+
+    const deleteRecepcion = useCallback(async (id: number) => {
         try {
-            // We technically didn't add DELETE to recepciones.py yet? 
-            // Wait, I only added POST and GET in `recepciones.py`. 
-            // I recall reviewing `recepciones.py` content via tool output and it had POST and GET.
-            // I should probably add DELETE logic if I want to support native delete.
-            // For now, I'll stub it or assume it exists/will be added.
             const res = await authFetch(`${API_URL}/api/recepcion/${id}`, {
                 method: 'DELETE'
             })
             if (!res.ok) throw new Error("Failed to delete")
-            await fetchRecepciones() // refresh
             return true
         } catch (e: any) {
             setError(e.message)
             return false
         }
-    }
+    }, [API_URL])
 
     return {
         recepciones,
         loading,
         error,
+        pagination,
         fetchRecepciones,
+        refreshRecepciones,
+        getRecepcionById,
         deleteRecepcion
     }
 }

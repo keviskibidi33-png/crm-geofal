@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, AlertCircle, Upload } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, AlertCircle, Upload, ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -206,7 +206,6 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         if (!parsedSrc) return src;
         const url = new URL(parsedSrc.toString());
         url.searchParams.set('retry', retryCount.toString());
-        url.searchParams.set('t', Date.now().toString()); // Still reload on AUTHENTIC retry
         return url.toString();
     }, [parsedSrc, retryCount, src]);
 
@@ -258,8 +257,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
                 className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 title={title}
                 onLoad={() => {
-                    // A network response alone is not enough to mark the iframe as healthy.
-                    // We only unblock the UI after the microfrontend confirms readiness via IFRAME_READY.
+                    completeLoad()
                 }}
                 onError={() => {
                     clearTransientTimers();
@@ -274,11 +272,15 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 
 export function RecepcionModule() {
-    const { recepciones, loading, fetchRecepciones, deleteRecepcion } = useRecepciones()
+    const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(25)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
+    const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [token, setToken] = useState<string | null>(null)
@@ -299,20 +301,72 @@ export function RecepcionModule() {
         }
     }, [FRONTEND_URL])
 
-    const syncIframeToken = async (): Promise<string | null> => {
+    const syncIframeToken = useCallback(async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
         const freshToken = session?.access_token ?? null
         setToken(freshToken)
         return freshToken
-    }
+    }, [])
 
-    // Initial fetch|
+    const refreshCurrentPage = useCallback(() => {
+        void fetchRecepciones({
+            page: currentPage,
+            pageSize,
+            search: debouncedSearchTerm,
+        })
+    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize])
+
     useEffect(() => {
-        fetchRecepciones()
+        if (!frontendOrigin) return
+        const preconnectLink = document.createElement("link")
+        preconnectLink.rel = "preconnect"
+        preconnectLink.href = frontendOrigin
+        preconnectLink.crossOrigin = "anonymous"
+        document.head.appendChild(preconnectLink)
 
-        // Get session token to pass to iframe
-        syncIframeToken()
-    }, [fetchRecepciones])
+        const dnsPrefetchLink = document.createElement("link")
+        dnsPrefetchLink.rel = "dns-prefetch"
+        dnsPrefetchLink.href = frontendOrigin
+        document.head.appendChild(dnsPrefetchLink)
+
+        return () => {
+            if (preconnectLink.parentNode) {
+                preconnectLink.parentNode.removeChild(preconnectLink)
+            }
+            if (dnsPrefetchLink.parentNode) {
+                dnsPrefetchLink.parentNode.removeChild(dnsPrefetchLink)
+            }
+        }
+    }, [frontendOrigin])
+
+    // Sync token once on mount.
+    useEffect(() => {
+        void syncIframeToken()
+    }, [syncIframeToken])
+
+    // Debounce search to avoid request spam and reset to first page.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setCurrentPage(1)
+            setDebouncedSearchTerm(searchTerm.trim())
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [searchTerm])
+
+    // Real server-side pagination + search.
+    useEffect(() => {
+        void fetchRecepciones({
+            page: currentPage,
+            pageSize,
+            search: debouncedSearchTerm,
+        })
+    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize])
+
+    useEffect(() => {
+        if (pagination.page && pagination.page !== currentPage) {
+            setCurrentPage(pagination.page)
+        }
+    }, [pagination.page, currentPage])
 
     // Listen for close message from Iframe
     useEffect(() => {
@@ -331,7 +385,7 @@ export function RecepcionModule() {
             if (event.data?.type === 'CLOSE_MODAL') {
                 setIsModalOpen(false)
                 setEditId(null)
-                fetchRecepciones()
+                refreshCurrentPage()
             }
             // Auto-refresh: iframe requests a fresh token before expiry
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
@@ -347,7 +401,7 @@ export function RecepcionModule() {
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [editId, fetchRecepciones, frontendOrigin, importedData, isModalOpen])
+    }, [editId, frontendOrigin, importedData, isModalOpen, refreshCurrentPage, syncIframeToken])
 
     useEffect(() => {
         importedDataSentRef.current = false
@@ -363,7 +417,7 @@ export function RecepcionModule() {
             }
             // Creating new → close directly
             setIsModalOpen(false)
-            fetchRecepciones()
+            refreshCurrentPage()
             return
         }
         setIsModalOpen(open)
@@ -373,29 +427,29 @@ export function RecepcionModule() {
         setShowExitConfirm(false)
         setIsModalOpen(false)
         setEditId(null)
-        fetchRecepciones()
+        refreshCurrentPage()
     }
 
-    const handleEdit = async (recepcion: Recepcion) => {
+    const handleEdit = (recepcion: Recepcion) => {
         if (!canWrite) {
             toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
             return
         }
-        await syncIframeToken()
         setEditId(recepcion.id)
         setIsDetailOpen(false)
         setIsModalOpen(true)
+        void syncIframeToken()
     }
 
-    const handleCreate = async () => {
+    const handleCreate = () => {
         if (!canWrite) {
             toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
             return
         }
-        await syncIframeToken()
         setEditId(null)
         setImportedData(null)
         setIsModalOpen(true)
+        void syncIframeToken()
     }
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -437,9 +491,9 @@ export function RecepcionModule() {
             
             // Set data and open modal
             setImportedData(data)
-            await syncIframeToken()
             setEditId(null)
             setIsModalOpen(true)
+            void syncIframeToken()
         } catch (error: any) {
             toast.dismiss(loadingToast)
             toast.error(error.message)
@@ -449,12 +503,11 @@ export function RecepcionModule() {
         }
     }
 
-    // Filter Logic
-    const filteredData = recepciones.filter(item =>
-        item.numero_ot?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.numero_recepcion?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const safeCurrentPage = Math.max(1, pagination.page || currentPage)
+    const safeTotalPages = Math.max(1, pagination.totalPages || 1)
+    const hasData = recepciones.length > 0
+    const showingFrom = hasData ? (safeCurrentPage - 1) * pagination.pageSize + 1 : 0
+    const showingTo = hasData ? Math.min(safeCurrentPage * pagination.pageSize, pagination.total) : 0
 
     const handleDelete = async (id: number) => {
         if (!canDelete) {
@@ -467,6 +520,11 @@ export function RecepcionModule() {
             toast.success("Recepción Probetas eliminada correctamente")
             if (selectedRecepcion?.id === id) {
                 setIsDetailOpen(false)
+            }
+            if (recepciones.length === 1 && currentPage > 1) {
+                setCurrentPage(prev => Math.max(1, prev - 1))
+            } else {
+                refreshCurrentPage()
             }
         } else {
             toast.error("Error al eliminar recepción")
@@ -517,9 +575,20 @@ export function RecepcionModule() {
         return dateStr
     }
 
-    const openDetail = (recepcion: Recepcion) => {
+    const openDetail = async (recepcion: Recepcion) => {
         setSelectedRecepcion(recepcion)
+        setIsDetailLoading(true)
         setIsDetailOpen(true)
+        try {
+            const fullRecepcion = await getRecepcionById(recepcion.id)
+            setSelectedRecepcion(fullRecepcion)
+        } catch (error: any) {
+            toast.error("No se pudo cargar el detalle completo", {
+                description: error?.message || "Intenta nuevamente.",
+            })
+        } finally {
+            setIsDetailLoading(false)
+        }
     }
 
     return (
@@ -538,7 +607,7 @@ export function RecepcionModule() {
                         onChange={handleImportExcel}
                         className="hidden"
                     />
-                    <Button variant="outline" size="icon" onClick={() => fetchRecepciones()} disabled={loading}>
+                    <Button variant="outline" size="icon" onClick={() => { void refreshRecepciones() }} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                     {canWrite && (
@@ -592,15 +661,15 @@ export function RecepcionModule() {
                                     Cargando datos...
                                 </TableCell>
                             </TableRow>
-                        ) : filteredData.length === 0 ? (
+                        ) : recepciones.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
                                     No se encontraron resultados
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredData.map((item) => (
-                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item)}>
+                            recepciones.map((item) => (
+                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { void openDetail(item) }}>
                                     <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
                                     <TableCell className="max-w-[200px] truncate" title={item.cliente}>
                                         {item.cliente}
@@ -610,12 +679,12 @@ export function RecepcionModule() {
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="secondary">
-                                            {Array.isArray(item.muestras) ? item.muestras.length : 0}
+                                            {Number(item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => openDetail(item)}>
+                                            <Button variant="ghost" size="icon" onClick={() => { void openDetail(item) }}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>
                                             {canWrite && (
@@ -655,6 +724,54 @@ export function RecepcionModule() {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Server-side pagination */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between rounded-md border bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                    Mostrando {showingFrom} a {showingTo} de {pagination.total} registros
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="text-xs text-muted-foreground">
+                        Filas:
+                    </label>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => {
+                            const nextSize = Number(e.target.value)
+                            setPageSize(nextSize)
+                            setCurrentPage(1)
+                        }}
+                        className="h-8 rounded-md border bg-background px-2 text-xs"
+                        disabled={loading}
+                    >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                    </select>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2"
+                        disabled={loading || safeCurrentPage <= 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="min-w-[120px] text-center text-xs font-medium">
+                        Página {safeCurrentPage} / {safeTotalPages}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2"
+                        disabled={loading || safeCurrentPage >= safeTotalPages}
+                        onClick={() => setCurrentPage(prev => Math.min(safeTotalPages, prev + 1))}
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
             {/* Modal with Iframe for Creation */}
@@ -707,7 +824,14 @@ export function RecepcionModule() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    {selectedRecepcion && (
+                    {isDetailLoading ? (
+                        <div className="flex flex-1 items-center justify-center">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Cargando detalle...
+                            </div>
+                        </div>
+                    ) : selectedRecepcion && (
                         <div className="flex-1 min-h-0 overflow-auto">
                             <div className="p-6 space-y-6">
                                 {/* Section 1: Project & Client */}
@@ -827,13 +951,18 @@ export function RecepcionModule() {
                         <div className="flex-1 text-xs text-muted-foreground flex items-center">
                             ID Referencia: {selectedRecepcion?.id}
                         </div>
-                        {canWrite && (
+                        {canWrite && !isDetailLoading && (
                             <Button variant="outline" onClick={() => selectedRecepcion && handleEdit(selectedRecepcion)} className="gap-2">
                                 <Pencil className="h-4 w-4" />
                                 Editar
                             </Button>
                         )}
-                        <Button variant="outline" onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)} className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)}
+                            className="gap-2"
+                            disabled={isDetailLoading || !selectedRecepcion}
+                        >
                             <FileSpreadsheet className="h-4 w-4" />
                             Descargar Excel
                         </Button>
