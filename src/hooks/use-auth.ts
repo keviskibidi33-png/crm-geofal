@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
 
-export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "jefe_laboratorio" | "comercial" | "administracion" | "tecnico_suelos" | string
+export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "jefe_laboratorio" | "tecnico_general" | "comercial" | "administracion" | "tecnico_suelos" | string
 export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "oficina_tecnica" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada"
 
 export interface Permission {
@@ -262,27 +262,23 @@ async function buildUser(session: any): Promise<User> {
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
-        // Business rule: every authenticated CRM user can read control tables and export excels.
+        // Business rule: programacion read access for all authenticated users (scheduling).
         // Write/delete remain role-based.
         p.programacion = {
             read: true,
             write: p.programacion?.write || false,
             delete: p.programacion?.delete || false
         }
-        p.laboratorio = {
-            read: true,
-            write: p.laboratorio?.write || false,
-            delete: p.laboratorio?.delete || false
+        // Control modules: only enforce read:true if already present in permissions matrix.
+        // This prevents lab-only roles from seeing commercial/admin dashboards.
+        if (p.laboratorio) {
+            p.laboratorio = { read: true, write: p.laboratorio?.write || false, delete: p.laboratorio?.delete || false }
         }
-        p.comercial = {
-            read: true,
-            write: p.comercial?.write || false,
-            delete: p.comercial?.delete || false
+        if (p.comercial) {
+            p.comercial = { read: true, write: p.comercial?.write || false, delete: p.comercial?.delete || false }
         }
-        p.administracion = {
-            read: true,
-            write: p.administracion?.write || false,
-            delete: p.administracion?.delete || false
+        if (p.administracion) {
+            p.administracion = { read: true, write: p.administracion?.write || false, delete: p.administracion?.delete || false }
         }
 
         // Compatibility fallback: if llp key is missing in older role matrices,

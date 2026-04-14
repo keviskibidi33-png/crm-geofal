@@ -57,7 +57,7 @@ export function canAccessControlModule(
     case "oficina_tecnica":
       return isOficinaTecnicaDashboardRole(role)
     case "laboratorio":
-      return isLaboratorioDashboardRole(role)
+      return isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true
     case "comercial":
       return isComercialDashboardRole(role) || permissions?.comercial?.read === true
     case "administracion":
@@ -69,7 +69,7 @@ export function canAccessControlModule(
 
 export function getPreferredControlModule(role: string | null | undefined, permissions?: RolePermissions): ControlModuleType | null {
   if (isOficinaTecnicaDashboardRole(role)) return "oficina_tecnica"
-  if (isLaboratorioDashboardRole(role)) return "laboratorio"
+  if (isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true) return "laboratorio"
   if (isComercialDashboardRole(role) || permissions?.comercial?.read === true) return "comercial"
   if (isAdministracionDashboardRole(role) || permissions?.administracion?.read === true) return "administracion"
   if (isAdminDashboardRole(role)) return "laboratorio"
