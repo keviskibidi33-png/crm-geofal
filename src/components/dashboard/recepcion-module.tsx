@@ -383,6 +383,12 @@ export function RecepcionModule() {
             }
 
             if (event.data?.type === 'CLOSE_MODAL') {
+                const reason = event.data?.reason
+                if (reason === 'created') {
+                    toast.success('¡Recepción creada exitosamente!')
+                } else if (reason === 'updated') {
+                    toast.success('¡Recepción actualizada exitosamente!')
+                }
                 setIsModalOpen(false)
                 setEditId(null)
                 refreshCurrentPage()
