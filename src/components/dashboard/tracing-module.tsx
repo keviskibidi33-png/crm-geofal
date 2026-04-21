@@ -925,7 +925,7 @@ export function TracingModule() {
                                                     <TableRow key={m.id} className="hover:bg-slate-50/30 transition-colors h-12">
                                                         <TableCell className="text-xs font-bold text-slate-400 text-center">{idx + 1}</TableCell>
                                                         <TableCell className="text-xs font-bold text-[#0070F3] text-center underline decoration-blue-200">
-                                                            {m.codigo_lem || '11111111'}
+                                                            {m.codigo_muestra_lem || m.codigo_muestra || m.codigo_lem || '-'}
                                                         </TableCell>
                                                         <TableCell className="text-xs font-bold text-slate-600">{m.identificacion_muestra || '1111'}</TableCell>
                                                         <TableCell className="text-xs font-bold text-slate-600">{m.estructura || '1111'}</TableCell>
