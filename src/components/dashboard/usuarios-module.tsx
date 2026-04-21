@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
     Dialog,
     DialogContent,
@@ -58,6 +59,26 @@ interface SellerFormData {
     role: string
 }
 
+type ModulePermission = { read: boolean; write: boolean; delete: boolean }
+type PermissionOverrides = Record<string, ModulePermission>
+
+const GRANULAR_MODULES = [
+    { id: "clientes", label: "Clientes" },
+    { id: "proyectos", label: "Proyectos" },
+    { id: "cotizadora", label: "Cotizadora" },
+    { id: "programacion", label: "Programación" },
+    { id: "recepcion", label: "Recepción" },
+    { id: "verificacion_muestras", label: "Verificación Muestras" },
+    { id: "compresion", label: "Compresión" },
+    { id: "tracing", label: "Tracing" },
+    { id: "laboratorio", label: "Control: Laboratorio" },
+    { id: "comercial", label: "Control: Comercial" },
+    { id: "administracion", label: "Control: Administración" },
+    { id: "ingenieria_archivos", label: "Correlativo ING" },
+    { id: "usuarios", label: "Gestión Usuarios" },
+    { id: "permisos", label: "Matriz Permisos" },
+]
+
 const ITEMS_PER_PAGE = 20
 
 export function UsuariosModule() {
@@ -76,6 +97,12 @@ export function UsuariosModule() {
     const [fetching, setFetching] = useState(false)
     const [currentPage, setCurrentPage] = useState(1)
     const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>([])
+    const [isGranularDialogOpen, setIsGranularDialogOpen] = useState(false)
+    const [granularTarget, setGranularTarget] = useState<Seller | null>(null)
+    const [granularEnabled, setGranularEnabled] = useState(false)
+    const [granularPermissions, setGranularPermissions] = useState<PermissionOverrides>({})
+    const [loadingGranular, setLoadingGranular] = useState(false)
+    const [savingGranular, setSavingGranular] = useState(false)
     // const { toast } = useToast() // Replaced by Sonner
 
     const fetchRoles = useCallback(async () => {
@@ -157,6 +184,96 @@ export function UsuariosModule() {
         if (!lastSeen) return false
         const diff = new Date().getTime() - new Date(lastSeen).getTime()
         return diff < 5 * 60 * 1000 // 5 minutes logic
+    }
+
+    const normalizePermission = (value: any): ModulePermission => ({
+        read: value?.read === true,
+        write: value?.write === true,
+        delete: value?.delete === true,
+    })
+
+    const openGranularPermissions = async (seller: Seller) => {
+        setGranularTarget(seller)
+        setIsGranularDialogOpen(true)
+        setLoadingGranular(true)
+        try {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${seller.id}/permissions-override`)
+            if (!res.ok) throw new Error("No se pudo cargar permisos granulares")
+            const data = await res.json()
+            const normalized: PermissionOverrides = {}
+            Object.entries(data?.permissions || {}).forEach(([moduleKey, permission]) => {
+                normalized[moduleKey] = normalizePermission(permission)
+            })
+            setGranularEnabled(data?.enabled === true)
+            setGranularPermissions(normalized)
+        } catch (error: any) {
+            toast.error("Error", { description: error?.message || "No se pudo cargar permisos granulares" })
+            setIsGranularDialogOpen(false)
+        } finally {
+            setLoadingGranular(false)
+        }
+    }
+
+    const handleGranularPermissionChange = (
+        module: string,
+        action: "read" | "write" | "delete",
+        value: boolean
+    ) => {
+        setGranularPermissions((prev) => {
+            const next = { ...prev }
+            const current = normalizePermission(next[module])
+            current[action] = value
+            if ((action === "write" || action === "delete") && value) current.read = true
+            if (action === "read" && !value) {
+                current.write = false
+                current.delete = false
+            }
+            next[module] = current
+            return next
+        })
+    }
+
+    const saveGranularPermissions = async () => {
+        if (!granularTarget) return
+        setSavingGranular(true)
+        try {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${granularTarget.id}/permissions-override`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    enabled: granularEnabled,
+                    permissions: granularPermissions,
+                }),
+            })
+            if (!res.ok) throw new Error("No se pudo guardar permisos granulares")
+            toast.success("Permisos granulares actualizados", {
+                description: `Usuario: ${granularTarget.nombre}`,
+            })
+            setIsGranularDialogOpen(false)
+        } catch (error: any) {
+            toast.error("Error", { description: error?.message || "No se pudo guardar permisos granulares" })
+        } finally {
+            setSavingGranular(false)
+        }
+    }
+
+    const clearGranularPermissions = async () => {
+        if (!granularTarget) return
+        setSavingGranular(true)
+        try {
+            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${granularTarget.id}/permissions-override`, {
+                method: "DELETE",
+            })
+            if (!res.ok) throw new Error("No se pudo limpiar override")
+            setGranularEnabled(false)
+            setGranularPermissions({})
+            toast.success("Override eliminado", {
+                description: "El usuario volverá a heredar permisos por rol.",
+            })
+        } catch (error: any) {
+            toast.error("Error", { description: error?.message || "No se pudo limpiar override" })
+        } finally {
+            setSavingGranular(false)
+        }
     }
 
     const handleForceLogout = async (userId: string) => {
@@ -465,6 +582,10 @@ export function UsuariosModule() {
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Editar Usuario
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => void openGranularPermissions(seller)}>
+                                                        <Shield className="mr-2 h-4 w-4" />
+                                                        Permisos granulares
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     {seller.estado === "activo" ? (
                                                         <DropdownMenuItem
@@ -742,6 +863,96 @@ export function UsuariosModule() {
                 confirmText="Sí, eliminar"
                 cancelText="No, cancelar"
             />
+
+            <Dialog open={isGranularDialogOpen} onOpenChange={setIsGranularDialogOpen}>
+                <DialogContent className="sm:max-w-[920px] max-h-[85vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Permisos granulares por usuario</DialogTitle>
+                        <DialogDescription>
+                            Usuario: <strong>{granularTarget?.nombre || "-"}</strong>. Si activas override, este usuario puede tener permisos distintos a su rol.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {loadingGranular ? (
+                        <div className="flex items-center justify-center py-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="rounded-md border p-3 flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-sm">Override granular activo</p>
+                                    <p className="text-xs text-muted-foreground">Desactivado = hereda 100% del rol.</p>
+                                </div>
+                                <Switch checked={granularEnabled} onCheckedChange={setGranularEnabled} />
+                            </div>
+
+                            <div className="border rounded-md overflow-auto flex-1">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-background z-10">
+                                        <TableRow>
+                                            <TableHead>Módulo</TableHead>
+                                            <TableHead className="text-center">Ver</TableHead>
+                                            <TableHead className="text-center">Editar</TableHead>
+                                            <TableHead className="text-center">Eliminar</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {GRANULAR_MODULES.map((module) => {
+                                            const perms = normalizePermission(granularPermissions[module.id])
+                                            return (
+                                                <TableRow key={module.id}>
+                                                    <TableCell className="font-medium">{module.label}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex justify-center">
+                                                            <Switch
+                                                                checked={perms.read}
+                                                                disabled={!granularEnabled}
+                                                                onCheckedChange={(v) => handleGranularPermissionChange(module.id, "read", v)}
+                                                            />
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex justify-center">
+                                                            <Switch
+                                                                checked={perms.write}
+                                                                disabled={!granularEnabled || !perms.read}
+                                                                onCheckedChange={(v) => handleGranularPermissionChange(module.id, "write", v)}
+                                                            />
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex justify-center">
+                                                            <Switch
+                                                                checked={perms.delete}
+                                                                disabled={!granularEnabled || !perms.write}
+                                                                onCheckedChange={(v) => handleGranularPermissionChange(module.id, "delete", v)}
+                                                            />
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </>
+                    )}
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => void clearGranularPermissions()} disabled={savingGranular || loadingGranular}>
+                            Limpiar override
+                        </Button>
+                        <Button variant="ghost" onClick={() => setIsGranularDialogOpen(false)} disabled={savingGranular}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={() => void saveGranularPermissions()} disabled={savingGranular || loadingGranular}>
+                            {savingGranular && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar granular
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     )
 }

@@ -19,6 +19,12 @@ export interface RolePermissions {
     [key: string]: Permission
 }
 
+interface UserPermissionOverride {
+    user_id: string
+    enabled: boolean
+    permissions: RolePermissions
+}
+
 export interface User {
     id: string
     name: string
@@ -223,6 +229,40 @@ async function fetchRolePermissions(roleId: string): Promise<RolePermissions | n
     }
 }
 
+function normalizePermission(input: unknown): Permission {
+    const candidate = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {}
+    return {
+        read: candidate.read === true,
+        write: candidate.write === true,
+        delete: candidate.delete === true,
+    }
+}
+
+function mergePermissionMaps(base: RolePermissions | null | undefined, override: RolePermissions | null | undefined): RolePermissions {
+    const result: RolePermissions = { ...(base || {}) }
+    for (const [moduleKey, rawValue] of Object.entries(override || {})) {
+        result[moduleKey] = normalizePermission(rawValue)
+    }
+    return result
+}
+
+async function fetchUserPermissionOverride(userId: string): Promise<UserPermissionOverride | null> {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+        const response = await authFetch(`${apiUrl}/users/${userId}/permissions-override`)
+        if (!response.ok) return null
+        const payload = await response.json()
+        return {
+            user_id: String(payload?.user_id || userId),
+            enabled: payload?.enabled === true,
+            permissions: payload?.permissions && typeof payload.permissions === "object" ? payload.permissions : {},
+        }
+    } catch (error) {
+        console.error("[Auth] Error fetching user permission override:", error)
+        return null
+    }
+}
+
 
 async function buildUser(session: any): Promise<User> {
     const profile = await fetchProfile(session.user.id)
@@ -258,6 +298,12 @@ async function buildUser(session: any): Promise<User> {
         if (p.verificacion && !p.verificacion_muestras) {
             p.verificacion_muestras = p.verificacion
         }
+        if (p.correlativos && !p.ingenieria_archivos) {
+            p.ingenieria_archivos = p.correlativos
+        }
+        if (p.ingenieria_archivos && !p.correlativos) {
+            p.correlativos = p.ingenieria_archivos
+        }
 
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
@@ -278,6 +324,13 @@ async function buildUser(session: any): Promise<User> {
         }
         if (p.administracion) {
             p.administracion = { read: true, write: p.administracion?.write || false, delete: p.administracion?.delete || false }
+        }
+        if (p.administracion?.read) {
+            p.ingenieria_archivos = {
+                read: true,
+                write: p.administracion?.write || p.ingenieria_archivos?.write || false,
+                delete: p.administracion?.delete || p.ingenieria_archivos?.delete || false,
+            }
         }
 
         // Compatibility fallback: if llp key is missing in older role matrices,
@@ -714,6 +767,12 @@ async function buildUser(session: any): Promise<User> {
             compresion: pick('compresion'),
             configuracion: pick('configuracion'),
         }
+    }
+
+    // Granular per-user override (highest business priority, except hard revocations below)
+    const userOverride = await fetchUserPermissionOverride(session.user.id)
+    if (userOverride?.enabled && userOverride.permissions) {
+        permissions = mergePermissionMaps(permissions, userOverride.permissions)
     }
 
     if (CONTROL_ACCESS_REVOKED_EMAILS.has(normalizedEmail)) {
