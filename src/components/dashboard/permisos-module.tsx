@@ -60,6 +60,7 @@ const MODULES = [
     { id: "verificacion_muestras", label: "Verificación Muestras" },
     { id: "compresion", label: "Compresión" },
     { id: "tracing", label: "Tracing" },
+    { id: "ingenieria_archivos", label: "Correlativo ING" },
     { id: "humedad", label: "Humedad" },
     { id: "cont_humedad", label: "Contenido Humedad" },
     { id: "cbr", label: "CBR" },

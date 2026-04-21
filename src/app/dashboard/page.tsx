@@ -54,6 +54,7 @@ const RecepcionModule = dashboardDynamic(async () => (await import("@/components
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
 const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
 const TracingModule = dashboardDynamic(async () => (await import("@/components/dashboard/tracing-module")).TracingModule)
+const CorrelativosModule = dashboardDynamic(async () => (await import("@/components/dashboard/correlativos-module")).CorrelativosModule)
 const HumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/humedad-module")).HumedadModule)
 const ContHumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/cont-humedad-module")).ContHumedadModule)
 const CBRModule = dashboardDynamic(async () => (await import("@/components/dashboard/cbr-module")).CBRModule)
@@ -339,6 +340,8 @@ export default function DashboardPage() {
         return <ConfiguracionModule />
       case "tracing":
         return <TracingModule />
+      case "ingenieria_archivos":
+        return <CorrelativosModule />
       case "humedad":
         return <HumedadModule />
       case "cont_humedad":
