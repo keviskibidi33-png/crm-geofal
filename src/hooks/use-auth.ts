@@ -5,9 +5,10 @@ import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
+import { PERMISSION_MODULE_CATALOG, type PermissionModuleId } from "@/lib/permission-modules"
 
 export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "jefe_laboratorio" | "tecnico_general" | "comercial" | "administracion" | "tecnico_suelos" | string
-export type ModuleType = "clientes" | "cotizadora" | "configuracion" | "proyectos" | "usuarios" | "auditoria" | "programacion" | "permisos" | "laboratorio" | "oficina_tecnica" | "comercial" | "administracion" | "verificacion_muestras" | "recepcion" | "compresion" | "tracing" | "humedad" | "cont_humedad" | "planas" | "caras" | "cbr" | "proctor" | "llp" | "gran_suelo" | "gran_agregado" | "cont_mat_organica" | "terrones_fino_grueso" | "azul_metileno" | "part_livianas" | "imp_organicas" | "sul_magnesio" | "angularidad" | "abra" | "abrass" | "peso_unitario" | "tamiz" | "equi_arena" | "ge_fino" | "ge_grueso" | "cd" | "ph" | "cloro_soluble" | "sales_solubles" | "sulfatos_solubles" | "compresion_no_confinada" | "ingenieria_archivos"
+export type ModuleType = PermissionModuleId
 
 export interface Permission {
     read: boolean
@@ -246,6 +247,14 @@ function mergePermissionMaps(base: RolePermissions | null | undefined, override:
     return result
 }
 
+function buildFullAccessPermissions(): RolePermissions {
+    const result: RolePermissions = {}
+    for (const moduleDef of PERMISSION_MODULE_CATALOG) {
+        result[moduleDef.id] = { read: true, write: true, delete: true }
+    }
+    return result
+}
+
 async function fetchUserPermissionOverride(userId: string): Promise<UserPermissionOverride | null> {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -478,45 +487,8 @@ async function buildUser(session: any): Promise<User> {
 
         // Logic for specialized roles (ONLY if permissions are missing or we need to block critical gaps)
         if (isSuperAdmin) {
-            // Only superadmin gets everything
-            return {
-                clientes: { read: true, write: true, delete: true },
-                proyectos: { read: true, write: true, delete: true },
-                cotizadora: { read: true, write: true, delete: true },
-                programacion: { read: true, write: true, delete: true },
-                laboratorio: { read: true, write: true, delete: true },
-                comercial: { read: true, write: true, delete: true },
-                administracion: { read: true, write: true, delete: true },
-                configuracion: { read: true, write: true, delete: true },
-                usuarios: { read: true, write: true, delete: true },
-                auditoria: { read: true, write: true, delete: true },
-                permisos: { read: true, write: true, delete: true },
-                verificacion_muestras: { read: true, write: true, delete: true },
-                compresion: { read: true, write: true, delete: true },
-                humedad: { read: true, write: true, delete: true },
-                cont_humedad: { read: true, write: true, delete: true },
-                planas: { read: true, write: true, delete: true },
-                caras: { read: true, write: true, delete: true },
-                cbr: { read: true, write: true, delete: true },
-                proctor: { read: true, write: true, delete: true },
-                llp: { read: true, write: true, delete: true },
-                gran_suelo: { read: true, write: true, delete: true },
-                gran_agregado: { read: true, write: true, delete: true },
-                cont_mat_organica: { read: true, write: true, delete: true },
-                terrones_fino_grueso: { read: true, write: true, delete: true },
-                azul_metileno: { read: true, write: true, delete: true },
-                part_livianas: { read: true, write: true, delete: true },
-                imp_organicas: { read: true, write: true, delete: true },
-                sul_magnesio: { read: true, write: true, delete: true },
-                angularidad: { read: true, write: true, delete: true },
-                abra: { read: true, write: true, delete: true },
-                abrass: { read: true, write: true, delete: true },
-                peso_unitario: { read: true, write: true, delete: true },
-                tamiz: { read: true, write: true, delete: true },
-                equi_arena: { read: true, write: true, delete: true },
-                ge_fino: { read: true, write: true, delete: true },
-                ge_grueso: { read: true, write: true, delete: true },
-            }
+            // Only superadmin gets everything, always aligned with module catalog.
+            return buildFullAccessPermissions()
         }
 
         return p

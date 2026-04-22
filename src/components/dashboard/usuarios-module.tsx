@@ -35,6 +35,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
+import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"
 
 interface Seller {
     id: string
@@ -49,6 +50,7 @@ interface Seller {
 interface RoleDefinition {
     role_id: string
     label: string
+    permissions?: PermissionOverrides
 }
 
 interface SellerFormData {
@@ -62,22 +64,7 @@ interface SellerFormData {
 type ModulePermission = { read: boolean; write: boolean; delete: boolean }
 type PermissionOverrides = Record<string, ModulePermission>
 
-const GRANULAR_MODULES = [
-    { id: "clientes", label: "Clientes" },
-    { id: "proyectos", label: "Proyectos" },
-    { id: "cotizadora", label: "Cotizadora" },
-    { id: "programacion", label: "Programación" },
-    { id: "recepcion", label: "Recepción" },
-    { id: "verificacion_muestras", label: "Verificación Muestras" },
-    { id: "compresion", label: "Compresión" },
-    { id: "tracing", label: "Tracing" },
-    { id: "laboratorio", label: "Control: Laboratorio" },
-    { id: "comercial", label: "Control: Comercial" },
-    { id: "administracion", label: "Control: Administración" },
-    { id: "ingenieria_archivos", label: "Correlativo ING" },
-    { id: "usuarios", label: "Gestión Usuarios" },
-    { id: "permisos", label: "Matriz Permisos" },
-]
+const GRANULAR_MODULES = PERMISSION_MODULE_CATALOG
 
 const ITEMS_PER_PAGE = 20
 
@@ -192,18 +179,42 @@ export function UsuariosModule() {
         delete: value?.delete === true,
     })
 
+    const materializePermissions = (source?: PermissionOverrides | null): PermissionOverrides => {
+        const result: PermissionOverrides = {}
+        for (const moduleDef of GRANULAR_MODULES) {
+            result[moduleDef.id] = normalizePermission(source?.[moduleDef.id])
+        }
+        return result
+    }
+
+    const getRolePermissions = (roleId: string): PermissionOverrides => {
+        const normalizedRoleId = String(roleId || "").trim().toLowerCase()
+        const role = availableRoles.find((item) => String(item.role_id || "").trim().toLowerCase() === normalizedRoleId) as (RoleDefinition & { permissions?: PermissionOverrides }) | undefined
+        return materializePermissions(role?.permissions || {})
+    }
+
+    const mergePermissions = (base: PermissionOverrides, override: PermissionOverrides): PermissionOverrides => {
+        const merged: PermissionOverrides = {}
+        for (const moduleDef of GRANULAR_MODULES) {
+            merged[moduleDef.id] = normalizePermission(override[moduleDef.id] ?? base[moduleDef.id])
+        }
+        return merged
+    }
+
     const openGranularPermissions = async (seller: Seller) => {
         setGranularTarget(seller)
         setIsGranularDialogOpen(true)
         setLoadingGranular(true)
         try {
+            if (availableRoles.length === 0) {
+                await fetchRoles()
+            }
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${seller.id}/permissions-override`)
             if (!res.ok) throw new Error("No se pudo cargar permisos granulares")
             const data = await res.json()
-            const normalized: PermissionOverrides = {}
-            Object.entries(data?.permissions || {}).forEach(([moduleKey, permission]) => {
-                normalized[moduleKey] = normalizePermission(permission)
-            })
+            const roleBase = materializePermissions((data?.role_permissions || getRolePermissions(seller.role)) as PermissionOverrides)
+            const overridePermissions = materializePermissions((data?.permissions || {}) as PermissionOverrides)
+            const normalized = materializePermissions((data?.effective_permissions || mergePermissions(roleBase, overridePermissions)) as PermissionOverrides)
             setGranularEnabled(data?.enabled === true)
             setGranularPermissions(normalized)
         } catch (error: any) {
@@ -241,7 +252,7 @@ export function UsuariosModule() {
                 method: "PUT",
                 body: JSON.stringify({
                     enabled: granularEnabled,
-                    permissions: granularPermissions,
+                    permissions: materializePermissions(granularPermissions),
                 }),
             })
             if (!res.ok) throw new Error("No se pudo guardar permisos granulares")

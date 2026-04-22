@@ -20,6 +20,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"
 
 // --- Types matching Backend ---
 type ModulePermission = {
@@ -49,44 +50,7 @@ type RoleDefinition = {
     is_system: boolean
 }
 
-const MODULES = [
-    { id: "clientes", label: "Clientes" },
-    { id: "proyectos", label: "Proyectos" },
-    { id: "cotizadora", label: "Cotizadora" },
-    { id: "laboratorio", label: "Prog: Laboratorio" },
-    { id: "comercial", label: "Prog: Comercial" },
-    { id: "administracion", label: "Prog: Administración" },
-    { id: "recepcion", label: "Recepción" },
-    { id: "verificacion_muestras", label: "Verificación Muestras" },
-    { id: "compresion", label: "Compresión" },
-    { id: "tracing", label: "Tracing" },
-    { id: "ingenieria_archivos", label: "Control Informes" },
-    { id: "humedad", label: "Humedad" },
-    { id: "cont_humedad", label: "Contenido Humedad" },
-    { id: "cbr", label: "CBR" },
-    { id: "proctor", label: "Proctor" },
-    { id: "llp", label: "LLP" },
-    { id: "gran_suelo", label: "Gran Suelo" },
-    { id: "gran_agregado", label: "Gran Agregado" },
-    { id: "abra", label: "ABRA" },
-    { id: "abrass", label: "ABRASS" },
-    { id: "peso_unitario", label: "Peso Unitario" },
-    { id: "tamiz", label: "Tamiz" },
-    { id: "planas", label: "Planas" },
-    { id: "caras", label: "Caras" },
-    { id: "equi_arena", label: "EquiArena" },
-    { id: "ge_fino", label: "GE Fino" },
-    { id: "ge_grueso", label: "GE Grueso" },
-    { id: "cd", label: "CD" },
-    { id: "ph", label: "PH" },
-    { id: "cloro_soluble", label: "Cloro Soluble" },
-    { id: "sales_solubles", label: "Sales Solubles" },
-    { id: "sulfatos_solubles", label: "Sulfatos Solubles" },
-    { id: "compresion_no_confinada", label: "Compresion No Confinada" },
-    { id: "usuarios", label: "Gestión Usuarios" },
-    { id: "auditoria", label: "Auditoría" },
-    { id: "permisos", label: "Matriz Permisos" },
-]
+const MODULES = PERMISSION_MODULE_CATALOG
 
 export function PermisosModule() {
     const { user } = useAuth()
