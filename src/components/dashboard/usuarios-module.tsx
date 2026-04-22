@@ -212,7 +212,10 @@ export function UsuariosModule() {
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${seller.id}/permissions-override`)
             if (!res.ok) throw new Error("No se pudo cargar permisos granulares")
             const data = await res.json()
-            const roleBase = materializePermissions((data?.role_permissions || getRolePermissions(seller.role)) as PermissionOverrides)
+            const apiRolePermissions = (data?.role_permissions && Object.keys(data.role_permissions).length > 0)
+                ? data.role_permissions
+                : undefined
+            const roleBase = materializePermissions((apiRolePermissions || getRolePermissions(seller.role)) as PermissionOverrides)
             const overridePermissions = materializePermissions((data?.permissions || {}) as PermissionOverrides)
             const normalized = materializePermissions((data?.effective_permissions || mergePermissions(roleBase, overridePermissions)) as PermissionOverrides)
             setGranularEnabled(data?.enabled === true)
