@@ -257,7 +257,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
                 className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 title={title}
                 onLoad={() => {
-                    completeLoad()
+                    try {
+                        iframeRef.current?.contentWindow?.postMessage(
+                            { type: 'PING_IFRAME_READY', source: 'crm-shell' },
+                            expectedOrigin ?? '*'
+                        )
+                    } catch {
+                        // The iframe may still be on about:blank or an error page.
+                    }
                 }}
                 onError={() => {
                     clearTransientTimers();
@@ -790,8 +797,8 @@ export function RecepcionModule() {
                     <div className="w-full h-full relative">
                         <SmartIframe
                             src={editId
-                                ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar?token=${token || ''}`
-                                : `${FRONTEND_URL}/migration/nueva-recepcion?token=${token || ''}`
+                                ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar`
+                                : `${FRONTEND_URL}/migration/nueva-recepcion`
                             }
                             title={editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}
                         />
