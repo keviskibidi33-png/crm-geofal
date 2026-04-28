@@ -300,6 +300,59 @@ export function RecepcionModule() {
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
     const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
 
+    const getStoredAccessToken = useCallback((): string | null => {
+        if (typeof window === "undefined") return null
+
+        const direct = localStorage.getItem("token")
+        if (direct) return direct
+
+        const extractToken = (parsed: any): string | null => {
+            if (!parsed) return null
+            if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
+            if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
+            if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
+            if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
+            return null
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
+
+            const raw = localStorage.getItem(key)
+            if (!raw) continue
+
+            try {
+                const parsed = JSON.parse(raw)
+                const token = extractToken(parsed)
+                if (token) return token
+            } catch {
+                // Ignore malformed storage entries.
+            }
+        }
+
+        return null
+    }, [])
+
+    const isTokenExpiringSoon = useCallback((jwt: string | null, skewMs = 60_000): boolean => {
+        if (!jwt) return true
+
+        try {
+            const [, payload] = jwt.split(".")
+            if (!payload) return true
+
+            const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
+            const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
+            const parsed = JSON.parse(window.atob(padded))
+            const expMs = typeof parsed?.exp === "number" ? parsed.exp * 1000 : null
+
+            if (!expMs) return true
+            return expMs <= Date.now() + skewMs
+        } catch {
+            return true
+        }
+    }, [])
+
     const frontendOrigin = useMemo(() => {
         try {
             return new URL(FRONTEND_URL).origin
@@ -310,10 +363,30 @@ export function RecepcionModule() {
 
     const syncIframeToken = useCallback(async (): Promise<string | null> => {
         const { data: { session } } = await supabase.auth.getSession()
-        const freshToken = session?.access_token ?? null
+        const sessionToken = session?.access_token ?? null
+        const localToken = getStoredAccessToken()
+        let freshToken = !isTokenExpiringSoon(sessionToken)
+            ? sessionToken
+            : !isTokenExpiringSoon(localToken)
+                ? localToken
+                : null
+
+        if (!freshToken) {
+            try {
+                const { data } = await supabase.auth.refreshSession()
+                freshToken = data?.session?.access_token ?? getStoredAccessToken()
+            } catch {
+                freshToken = getStoredAccessToken()
+            }
+        }
+
+        if (freshToken && typeof window !== "undefined") {
+            localStorage.setItem("token", freshToken)
+        }
+
         setToken(freshToken)
         return freshToken
-    }, [])
+    }, [getStoredAccessToken, isTokenExpiringSoon])
 
     const refreshCurrentPage = useCallback(() => {
         void fetchRecepciones({
@@ -405,7 +478,11 @@ export function RecepcionModule() {
                 syncIframeToken().then((freshToken) => {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: freshToken },
+                            {
+                                type: 'TOKEN_REFRESH',
+                                token: freshToken,
+                                requestId: typeof event.data?.requestId === 'string' ? event.data.requestId : undefined,
+                            },
                             event.origin
                         )
                     }
