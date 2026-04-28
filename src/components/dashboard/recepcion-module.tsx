@@ -29,6 +29,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     const RETRY_TOAST_DELAY_MS = 1200;
     const READY_PING_GRACE_MS = 1200;
     const READY_PING_INTERVAL_MS = 3000;
+    const READY_ACK_TYPE = 'IFRAME_READY_ACK';
 
     const [key, setKey] = useState(0); // Force re-render
     const [isLoading, setIsLoading] = useState(true);
@@ -127,6 +128,14 @@ function SmartIframe({ src, title }: SmartIframeProps) {
             if (event.origin !== expectedOrigin) return;
             if (event.data?.type !== 'IFRAME_READY') return;
             if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return;
+            try {
+                (event.source as Window | null)?.postMessage(
+                    { type: READY_ACK_TYPE, source: 'crm-shell' },
+                    event.origin
+                );
+            } catch {
+                // Ignore transient navigation windows; load is already considered complete below.
+            }
             completeLoad();
         };
 
@@ -140,15 +149,10 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         let startPingTimeout: ReturnType<typeof setTimeout> | null = null;
         const pingIframe = () => {
             if (!iframeRef.current?.contentWindow) return;
-            try {
-                iframeRef.current.contentWindow.postMessage(
-                    { type: 'PING_IFRAME_READY', source: 'crm-shell' },
-                    expectedOrigin ?? '*'
-                );
-            } catch {
-                // Ignore origin mismatch while the iframe is still on the initial about:blank
-                // or when the remote page failed before adopting the target origin.
-            }
+            iframeRef.current.contentWindow.postMessage(
+                { type: 'PING_IFRAME_READY', source: 'crm-shell' },
+                '*'
+            );
         };
 
         startPingTimeout = setTimeout(() => {
@@ -257,14 +261,10 @@ function SmartIframe({ src, title }: SmartIframeProps) {
                 className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                 title={title}
                 onLoad={() => {
-                    try {
-                        iframeRef.current?.contentWindow?.postMessage(
-                            { type: 'PING_IFRAME_READY', source: 'crm-shell' },
-                            expectedOrigin ?? '*'
-                        )
-                    } catch {
-                        // The iframe may still be on about:blank or an error page.
-                    }
+                    iframeRef.current?.contentWindow?.postMessage(
+                        { type: 'PING_IFRAME_READY', source: 'crm-shell' },
+                        '*'
+                    )
                 }}
                 onError={() => {
                     clearTransientTimers();
@@ -406,7 +406,7 @@ export function RecepcionModule() {
                     if (freshToken && event.source) {
                         (event.source as Window).postMessage(
                             { type: 'TOKEN_REFRESH', token: freshToken },
-                            frontendOrigin ?? event.origin ?? '*'
+                            event.origin
                         )
                     }
                 })
