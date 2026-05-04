@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, FlaskConical, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { Plus, Droplets, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabaseClient"
@@ -24,7 +24,7 @@ interface SmartIframeProps {
     title: string;
 }
 
-interface ProctorEnsayoSummary {
+interface HumedadCompleteDemoEnsayoSummary {
     id: number
     numero_ensayo?: string | null
     numero_ot?: string | null
@@ -32,15 +32,15 @@ interface ProctorEnsayoSummary {
     muestra?: string | null
     fecha_documento?: string | null
     estado?: string | null
-    densidad_seca_maxima?: number | null
+    contenido_humedad?: number | null
     fecha_creacion?: string | null
     fecha_actualizacion?: string | null
 }
 
-interface ProctorEnsayoDetail extends ProctorEnsayoSummary {
+interface HumedadCompleteDemoEnsayoDetail extends HumedadCompleteDemoEnsayoSummary {
     payload?: {
         realizado_por?: string
-        tipo_muestra?: string
+        descripcion_material_excluido?: string
         observaciones?: string
     } | null
 }
@@ -157,26 +157,26 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     );
 }
 
-export function ProctorModule() {
+export function HumedadCompleteDemoModule() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
-    const [ensayos, setEnsayos] = useState<ProctorEnsayoSummary[]>([])
-    const [selectedDetail, setSelectedDetail] = useState<ProctorEnsayoDetail | null>(null)
+    const [ensayos, setEnsayos] = useState<HumedadCompleteDemoEnsayoSummary[]>([])
+    const [selectedDetail, setSelectedDetail] = useState<HumedadCompleteDemoEnsayoDetail | null>(null)
     const [detailLoading, setDetailLoading] = useState(false)
     const [loading, setLoading] = useState(false)
     const [refreshingTable, setRefreshingTable] = useState(false)
     const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
     const [iframePath, setIframePath] = useState<string>('/')
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
-    const [search, setSearch] = useState("")
+    const [search, setSearch] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 100
 
     const FRONTEND_URL = (
-        process.env.NEXT_PUBLIC_PROCTOR_FRONTEND_URL ||
-        process.env.NEXT_PUBLIC_PROCTOR_URL ||
-        "https://proctor.geofal.com.pe"
+        process.env.NEXT_PUBLIC_HUMEDAD_COMPLETE_DEMO_FRONTEND_URL ||
+        process.env.NEXT_PUBLIC_HUMEDAD_COMPLETE_DEMO_URL ||
+        "https://humedad01.geofal.com.pe"
     ).replace(/\/+$/, "")
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -265,17 +265,17 @@ export function ProctorModule() {
     const fetchEnsayos = useCallback(async (): Promise<boolean> => {
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/proctor/?_ts=${Date.now()}`, {
+            const res = await authFetch(`${API_URL}/api/humedad-complete-demo/?_ts=${Date.now()}`, {
                 cache: "no-store",
             })
             if (!res.ok) {
                 return false
             }
-            const data: ProctorEnsayoSummary[] = await res.json()
+            const data: HumedadCompleteDemoEnsayoSummary[] = await res.json()
             setEnsayos(data)
             return true
         } catch (err) {
-            console.error('Error fetching proctor ensayos', err)
+            console.error('Error fetching humedad ensayos', err)
             return false
         } finally {
             setLoading(false)
@@ -316,27 +316,27 @@ export function ProctorModule() {
     const openNewEnsayo = async () => {
         await syncIframeToken()
         setEditingEnsayoId(null)
-        setIframePath('/proctor')
+        setIframePath('/')
         setIsModalOpen(true)
     }
 
     const openEditEnsayo = async (id: number) => {
         await syncIframeToken()
         setEditingEnsayoId(id)
-        setIframePath('/proctor')
+        setIframePath('/')
         setIsModalOpen(true)
     }
 
     const openDetail = async (id: number) => {
         setDetailLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/api/proctor/${id}?_ts=${Date.now()}`, {
+            const res = await authFetch(`${API_URL}/api/humedad-complete-demo/${id}?_ts=${Date.now()}`, {
                 cache: "no-store",
             })
             if (!res.ok) {
                 throw new Error("No se pudo cargar el detalle.")
             }
-            const data: ProctorEnsayoDetail = await res.json()
+            const data: HumedadCompleteDemoEnsayoDetail = await res.json()
             setSelectedDetail(data)
             setIsDetailOpen(true)
         } catch (error) {
@@ -347,37 +347,22 @@ export function ProctorModule() {
         }
     }
 
-    const handleRefreshTable = useCallback(async () => {
-        if (loading || refreshingTable) return
-        setRefreshingTable(true)
-        try {
-            const ok = await fetchEnsayos()
-            if (ok) {
-                toast.success("Tabla de Proctor actualizada.")
-            } else {
-                toast.error("No se pudo actualizar la tabla de Proctor.")
-            }
-        } finally {
-            setRefreshingTable(false)
-        }
-    }, [fetchEnsayos, loading, refreshingTable])
-
     const handleDeleteEnsayo = useCallback(async (id: number) => {
         const ensayo = ensayos.find((item) => item.id === id)
         const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
 
-        if (!window.confirm(`¿Enviar a papelera el ensayo de proctor ${ensayoLabel}? Se puede recuperar luego.`)) {
+        if (!window.confirm(`¿Eliminar el ensayo de humedad ${ensayoLabel}? Esta acción no se puede deshacer.`)) {
             return
         }
 
         setDeletingEnsayoId(id)
         try {
-            const res = await authFetch(`${API_URL}/api/proctor/${id}`, {
+            const res = await authFetch(`${API_URL}/api/humedad-complete-demo/${id}`, {
                 method: "DELETE",
             })
 
             if (!res.ok) {
-                let message = "No se pudo enviar a papelera el ensayo."
+                let message = "No se pudo eliminar el ensayo."
                 try {
                     const data = await res.json()
                     if (typeof data?.detail === "string" && data.detail.trim()) {
@@ -390,7 +375,7 @@ export function ProctorModule() {
             }
 
             setEnsayos((prev) => prev.filter((row) => row.id !== id))
-            toast.success("Ensayo de Proctor enviado a papelera.")
+            toast.success("Ensayo de humedad eliminado correctamente.")
         } catch (error) {
             const message = error instanceof Error ? error.message : "Error desconocido"
             toast.error(message)
@@ -399,12 +384,27 @@ export function ProctorModule() {
         }
     }, [API_URL, ensayos])
 
+    const handleRefreshTable = useCallback(async () => {
+        if (loading || refreshingTable) return
+        setRefreshingTable(true)
+        try {
+            const ok = await fetchEnsayos()
+            if (ok) {
+                toast.success("Tabla de Humedad Multitab actualizada.")
+            } else {
+                toast.error("No se pudo actualizar la tabla de humedad.")
+            }
+        } finally {
+            setRefreshingTable(false)
+        }
+    }, [fetchEnsayos, loading, refreshingTable])
+
     const filtered = ensayos.filter((e) => {
         const term = search.trim().toLowerCase()
         if (!term) return true
         return (
-            (e.muestra || e.cliente || "").toLowerCase().includes(term) ||
-            (e.numero_ot || "").toLowerCase().includes(term)
+            (e.muestra || e.cliente || '').toLowerCase().includes(term) ||
+            (e.numero_ot || '').toLowerCase().includes(term)
         )
     })
 
@@ -444,11 +444,11 @@ export function ProctorModule() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                     <div className="shrink-0 p-2 rounded-lg bg-primary/10">
-                      <FlaskConical className="h-6 w-6 text-primary" />
+                      <Droplets className="h-6 w-6 text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">PROCTOR ASTM D1557-12(2021)</h2>
-                        <p className="text-sm sm:text-base text-muted-foreground">Laboratory compaction characteristics of soil</p>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight">Humedad Multitab ASTM D2216-19</h2>
+                        <p className="text-sm sm:text-base text-muted-foreground">ASTM D2216-19 — Reportes multi-hoja</p>
                     </div>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -483,7 +483,7 @@ export function ProctorModule() {
 
             <div className="border rounded-xl shadow-sm bg-white">
                 <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-                    <h3 className="text-sm font-semibold text-slate-900">Historial de Proctor</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">Historial de Humedad Multitab</h3>
                     <p className="text-xs text-muted-foreground">Registros guardados con acceso a ver detalle y edición.</p>
                 </div>
                 <Table className="min-w-[860px]">
@@ -557,7 +557,7 @@ export function ProctorModule() {
                             </TableRow>
                         ))}
                     </TableBody>
-                    <TableCaption className="text-xs text-muted-foreground">Proctor — listado con búsqueda y acceso rápido.</TableCaption>
+                    <TableCaption className="text-xs text-muted-foreground">Humedad — listado con búsqueda y acceso rápido.</TableCaption>
                 </Table>
                 {!loading && filtered.length > 0 && (
                     <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
@@ -577,12 +577,12 @@ export function ProctorModule() {
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                     <DialogHeader className="hidden">
-                        <DialogTitle>Ensayo Proctor</DialogTitle>
-                        <DialogDescription>Formulario Proctor ASTM D1557-12(2021)</DialogDescription>
+                        <DialogTitle>Ensayo de Humedad</DialogTitle>
+                        <DialogDescription>Formulario de contenido de humedad ASTM D2216</DialogDescription>
                     </DialogHeader>
                     <SmartIframe
                         src={iframeSrc}
-                        title="Proctor CRM"
+                        title="Humedad Complete Demo CRM"
                     />
                 </DialogContent>
             </Dialog>
@@ -591,7 +591,7 @@ export function ProctorModule() {
                 <DialogContent className="max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-                        <DialogDescription>Información guardada del Ensayo Proctor.</DialogDescription>
+                        <DialogDescription>Información guardada del ensayo de humedad.</DialogDescription>
                     </DialogHeader>
                     {selectedDetail ? (
                         <div className="space-y-2 text-sm">
@@ -601,7 +601,7 @@ export function ProctorModule() {
                             <p><span className="font-semibold">Fecha:</span> {formatDate(selectedDetail.fecha_documento)}</p>
                             <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
                             <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
-                            <p><span className="font-semibold">Tipo de muestra:</span> {selectedDetail.payload?.tipo_muestra || "-"}</p>
+                            <p><span className="font-semibold">Descripción material excluido:</span> {selectedDetail.payload?.descripcion_material_excluido || "-"}</p>
                             <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
                         </div>
                     ) : (
@@ -612,5 +612,4 @@ export function ProctorModule() {
         </div>
     )
 }
-
 

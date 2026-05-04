@@ -10,6 +10,7 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "compresion", label: "F. Probetas" },
   { id: "humedad", label: "Humedad Suelo" },
   { id: "cont_humedad", label: "Humedad AG" },
+  { id: "humedad_complete_demo", label: "Humedad Multitab" },
   { id: "cbr", label: "CBR" },
   { id: "proctor", label: "Proctor" },
   { id: "llp", label: "Límite" },

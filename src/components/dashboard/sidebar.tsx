@@ -39,6 +39,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
   { id: "humedad", label: "Humedad Suelo", icon: Beaker, adminOnly: true },
   { id: "cont_humedad", label: "Humedad AG", icon: Beaker, adminOnly: true },
+  { id: "humedad_complete_demo", label: "Humedad Multitab", icon: Beaker, adminOnly: true },
   { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
   { id: "proctor", label: "Proctor", icon: Beaker, adminOnly: true },
   { id: "llp", label: "Limite", icon: Beaker, adminOnly: true },

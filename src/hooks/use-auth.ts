@@ -358,6 +358,13 @@ async function buildUser(session: any): Promise<User> {
                 delete: p.humedad?.delete || p.llp?.delete || p.proctor?.delete || false,
             }
         }
+        if (!p.humedad_complete_demo) {
+            p.humedad_complete_demo = {
+                read: p.humedad?.read || p.cont_humedad?.read || false,
+                write: p.humedad?.write || p.cont_humedad?.write || false,
+                delete: p.humedad?.delete || p.cont_humedad?.delete || false,
+            }
+        }
         if (!p.gran_suelo) {
             p.gran_suelo = {
                 read: p.llp?.read || p.proctor?.read || false,
@@ -530,6 +537,7 @@ async function buildUser(session: any): Promise<User> {
             permissions = {
                 humedad: { read: true, write: true, delete: false },
                 cont_humedad: { read: true, write: true, delete: false },
+                humedad_complete_demo: { read: true, write: true, delete: false },
                 cbr: { read: true, write: true, delete: false },
                 proctor: { read: true, write: true, delete: false },
                 llp: { read: true, write: true, delete: false },
@@ -567,6 +575,7 @@ async function buildUser(session: any): Promise<User> {
                 verificacion_muestras: { read: true, write: !isLector, delete: false },
                 humedad: { read: true, write: !isLector, delete: false },
                 cont_humedad: { read: true, write: !isLector, delete: false },
+                humedad_complete_demo: { read: true, write: !isLector, delete: false },
                 proctor: { read: true, write: !isLector, delete: false },
                 llp: { read: true, write: !isLector, delete: false },
                 gran_suelo: { read: true, write: !isLector, delete: false },
@@ -616,13 +625,16 @@ async function buildUser(session: any): Promise<User> {
             compresion: grantWrite(),
             humedad: grantWrite(),
             cont_humedad: grantWrite(),
+            humedad_complete_demo: grantWrite(),
             planas: grantWrite(),
             caras: grantWrite(),
             cbr: grantWrite(),
+            humedad_complete_demo: grantWrite(), // Humedad multitab
             proctor: grantWrite(),
             llp: grantWrite(),
             gran_suelo: grantWrite(),
             gran_agregado: grantWrite(),
+            humedad_complete_demo:   grantWrite(), // Humedad multitab
             cont_mat_organica: grantWrite(),
             terrones_fino_grueso: grantWrite(),
             azul_metileno: grantWrite(),

@@ -57,6 +57,7 @@ const TracingModule = dashboardDynamic(async () => (await import("@/components/d
 const ControlInformesModule = dashboardDynamic(async () => (await import("@/components/dashboard/control-informes-module")).ControlInformesModule)
 const HumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/humedad-module")).HumedadModule)
 const ContHumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/cont-humedad-module")).ContHumedadModule)
+const HumedadCompleteDemoModule = dashboardDynamic(async () => (await import("@/components/dashboard/humedad-complete-demo-module")).HumedadCompleteDemoModule)
 const CBRModule = dashboardDynamic(async () => (await import("@/components/dashboard/cbr-module")).CBRModule)
 const ProctorModule = dashboardDynamic(async () => (await import("@/components/dashboard/proctor-module")).ProctorModule)
 const LLPModule = dashboardDynamic(async () => (await import("@/components/dashboard/llp-module")).LLPModule)
@@ -346,6 +347,8 @@ export default function DashboardPage() {
         return <HumedadModule />
       case "cont_humedad":
         return <ContHumedadModule />
+      case "humedad_complete_demo":
+        return <HumedadCompleteDemoModule />
       case "cbr":
         return <CBRModule />
       case "proctor":
