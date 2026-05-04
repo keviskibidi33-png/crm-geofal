@@ -1,468 +1,113 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { User } from "@/hooks/use-auth"
-import { useProgramacionData } from "@/hooks/use-programacion-data"
-import { useProgramacionIframe } from "@/hooks/use-programacion-iframe"
-import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } from "@/components/ui/dialog-fullscreen"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle2, AlertTriangle, FlaskConical, Briefcase, Building2, ChevronRight, BarChart3, X } from "lucide-react"
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { supabase } from "@/lib/supabaseClient"
-import { toast } from "sonner"
-import { resolveFrontendModuleUrl } from "@/lib/frontend-url"
+import type { ModuleType, User } from "@/hooks/use-auth"
+import { ArrowRight, Briefcase, Building2, FlaskConical, Info } from "lucide-react"
+
+type ProgramacionTargetModule = Extract<ModuleType, "laboratorio" | "comercial" | "administracion">
 
 interface ProgramacionModuleProps {
     user: User
+    onNavigateModule?: (module: ProgramacionTargetModule) => void
 }
 
-type ViewMode = 'LAB' | 'COMERCIAL' | 'ADMIN'
-const TOKEN_BRIDGE_TRACE_PREFIX = "[ProgramacionTokenBridge]"
-const BRIDGE_DEBUG_LOGS = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEBUG_IFRAME_BRIDGE === "true"
-const VIEW_MODE_PERMISSION_KEY: Record<ViewMode, 'laboratorio' | 'comercial' | 'administracion'> = {
-    'LAB': 'laboratorio',
-    'COMERCIAL': 'comercial',
-    'ADMIN': 'administracion'
-}
+const TARGET_MODULES: Array<{
+    id: ProgramacionTargetModule
+    title: string
+    description: string
+    icon: typeof FlaskConical
+}> = [
+    {
+        id: "laboratorio",
+        title: "Laboratorio",
+        description: "Módulo independiente para la programación del laboratorio.",
+        icon: FlaskConical,
+    },
+    {
+        id: "comercial",
+        title: "Comercial",
+        description: "Módulo independiente para programación comercial.",
+        icon: Briefcase,
+    },
+    {
+        id: "administracion",
+        title: "Administración",
+        description: "Módulo independiente para programación administrativa.",
+        icon: Building2,
+    },
+]
 
-const bridgeInfo = (message: string, payload?: unknown) => {
-    if (BRIDGE_DEBUG_LOGS) {
-        console.info(`${TOKEN_BRIDGE_TRACE_PREFIX} ${message}`, payload)
-    }
-}
-
-const bridgeWarn = (message: string, payload?: unknown) => {
-    if (BRIDGE_DEBUG_LOGS) {
-        console.warn(`${TOKEN_BRIDGE_TRACE_PREFIX} ${message}`, payload)
-    }
-}
-
-export function ProgramacionModule({ user }: ProgramacionModuleProps) {
-    const { kpis, realtimeStatus } = useProgramacionData()
-    const [isOpen, setIsOpen] = useState(false)
-    const [accessToken, setAccessToken] = useState<string | null>(null)
-    const [iframeToken, setIframeToken] = useState<string | null>(null)
-    const [iframeReloadKey, setIframeReloadKey] = useState(0)
-    const iframeRef = useRef<HTMLIFrameElement | null>(null)
-    const getStoredAccessToken = useCallback((): string | null => {
-        if (typeof window === "undefined") return null
-        const direct = localStorage.getItem("token")
-        if (direct) return direct
-
-        const extractToken = (parsed: any): string | null => {
-            if (!parsed) return null
-            if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-            if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
-            if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
-            if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
-            return null
-        }
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
-            const raw = localStorage.getItem(key)
-            if (!raw) continue
-            try {
-                const parsed = JSON.parse(raw)
-                const token = extractToken(parsed)
-                if (token) return token
-            } catch {
-                // ignore malformed entries
-            }
-        }
-        return null
-    }, [])
-
-    const syncIframeToken = useCallback(async (reason = "generic"): Promise<string | null> => {
-        const startedAt = Date.now()
-        const { data: { session } } = await supabase.auth.getSession()
-        const sessionToken = session?.access_token ?? null
-        const localToken = getStoredAccessToken()
-        let freshToken = sessionToken ?? localToken
-
-        if (!freshToken) {
-            try {
-                const { data } = await supabase.auth.refreshSession()
-                freshToken = data?.session?.access_token ?? getStoredAccessToken()
-            } catch {
-                // ignore refresh failures; fallback chain continues
-            }
-        }
-
-        if (freshToken && typeof window !== "undefined") {
-            localStorage.setItem("token", freshToken)
-        }
-        setAccessToken(freshToken)
-        bridgeInfo("syncIframeToken", {
-            reason,
-            session: !!sessionToken,
-            local: !!localToken,
-            resolved: !!freshToken,
-            elapsedMs: Date.now() - startedAt,
-        })
-        return freshToken
-    }, [getStoredAccessToken])
-
-    // === AUTO-SELECT VIEW BASED ON ROLE ===
-    const roleToViewMap: Record<string, ViewMode> = {
-        'admin': 'ADMIN',
-        'administrativo': 'ADMIN',
-        'vendor': 'COMERCIAL',
-        'auxiliar_comercial': 'COMERCIAL',
-        'laboratorio_lector': 'LAB',
-        'laboratorio_tipificador': 'LAB',
-        'oficina_tecnica_humedad_tipificador': 'LAB'
-    }
-
-    const rNorm = user.role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    const isSuperAdmin = rNorm === 'admin'
-    const isAdminGeneral = rNorm === 'admin_general' || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')
-    const isAdmin = isSuperAdmin || isAdminGeneral
-
-    const getInitialMode = (): ViewMode => {
-        if (roleToViewMap[rNorm]) return roleToViewMap[rNorm]
-        if (rNorm.includes('admin') || rNorm.includes('geren') || rNorm.includes('direc') || rNorm.includes('jefe')) return 'ADMIN'
-        if (rNorm.includes('comercial') || rNorm.includes('vendedor') || rNorm.includes('asesor') || rNorm.includes('vendor') || rNorm.includes('ventas')) return 'COMERCIAL'
-        return 'LAB'
-    }
-
-    const [currentMode, setCurrentMode] = useState<ViewMode>(getInitialMode)
-    const availableModes = useMemo(
-        () =>
-            (['LAB', 'COMERCIAL', 'ADMIN'] as ViewMode[]).filter((mode) =>
-                isAdmin || user.permissions?.[VIEW_MODE_PERMISSION_KEY[mode]]?.read === true
-            ),
-        [isAdmin, user.permissions]
-    )
-
-    const iframeUrl = useMemo(() => {
-        const fallbackUrl = process.env.NODE_ENV === "production"
-            ? "https://programacion.geofal.com.pe"
-            : "http://localhost:8472"
-        return resolveFrontendModuleUrl(
-            process.env.NEXT_PUBLIC_PROGRAMACION_URL,
-            fallbackUrl,
-            "programacion-control",
-        )
-    }, [])
-
-    const iframeOrigin = useMemo(() => {
-        try {
-            return new URL(iframeUrl).origin
-        } catch {
-            return null
-        }
-    }, [iframeUrl])
-
-    const handleIframeUpdate = useCallback(() => {
-        // No-op: shell KPIs auto-refresh via their own realtime subscription
-    }, [])
-
-    useProgramacionIframe(handleIframeUpdate)
-    
-    useEffect(() => {
-        syncIframeToken()
-    }, [syncIframeToken])
-
-    const handleIframeSessionFailure = useCallback((reason: string) => {
-        bridgeWarn("preserving shell session after iframe auth failure", {
-            reason,
-            currentMode,
-        })
-        setIsOpen(false)
-        setIframeToken(null)
-        setIframeReloadKey((current) => current + 1)
-        toast.error("No se pudo renovar la sesión del módulo. Vuelve a abrirlo.")
-    }, [currentMode])
-
-    useEffect(() => {
-        if (availableModes.length > 0 && !availableModes.includes(currentMode)) {
-            setCurrentMode(availableModes[0])
-        }
-        if (availableModes.length === 0 && isOpen) {
-            setIsOpen(false)
-        }
-    }, [availableModes, currentMode, isOpen])
-
-    useEffect(() => {
-        if (!isOpen) return
-
-        const handleMessage = (event: MessageEvent) => {
-            if (!event.source) return
-            if (iframeOrigin && event.origin !== iframeOrigin) return
-            if (iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) return
-
-            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-                const requestId = typeof event.data?.requestId === "string" ? event.data.requestId : undefined
-                const immediateToken = accessToken || getStoredAccessToken()
-                if (immediateToken) {
-                    ;(event.source as Window).postMessage(
-                        { type: 'TOKEN_REFRESH', token: immediateToken, requestId, source: 'programacion_module_immediate' },
-                        event.origin
-                    )
-                    bridgeInfo("immediate token response", {
-                        requestId,
-                        origin: event.origin,
-                    })
-                }
-
-                syncIframeToken(`request:${requestId || "none"}`).then((freshToken) => {
-                    if (freshToken && event.source) {
-                        (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: freshToken, requestId, source: 'programacion_module_sync' },
-                            event.origin
-                        )
-                        bridgeInfo("refreshed token response", {
-                            requestId,
-                            origin: event.origin,
-                        })
-                    } else {
-                        console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} token refresh failed for iframe request`, {
-                            requestId,
-                            origin: event.origin,
-                        })
-                    }
-                })
-            }
-            if (event.data?.type === 'AUTH_REQUIRED') {
-                console.error(`${TOKEN_BRIDGE_TRACE_PREFIX} AUTH_REQUIRED received from iframe`, {
-                    requestId: event.data?.requestId,
-                    debug: event.data?.debug,
-                    origin: event.origin,
-                })
-                syncIframeToken(`auth-required:${event.data?.requestId || "none"}`).then((freshToken) => {
-                    if (freshToken && event.source) {
-                        (event.source as Window).postMessage(
-                            { type: 'TOKEN_REFRESH', token: freshToken, requestId: event.data?.requestId, source: 'programacion_module_recovery' },
-                            event.origin
-                        )
-                        return
-                    }
-                    handleIframeSessionFailure(`auth_required:${event.data?.requestId || "none"}`)
-                })
-            }
-        }
-
-        window.addEventListener("message", handleMessage)
-        return () => window.removeEventListener("message", handleMessage)
-    }, [accessToken, getStoredAccessToken, handleIframeSessionFailure, iframeOrigin, isOpen, syncIframeToken])
-
-    const getModuleConfig = (mode: ViewMode) => {
-        switch (mode) {
-            case 'LAB':
-                return {
-                    title: 'Laboratorio', icon: FlaskConical, metrics: [
-                        { label: 'En Proceso', value: kpis.proceso, color: 'text-amber-600' },
-                        { label: 'Pendientes', value: kpis.pendientes, color: 'text-zinc-600' }
-                    ]
-                }
-            case 'COMERCIAL':
-                return {
-                    title: 'Comercial', icon: Briefcase, metrics: [
-                        { label: 'Con Atraso', value: kpis.atrasados, color: 'text-red-600' },
-                        { label: 'Total OTs', value: kpis.total, color: 'text-zinc-600' }
-                    ]
-                }
-            case 'ADMIN':
-                return {
-                    title: 'Administración', icon: Building2, metrics: [
-                        { label: 'Por Facturar', value: kpis.finalizados, color: 'text-emerald-600' },
-                        { label: 'Total Mes', value: kpis.total, color: 'text-zinc-600' }
-                    ]
-                }
-        }
-    }
-
-    const openModule = async (mode: ViewMode) => {
-        if (!availableModes.includes(mode)) {
-            return
-        }
-        setCurrentMode(mode)
-        const token = await syncIframeToken()
-        if (!token) {
-            handleIframeSessionFailure(`open:${mode}`)
-            return
-        }
-        setIframeToken(token)
-        setIsOpen(true)
-    }
-
-    const ModuleRow = ({ mode }: { mode: ViewMode }) => {
-        const config = getModuleConfig(mode)
-        const { title, icon: Icon, metrics } = config
-
-        return (
-            <div
-                onClick={() => openModule(mode)}
-                className="group flex items-center justify-between p-4 bg-white border border-zinc-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-                <div className="flex items-center gap-4">
-                    <div className="p-2 bg-zinc-100 rounded-md group-hover:bg-blue-50 text-zinc-600 group-hover:text-blue-600 transition-colors">
-                        <Icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-zinc-900 group-hover:text-blue-700 transition-colors">{title}</h3>
-                        <p className="text-xs text-zinc-500">Vista detallada y gestión</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-8">
-                    <div className="flex items-center gap-6 mr-4">
-                        {metrics.map((m, i) => (
-                            <div key={i} className="flex flex-col items-end">
-                                <span className={`font-bold text-lg ${m.color}`}>{m.value}</span>
-                                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">{m.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-zinc-400 group-hover:text-blue-600">
-                        <ChevronRight className="w-5 h-5" />
-                    </Button>
-                </div>
-            </div>
-        )
-    }
-
-    const currentConfig = getModuleConfig(currentMode)
-    const { title, icon: Icon } = currentConfig
-
-    const permissionKey = VIEW_MODE_PERMISSION_KEY[currentMode] || 'programacion'
-
-    const isLabOperatorRole = (rNorm.includes('laboratorio') || rNorm.includes('tipificador')) && !rNorm.includes('lector')
-    const isLabEdit = currentMode === 'LAB' && isLabOperatorRole
-
-    // Final write permission:
-    // - Superadmins always can write
-    // - Lab staff can write to LAB
-    // - COM and ADMIN strictly follow their own module permission
-    let canWrite = isSuperAdmin || isLabEdit
-
-    if (!canWrite) {
-        if (currentMode === 'LAB') {
-            // Strict block for LAB for everyone else
-            canWrite = user.permissions?.[permissionKey]?.write || false
-        } else {
-            // COM/ADMIN respect explicit module permission only
-            canWrite = isAdmin || user.permissions?.[permissionKey]?.write || false
-        }
-    }
-
-    const fullUrl = useMemo(() => {
-        const url = new URL(iframeUrl)
-        url.searchParams.set("mode", currentMode.toLowerCase())
-        url.searchParams.set("userId", user.id)
-        url.searchParams.set("role", user.role)
-        url.searchParams.set("canWrite", String(canWrite))
-        url.searchParams.set("isAdmin", String(isAdmin))
-        if (iframeToken) {
-            url.searchParams.set("token", iframeToken)
-        } else {
-            url.searchParams.delete("token")
-        }
-        if (iframeReloadKey > 0) {
-            url.searchParams.set("retry", String(iframeReloadKey))
-        } else {
-            url.searchParams.delete("retry")
-        }
-        return url.toString()
-    }, [canWrite, currentMode, iframeReloadKey, iframeToken, iframeUrl, isAdmin, user.id, user.role])
+export function ProgramacionModule({ user, onNavigateModule }: ProgramacionModuleProps) {
+    const roleLabel = user.roleLabel || user.role || "usuario"
 
     return (
-        <>
-            <div className="flex flex-col h-full space-y-6 p-6 bg-zinc-50/50 overflow-y-auto">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Dashboard de Operaciones</h1>
-                        <p className="text-sm text-zinc-500">Resumen general y accesos directos.</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-white border border-zinc-200 rounded-full shadow-sm">
-                        <span className={`h-2 w-2 rounded-full ${realtimeStatus === 'SUBSCRIBED' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className="text-xs text-zinc-600 font-medium uppercase tracking-wide">
-                            {realtimeStatus === 'SUBSCRIBED' ? 'Sistema Online' : 'Desconectado'}
-                        </span>
+        <div className="flex flex-col h-full p-6 bg-zinc-50/50 overflow-y-auto">
+            <div className="max-w-5xl mx-auto w-full space-y-6">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-blue-100 p-2 text-blue-700">
+                            <Info className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-2">
+                            <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                                Programación migrada
+                            </span>
+                            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                                El módulo unificado fue desactivado
+                            </h1>
+                            <p className="text-sm text-zinc-600">
+                                Hola {roleLabel}. Ahora cada vista de programación vive en su propio módulo independiente.
+                                Ya no usamos pestañas internas aquí; abre directamente el módulo correspondiente desde el panel lateral.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-white rounded-lg border border-zinc-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Total Activos</p>
-                            <p className="text-2xl font-bold text-zinc-900">{kpis.total}</p>
-                        </div>
-                        <BarChart3 className="w-8 h-8 text-zinc-100" />
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-zinc-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Pendientes</p>
-                            <p className="text-2xl font-bold text-zinc-700">{kpis.pendientes}</p>
-                        </div>
-                        <Clock className="w-8 h-8 text-zinc-100" />
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-zinc-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Atrasados</p>
-                            <p className="text-2xl font-bold text-red-600">{kpis.atrasados}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-red-50" />
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-zinc-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Completados</p>
-                            <p className="text-2xl font-bold text-emerald-600">{kpis.finalizados}</p>
-                        </div>
-                        <CheckCircle2 className="w-8 h-8 text-emerald-50" />
-                    </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                    {TARGET_MODULES.map((module) => {
+                        const Icon = module.icon
+                        const isEnabled = typeof onNavigateModule === "function"
+
+                        return (
+                            <div
+                                key={module.id}
+                                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm flex flex-col gap-4"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div className="rounded-xl bg-zinc-100 p-2 text-zinc-700">
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h2 className="text-base font-semibold text-zinc-900">{module.title}</h2>
+                                        <p className="text-sm text-zinc-500">{module.description}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-auto flex items-center justify-between gap-3">
+                                    <span className="text-xs uppercase tracking-wide text-zinc-400">
+                                        módulo independiente
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="gap-2"
+                                        onClick={() => onNavigateModule?.(module.id)}
+                                        disabled={!isEnabled}
+                                    >
+                                        Abrir
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
 
-                <div className="h-px bg-zinc-200" />
-
-                <div className="space-y-3">
-                    <h2 className="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Módulos de Gestión</h2>
-                    {availableModes.length > 0 ? (
-                        availableModes.map((mode) => <ModuleRow key={mode} mode={mode} />)
-                    ) : (
-                        <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-500">
-                            No tienes acceso a vistas de control disponibles.
-                        </div>
-                    )}
+                <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-600">
+                    Los iframes, el realtime y los permisos viven ahora en cada módulo independiente. Este hub queda
+                    solo como transición temporal para no romper accesos antiguos.
                 </div>
             </div>
-
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent
-                    style={{ backgroundColor: '#fff' }}
-                    onInteractOutside={(e) => e.preventDefault()}
-                    onEscapeKeyDown={() => setIsOpen(false)}
-                >
-                    <div className="flex-none flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200">
-                        <div className="flex items-center gap-3">
-                            <Icon className="w-5 h-5 text-blue-600" />
-                            <DialogTitle className="font-semibold text-zinc-900 text-base m-0">{title}</DialogTitle>
-                        </div>
-                        <DialogDescription className="sr-only">
-                            Módulo de gestión de programación: {title}
-                        </DialogDescription>
-                        <DialogPrimitive.Close asChild>
-                            <Button variant="ghost" size="icon" className="w-8 h-8">
-                                <X className="w-4 h-4" />
-                            </Button>
-                        </DialogPrimitive.Close>
-                    </div>
-
-                    <div className="flex-1 min-h-0 relative">
-                        <iframe
-                            ref={iframeRef}
-                            data-programacion-iframe
-                            src={fullUrl}
-                            className="w-full h-full border-0"
-                            title="Programación"
-                            allow="clipboard-write; clipboard-read"
-                        />
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
+        </div>
     )
 }

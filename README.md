@@ -147,6 +147,18 @@ Para integración iframe de Humedad, CBR, Proctor y LLP:
 
 - `IFRAME_HUMEDAD_CBR_AUTOMATIZACION_SEGURIDAD.md`
 
+### Programación
+
+La pantalla de **Programación** ya no usa tabs internas. Quedó como una pantalla de transición/derivación, y cada módulo vive de forma independiente:
+
+| Tab | Variable de entorno | Destino actual |
+|-----|---------------------|----------------|
+| Laboratorio | `NEXT_PUBLIC_PROGRAMACION_LABORATORIO_URL` | `https://programacion.geofal.com.pe` (legacy por ahora) |
+| Comercial | `NEXT_PUBLIC_PROGRAMACION_COMERCIAL_URL` | `https://comercial.geofal.com.pe` |
+| Administración | `NEXT_PUBLIC_PROGRAMACION_ADMINISTRACION_URL` | `https://administracion.geofal.com.pe` |
+
+`NEXT_PUBLIC_PROGRAMACION_URL` queda solo como fallback legado mientras se termina la transición.
+
 ## 📝 Licencia
 
 Propietario - Geofal Laboratorios

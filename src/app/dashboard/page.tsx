@@ -304,7 +304,7 @@ export default function DashboardPage() {
       case "cotizadora":
         return <CotizadoraModule user={dashboardUser} />
       case "programacion":
-        return <ProgramacionModule user={dashboardUser} />
+        return <ProgramacionModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "laboratorio":
         return <LaboratorioModule user={dashboardUser} />
       case "oficina_tecnica":
