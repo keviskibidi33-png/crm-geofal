@@ -6,7 +6,7 @@ import {
   FlaskConical,
   Grid,
   Loader2,
-  Map,
+  Map as MapIcon,
   PlusCircle,
   RefreshCw,
   Search,
@@ -134,7 +134,7 @@ const TABS_CATEGORIES: TabCategory[] = [
   {
     id: "PAVIMENTO",
     label: "PAVIMENTO",
-    icon: Map,
+    icon: MapIcon,
     queryAreas: ["PAVIMENTO"],
     areaOrder: {
       "PAVIMENTO": 0,
