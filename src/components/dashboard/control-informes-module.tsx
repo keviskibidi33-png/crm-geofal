@@ -378,6 +378,20 @@ export function ControlInformesModule() {
     toast.info(message)
   }, [queueState?.mensaje, queueState?.tiene_turno])
 
+  const prevTieneTurnoRef = useRef<boolean>(false)
+  useEffect(() => {
+    if (!queueState) return
+
+    const currentTieneTurno = Boolean(queueState.tiene_turno)
+    
+    // Si pasamos de no tener turno a SÍ tenerlo, disparamos una alerta
+    if (!prevTieneTurnoRef.current && currentTieneTurno) {
+      toast.success("¡Es tu turno! Ahora puedes editar los reportes.")
+    }
+    
+    prevTieneTurnoRef.current = currentTieneTurno
+  }, [queueState?.tiene_turno])
+
   const quickRegister = async (codigo: string) => {
     if (!canEdit) {
       toast.error(queueState?.mensaje || "No es tu turno para editar Control de Informes.")
