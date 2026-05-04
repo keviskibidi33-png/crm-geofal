@@ -169,6 +169,7 @@ export function ControlInformesModule() {
   const [resumen, setResumen] = useState<ResumenItem[]>([])
   const [activeTab, setActiveTab] = useState("SUELO")
   const [searchTerm, setSearchTerm] = useState("")
+  const [displaySeconds, setDisplaySeconds] = useState(0)
   const queueToastRef = useRef<string | null>(null)
 
   const activeTabConfig = useMemo(() => getTabConfig(activeTab), [activeTab])
@@ -183,7 +184,7 @@ export function ControlInformesModule() {
     [user?.id, user?.name],
   )
 
-  const canEdit = Boolean(queueState?.tiene_turno && (queueState?.segundos_restantes ?? 0) > 0)
+  const canEdit = Boolean(queueState?.tiene_turno && displaySeconds > 0)
 
   const sortedResumen = useMemo(() => {
     const orderMap = new Map(
@@ -345,6 +346,20 @@ export function ControlInformesModule() {
 
     return () => window.clearInterval(interval)
   }, [fetchQueueState, user?.id])
+
+  // Sync local countdown from server state
+  useEffect(() => {
+    setDisplaySeconds(Math.max(0, Number(queueState?.segundos_restantes ?? 0)))
+  }, [queueState?.segundos_restantes])
+
+  // Client-side 1-second countdown for real-time feel
+  useEffect(() => {
+    if (displaySeconds <= 0) return
+    const timer = window.setInterval(() => {
+      setDisplaySeconds((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [displaySeconds > 0])
 
   useEffect(() => {
     const message = queueState?.mensaje?.trim()
@@ -545,7 +560,7 @@ export function ControlInformesModule() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={canEdit ? "default" : "outline"} className={canEdit ? "bg-emerald-600" : ""}>
-                  {canEdit ? `Tu turno · ${formatSeconds(queueState?.segundos_restantes ?? 0)}` : queueState?.estado === "waiting" ? `En cola #${queueState?.en_cola || 0}` : "Sin turno"}
+                  {canEdit ? `Tu turno · ${formatSeconds(displaySeconds)}` : queueState?.estado === "waiting" ? `En cola #${queueState?.en_cola || 0}` : "Sin turno"}
                 </Badge>
                 <Button size="sm" variant="outline" onClick={() => void fetchQueueState()} disabled={queueLoading}>
                   {queueLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -579,7 +594,7 @@ export function ControlInformesModule() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tiempo restante</div>
-                <div className="mt-2 text-sm font-bold text-slate-900">{formatSeconds(queueState?.segundos_restantes ?? 0)}</div>
+                <div className="mt-2 text-sm font-bold text-slate-900">{formatSeconds(displaySeconds)}</div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Personas esperando</div>
