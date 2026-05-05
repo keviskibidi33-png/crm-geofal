@@ -252,6 +252,22 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
         return merged
     }, [])
 
+    const buildPermissionOverrideDelta = useCallback((base: PermissionOverrides, current: PermissionOverrides): PermissionOverrides => {
+        const delta: PermissionOverrides = {}
+        for (const moduleDef of GRANULAR_MODULES) {
+            const basePermission = normalizePermission(base[moduleDef.id])
+            const currentPermission = normalizePermission(current[moduleDef.id])
+            if (
+                currentPermission.read !== basePermission.read ||
+                currentPermission.write !== basePermission.write ||
+                currentPermission.delete !== basePermission.delete
+            ) {
+                delta[moduleDef.id] = currentPermission
+            }
+        }
+        return delta
+    }, [])
+
     const openGranularPermissions = useCallback(async (seller: Seller) => {
         setGranularTarget(seller)
         setIsGranularDialogOpen(true)
@@ -266,7 +282,9 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
             const roleBase = hasExplicitPermissionEntries(data?.role_permissions)
                 ? materializePermissions(data.role_permissions)
                 : getRolePermissions(seller.role)
-            const overridePermissions = materializePermissions((data?.permissions || {}) as PermissionOverrides)
+            const overridePermissions = hasExplicitPermissionEntries(data?.permissions)
+                ? (data.permissions as PermissionOverrides)
+                : {}
             const backendEffective = hasExplicitPermissionEntries(data?.effective_permissions)
                 ? materializePermissions(data.effective_permissions)
                 : undefined
@@ -322,11 +340,12 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
         if (!granularTarget) return
         setSavingGranular(true)
         try {
+            const overrideDelta = buildPermissionOverrideDelta(granularBaselinePermissions, granularPermissions)
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${granularTarget.id}/permissions-override`, {
                 method: "PUT",
                 body: JSON.stringify({
                     enabled: granularEnabled,
-                    permissions: materializePermissions(granularPermissions),
+                    permissions: overrideDelta,
                 }),
             })
             if (!res.ok) throw new Error("No se pudo guardar permisos granulares")
@@ -334,8 +353,8 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
             if (saved) {
                 const roleBase = getRolePermissions(granularTarget.role)
                 const savedPermissions = hasExplicitPermissionEntries(saved?.permissions)
-                    ? materializePermissions(saved.permissions)
-                    : materializePermissions({})
+                    ? (saved.permissions as PermissionOverrides)
+                    : {}
                 const savedEffective = saved?.enabled === true
                     ? mergePermissions(roleBase, savedPermissions)
                     : roleBase
