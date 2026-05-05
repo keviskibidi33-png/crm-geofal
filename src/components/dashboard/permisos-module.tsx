@@ -52,6 +52,18 @@ type RoleDefinition = {
 
 const MODULES = PERMISSION_MODULE_CATALOG
 
+const materializeRolePermissions = (permissions: RolePermissions | undefined | null): RolePermissions => {
+    const result = {} as RolePermissions
+    for (const moduleDef of MODULES) {
+        result[moduleDef.id] = {
+            read: permissions?.[moduleDef.id]?.read === true,
+            write: permissions?.[moduleDef.id]?.write === true,
+            delete: permissions?.[moduleDef.id]?.delete === true,
+        }
+    }
+    return result
+}
+
 export function PermisosModule() {
     const { user } = useAuth()
     // const { toast } = useToast() // Replaced by Sonner
@@ -67,9 +79,15 @@ export function PermisosModule() {
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles`)
             if (!res.ok) throw new Error("Failed to fetch roles")
             const data = await res.json()
-            setRoles(data)
-            if (data.length > 0 && !activeRole) {
-                setActiveRole(data[0])
+            const normalizedRoles = Array.isArray(data)
+                ? data.map((role: RoleDefinition) => ({
+                    ...role,
+                    permissions: materializeRolePermissions(role.permissions),
+                }))
+                : []
+            setRoles(normalizedRoles)
+            if (normalizedRoles.length > 0 && !activeRole) {
+                setActiveRole(normalizedRoles[0])
             }
         } catch (error) {
             toast.error("Error al cargar roles", {
@@ -141,12 +159,13 @@ export function PermisosModule() {
         if (!activeRole) return
         setSaving(true)
         try {
+            const permissions = materializeRolePermissions(activeRole.permissions)
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/roles/${activeRole.role_id}`, {
                 method: 'PUT',
                 body: JSON.stringify({
                     label: activeRole.label,
                     description: activeRole.description,
-                    permissions: activeRole.permissions
+                    permissions,
                 })
             })
 
@@ -158,8 +177,12 @@ export function PermisosModule() {
 
             // Refresh list to sync state
             const updatedRole = await res.json()
-            setRoles(prev => prev.map(r => r.role_id === updatedRole.role_id ? updatedRole : r))
-            setActiveRole(updatedRole)
+            const normalizedUpdatedRole = {
+                ...updatedRole,
+                permissions: materializeRolePermissions(updatedRole.permissions),
+            }
+            setRoles(prev => prev.map(r => r.role_id === normalizedUpdatedRole.role_id ? normalizedUpdatedRole : r))
+            setActiveRole(normalizedUpdatedRole)
 
             // Extra safety: re-fetch everything
             setTimeout(fetchRoles, 500)
