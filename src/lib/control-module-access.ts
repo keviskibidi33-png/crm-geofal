@@ -40,6 +40,12 @@ export function isAdministracionDashboardRole(role: string | null | undefined) {
   return normalizedRole.includes("administracion") || normalizedRole.includes("administrativo")
 }
 
+const CONTROL_ACCESS_BLOCKED_ROLES = new Set(["tecnico", "tecnico_suelos"])
+
+export function isRestrictedTechnicalRole(role: string | null | undefined) {
+  return CONTROL_ACCESS_BLOCKED_ROLES.has(normalizeRole(role))
+}
+
 export function isControlModule(module: ModuleType): module is ControlModuleType {
   return module === "laboratorio" || module === "oficina_tecnica" || module === "comercial" || module === "administracion"
 }
@@ -49,6 +55,10 @@ export function canAccessControlModule(
   role: string | null | undefined,
   permissions?: RolePermissions,
 ) {
+  if (isRestrictedTechnicalRole(role)) {
+    return false
+  }
+
   if (isAdminDashboardRole(role)) {
     return true
   }
@@ -68,6 +78,10 @@ export function canAccessControlModule(
 }
 
 export function getPreferredControlModule(role: string | null | undefined, permissions?: RolePermissions): ControlModuleType | null {
+  if (isRestrictedTechnicalRole(role)) {
+    return null
+  }
+
   if (isOficinaTecnicaDashboardRole(role) || permissions?.oficina_tecnica?.read === true) return "oficina_tecnica"
   if (isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true) return "laboratorio"
   if (isComercialDashboardRole(role) || permissions?.comercial?.read === true) return "comercial"

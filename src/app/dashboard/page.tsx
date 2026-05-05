@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { resetAuthCache, useAuth, type ModuleType } from "@/hooks/use-auth"
 import { verifyServerSessionConsistency } from "@/lib/session-api"
 import { supabase } from "@/lib/supabaseClient"
-import { canAccessDashboardModule, getPreferredControlModule } from "@/lib/control-module-access"
+import { canAccessDashboardModule, getPreferredControlModule, isRestrictedTechnicalRole } from "@/lib/control-module-access"
 import { Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
 
@@ -144,7 +144,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (loading || !user || initRedirectedRef.current) return
 
-    const controlDefault = getPreferredControlModule(user.role, user.permissions)
+    const controlDefault = isRestrictedTechnicalRole(user.role)
+      ? "tracing"
+      : getPreferredControlModule(user.role, user.permissions)
     initRedirectedRef.current = true
     if (controlDefault && activeModule !== controlDefault) {
       setActiveModule(controlDefault)
@@ -184,7 +186,7 @@ export default function DashboardPage() {
     if (!hasPermission) {
       // Choose a smart default based on role
       const getRoleDefault = (): ModuleType => {
-        if (role === 'tecnico') return 'tracing';
+        if (isRestrictedTechnicalRole(role)) return 'tracing'
         const preferredControl = getPreferredControlModule(user.role, user.permissions);
         if (preferredControl) return preferredControl;
         return 'clientes';
