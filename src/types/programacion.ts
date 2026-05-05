@@ -13,6 +13,7 @@ export interface ProgramacionServicio {
     entrega_real: string | null
     estado_trabajo: string
     cotizacion_lab: string | null
+    costo_servicio?: string | null
     autorizacion_lab: string | null
     nota_lab: string | null
     dias_atraso_lab: number
