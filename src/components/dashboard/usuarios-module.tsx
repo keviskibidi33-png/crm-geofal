@@ -73,9 +73,6 @@ const ROLE_LABELS: Record<string, string> = {
     laboratorio_tipificador: "Laboratorio Tipificador",
     laboratorio_lector: "Lector Laboratorio",
     oficina_tecnica: "Oficina Técnica",
-    oficina_tecnica_humedad: "Oficina Técnica Humedad",
-    oficina_tecnica_humedad_tipificador: "Oficina Técnica Humedad Tipificador",
-    oficina_tecnica_sup: "Oficina Técnica (Sup)",
     tecnico: "Técnico",
     tecnico_suelos: "Técnico Laboratorio Suelos",
 }
@@ -126,9 +123,6 @@ export function UsuariosModule() {
                 "laboratorio_tipificador",
                 "laboratorio_lector",
                 "oficina_tecnica",
-                "oficina_tecnica_humedad",
-                "oficina_tecnica_humedad_tipificador",
-                "oficina_tecnica_sup",
                 "tecnico",
                 "tecnico_suelos",
             ]

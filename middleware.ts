@@ -129,7 +129,7 @@ export async function middleware(req: NextRequest) {
 
         // Programacion Routes
         if (pathname.startsWith('/programacion')) {
-            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'asesor comercial', 'oficina_tecnica', 'oficina_tecnica_humedad', 'oficina_tecnica_humedad_tipificador', 'oficina_tecnica_sup']
+            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'asesor comercial', 'oficina_tecnica']
             if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }

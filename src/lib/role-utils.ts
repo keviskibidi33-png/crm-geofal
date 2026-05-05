@@ -5,6 +5,9 @@ const ROLE_ALIASES: Record<string, string> = {
   tecnico_general: "tecnico",
   tecnico_no_lab_write: "tecnico",
   laboratorio_tipificador_no_lab_write: "laboratorio_lector",
+  oficina_tecnica_humedad: "oficina_tecnica",
+  oficina_tecnica_humedad_tipificador: "oficina_tecnica",
+  oficina_tecnica_sup: "oficina_tecnica",
 }
 
 export function normalizeRoleId(value: string | null | undefined) {
