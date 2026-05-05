@@ -27,7 +27,9 @@ interface DashboardNotification {
   severity: "info" | "warning" | "error" | "success"
   title: string
   message: string
+  status?: "open" | "acknowledged" | "resolved"
   created_at?: string | null
+  acknowledged_at?: string | null
   metadata?: Record<string, unknown>
 }
 
@@ -63,6 +65,7 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   const [showResults, setShowResults] = useState(false)
   const [notifications, setNotifications] = useState<DashboardNotification[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [acknowledgingNotificationId, setAcknowledgingNotificationId] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchAbortRef = useRef<AbortController | null>(null)
@@ -103,6 +106,27 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
       setNotificationsLoading(false)
     }
   }, [isAdmin])
+
+  const acknowledgeNotification = useCallback(async (notificationId: string) => {
+    if (!isAdmin || !notificationId) return
+
+    setAcknowledgingNotificationId(notificationId)
+    try {
+      const response = await authFetch(`${API_URL}/notifications/${encodeURIComponent(notificationId)}/acknowledge`, {
+        method: "PATCH",
+      })
+
+      if (!response.ok) {
+        throw new Error(`Acknowledge notification failed: ${response.status}`)
+      }
+
+      await fetchNotifications()
+    } catch (error) {
+      console.error("Error acknowledging notification:", error)
+    } finally {
+      setAcknowledgingNotificationId((current) => (current === notificationId ? null : current))
+    }
+  }, [fetchNotifications, isAdmin])
 
   // Load top 3 most recent items when focusing empty search
   const loadTopSuggestions = useCallback(async () => {
@@ -222,7 +246,8 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
     return () => window.clearInterval(interval)
   }, [fetchNotifications, isAdmin])
 
-  const notificationCount = notifications.length
+  const openNotificationCount = notifications.filter((item) => item.status === "open" || !item.status).length
+  const acknowledgedNotificationCount = notifications.filter((item) => item.status === "acknowledged").length
 
   const getResultIcon = (type: SearchResult["type"]) => {
     switch (type) {
@@ -315,9 +340,9 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5 text-muted-foreground" />
-              {notificationCount > 0 && (
+              {openNotificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                  {notificationCount > 9 ? "9+" : notificationCount}
+                  {openNotificationCount > 9 ? "9+" : openNotificationCount}
                 </span>
               )}
               <span className="sr-only">Notificaciones</span>
@@ -330,19 +355,43 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
                 {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
 
-              {notificationCount > 0 ? (
+              {(openNotificationCount > 0 || acknowledgedNotificationCount > 0) ? (
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
+                    Pendientes: {openNotificationCount}
+                  </span>
+                  <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
+                    Vistas: {acknowledgedNotificationCount}
+                  </span>
+                </div>
+              ) : null}
+
+              {notifications.length > 0 ? (
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                   {notifications.map((item) => (
-                    <div key={item.id} className="rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
+                    <div
+                      key={item.id}
+                      className={`rounded-lg border px-3 py-2.5 shadow-sm ${
+                        item.status === "acknowledged"
+                          ? "border-blue-200 bg-blue-50/60"
+                          : "border-border bg-background"
+                      }`}
+                    >
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          <AlertTriangle className={`h-4 w-4 ${item.status === "acknowledged" ? "text-blue-500" : "text-amber-500"}`} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
-                            <span className="text-[10px] uppercase tracking-wide rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
-                              {item.severity}
+                            <span
+                              className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-0.5 ${
+                                item.status === "acknowledged"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {item.status === "acknowledged" ? "Visto" : item.severity}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 leading-5">{item.message}</p>
@@ -356,6 +405,21 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
                               Motivo: <span className="font-medium">{String(item.metadata.reason)}</span>
                             </p>
                           )}
+                          <div className="mt-2 flex items-center gap-2">
+                            {item.status !== "acknowledged" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-[11px]"
+                                onClick={() => void acknowledgeNotification(item.id)}
+                                disabled={acknowledgingNotificationId === item.id}
+                              >
+                                {acknowledgingNotificationId === item.id ? "Guardando..." : "Marcar como visto"}
+                              </Button>
+                            ) : (
+                              <span className="text-[11px] text-blue-700 font-medium">Ajuste revisado</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
