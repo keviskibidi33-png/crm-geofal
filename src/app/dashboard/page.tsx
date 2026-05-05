@@ -96,6 +96,7 @@ export default function DashboardPage() {
     }
     return "clientes"
   })
+  const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem("crm-sidebar-collapsed") === 'true'
@@ -324,7 +325,10 @@ export default function DashboardPage() {
       case "usuarios":
         return (
           <RoleGuard user={dashboardUser} allowedRoles={["admin"]}>
-            <UsuariosModule />
+            <UsuariosModule
+              focusUserId={pendingNotificationUserId}
+              onFocusHandled={() => setPendingNotificationUserId(null)}
+            />
           </RoleGuard>
         )
       case "permisos":
@@ -424,7 +428,14 @@ export default function DashboardPage() {
     <div className="flex h-screen bg-background">
       <DashboardSidebar activeModule={activeModule} setActiveModule={setActiveModule} user={dashboardUser} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader user={dashboardUser} setActiveModule={setActiveModule} />
+        <DashboardHeader
+          user={dashboardUser}
+          setActiveModule={setActiveModule}
+          onOpenAffectedUser={(userId) => {
+            setPendingNotificationUserId(userId)
+            setActiveModule("usuarios")
+          }}
+        />
         <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{renderModule()}</main>
       </div>
 

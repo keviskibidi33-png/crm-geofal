@@ -1,7 +1,7 @@
 "use client"
 
 import { createUserAction, updateUserAction, deleteUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -79,7 +79,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 const ITEMS_PER_PAGE = 20
 
-export function UsuariosModule() {
+interface UsuariosModuleProps {
+    focusUserId?: string | null
+    onFocusHandled?: () => void
+}
+
+export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModuleProps) {
     const { user } = useAuth()
     const [sellers, setSellers] = useState<Seller[]>([])
     const [searchTerm, setSearchTerm] = useState("")
@@ -102,6 +107,7 @@ export function UsuariosModule() {
     const [granularPermissions, setGranularPermissions] = useState<PermissionOverrides>({})
     const [loadingGranular, setLoadingGranular] = useState(false)
     const [savingGranular, setSavingGranular] = useState(false)
+    const lastFocusedUserIdRef = useRef<string | null>(null)
     // const { toast } = useToast() // Replaced by Sonner
 
     const simplifiedRoles = useMemo(() => {
@@ -224,29 +230,29 @@ export function UsuariosModule() {
     const hasExplicitPermissionEntries = (value: unknown): value is PermissionOverrides =>
         Boolean(value && typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0)
 
-    const materializePermissions = (source?: PermissionOverrides | null): PermissionOverrides => {
+    const materializePermissions = useCallback((source?: PermissionOverrides | null): PermissionOverrides => {
         const result: PermissionOverrides = {}
         for (const moduleDef of GRANULAR_MODULES) {
             result[moduleDef.id] = normalizePermission(source?.[moduleDef.id])
         }
         return result
-    }
+    }, [])
 
-    const getRolePermissions = (roleId: string): PermissionOverrides => {
+    const getRolePermissions = useCallback((roleId: string): PermissionOverrides => {
         const normalizedRoleId = String(roleId || "").trim().toLowerCase()
         const role = availableRoles.find((item) => String(item.role_id || "").trim().toLowerCase() === normalizedRoleId) as (RoleDefinition & { permissions?: PermissionOverrides }) | undefined
         return materializePermissions(role?.permissions || {})
-    }
+    }, [availableRoles, materializePermissions])
 
-    const mergePermissions = (base: PermissionOverrides, override: PermissionOverrides): PermissionOverrides => {
+    const mergePermissions = useCallback((base: PermissionOverrides, override: PermissionOverrides): PermissionOverrides => {
         const merged: PermissionOverrides = {}
         for (const moduleDef of GRANULAR_MODULES) {
             merged[moduleDef.id] = normalizePermission(override[moduleDef.id] ?? base[moduleDef.id])
         }
         return merged
-    }
+    }, [])
 
-    const openGranularPermissions = async (seller: Seller) => {
+    const openGranularPermissions = useCallback(async (seller: Seller) => {
         setGranularTarget(seller)
         setIsGranularDialogOpen(true)
         setLoadingGranular(true)
@@ -274,7 +280,21 @@ export function UsuariosModule() {
         } finally {
             setLoadingGranular(false)
         }
-    }
+    }, [fetchRoles, getRolePermissions, materializePermissions, mergePermissions, availableRoles])
+
+    useEffect(() => {
+        if (!focusUserId || sellers.length === 0) return
+        if (lastFocusedUserIdRef.current === focusUserId) return
+
+        const target = sellers.find((seller) => seller.id === focusUserId)
+        if (!target) return
+
+        lastFocusedUserIdRef.current = focusUserId
+        setSearchTerm(target.nombre)
+        setCurrentPage(1)
+        void openGranularPermissions(target)
+        onFocusHandled?.()
+    }, [focusUserId, sellers, onFocusHandled, openGranularPermissions])
 
     const handleGranularPermissionChange = (
         module: string,
