@@ -1,11 +1,11 @@
 "use client"
 
 import { startTransition, useState, useEffect, useRef, useCallback } from "react"
-import { Bell, Search, Settings, Sun, Moon, Building2, FolderKanban, FileText, Loader2 } from "lucide-react"
+import { Bell, Search, Sun, Moon, Building2, FolderKanban, FileText, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useTheme } from "@/components/theme-provider"
-import { useAuth, type User, type ModuleType } from "@/hooks/use-auth"
+import { type User, type ModuleType } from "@/hooks/use-auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { authFetch } from "@/lib/api-auth"
 
@@ -19,6 +19,16 @@ interface SearchResult {
   type: "cliente" | "proyecto" | "cotizacion"
   title: string
   subtitle: string
+}
+
+interface DashboardNotification {
+  id: string
+  type: string
+  severity: "info" | "warning" | "error" | "success"
+  title: string
+  message: string
+  created_at?: string | null
+  metadata?: Record<string, unknown>
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -47,22 +57,42 @@ async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promis
 
 export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   const { theme, setTheme } = useTheme()
-  const { signOut } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchAbortRef = useRef<AbortController | null>(null)
-
-  const handleLogout = async () => {
-    await signOut()
-  }
+  const isAdmin = user.role === "admin" || user.role === "admin_general"
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
   }
+
+  const fetchNotifications = useCallback(async () => {
+    if (!isAdmin) {
+      setNotifications([])
+      return
+    }
+
+    setNotificationsLoading(true)
+    try {
+      const response = await authFetch(`${API_URL}/notifications`)
+      if (!response.ok) {
+        throw new Error(`Notifications fetch failed: ${response.status}`)
+      }
+      const payload = await response.json()
+      setNotifications(Array.isArray(payload?.data) ? payload.data : [])
+    } catch (error) {
+      console.error("Error loading notifications:", error)
+      setNotifications([])
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }, [isAdmin])
 
   // Load top 3 most recent items when focusing empty search
   const loadTopSuggestions = useCallback(async () => {
@@ -171,6 +201,19 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
     }
   }, [])
 
+  useEffect(() => {
+    void fetchNotifications()
+    if (!isAdmin) return
+
+    const interval = window.setInterval(() => {
+      void fetchNotifications()
+    }, 60000)
+
+    return () => window.clearInterval(interval)
+  }, [fetchNotifications, isAdmin])
+
+  const notificationCount = notifications.length
+
   const getResultIcon = (type: SearchResult["type"]) => {
     switch (type) {
       case "cliente":
@@ -262,17 +305,59 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5 text-muted-foreground" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                  {notificationCount > 9 ? "9+" : notificationCount}
+                </span>
+              )}
               <span className="sr-only">Notificaciones</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80">
+          <PopoverContent align="end" className="w-96 max-w-[calc(100vw-1rem)]">
             <div className="space-y-2">
-              <h4 className="font-semibold text-sm">Notificaciones</h4>
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Bell className="h-12 w-12 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No tienes notificaciones</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Te avisaremos cuando haya algo nuevo</p>
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="font-semibold text-sm">Notificaciones</h4>
+                {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
+
+              {notificationCount > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {notifications.map((item) => (
+                    <div key={item.id} className="rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                            <span className="text-[10px] uppercase tracking-wide rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
+                              {item.severity}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 leading-5">{item.message}</p>
+                          {item.metadata?.full_name && (
+                            <p className="text-[11px] text-muted-foreground/80 mt-1">
+                              Usuario: <span className="font-medium">{String(item.metadata.full_name)}</span>
+                            </p>
+                          )}
+                          {item.metadata?.reason && (
+                            <p className="text-[11px] text-muted-foreground/80">
+                              Motivo: <span className="font-medium">{String(item.metadata.reason)}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Bell className="h-12 w-12 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">No tienes notificaciones</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Te avisaremos cuando haya algo nuevo</p>
+                </div>
+              )}
             </div>
           </PopoverContent>
         </Popover>
