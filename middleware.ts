@@ -137,7 +137,7 @@ export async function middleware(req: NextRequest) {
 
         // Comercial / Operativo Routes
         if (pathname.startsWith('/comercial') || pathname.startsWith('/cotizaciones') || pathname.startsWith('/clientes') || pathname.startsWith('/proyectos')) {
-            const allowedRoles = ['admin', 'admin_general', 'auxiliar_comercial']
+            const allowedRoles = ['admin', 'auxiliar_comercial']
             if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }
