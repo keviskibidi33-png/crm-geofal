@@ -139,7 +139,7 @@ export function UsuariosModule() {
 
         // Realtime Subscription
         const channel = supabase
-            .channel('vendedores_list_realtime')
+            .channel('usuarios_list_realtime')
             .on(
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'perfiles' },
@@ -316,7 +316,7 @@ export function UsuariosModule() {
             email: "",
             password: "",
             phone: "",
-            role: "vendor",
+            role: "auxiliar_comercial",
         },
     })
 
@@ -486,7 +486,7 @@ export function UsuariosModule() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-                    <p className="text-muted-foreground">Administra los vendedores y sus permisos de acceso</p>
+                    <p className="text-muted-foreground">Administra los usuarios y sus permisos de acceso</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={() => { fetchSellers() }} title="Recargar lista">
@@ -494,7 +494,7 @@ export function UsuariosModule() {
                     </Button>
                     <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
                         <Plus className="h-4 w-4 mr-2" />
-                        Nuevo Vendedor
+                        Nuevo Usuario
                     </Button>
                 </div>
             </div>
@@ -530,7 +530,7 @@ export function UsuariosModule() {
                         <Shield className="h-5 w-5 text-primary" />
                         Usuarios del Sistema
                     </CardTitle>
-                    <CardDescription>Visualiza y gestiona el estado de todos los vendedores</CardDescription>
+                    <CardDescription>Visualiza y gestiona el estado de todos los usuarios</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {fetching ? (
@@ -703,7 +703,7 @@ export function UsuariosModule() {
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogContent className="sm:max-w-[450px] bg-card border-border">
                     <DialogHeader>
-                        <DialogTitle>Nuevo Vendedor</DialogTitle>
+                        <DialogTitle>Nuevo Usuario</DialogTitle>
                         <DialogDescription>El usuario se creará activo y verificado.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4 pt-4">
@@ -730,9 +730,9 @@ export function UsuariosModule() {
                                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 {...register("role", { required: true })}
                             >
-                                <option value="vendor">Vendedor</option>
+                                <option value="auxiliar_comercial">Auxiliar Comercial</option>
                                 <option value="admin">Administrador</option>
-                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'vendor').map(r => (
+                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'auxiliar_comercial').map(r => (
                                     <option key={r.role_id} value={r.role_id}>{r.label}</option>
                                 ))}
                             </select>
@@ -818,11 +818,11 @@ export function UsuariosModule() {
                                 name="edit-role"
                                 id="edit-role"
                                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                defaultValue={editingSeller?.role || "vendor"}
+                                defaultValue={editingSeller?.role || "auxiliar_comercial"}
                             >
-                                <option value="vendor">Vendedor</option>
+                                <option value="auxiliar_comercial">Auxiliar Comercial</option>
                                 <option value="admin">Administrador</option>
-                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'vendor').map(r => (
+                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'auxiliar_comercial').map(r => (
                                     <option key={r.role_id} value={r.role_id}>{r.label}</option>
                                 ))}
                             </select>

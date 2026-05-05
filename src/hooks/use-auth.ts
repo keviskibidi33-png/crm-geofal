@@ -6,8 +6,9 @@ import { authFetch } from "@/lib/api-auth"
 import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
 import { PERMISSION_MODULE_CATALOG, type PermissionModuleId } from "@/lib/permission-modules"
+import { normalizeRoleId } from "@/lib/role-utils"
 
-export type UserRole = "admin" | "vendor" | "manager" | "laboratorio" | "jefe_laboratorio" | "tecnico_general" | "comercial" | "administracion" | "tecnico_suelos" | string
+export type UserRole = "admin" | "auxiliar_comercial" | "laboratorio" | "laboratorio_tipificador" | "laboratorio_lector" | "jefe_laboratorio" | "tecnico" | "tecnico_suelos" | "administrativo" | "comercial" | string
 export type ModuleType = PermissionModuleId
 
 export interface Permission {
@@ -41,6 +42,15 @@ const CONTROL_ACCESS_REVOKED_EMAILS = new Set([
     "tecnico2@geofal.com.pe",
     "tecnico3@geofal.com.pe",
 ])
+
+const CONTROL_ACCESS_BLOCKED_ROLES = new Set([
+    "tecnico",
+    "tecnico_suelos",
+])
+
+function isBlockedControlRole(role: string | null | undefined) {
+    return CONTROL_ACCESS_BLOCKED_ROLES.has(normalizeRoleId(role))
+}
 
 const AUTH_DEBUG_LOGS = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEBUG_AUTH === "true"
 
@@ -178,22 +188,31 @@ async function fetchProfile(userId: string) {
 
         // Fetch role_definitions separately to avoid PostgREST FK join issues with RLS
         if (profile?.role) {
-            const { data: roleDef, error: roleError } = await withTimeout(
-                "fetchRoleDefinition",
-                async (signal) => {
-                    const query = attachAbortSignal(
-                        supabase
-                            .from("role_definitions")
-                            .select("label, permissions")
-                            .eq("role_id", profile.role)
-                            .single(),
-                        signal,
-                    )
-                    return await query
-                },
-            )
+            const canonicalRoleId = normalizeRoleId(profile.role)
+            const fetchRoleDefinition = async (roleIdToQuery: string) =>
+                await withTimeout(
+                    "fetchRoleDefinition",
+                    async (signal) => {
+                        const query = attachAbortSignal(
+                            supabase
+                                .from("role_definitions")
+                                .select("label, permissions")
+                                .eq("role_id", roleIdToQuery)
+                                .single(),
+                            signal,
+                        )
+                        return await query
+                    },
+                )
 
-            authDebugLog("[Auth] RoleDef query result:", { roleDef, roleError, roleId: profile.role })
+            let { data: roleDef, error: roleError } = await fetchRoleDefinition(canonicalRoleId)
+            if (!roleDef && profile.role !== canonicalRoleId) {
+                const fallbackResult = await fetchRoleDefinition(profile.role)
+                roleDef = fallbackResult.data
+                roleError = fallbackResult.error
+            }
+
+            authDebugLog("[Auth] RoleDef query result:", { roleDef, roleError, roleId: canonicalRoleId })
 
             if (roleDef) {
                 const result = { ...profile, role_definitions: roleDef }
@@ -216,10 +235,11 @@ async function fetchProfile(userId: string) {
 async function fetchRolePermissions(roleId: string): Promise<RolePermissions | null> {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
+        const canonicalRoleId = normalizeRoleId(roleId)
         const response = await authFetch(`${apiUrl}/roles`)
         if (!response.ok) return null
         const roles = await response.json()
-        const roleData = roles.find((r: any) => r.role_id === roleId)
+        const roleData = roles.find((r: any) => normalizeRoleId(r.role_id) === canonicalRoleId)
         if (roleData?.permissions) {
             return roleData.permissions
         }
@@ -255,6 +275,59 @@ function buildFullAccessPermissions(): RolePermissions {
     return result
 }
 
+const TECHNICAL_MODULES: PermissionModuleId[] = [
+    "tracing",
+    "recepcion",
+    "verificacion_muestras",
+    "compresion",
+    "humedad",
+    "cont_humedad",
+    "humedad_complete_demo",
+    "planas",
+    "caras",
+    "cbr",
+    "proctor",
+    "llp",
+    "gran_suelo",
+    "gran_agregado",
+    "cont_mat_organica",
+    "terrones_fino_grueso",
+    "azul_metileno",
+    "part_livianas",
+    "imp_organicas",
+    "sul_magnesio",
+    "angularidad",
+    "abra",
+    "abrass",
+    "peso_unitario",
+    "tamiz",
+    "equi_arena",
+    "ge_fino",
+    "ge_grueso",
+    "cd",
+    "ph",
+    "cloro_soluble",
+    "sales_solubles",
+    "sulfatos_solubles",
+    "compresion_no_confinada",
+]
+
+function buildTechnicalPermissions(): RolePermissions {
+    const result: RolePermissions = {}
+    for (const moduleId of TECHNICAL_MODULES) {
+        result[moduleId] = { read: true, write: true, delete: false }
+    }
+    result.configuracion = { read: true, write: false, delete: false }
+    return result
+}
+
+function buildLaboratoryPermissions(canWriteLab: boolean): RolePermissions {
+    return {
+        ...buildTechnicalPermissions(),
+        laboratorio: { read: true, write: canWriteLab, delete: false },
+    }
+}
+
 async function fetchUserPermissionOverride(userId: string): Promise<UserPermissionOverride | null> {
     try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -283,9 +356,9 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // Role initialization
-    const roleFromProfile = profile?.role || session.user.user_metadata?.role || "vendor"
-    const role = roleFromProfile.toLowerCase() as UserRole
-    const rNorm = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const roleFromProfile = normalizeRoleId(profile?.role || session.user.user_metadata?.role || "auxiliar_comercial")
+    const role = roleFromProfile as UserRole
+    const rNorm = normalizeRoleId(role)
     const roleDef = Array.isArray(profile?.role_definitions) ? profile?.role_definitions[0] : profile?.role_definitions
 
     // 1. Prioritize permissions from database (Supabase Join or API)
@@ -317,17 +390,8 @@ async function buildUser(session: any): Promise<User> {
         // LAW: Everyone can see their settings/config
         p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
 
-        // Business rule: programacion read access for all authenticated users (scheduling).
-        // Write/delete remain role-based.
-        p.programacion = {
-            read: true,
-            write: p.programacion?.write || false,
-            delete: p.programacion?.delete || false
-        }
-        // Laboratorio: always readable for all users (lab overview)
-        p.laboratorio = { read: true, write: p.laboratorio?.write || false, delete: p.laboratorio?.delete || false }
         // Control modules: only enforce read:true if already present in permissions matrix.
-        // This prevents lab-only roles from seeing commercial/admin dashboards.
+        // This prevents technical roles from inheriting commercial/admin dashboards.
         if (p.comercial) {
             p.comercial = { read: true, write: p.comercial?.write || false, delete: p.comercial?.delete || false }
         }
@@ -503,7 +567,7 @@ async function buildUser(session: any): Promise<User> {
 
     // Process permissions
     const isSuperAdminFinal = rNorm === 'admin'  // Only exact 'admin' role
-    const isStrictTecnicoRole = rNorm === 'tecnico' || rNorm === 'tecnico_no_lab_write'
+    const isStrictTecnicoRole = rNorm === 'tecnico'
     const isTecnicoSuelosRole = rNorm === 'tecnico_suelos'
 
     if (permissions && Object.keys(permissions).length > 0) {
@@ -513,7 +577,7 @@ async function buildUser(session: any): Promise<User> {
         // Admin protection: If matrix fails, Admin STILL gets everything
         if (isSuperAdminFinal) {
             permissions = enforcePermissions({})
-        } else if (rNorm.includes('asesor') || rNorm.includes('vendedor') || rNorm.includes('vendor') || rNorm.includes('auxiliar')) {
+        } else if (rNorm === 'auxiliar_comercial' || rNorm.includes('asesor') || rNorm === 'comercial') {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
@@ -525,14 +589,7 @@ async function buildUser(session: any): Promise<User> {
                 configuracion: { read: true, write: false, delete: false }
             }
         } else if (isStrictTecnicoRole) {
-            const canEditLab = rNorm !== 'tecnico_no_lab_write'
-            permissions = {
-                tracing: { read: true, write: false, delete: false },
-                recepcion: { read: true, write: false, delete: false },
-                verificacion_muestras: { read: true, write: canEditLab, delete: false },
-                compresion: { read: true, write: canEditLab, delete: false },
-                configuracion: { read: true, write: false, delete: false }
-            }
+            permissions = buildTechnicalPermissions()
         } else if (isTecnicoSuelosRole) {
             permissions = {
                 humedad: { read: true, write: true, delete: false },
@@ -568,36 +625,7 @@ async function buildUser(session: any): Promise<User> {
                 configuracion: { read: true, write: false, delete: false }
             }
         } else if (role.includes('laboratorio') || role.includes('tipificador')) {
-            const isLector = role.includes('lector')
-            permissions = {
-                programacion: { read: true, write: !isLector, delete: false },
-                laboratorio: { read: true, write: !isLector, delete: false },
-                verificacion_muestras: { read: true, write: !isLector, delete: false },
-                humedad: { read: true, write: !isLector, delete: false },
-                cont_humedad: { read: true, write: !isLector, delete: false },
-                humedad_complete_demo: { read: true, write: !isLector, delete: false },
-                proctor: { read: true, write: !isLector, delete: false },
-                llp: { read: true, write: !isLector, delete: false },
-                gran_suelo: { read: true, write: !isLector, delete: false },
-                gran_agregado: { read: true, write: !isLector, delete: false },
-                cont_mat_organica: { read: true, write: !isLector, delete: false },
-                terrones_fino_grueso: { read: true, write: !isLector, delete: false },
-                azul_metileno: { read: true, write: !isLector, delete: false },
-                part_livianas: { read: true, write: !isLector, delete: false },
-                imp_organicas: { read: true, write: !isLector, delete: false },
-                sul_magnesio: { read: true, write: !isLector, delete: false },
-                angularidad: { read: true, write: !isLector, delete: false },
-                abra: { read: true, write: !isLector, delete: false },
-                abrass: { read: true, write: !isLector, delete: false },
-                peso_unitario: { read: true, write: !isLector, delete: false },
-                tamiz: { read: true, write: !isLector, delete: false },
-                planas: { read: true, write: !isLector, delete: false },
-                caras: { read: true, write: !isLector, delete: false },
-                equi_arena: { read: true, write: !isLector, delete: false },
-                ge_fino: { read: true, write: !isLector, delete: false },
-                ge_grueso: { read: true, write: !isLector, delete: false },
-                configuracion: { read: true, write: false, delete: false }
-            }
+            permissions = buildLaboratoryPermissions(!role.includes('lector'))
         } else {
             authDebugLog(`[Auth] Minimal fallback for unknown role: ${role}`)
             permissions = {
@@ -708,12 +736,10 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // Commercial scope lock:
-    // Roles comerciales/vendedores only see their business modules.
+    // Roles comerciales only see their business modules.
     const isCommercialScopedRole =
         rNorm.includes('asesor') ||
-        rNorm.includes('vendedor') ||
-        rNorm.includes('vendor') ||
-        rNorm.includes('auxiliar') ||
+        rNorm === 'auxiliar_comercial' ||
         rNorm === 'comercial'
 
     if (isCommercialScopedRole) {
@@ -768,13 +794,42 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    if (isBlockedControlRole(role)) {
+        permissions = {
+            ...(permissions || {}),
+            clientes: { read: false, write: false, delete: false },
+            proyectos: { read: false, write: false, delete: false },
+            cotizadora: { read: false, write: false, delete: false },
+            programacion: { read: false, write: false, delete: false },
+            laboratorio: { read: false, write: false, delete: false },
+            oficina_tecnica: { read: false, write: false, delete: false },
+            comercial: { read: false, write: false, delete: false },
+            administracion: { read: false, write: false, delete: false },
+            ingenieria_archivos: { read: false, write: false, delete: false },
+        }
+    }
+
 
     return {
         id: session.user.id,
         name: (profile as any)?.full_name || session.user.email?.split("@")[0] || "Usuario",
         email: session.user.email!,
         role: role,
-        roleLabel: roleDef?.label || (role === 'admin' ? "Administrador" : role === 'tecnico_suelos' ? "Tecnico Laboratorio Suelos" : (role === 'laboratorio_lector' || role === 'laboratorio' || role.includes('tipificador')) ? "Control Laboratorio" : profile?.role || "Vendedor"),
+        roleLabel: roleDef?.label || (
+            role === 'admin'
+                ? "Administrador"
+                : role === 'auxiliar_comercial'
+                    ? "Auxiliar Comercial"
+                    : role === 'tecnico'
+                        ? "Técnico"
+                        : role === 'tecnico_suelos'
+                            ? "Tecnico Laboratorio Suelos"
+                            : role === 'laboratorio_lector'
+                                ? "Lector Laboratorio"
+                                : role === 'laboratorio_tipificador'
+                                    ? "Laboratorio Tipificador"
+                                    : "Usuario"
+        ),
         permissions: permissions,
         phone: (profile as any)?.phone,
         avatar: (profile as any)?.avatar_url

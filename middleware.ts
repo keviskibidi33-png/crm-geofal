@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { normalizeRoleId } from '@/lib/role-utils'
 
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -82,7 +83,7 @@ export async function middleware(req: NextRequest) {
             return response
         }
 
-        const role = userData.role || null
+        const role = normalizeRoleId(userData.role || null)
         const lastForceLogout = userData.last_force_logout_at ? new Date(userData.last_force_logout_at).getTime() : 0
         const sessionLastLogin = sessionData.last_login_at ? new Date(sessionData.last_login_at).getTime() : 0
 
@@ -119,8 +120,16 @@ export async function middleware(req: NextRequest) {
         }
 
         // Laboratorio Routes
-        if (pathname.startsWith('/laboratorio') || pathname.startsWith('/programacion')) {
+        if (pathname.startsWith('/laboratorio')) {
             const allowedRoles = ['admin', 'admin_general', 'laboratorio_tipificador', 'laboratorio_lector', 'administrativo', 'auxiliar_comercial', 'asesor comercial']
+            if (!allowedRoles.includes(role || "")) {
+                return NextResponse.redirect(new URL('/unauthorized', req.url))
+            }
+        }
+
+        // Programacion Routes
+        if (pathname.startsWith('/programacion')) {
+            const allowedRoles = ['admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'asesor comercial', 'oficina_tecnica', 'oficina_tecnica_humedad', 'oficina_tecnica_humedad_tipificador', 'oficina_tecnica_sup']
             if (!allowedRoles.includes(role || "")) {
                 return NextResponse.redirect(new URL('/unauthorized', req.url))
             }

@@ -1,13 +1,10 @@
 import type { ModuleType, RolePermissions } from "@/hooks/use-auth"
+import { normalizeRoleId } from "@/lib/role-utils"
 
 type ControlModuleType = Extract<ModuleType, "laboratorio" | "oficina_tecnica" | "comercial" | "administracion">
 
 function normalizeRole(value: string | null | undefined) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return normalizeRoleId(value)
 }
 
 export function isAdminDashboardRole(role: string | null | undefined) {
@@ -28,8 +25,6 @@ export function isComercialDashboardRole(role: string | null | undefined) {
   const normalizedRole = normalizeRole(role)
   return (
     normalizedRole.includes("comercial") ||
-    normalizedRole.includes("vendor") ||
-    normalizedRole.includes("vendedor") ||
     normalizedRole.includes("asesor") ||
     normalizedRole.includes("auxiliar_comercial")
   )

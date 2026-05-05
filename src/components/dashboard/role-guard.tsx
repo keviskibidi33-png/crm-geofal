@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useAuth, type User, type UserRole } from "@/hooks/use-auth"
+import type { User, UserRole } from "@/hooks/use-auth"
 import { Shield } from "lucide-react"
 
 interface RoleGuardProps {
@@ -11,7 +11,6 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ user, allowedRoles, children }: RoleGuardProps) {
-  // Map admin to admin, and everything else to vendor if vendor is in allowedRoles
   if (!allowedRoles.includes(user.role)) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">

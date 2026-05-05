@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { randomUUID } from "crypto"
+import { normalizeRoleId } from "@/lib/role-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -86,13 +87,14 @@ export async function createUserAction(data: {
     })
 
     try {
+        const canonicalRole = normalizeRoleId(data.role)
         const { data: userData, error } = await supabaseAdmin.auth.admin.createUser({
             email: data.email,
             password: data.password,
             email_confirm: true, // Auto-confirm the user
             user_metadata: {
                 full_name: data.nombre,
-                role: data.role // Set role immediately in metadata
+                role: canonicalRole // Set canonical role immediately in metadata
             }
         })
 
@@ -112,7 +114,7 @@ export async function createUserAction(data: {
             }
         }
 
-        // Note: The triggers on the 'users' table should handle the creation of the 'vendedores' record.
+        // Note: The triggers on the 'users' table should handle the creation of the public profile record.
         // However, we explicitly upsert to ensure the EMAIL and other fields are strictly in sync
 
         const { error: syncError } = await supabaseAdmin
@@ -122,7 +124,7 @@ export async function createUserAction(data: {
                 full_name: data.nombre,
                 email: data.email,
                 phone: data.phone || null,
-                role: data.role,
+                role: canonicalRole,
                 activo: true, // Explicitly set activo
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' })
@@ -164,6 +166,7 @@ export async function updateUserAction(data: {
     })
 
     try {
+        const canonicalRole = data.role ? normalizeRoleId(data.role) : undefined
         const updates: any = {
             user_metadata: {}
         }
@@ -171,18 +174,18 @@ export async function updateUserAction(data: {
         if (data.email) updates.email = data.email
         if (data.password && data.password.trim() !== "") updates.password = data.password
         if (data.nombre) updates.user_metadata.full_name = data.nombre
-        if (data.role) updates.user_metadata.role = data.role
+        if (canonicalRole) updates.user_metadata.role = canonicalRole
         if (data.phone) updates.user_metadata.phone = data.phone
 
         // Update auth user (password, email, metadata)
-        const { data: userData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
             data.userId,
             updates
         )
 
         if (authError) throw authError
 
-        // Also update the public 'vendedores' table to stay in sync
+        // Also update the public profile table to stay in sync
         const dbUpdates: any = {
             id: data.userId,
             updated_at: new Date().toISOString(),
@@ -191,7 +194,7 @@ export async function updateUserAction(data: {
 
         // Only include fields if they were provided in data to avoid nulling existing values
         if (data.nombre) dbUpdates.full_name = data.nombre
-        if (data.role) dbUpdates.role = data.role
+        if (canonicalRole) dbUpdates.role = canonicalRole
         if (data.phone !== undefined) dbUpdates.phone = data.phone
         if (data.email) dbUpdates.email = data.email
 
