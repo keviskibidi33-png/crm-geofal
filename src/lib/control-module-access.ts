@@ -73,9 +73,9 @@ export function canAccessControlModule(
     case "laboratorio":
       return isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true
     case "comercial":
-      return isComercialDashboardRole(role) || permissions?.comercial?.read === true
+      return isComercialDashboardRole(role)
     case "administracion":
-      return isAdministracionDashboardRole(role) || permissions?.administracion?.read === true
+      return isAdministracionDashboardRole(role)
     default:
       return false
   }

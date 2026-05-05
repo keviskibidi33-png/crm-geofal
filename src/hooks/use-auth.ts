@@ -815,6 +815,23 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    const hasCommercialControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'auxiliar_comercial'
+    const hasAdministrationControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'administrativo'
+
+    if (!hasCommercialControlAccess) {
+        permissions = {
+            ...(permissions || {}),
+            comercial: { read: false, write: false, delete: false },
+        }
+    }
+
+    if (!hasAdministrationControlAccess) {
+        permissions = {
+            ...(permissions || {}),
+            administracion: { read: false, write: false, delete: false },
+        }
+    }
+
 
     return {
         id: session.user.id,
