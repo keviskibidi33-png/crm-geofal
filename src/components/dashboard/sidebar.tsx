@@ -93,7 +93,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     const isAdmin = isAdminDashboardRole(user.role)
 
     if (isAdmin) return true
-    if (module.adminOnly) return false
+    if (module.id === "usuarios" || module.id === "auditoria") return false
     return canAccessDashboardModule(module.id, user.role, user.permissions)
   })
 
