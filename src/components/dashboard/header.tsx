@@ -75,13 +75,14 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
   const notificationsUnavailableRef = useRef(false)
   const notificationHistoryUnavailableRef = useRef(false)
   const isAdmin = user.role === "admin" || user.role === "admin_general"
+  const showNotifications = isAdmin
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
   const fetchNotifications = useCallback(async () => {
-    if (!isAdmin) {
+    if (!showNotifications) {
       setNotifications([])
       setHistoryNotifications([])
       return
@@ -127,10 +128,10 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
     } finally {
       setNotificationsLoading(false)
     }
-  }, [isAdmin])
+  }, [showNotifications])
 
   const acknowledgeNotification = useCallback(async (notificationId: string) => {
-    if (!isAdmin || !notificationId) return
+    if (!showNotifications || !notificationId) return
 
     setAcknowledgingNotificationId(notificationId)
     try {
@@ -148,7 +149,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
     } finally {
       setAcknowledgingNotificationId((current) => (current === notificationId ? null : current))
     }
-  }, [fetchNotifications, isAdmin])
+  }, [fetchNotifications, showNotifications])
 
   const openAffectedUser = useCallback((userId?: unknown) => {
     const normalizedUserId = String(userId || "").trim()
@@ -365,38 +366,39 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
         </Button>
 
         {/* Notifications */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              {openNotificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                  {openNotificationCount > 9 ? "9+" : openNotificationCount}
-                </span>
-              )}
-              <span className="sr-only">Notificaciones</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-96 max-w-[calc(100vw-1rem)]">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="font-semibold text-sm">Notificaciones</h4>
-                {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              </div>
+        {showNotifications ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                {openNotificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                    {openNotificationCount > 9 ? "9+" : openNotificationCount}
+                  </span>
+                )}
+                <span className="sr-only">Notificaciones</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-96 max-w-[calc(100vw-1rem)]">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="font-semibold text-sm">Notificaciones</h4>
+                  {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
 
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
-                  Pendientes: {openNotificationCount}
-                </span>
-                <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
-                  Vistas: {acknowledgedNotificationCount}
-                </span>
-                <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5">
-                  Historial: {resolvedNotificationCount}
-                </span>
-              </div>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
+                    Pendientes: {openNotificationCount}
+                  </span>
+                  <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
+                    Vistas: {acknowledgedNotificationCount}
+                  </span>
+                  <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5">
+                    Historial: {resolvedNotificationCount}
+                  </span>
+                </div>
 
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
                 <section className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -568,10 +570,11 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
                     </div>
                   )}
                 </section>
+                </div>
               </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        ) : null}
 
       </div>
     </header>
