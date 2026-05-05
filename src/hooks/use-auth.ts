@@ -757,6 +757,17 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    if (isTecnicoSuelosRole) {
+        permissions = {
+            ...(permissions || {}),
+            configuracion: {
+                read: true,
+                write: permissions?.configuracion?.write === true,
+                delete: false,
+            },
+        }
+    }
+
     // Strict technical scope:
     // technical lab roles must only access their explicitly approved soil modules.
     if (isStrictTecnicoRole) {
