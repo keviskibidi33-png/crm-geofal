@@ -39,7 +39,6 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "sulfatos_solubles", label: "Sulfato Suelo" },
   { id: "compresion_no_confinada", label: "Compresión No Confinada" },
   { id: "laboratorio", label: "Control Laboratorio" },
-  { id: "oficina_tecnica", label: "Control Oficina Técnica" },
   { id: "comercial", label: "Control Comercial" },
   { id: "administracion", label: "Control Administración" },
   { id: "usuarios", label: "Usuarios" },

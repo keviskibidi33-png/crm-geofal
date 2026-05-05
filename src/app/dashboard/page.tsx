@@ -49,7 +49,6 @@ const ProgramacionModule = dashboardDynamic(async () => (await import("@/compone
 const VerificacionMuestrasModule = dashboardDynamic(async () => (await import("@/components/dashboard/verificacion-muestras-module")).VerificacionMuestrasModule)
 const CompresionModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-module")).CompresionModule)
 const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
-const OficinaTecnicaModule = dashboardDynamic(async () => (await import("@/components/dashboard/oficina-tecnica-module")).OficinaTecnicaModule)
 const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
 const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
@@ -92,6 +91,7 @@ export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("crm-active-module") as ModuleType
+      if (saved === "oficina_tecnica") return "laboratorio"
       return saved || "clientes"
     }
     return "clientes"
@@ -134,6 +134,12 @@ export default function DashboardPage() {
   useEffect(() => {
     localStorage.setItem("crm-active-module", activeModule)
     // console.log('[CRM] Nuevo valor de activeModule:', activeModule) // Cleaned log
+  }, [activeModule])
+
+  useEffect(() => {
+    if (activeModule === "oficina_tecnica") {
+      setActiveModule("laboratorio")
+    }
   }, [activeModule])
 
   useEffect(() => {
@@ -309,8 +315,6 @@ export default function DashboardPage() {
         return <ProgramacionModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "laboratorio":
         return <LaboratorioModule user={dashboardUser} />
-      case "oficina_tecnica":
-        return <OficinaTecnicaModule user={dashboardUser} />
       case "recepcion":
         return <RecepcionModule />
       case "comercial":

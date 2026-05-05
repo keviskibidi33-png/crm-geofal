@@ -1,7 +1,7 @@
 import type { ModuleType, RolePermissions } from "@/hooks/use-auth"
 import { normalizeRoleId } from "@/lib/role-utils"
 
-type ControlModuleType = Extract<ModuleType, "laboratorio" | "oficina_tecnica" | "comercial" | "administracion">
+type ControlModuleType = Extract<ModuleType, "laboratorio" | "comercial" | "administracion">
 
 const RESTRICTED_TECHNICAL_DASHBOARD_MODULES = new Set<ModuleType>([
   "clientes",
@@ -23,10 +23,6 @@ function normalizeRole(value: string | null | undefined) {
 export function isAdminDashboardRole(role: string | null | undefined) {
   const normalizedRole = normalizeRole(role)
   return normalizedRole === "admin" || normalizedRole === "admin_general"
-}
-
-export function isOficinaTecnicaDashboardRole(role: string | null | undefined) {
-  return normalizeRole(role).includes("oficina_tecnica")
 }
 
 export function isLaboratorioDashboardRole(role: string | null | undefined) {
@@ -51,7 +47,7 @@ export function isRestrictedTechnicalRole(role: string | null | undefined) {
 }
 
 export function isControlModule(module: ModuleType): module is ControlModuleType {
-  return module === "laboratorio" || module === "oficina_tecnica" || module === "comercial" || module === "administracion"
+  return module === "laboratorio" || module === "comercial" || module === "administracion"
 }
 
 export function canAccessControlModule(
@@ -68,8 +64,6 @@ export function canAccessControlModule(
   }
 
   switch (module) {
-    case "oficina_tecnica":
-      return isOficinaTecnicaDashboardRole(role) || permissions?.oficina_tecnica?.read === true
     case "laboratorio":
       return isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true
     case "comercial":
@@ -86,7 +80,6 @@ export function getPreferredControlModule(role: string | null | undefined, permi
     return null
   }
 
-  if (isOficinaTecnicaDashboardRole(role) || permissions?.oficina_tecnica?.read === true) return "oficina_tecnica"
   if (isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true) return "laboratorio"
   if (isComercialDashboardRole(role) || permissions?.comercial?.read === true) return "comercial"
   if (isAdministracionDashboardRole(role) || permissions?.administracion?.read === true) return "administracion"

@@ -18,7 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type ModuleType, type User } from "@/hooks/use-auth"
 import { canAccessDashboardModule } from "@/lib/control-module-access"
-import { toast } from "sonner"
 
 interface SidebarProps {
   activeModule: ModuleType
@@ -68,7 +67,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker, adminOnly: true },
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
-  { id: "oficina_tecnica", label: "Control Oficina Técnica", icon: ClipboardList },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
