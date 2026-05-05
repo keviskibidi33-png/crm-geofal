@@ -220,6 +220,9 @@ export function UsuariosModule() {
         delete: value?.delete === true,
     })
 
+    const hasExplicitPermissionEntries = (value: unknown): value is PermissionOverrides =>
+        Boolean(value && typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0)
+
     const materializePermissions = (source?: PermissionOverrides | null): PermissionOverrides => {
         const result: PermissionOverrides = {}
         for (const moduleDef of GRANULAR_MODULES) {
@@ -253,12 +256,14 @@ export function UsuariosModule() {
             const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'}/users/${seller.id}/permissions-override`)
             if (!res.ok) throw new Error("No se pudo cargar permisos granulares")
             const data = await res.json()
-            const apiRolePermissions = (data?.role_permissions && Object.keys(data.role_permissions).length > 0)
-                ? data.role_permissions
-                : undefined
-            const roleBase = materializePermissions((apiRolePermissions || getRolePermissions(seller.role)) as PermissionOverrides)
+            const roleBase = hasExplicitPermissionEntries(data?.role_permissions)
+                ? materializePermissions(data.role_permissions)
+                : getRolePermissions(seller.role)
             const overridePermissions = materializePermissions((data?.permissions || {}) as PermissionOverrides)
-            const normalized = materializePermissions((data?.effective_permissions || mergePermissions(roleBase, overridePermissions)) as PermissionOverrides)
+            const backendEffective = hasExplicitPermissionEntries(data?.effective_permissions)
+                ? materializePermissions(data.effective_permissions)
+                : undefined
+            const normalized = backendEffective || mergePermissions(roleBase, overridePermissions)
             setGranularEnabled(data?.enabled === true)
             setGranularPermissions(normalized)
         } catch (error: any) {
@@ -300,6 +305,18 @@ export function UsuariosModule() {
                 }),
             })
             if (!res.ok) throw new Error("No se pudo guardar permisos granulares")
+            const saved = await res.json().catch(() => null)
+            if (saved) {
+                const roleBase = getRolePermissions(granularTarget.role)
+                const savedPermissions = hasExplicitPermissionEntries(saved?.permissions)
+                    ? materializePermissions(saved.permissions)
+                    : materializePermissions({})
+                const savedEffective = saved?.enabled === true
+                    ? mergePermissions(roleBase, savedPermissions)
+                    : roleBase
+                setGranularEnabled(saved?.enabled === true)
+                setGranularPermissions(savedEffective)
+            }
             toast.success("Permisos granulares actualizados", {
                 description: `Usuario: ${granularTarget.nombre}`,
             })
@@ -320,7 +337,7 @@ export function UsuariosModule() {
             })
             if (!res.ok) throw new Error("No se pudo limpiar override")
             setGranularEnabled(false)
-            setGranularPermissions({})
+            setGranularPermissions(getRolePermissions(granularTarget.role))
             toast.success("Override eliminado", {
                 description: "El usuario volverá a heredar permisos por rol.",
             })
