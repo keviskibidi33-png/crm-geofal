@@ -10,6 +10,12 @@ const RESTRICTED_TECHNICAL_DASHBOARD_MODULES = new Set<ModuleType>([
   "programacion",
 ])
 
+const COMMERCIAL_BUSINESS_MODULES = new Set<ModuleType>([
+  "clientes",
+  "proyectos",
+  "cotizadora",
+])
+
 function normalizeRole(value: string | null | undefined) {
   return normalizeRoleId(value)
 }
@@ -30,11 +36,7 @@ export function isLaboratorioDashboardRole(role: string | null | undefined) {
 
 export function isComercialDashboardRole(role: string | null | undefined) {
   const normalizedRole = normalizeRole(role)
-  return (
-    normalizedRole.includes("comercial") ||
-    normalizedRole.includes("asesor") ||
-    normalizedRole.includes("auxiliar_comercial")
-  )
+  return normalizedRole === "auxiliar_comercial"
 }
 
 export function isAdministracionDashboardRole(role: string | null | undefined) {
@@ -95,6 +97,10 @@ export function getPreferredControlModule(role: string | null | undefined, permi
 export function canAccessDashboardModule(module: ModuleType, role: string | null | undefined, permissions?: RolePermissions) {
   if (module === "permisos") {
     return isAdminDashboardRole(role)
+  }
+
+  if (!isAdminDashboardRole(role) && COMMERCIAL_BUSINESS_MODULES.has(module) && !isComercialDashboardRole(role)) {
+    return false
   }
 
   if (isRestrictedTechnicalRole(role) && RESTRICTED_TECHNICAL_DASHBOARD_MODULES.has(module)) {

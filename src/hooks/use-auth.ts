@@ -577,7 +577,7 @@ async function buildUser(session: any): Promise<User> {
         // Admin protection: If matrix fails, Admin STILL gets everything
         if (isSuperAdminFinal) {
             permissions = enforcePermissions({})
-        } else if (rNorm === 'auxiliar_comercial' || rNorm.includes('asesor') || rNorm === 'comercial') {
+        } else if (rNorm === 'auxiliar_comercial') {
             permissions = {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
@@ -737,10 +737,7 @@ async function buildUser(session: any): Promise<User> {
 
     // Commercial scope lock:
     // Roles comerciales only see their business modules.
-    const isCommercialScopedRole =
-        rNorm.includes('asesor') ||
-        rNorm === 'auxiliar_comercial' ||
-        rNorm === 'comercial'
+    const isCommercialScopedRole = rNorm === 'auxiliar_comercial'
 
     if (isCommercialScopedRole) {
         const source = (permissions || {}) as RolePermissions
@@ -806,6 +803,15 @@ async function buildUser(session: any): Promise<User> {
             comercial: { read: false, write: false, delete: false },
             administracion: { read: false, write: false, delete: false },
             ingenieria_archivos: { read: false, write: false, delete: false },
+        }
+    }
+
+    if (rNorm !== 'admin' && rNorm !== 'auxiliar_comercial') {
+        permissions = {
+            ...(permissions || {}),
+            clientes: { read: false, write: false, delete: false },
+            proyectos: { read: false, write: false, delete: false },
+            cotizadora: { read: false, write: false, delete: false },
         }
     }
 
