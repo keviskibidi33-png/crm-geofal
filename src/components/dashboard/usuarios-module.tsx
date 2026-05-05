@@ -1,7 +1,7 @@
 "use client"
 
 import { createUserAction, updateUserAction, deleteUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -36,6 +36,7 @@ import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"
+import { normalizeRoleId } from "@/lib/role-utils"
 
 interface Seller {
     id: string
@@ -65,6 +66,19 @@ type ModulePermission = { read: boolean; write: boolean; delete: boolean }
 type PermissionOverrides = Record<string, ModulePermission>
 
 const GRANULAR_MODULES = PERMISSION_MODULE_CATALOG
+const ROLE_LABELS: Record<string, string> = {
+    auxiliar_comercial: "Auxiliar Comercial",
+    administrativo: "Administrativo",
+    jefe_laboratorio: "Jefe de Laboratorio",
+    laboratorio_tipificador: "Laboratorio Tipificador",
+    laboratorio_lector: "Lector Laboratorio",
+    oficina_tecnica: "Oficina Técnica",
+    oficina_tecnica_humedad: "Oficina Técnica Humedad",
+    oficina_tecnica_humedad_tipificador: "Oficina Técnica Humedad Tipificador",
+    oficina_tecnica_sup: "Oficina Técnica (Sup)",
+    tecnico: "Técnico",
+    tecnico_suelos: "Técnico Laboratorio Suelos",
+}
 
 const ITEMS_PER_PAGE = 20
 
@@ -91,6 +105,39 @@ export function UsuariosModule() {
     const [loadingGranular, setLoadingGranular] = useState(false)
     const [savingGranular, setSavingGranular] = useState(false)
     // const { toast } = useToast() // Replaced by Sonner
+
+    const simplifiedRoles = useMemo(() => {
+        const byRoleId = new Map<string, RoleDefinition>()
+
+        for (const role of availableRoles) {
+            const normalizedRoleId = normalizeRoleId(role.role_id)
+            if (!normalizedRoleId || normalizedRoleId === "admin" || normalizedRoleId === "auxiliar_comercial") continue
+            if (byRoleId.has(normalizedRoleId)) continue
+            byRoleId.set(normalizedRoleId, {
+                role_id: normalizedRoleId,
+                label: ROLE_LABELS[normalizedRoleId] || role.label || normalizedRoleId,
+            })
+        }
+
+        return Array.from(byRoleId.values()).sort((a, b) => {
+            const order = [
+                "administrativo",
+                "jefe_laboratorio",
+                "laboratorio_tipificador",
+                "laboratorio_lector",
+                "oficina_tecnica",
+                "oficina_tecnica_humedad",
+                "oficina_tecnica_humedad_tipificador",
+                "oficina_tecnica_sup",
+                "tecnico",
+                "tecnico_suelos",
+            ]
+            const ai = order.indexOf(a.role_id)
+            const bi = order.indexOf(b.role_id)
+            if (ai !== -1 || bi !== -1) return (ai === -1 ? Number.MAX_SAFE_INTEGER : ai) - (bi === -1 ? Number.MAX_SAFE_INTEGER : bi)
+            return a.label.localeCompare(b.label, "es")
+        })
+    }, [availableRoles])
 
     const fetchRoles = useCallback(async () => {
         try {
@@ -732,7 +779,7 @@ export function UsuariosModule() {
                             >
                                 <option value="auxiliar_comercial">Auxiliar Comercial</option>
                                 <option value="admin">Administrador</option>
-                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'auxiliar_comercial').map(r => (
+                                {simplifiedRoles.map(r => (
                                     <option key={r.role_id} value={r.role_id}>{r.label}</option>
                                 ))}
                             </select>
@@ -822,7 +869,7 @@ export function UsuariosModule() {
                             >
                                 <option value="auxiliar_comercial">Auxiliar Comercial</option>
                                 <option value="admin">Administrador</option>
-                                {availableRoles.filter(r => r.role_id !== 'admin' && r.role_id !== 'auxiliar_comercial').map(r => (
+                                {simplifiedRoles.map(r => (
                                     <option key={r.role_id} value={r.role_id}>{r.label}</option>
                                 ))}
                             </select>

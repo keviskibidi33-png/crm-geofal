@@ -3,6 +3,13 @@ import { normalizeRoleId } from "@/lib/role-utils"
 
 type ControlModuleType = Extract<ModuleType, "laboratorio" | "oficina_tecnica" | "comercial" | "administracion">
 
+const RESTRICTED_TECHNICAL_DASHBOARD_MODULES = new Set<ModuleType>([
+  "clientes",
+  "proyectos",
+  "cotizadora",
+  "programacion",
+])
+
 function normalizeRole(value: string | null | undefined) {
   return normalizeRoleId(value)
 }
@@ -88,6 +95,10 @@ export function getPreferredControlModule(role: string | null | undefined, permi
 export function canAccessDashboardModule(module: ModuleType, role: string | null | undefined, permissions?: RolePermissions) {
   if (module === "permisos") {
     return isAdminDashboardRole(role)
+  }
+
+  if (isRestrictedTechnicalRole(role) && RESTRICTED_TECHNICAL_DASHBOARD_MODULES.has(module)) {
+    return false
   }
 
   if (isControlModule(module)) {
