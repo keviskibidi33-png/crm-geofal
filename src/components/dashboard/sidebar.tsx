@@ -17,7 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type ModuleType, type User } from "@/hooks/use-auth"
-import { canAccessDashboardModule } from "@/lib/control-module-access"
+import { canAccessDashboardModule, isAdminDashboardRole } from "@/lib/control-module-access"
 
 interface SidebarProps {
   activeModule: ModuleType
@@ -90,14 +90,15 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   // Use granular permissions for filtering
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
-    const isAdmin = user.role === "admin" || user.role === "admin_general"
+    const isAdmin = isAdminDashboardRole(user.role)
 
     if (isAdmin) return true
+    if (module.adminOnly) return false
     return canAccessDashboardModule(module.id, user.role, user.permissions)
   })
 
   const isModuleReadOnly = (moduleId: ModuleType): boolean => {
-    const isAdmin = user.role === "admin" || user.role === "admin_general"
+    const isAdmin = isAdminDashboardRole(user.role)
     if (isAdmin) return false
     const perm = user.permissions?.[moduleId]
     return perm?.read === true && perm?.write !== true
