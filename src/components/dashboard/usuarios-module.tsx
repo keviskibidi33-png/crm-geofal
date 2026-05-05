@@ -98,6 +98,7 @@ export function UsuariosModule() {
     const [isGranularDialogOpen, setIsGranularDialogOpen] = useState(false)
     const [granularTarget, setGranularTarget] = useState<Seller | null>(null)
     const [granularEnabled, setGranularEnabled] = useState(false)
+    const [granularBaselinePermissions, setGranularBaselinePermissions] = useState<PermissionOverrides>({})
     const [granularPermissions, setGranularPermissions] = useState<PermissionOverrides>({})
     const [loadingGranular, setLoadingGranular] = useState(false)
     const [savingGranular, setSavingGranular] = useState(false)
@@ -265,6 +266,7 @@ export function UsuariosModule() {
                 : undefined
             const normalized = backendEffective || mergePermissions(roleBase, overridePermissions)
             setGranularEnabled(data?.enabled === true)
+            setGranularBaselinePermissions(roleBase)
             setGranularPermissions(normalized)
         } catch (error: any) {
             toast.error("Error", { description: error?.message || "No se pudo cargar permisos granulares" })
@@ -279,6 +281,9 @@ export function UsuariosModule() {
         action: "read" | "write" | "delete",
         value: boolean
     ) => {
+        if (!granularEnabled) {
+            setGranularEnabled(true)
+        }
         setGranularPermissions((prev) => {
             const next = { ...prev }
             const current = normalizePermission(next[module])
@@ -337,7 +342,7 @@ export function UsuariosModule() {
             })
             if (!res.ok) throw new Error("No se pudo limpiar override")
             setGranularEnabled(false)
-            setGranularPermissions(getRolePermissions(granularTarget.role))
+            setGranularPermissions(granularBaselinePermissions)
             toast.success("Override eliminado", {
                 description: "El usuario volverá a heredar permisos por rol.",
             })
@@ -954,9 +959,19 @@ export function UsuariosModule() {
                             <div className="rounded-md border p-3 flex items-center justify-between">
                                 <div>
                                     <p className="font-medium text-sm">Override granular activo</p>
-                                    <p className="text-xs text-muted-foreground">Desactivado = hereda 100% del rol.</p>
+                                    <p className="text-xs text-muted-foreground">Desactivado = hereda 100% del rol. Puedes tocar un permiso y el override se activa solo.</p>
                                 </div>
-                                <Switch checked={granularEnabled} onCheckedChange={setGranularEnabled} />
+                                <Switch
+                                    checked={granularEnabled}
+                                    onCheckedChange={(checked) => {
+                                        setGranularEnabled(checked)
+                                        if (!checked) {
+                                            setGranularPermissions(granularBaselinePermissions)
+                                        } else if (Object.keys(granularPermissions).length === 0) {
+                                            setGranularPermissions(granularBaselinePermissions)
+                                        }
+                                    }}
+                                />
                             </div>
 
                             <div className="border rounded-md overflow-auto flex-1">
@@ -979,7 +994,6 @@ export function UsuariosModule() {
                                                         <div className="flex justify-center">
                                                             <Switch
                                                                 checked={perms.read}
-                                                                disabled={!granularEnabled}
                                                                 onCheckedChange={(v) => handleGranularPermissionChange(module.id, "read", v)}
                                                             />
                                                         </div>
@@ -988,7 +1002,7 @@ export function UsuariosModule() {
                                                         <div className="flex justify-center">
                                                             <Switch
                                                                 checked={perms.write}
-                                                                disabled={!granularEnabled || !perms.read}
+                                                                disabled={!perms.read}
                                                                 onCheckedChange={(v) => handleGranularPermissionChange(module.id, "write", v)}
                                                             />
                                                         </div>
@@ -997,7 +1011,7 @@ export function UsuariosModule() {
                                                         <div className="flex justify-center">
                                                             <Switch
                                                                 checked={perms.delete}
-                                                                disabled={!granularEnabled || !perms.write}
+                                                                disabled={!perms.write}
                                                                 onCheckedChange={(v) => handleGranularPermissionChange(module.id, "delete", v)}
                                                             />
                                                         </div>

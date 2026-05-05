@@ -66,6 +66,7 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchAbortRef = useRef<AbortController | null>(null)
+  const notificationsUnavailableRef = useRef(false)
   const isAdmin = user.role === "admin" || user.role === "admin_general"
 
   const toggleTheme = () => {
@@ -77,10 +78,19 @@ export function DashboardHeader({ user, setActiveModule }: HeaderProps) {
       setNotifications([])
       return
     }
+    if (notificationsUnavailableRef.current) {
+      setNotifications([])
+      return
+    }
 
     setNotificationsLoading(true)
     try {
       const response = await authFetch(`${API_URL}/notifications`)
+      if (response.status === 404) {
+        notificationsUnavailableRef.current = true
+        setNotifications([])
+        return
+      }
       if (!response.ok) {
         throw new Error(`Notifications fetch failed: ${response.status}`)
       }
