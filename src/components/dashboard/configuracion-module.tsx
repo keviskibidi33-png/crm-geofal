@@ -51,18 +51,22 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
   })
 
   useEffect(() => {
-    setFormData({
-      name: currentUser?.name || "",
-      email: currentUser?.email || "",
-      phone: currentUser?.phone || "",
-    })
-    setAvatarPreview(currentUser?.avatar || "")
+    const nextAvatar = currentUser?.avatar || ""
+    setAvatarPreview(nextAvatar)
+
+    // Cuando el avatar cambia por el draft local, useAuth vuelve a propagar ese
+    // preview como currentUser.avatar. En ese caso no debemos limpiar el estado
+    // pendiente, porque eso haría desaparecer la marca de "cambios sin guardar".
     if (!pendingAvatarRef.current) {
-      savedAvatarRef.current = currentUser?.avatar || ""
+      setFormData({
+        name: currentUser?.name || "",
+        email: currentUser?.email || "",
+        phone: currentUser?.phone || "",
+      })
+      savedAvatarRef.current = nextAvatar
+      setPendingAvatar(null)
+      setShowDiscardDialog(false)
     }
-    setPendingAvatar(null)
-    pendingAvatarRef.current = null
-    setShowDiscardDialog(false)
   }, [currentUser?.avatar, currentUser?.email, currentUser?.name, currentUser?.phone])
 
   const hasUnsavedChanges = Boolean(
