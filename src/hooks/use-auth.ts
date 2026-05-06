@@ -787,7 +787,34 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
-    // Granular per-user override (highest business priority, except hard revocations below)
+    if (rNorm !== 'admin' && rNorm !== 'auxiliar_comercial') {
+        permissions = {
+            ...(permissions || {}),
+            clientes: { read: false, write: false, delete: false },
+            proyectos: { read: false, write: false, delete: false },
+            cotizadora: { read: false, write: false, delete: false },
+        }
+    }
+
+    const hasCommercialControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'auxiliar_comercial'
+    const hasAdministrationControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'administrativo'
+
+    if (!hasCommercialControlAccess) {
+        permissions = {
+            ...(permissions || {}),
+            comercial: { read: false, write: false, delete: false },
+        }
+    }
+
+    if (!hasAdministrationControlAccess) {
+        permissions = {
+            ...(permissions || {}),
+            administracion: { read: false, write: false, delete: false },
+        }
+    }
+
+    // Granular per-user override: applied last so explicit grants can survive role defaults.
+    // Hard safety blocks for revoked emails and blocked technical roles are re-applied after this layer.
     const userOverride = await fetchUserPermissionOverride(session.user.id)
     if (userOverride?.enabled && userOverride.permissions) {
         permissions = mergePermissionMaps(permissions, userOverride.permissions)
@@ -814,32 +841,6 @@ async function buildUser(session: any): Promise<User> {
             comercial: { read: false, write: false, delete: false },
             administracion: { read: false, write: false, delete: false },
             ingenieria_archivos: { read: false, write: false, delete: false },
-        }
-    }
-
-    if (rNorm !== 'admin' && rNorm !== 'auxiliar_comercial') {
-        permissions = {
-            ...(permissions || {}),
-            clientes: { read: false, write: false, delete: false },
-            proyectos: { read: false, write: false, delete: false },
-            cotizadora: { read: false, write: false, delete: false },
-        }
-    }
-
-    const hasCommercialControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'auxiliar_comercial'
-    const hasAdministrationControlAccess = rNorm === 'admin' || rNorm === 'admin_general' || rNorm === 'administrativo'
-
-    if (!hasCommercialControlAccess) {
-        permissions = {
-            ...(permissions || {}),
-            comercial: { read: false, write: false, delete: false },
-        }
-    }
-
-    if (!hasAdministrationControlAccess) {
-        permissions = {
-            ...(permissions || {}),
-            administracion: { read: false, write: false, delete: false },
         }
     }
 

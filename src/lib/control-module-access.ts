@@ -92,8 +92,9 @@ export function canAccessDashboardModule(module: ModuleType, role: string | null
     return isAdminDashboardRole(role)
   }
 
-  if (!isAdminDashboardRole(role) && COMMERCIAL_BUSINESS_MODULES.has(module) && !isComercialDashboardRole(role)) {
-    return false
+  const explicitRead = permissions?.[module]?.read === true
+  if (explicitRead) {
+    return true
   }
 
   if (isRestrictedTechnicalRole(role) && RESTRICTED_TECHNICAL_DASHBOARD_MODULES.has(module)) {
@@ -104,5 +105,9 @@ export function canAccessDashboardModule(module: ModuleType, role: string | null
     return canAccessControlModule(module, role, permissions)
   }
 
-  return permissions?.[module]?.read === true
+  if (COMMERCIAL_BUSINESS_MODULES.has(module)) {
+    return isAdminDashboardRole(role) || isComercialDashboardRole(role)
+  }
+
+  return false
 }
