@@ -867,7 +867,7 @@ async function buildUser(session: any): Promise<User> {
         ),
         permissions: permissions,
         phone: (profile as any)?.phone,
-        avatar: (profile as any)?.avatar_url
+        avatar: (session.user?.user_metadata?.avatar_url as string | undefined) || (profile as any)?.avatar_url
     }
 }
 
@@ -1275,14 +1275,14 @@ export function useAuth() {
 
     const refreshUser = async () => {
         try {
-            const { data: { session } } = await withTimeout(
-                "getSession",
-                async () => await supabase.auth.getSession(),
+            const { data: { user } } = await withTimeout(
+                "getUser",
+                async () => await supabase.auth.getUser(),
             )
-            if (session) {
+            if (user) {
                 const newUser = await withTimeout(
                     "buildUser",
-                    async () => await buildUser(session),
+                    async () => await buildUser({ user }),
                 )
                 cachedUser = newUser
                 setUser(newUser)
