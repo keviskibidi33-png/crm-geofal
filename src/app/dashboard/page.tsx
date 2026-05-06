@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, type ComponentType } from "react"
+import { useState, useEffect, useRef, useCallback, type ComponentType } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
@@ -8,6 +8,7 @@ import { DashboardHeader } from "@/components/dashboard/header"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { resetAuthCache, useAuth, type ModuleType } from "@/hooks/use-auth"
 import { verifyServerSessionConsistency } from "@/lib/session-api"
 import { supabase } from "@/lib/supabaseClient"
@@ -98,6 +99,9 @@ export default function DashboardPage() {
   })
   const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
   const [pendingLabNotification, setPendingLabNotification] = useState<{ module: ModuleType; recordId: number } | null>(null)
+  const [configHasUnsavedChanges, setConfigHasUnsavedChanges] = useState(false)
+  const [showLeaveConfigDialog, setShowLeaveConfigDialog] = useState(false)
+  const [pendingModuleChange, setPendingModuleChange] = useState<ModuleType | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem("crm-sidebar-collapsed") === 'true'
@@ -107,6 +111,10 @@ export default function DashboardPage() {
   const { user, loading, isSessionTerminated, signOut, bootstrapError, retryBootstrap } = useAuth()
   const [securityViolation, setSecurityViolation] = useState(false)
   const router = useRouter()
+  const configActionsRef = useRef<{
+    save: () => Promise<boolean>
+    discard: () => Promise<boolean>
+  } | null>(null)
 
   const clearLocalSessionState = () => {
     if (typeof window !== "undefined") {
@@ -147,6 +155,40 @@ export default function DashboardPage() {
   useEffect(() => {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  const requestModuleChange = useCallback((module: ModuleType) => {
+    if (module === activeModule) return
+
+    if (activeModule === "configuracion" && configHasUnsavedChanges && module !== "configuracion") {
+      setPendingModuleChange(module)
+      setShowLeaveConfigDialog(true)
+      return
+    }
+
+    setActiveModule(module)
+  }, [activeModule, configHasUnsavedChanges])
+
+  const continueModuleChange = useCallback(async (mode: "save" | "discard") => {
+    const nextModule = pendingModuleChange
+    const actions = configActionsRef.current
+
+    if (mode === "save" && actions) {
+      const saved = await actions.save()
+      if (!saved) return
+    }
+
+    if (mode === "discard" && actions) {
+      const discarded = await actions.discard()
+      if (!discarded) return
+    }
+
+    setShowLeaveConfigDialog(false)
+    setPendingModuleChange(null)
+
+    if (nextModule) {
+      setActiveModule(nextModule)
+    }
+  }, [pendingModuleChange])
 
   // Force initial landing to control modules for specific roles
   useEffect(() => {
@@ -364,7 +406,14 @@ export default function DashboardPage() {
           />
         )
       case "configuracion":
-        return <ConfiguracionModule />
+        return (
+          <ConfiguracionModule
+            onDirtyChange={setConfigHasUnsavedChanges}
+            registerActions={(actions) => {
+              configActionsRef.current = actions
+            }}
+          />
+        )
       case "tracing":
         return <TracingModule />
       case "ingenieria_archivos":
@@ -442,18 +491,18 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <DashboardSidebar activeModule={activeModule} setActiveModule={setActiveModule} user={dashboardUser} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
+      <DashboardSidebar activeModule={activeModule} setActiveModule={requestModuleChange} user={dashboardUser} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(c => !c)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
           user={dashboardUser}
-          setActiveModule={setActiveModule}
+          setActiveModule={requestModuleChange}
           onOpenAffectedUser={(userId) => {
             setPendingNotificationUserId(userId)
-            setActiveModule("usuarios")
+            requestModuleChange("usuarios")
           }}
           onOpenLabNotification={({ module, recordId }) => {
             setPendingLabNotification({ module, recordId })
-            setActiveModule(module)
+            requestModuleChange(module)
           }}
         />
         <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{renderModule()}</main>
@@ -471,6 +520,28 @@ export default function DashboardPage() {
           });
         }}
       />
+
+      <Dialog open={showLeaveConfigDialog} onOpenChange={setShowLeaveConfigDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Quieres guardar los cambios?</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar en Configuración. Puedes guardarlos o descartarlos antes de salir de este módulo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowLeaveConfigDialog(false)}>
+              Seguir editando
+            </Button>
+            <Button variant="secondary" onClick={() => void continueModuleChange("discard")}>
+              Descartar y salir
+            </Button>
+            <Button onClick={() => void continueModuleChange("save")}>
+              Guardar y salir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
