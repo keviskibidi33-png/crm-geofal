@@ -9,12 +9,13 @@ import { type User, type ModuleType } from "@/hooks/use-auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
-import { isAdminDashboardRole, isComercialDashboardRole } from "@/lib/control-module-access"
+import { isAdminDashboardRole, isComercialDashboardRole, isLaboratoryNotificationsRole } from "@/lib/control-module-access"
 
 interface HeaderProps {
   user: User
   setActiveModule: (module: ModuleType) => void
   onOpenAffectedUser?: (userId: string) => void
+  onOpenLabNotification?: (target: { module: ModuleType; recordId: number }) => void
 }
 
 interface SearchResult {
@@ -82,7 +83,8 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
   const bellSoundRef = useRef<AudioContext | null>(null)
   const isAdmin = isAdminDashboardRole(user.role)
   const isCommercialNotificationsRole = isComercialDashboardRole(user.role)
-  const showNotifications = isAdmin || isCommercialNotificationsRole
+  const isLaboratoryNotifications = isLaboratoryNotificationsRole(user.role)
+  const showNotifications = isAdmin || isCommercialNotificationsRole || isLaboratoryNotifications
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -209,7 +211,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
           const payload = await historyResponse.json()
           setHistoryNotifications(Array.isArray(payload?.data) ? payload.data : [])
         }
-      } else if (isCommercialNotificationsRole) {
+      } else if (isCommercialNotificationsRole || isLaboratoryNotifications) {
         const feedResponse = notificationsUnavailableRef.current
           ? null
           : await authFetch(`${API_URL}/notifications/feed?limit=12`)
@@ -237,7 +239,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
     } finally {
       setNotificationsLoading(false)
     }
-  }, [isAdmin, isCommercialNotificationsRole, mergeNotifications, showNotifications])
+  }, [isAdmin, isCommercialNotificationsRole, isLaboratoryNotifications, mergeNotifications, showNotifications])
 
   const acknowledgeNotification = useCallback(async (notificationId: string) => {
     if (!showNotifications || !notificationId) return
@@ -259,6 +261,17 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
       setAcknowledgingNotificationId((current) => (current === notificationId ? null : current))
     }
   }, [fetchNotifications, showNotifications])
+
+  const openLabNotification = (item: DashboardNotification) => {
+    if (!onOpenLabNotification) return
+
+    const rawModule = String(item.metadata?.detail_module || item.metadata?.module || "").trim()
+    const targetModule = (rawModule === "verificacion" ? "verificacion_muestras" : rawModule) as ModuleType
+    const recordId = Number(item.metadata?.record_id || 0)
+
+    if (!targetModule || !recordId) return
+    onOpenLabNotification({ module: targetModule, recordId })
+  }
 
   const openAffectedUser = useCallback((userId?: unknown) => {
     const normalizedUserId = String(userId || "").trim()
@@ -398,16 +411,19 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
       channels.push(adminChannel)
     }
 
-    if (isCommercialNotificationsRole) {
+    if (isCommercialNotificationsRole || isLaboratoryNotifications) {
       const commercialChannel = supabase
-        .channel(`notifications_quotes_${user.id}`)
+        .channel(`notifications_lab_${user.id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "dashboard_notifications" }, (payload) => {
           const row = (payload as any)?.new as DashboardNotification | undefined
           const audienceRoles = Array.isArray(row?.metadata?.audience_roles)
             ? row?.metadata?.audience_roles.map((value) => String(value || "").trim().toLowerCase())
             : []
-          if (String(row?.type || "") !== "quote_created") return
-          if (!audienceRoles.includes("auxiliar_comercial")) return
+          const notificationType = String(row?.type || "")
+          const isQuote = notificationType === "quote_created" && audienceRoles.includes("auxiliar_comercial")
+          const isLabEssay = ["lab_essay_created", "lab_essay_updated"].includes(notificationType) &&
+            (audienceRoles.includes("jefe_laboratorio") || audienceRoles.includes("laboratorio_tipificador"))
+          if (!isQuote && !isLabEssay) return
           void fetchNotifications()
         })
         .subscribe()
@@ -419,7 +435,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
         void supabase.removeChannel(channel)
       }
     }
-  }, [fetchNotifications, isAdmin, isCommercialNotificationsRole, user.id])
+  }, [fetchNotifications, isAdmin, isCommercialNotificationsRole, isLaboratoryNotifications, user.id])
 
   const openNotificationCount = notifications.filter((item) => item.status === "open" || !item.status).length
   const acknowledgedNotificationCount = notifications.filter((item) => item.status === "acknowledged").length
@@ -535,7 +551,11 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <h4 className="font-semibold text-sm">
-                    {isCommercialNotificationsRole ? "Cotizaciones recientes" : "Notificaciones"}
+                    {isLaboratoryNotifications
+                      ? "Ensayos recientes"
+                      : isCommercialNotificationsRole
+                        ? "Cotizaciones recientes"
+                        : "Notificaciones"}
                   </h4>
                   {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 </div>
@@ -557,7 +577,59 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                  {isCommercialNotificationsRole ? (
+                  {isLaboratoryNotifications ? (
+                    notifications.length > 0 ? (
+                      <div className="space-y-2">
+                        {notifications.map((item) => {
+                          const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
+                          const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
+                          const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                          const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                          const action = String(item.metadata?.action || "created")
+                          const isUpdate = action === "updated"
+                          const canOpenDetail = Boolean(onOpenLabNotification)
+                          return (
+                            <button
+                              type="button"
+                              key={item.id}
+                              className={`w-full rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm text-left transition-colors ${canOpenDetail ? "hover:bg-accent/40 cursor-pointer" : ""}`}
+                              onClick={() => canOpenDetail && openLabNotification(item)}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-foreground truncate">
+                                      {moduleLabel} {recordCode}
+                                    </p>
+                                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                                      {isUpdate ? "editado" : "nuevo"}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
+                                    {creator} {isUpdate ? "actualizó" : "creó"} este ensayo
+                                  </p>
+                                  {timestamp && (
+                                    <p className="text-[11px] text-muted-foreground/80 mt-1">
+                                      {timestamp}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                        <Bell className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                        <p className="text-sm text-muted-foreground">Sin ensayos nuevos</p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">Aquí aparecerán los registros de laboratorio en tiempo real</p>
+                      </div>
+                    )
+                  ) : isCommercialNotificationsRole ? (
                     notifications.length > 0 ? (
                       notifications.map((item) => {
                         const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"

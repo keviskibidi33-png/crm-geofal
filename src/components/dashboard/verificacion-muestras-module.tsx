@@ -20,6 +20,11 @@ interface SmartIframeProps {
     title: string;
 }
 
+interface VerificacionMuestrasModuleProps {
+    focusVerificacionId?: number | null
+    onFocusHandled?: () => void
+}
+
 function SmartIframe({ src, title }: SmartIframeProps) {
     const [key, setKey] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -131,7 +136,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
         </div>
     );
 }
-export function VerificacionMuestrasModule() {
+export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled }: VerificacionMuestrasModuleProps) {
     const { verificaciones, loading, fetchVerificaciones, deleteVerificacion } = useVerificaciones()
     const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
@@ -141,6 +146,7 @@ export function VerificacionMuestrasModule() {
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
+    const lastFocusedVerificacionIdRef = useRef<number | null>(null)
     const canWrite = user?.role === "admin" || user?.permissions?.verificacion_muestras?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.verificacion_muestras?.delete === true
 
@@ -296,6 +302,18 @@ export function VerificacionMuestrasModule() {
         setSelectedVerificacion(item)
         setIsDetailOpen(true)
     }
+
+    useEffect(() => {
+        if (!focusVerificacionId || verificaciones.length === 0) return
+        if (lastFocusedVerificacionIdRef.current === focusVerificacionId) return
+
+        const target = verificaciones.find((item) => item.id === focusVerificacionId)
+        if (!target) return
+
+        lastFocusedVerificacionIdRef.current = focusVerificacionId
+        openDetail(target)
+        onFocusHandled?.()
+    }, [focusVerificacionId, onFocusHandled, verificaciones])
 
     const handleDelete = async (id: number) => {
         if (!canDelete) {

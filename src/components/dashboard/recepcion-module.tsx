@@ -17,7 +17,12 @@ import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { SmartIframe } from "./smart-iframe"
 
-export function RecepcionModule() {
+interface RecepcionModuleProps {
+    focusRecepcionId?: number | null
+    onFocusHandled?: () => void
+}
+
+export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionModuleProps) {
     const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
@@ -34,6 +39,7 @@ export function RecepcionModule() {
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const importedDataSentRef = useRef(false)
+    const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
     const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
@@ -404,7 +410,7 @@ export function RecepcionModule() {
         return dateStr
     }
 
-    const openDetail = async (recepcion: Recepcion) => {
+    const openDetail = useCallback(async (recepcion: Recepcion) => {
         setSelectedRecepcion(recepcion)
         setIsDetailLoading(true)
         setIsDetailOpen(true)
@@ -418,7 +424,19 @@ export function RecepcionModule() {
         } finally {
             setIsDetailLoading(false)
         }
-    }
+    }, [getRecepcionById])
+
+    useEffect(() => {
+        if (!focusRecepcionId || recepciones.length === 0) return
+        if (lastFocusedRecepcionIdRef.current === focusRecepcionId) return
+
+        const target = recepciones.find((item) => item.id === focusRecepcionId)
+        if (!target) return
+
+        lastFocusedRecepcionIdRef.current = focusRecepcionId
+        void openDetail(target)
+        onFocusHandled?.()
+    }, [focusRecepcionId, onFocusHandled, openDetail, recepciones])
 
     return (
         <div className="h-full min-h-0 flex flex-col gap-6 p-4 md:p-6 overflow-y-auto overscroll-contain">
