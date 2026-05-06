@@ -7,6 +7,7 @@ import { getOrCreateBrowserId } from "@/lib/browser-session"
 import { deleteServerSession, refreshServerSession } from "@/lib/session-api"
 import { PERMISSION_MODULE_CATALOG, type PermissionModuleId } from "@/lib/permission-modules"
 import { normalizeRoleId } from "@/lib/role-utils"
+import { getProfileAvatarDraft, subscribeProfileAvatarDraft } from "@/lib/profile-avatar-draft"
 
 export type UserRole = "admin" | "auxiliar_comercial" | "laboratorio" | "laboratorio_tipificador" | "laboratorio_lector" | "jefe_laboratorio" | "tecnico" | "tecnico_suelos" | "administrativo" | "comercial" | string
 export type ModuleType = PermissionModuleId
@@ -347,8 +348,9 @@ async function fetchUserPermissionOverride(userId: string): Promise<UserPermissi
 
 
 async function buildUser(session: any): Promise<User> {
-    const profile = await fetchProfile(session.user.id)
-    const normalizedEmail = String(session.user.email || "").toLowerCase().trim()
+    const authUser = session?.user || session
+    const profile = await fetchProfile(authUser.id)
+    const normalizedEmail = String(authUser.email || "").toLowerCase().trim()
 
     // Capture the current logout timestamp to avoid triggering on it during Live session
     if (profile?.last_force_logout_at) {
@@ -356,7 +358,7 @@ async function buildUser(session: any): Promise<User> {
     }
 
     // Role initialization
-    const roleFromProfile = normalizeRoleId(profile?.role || session.user.user_metadata?.role || "auxiliar_comercial")
+    const roleFromProfile = normalizeRoleId(profile?.role || authUser.user_metadata?.role || "auxiliar_comercial")
     const role = roleFromProfile as UserRole
     const rNorm = normalizeRoleId(role)
     const roleDef = Array.isArray(profile?.role_definitions) ? profile?.role_definitions[0] : profile?.role_definitions
@@ -846,9 +848,9 @@ async function buildUser(session: any): Promise<User> {
 
 
     return {
-        id: session.user.id,
-        name: (profile as any)?.full_name || session.user.email?.split("@")[0] || "Usuario",
-        email: session.user.email!,
+        id: authUser.id,
+        name: (profile as any)?.full_name || authUser.email?.split("@")[0] || "Usuario",
+        email: authUser.email!,
         role: role,
         roleLabel: roleDef?.label || (
             role === 'admin'
@@ -867,7 +869,7 @@ async function buildUser(session: any): Promise<User> {
         ),
         permissions: permissions,
         phone: (profile as any)?.phone,
-        avatar: (session.user?.user_metadata?.avatar_url as string | undefined) || (profile as any)?.avatar_url
+        avatar: getProfileAvatarDraft(authUser.id) || (authUser.user_metadata?.avatar_url as string | undefined) || (profile as any)?.avatar_url
     }
 }
 
@@ -961,6 +963,36 @@ export function useAuth() {
         isGlobalSessionTerminated = false
         if (typeof window !== 'undefined') localStorage.removeItem(TERMINATED_KEY)
     }
+
+    useEffect(() => {
+        if (!user?.id) return
+
+        const applyDraftAvatar = () => {
+            const draftAvatar = getProfileAvatarDraft(user.id)
+            if (!draftAvatar) return
+
+            setUser((current) => {
+                if (!current || current.id !== user.id) return current
+                const updated = { ...current, avatar: draftAvatar }
+                cachedUser = updated
+                return updated
+            })
+        }
+
+        applyDraftAvatar()
+
+        const unsubscribe = subscribeProfileAvatarDraft(({ userId, avatarUrl }) => {
+            if (userId !== user.id || !avatarUrl) return
+            setUser((current) => {
+                if (!current || current.id !== user.id) return current
+                const updated = { ...current, avatar: avatarUrl }
+                cachedUser = updated
+                return updated
+            })
+        })
+
+        return unsubscribe
+    }, [user?.id])
 
     bootstrapAuthRef.current = async () => {
         const bootstrapStartedAt = Date.now()
