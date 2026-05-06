@@ -318,7 +318,7 @@ function buildTechnicalPermissions(): RolePermissions {
     for (const moduleId of TECHNICAL_MODULES) {
         result[moduleId] = { read: true, write: true, delete: false }
     }
-    result.configuracion = { read: true, write: false, delete: false }
+    result.configuracion = { read: true, write: true, delete: false }
     return result
 }
 
@@ -389,8 +389,8 @@ async function buildUser(session: any): Promise<User> {
             p.correlativos = p.ingenieria_archivos
         }
 
-        // LAW: Everyone can see their settings/config
-        p.configuracion = { read: true, write: p.configuracion?.write || false, delete: false }
+        // LAW: Everyone can edit their own settings/config
+        p.configuracion = { read: true, write: true, delete: false }
 
         // Control modules: only enforce read:true if already present in permissions matrix.
         // This prevents technical roles from inheriting commercial/admin dashboards.
@@ -588,7 +588,7 @@ async function buildUser(session: any): Promise<User> {
                 comercial: { read: true, write: true, delete: false },
                 administracion: { read: true, write: false, delete: false },
                 programacion: { read: true, write: false, delete: false },
-                configuracion: { read: true, write: false, delete: false }
+                configuracion: { read: true, write: true, delete: false }
             }
         } else if (isStrictTecnicoRole) {
             permissions = buildTechnicalPermissions()
@@ -624,7 +624,7 @@ async function buildUser(session: any): Promise<User> {
                 sales_solubles: { read: true, write: true, delete: false },
                 sulfatos_solubles: { read: true, write: true, delete: false },
                 compresion_no_confinada: { read: true, write: true, delete: false },
-                configuracion: { read: true, write: false, delete: false }
+                configuracion: { read: true, write: true, delete: false }
             }
         } else if (role.includes('laboratorio') || role.includes('tipificador')) {
             permissions = buildLaboratoryPermissions(!role.includes('lector'))
@@ -633,7 +633,7 @@ async function buildUser(session: any): Promise<User> {
             permissions = {
                 programacion: { read: true, write: false, delete: false },
                 laboratorio: { read: true, write: false, delete: false },
-                configuracion: { read: true, write: false, delete: false }
+                configuracion: { read: true, write: true, delete: false }
             }
         }
     }
@@ -764,7 +764,7 @@ async function buildUser(session: any): Promise<User> {
             ...(permissions || {}),
             configuracion: {
                 read: true,
-                write: permissions?.configuracion?.write === true,
+                write: true,
                 delete: false,
             },
         }
