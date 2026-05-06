@@ -869,7 +869,10 @@ async function buildUser(session: any): Promise<User> {
         ),
         permissions: permissions,
         phone: (profile as any)?.phone,
-        avatar: getProfileAvatarDraft(authUser.id) || (authUser.user_metadata?.avatar_url as string | undefined) || (profile as any)?.avatar_url
+        // Prefer the profile row because auth metadata can lag a few seconds
+        // after the avatar is updated. The profile table reflects the save
+        // faster, so using it first avoids showing a stale avatar after reloads.
+        avatar: getProfileAvatarDraft(authUser.id) || (profile as any)?.avatar_url || (authUser.user_metadata?.avatar_url as string | undefined)
     }
 }
 
