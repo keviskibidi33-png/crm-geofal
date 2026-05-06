@@ -41,7 +41,13 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const savedAvatarRef = useRef(currentUser?.avatar || "")
+  const selectedAvatarFileRef = useRef<File | null>(null)
+  const avatarReadGenerationRef = useRef(0)
+  const avatarReadPromiseRef = useRef<Promise<void> | null>(null)
+  const avatarReadResolveRef = useRef<(() => void) | null>(null)
+  const avatarReadErrorRef = useRef<Error | null>(null)
   const pendingAvatarRef = useRef<PendingAvatar>(null)
+  const [isAvatarReading, setIsAvatarReading] = useState(false)
   // const { toast } = useToast() // Replaced by Sonner
 
   const [formData, setFormData] = useState({
@@ -57,7 +63,7 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
     // Cuando el avatar cambia por el draft local, useAuth vuelve a propagar ese
     // preview como currentUser.avatar. En ese caso no debemos limpiar el estado
     // pendiente, porque eso haría desaparecer la marca de "cambios sin guardar".
-    if (!pendingAvatarRef.current) {
+    if (!pendingAvatarRef.current && !isAvatarReading) {
       setFormData({
         name: currentUser?.name || "",
         email: currentUser?.email || "",
@@ -67,10 +73,11 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
       setPendingAvatar(null)
       setShowDiscardDialog(false)
     }
-  }, [currentUser?.avatar, currentUser?.email, currentUser?.name, currentUser?.phone])
+  }, [currentUser?.avatar, currentUser?.email, currentUser?.name, currentUser?.phone, isAvatarReading])
 
   const hasUnsavedChanges = Boolean(
     pendingAvatar
+    || isAvatarReading
     || formData.name !== (currentUser?.name || "")
     || formData.email !== (currentUser?.email || "")
     || formData.phone !== (currentUser?.phone || "")
@@ -91,6 +98,15 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
       .slice(0, 2)
   }
 
+  const clearAvatarSelectionState = useCallback(() => {
+    avatarReadGenerationRef.current += 1
+    selectedAvatarFileRef.current = null
+    avatarReadPromiseRef.current = null
+    avatarReadResolveRef.current = null
+    avatarReadErrorRef.current = null
+    setIsAvatarReading(false)
+  }, [])
+
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ""
@@ -110,24 +126,50 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
       return
     }
 
+    selectedAvatarFileRef.current = file
+    setIsAvatarReading(true)
+    const generation = ++avatarReadGenerationRef.current
+    avatarReadErrorRef.current = null
+    avatarReadPromiseRef.current = new Promise<void>((resolve) => {
+      avatarReadResolveRef.current = resolve
+    })
     const reader = new FileReader()
     reader.onload = () => {
+      if (generation !== avatarReadGenerationRef.current) return
+
       const result = String(reader.result || "")
+      const nextPendingAvatar = {
+        dataUrl: result,
+        fileName: file.name,
+        mimeType: file.type,
+      }
+
       setAvatarPreview(result)
       if (currentUser?.id) {
         setProfileAvatarDraft(currentUser.id, result)
       }
-      pendingAvatarRef.current = {
-        dataUrl: result,
-        fileName: file.name,
-        mimeType: file.type,
-      }
-      setPendingAvatar({
-        dataUrl: result,
-        fileName: file.name,
-        mimeType: file.type,
-      })
+      pendingAvatarRef.current = nextPendingAvatar
+      setPendingAvatar(nextPendingAvatar)
+      setIsAvatarReading(false)
+      avatarReadResolveRef.current?.()
+      avatarReadPromiseRef.current = null
+      avatarReadResolveRef.current = null
+      avatarReadErrorRef.current = null
       setIsEditing(true)
+    }
+    reader.onerror = () => {
+      if (generation !== avatarReadGenerationRef.current) return
+
+      const error = new Error("No se pudo leer la imagen seleccionada.")
+      selectedAvatarFileRef.current = null
+      setIsAvatarReading(false)
+      avatarReadErrorRef.current = error
+      avatarReadResolveRef.current?.()
+      avatarReadPromiseRef.current = null
+      avatarReadResolveRef.current = null
+      toast.error("Error al leer la imagen", {
+        description: error.message,
+      })
     }
     reader.readAsDataURL(file)
   }
@@ -136,12 +178,21 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
     if (!currentUser) return
     setIsLoading(true)
     try {
+      if (isAvatarReading && avatarReadPromiseRef.current) {
+        await avatarReadPromiseRef.current
+      }
+
+      if (avatarReadErrorRef.current) {
+        throw avatarReadErrorRef.current
+      }
+
+      const resolvedAvatar = pendingAvatarRef.current || pendingAvatar
       const result = await updateOwnProfileAction({
         nombre: formData.name,
         email: formData.email,
         phone: formData.phone,
-        avatarDataUrl: pendingAvatar?.dataUrl || undefined,
-        avatarFileName: pendingAvatar?.fileName || undefined,
+        avatarDataUrl: resolvedAvatar?.dataUrl || undefined,
+        avatarFileName: resolvedAvatar?.fileName || undefined,
       })
 
       if (result.error) throw new Error(result.error)
@@ -150,8 +201,10 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
         clearProfileAvatarDraft(currentUser.id)
       }
 
+      clearAvatarSelectionState()
       setPendingAvatar(null)
       pendingAvatarRef.current = null
+      selectedAvatarFileRef.current = null
 
       await refreshUser()
       setShowDiscardDialog(false)
@@ -178,7 +231,7 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
     } finally {
       setIsLoading(false)
     }
-  }, [currentUser, formData.email, formData.name, formData.phone, pendingAvatar, refreshUser])
+  }, [clearAvatarSelectionState, currentUser, formData.email, formData.name, formData.phone, isAvatarReading, pendingAvatar, refreshUser])
 
   const handleCancel = useCallback(async () => {
     if (hasUnsavedChanges) {
@@ -192,8 +245,10 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
     if (currentUser?.id) {
       clearProfileAvatarDraft(currentUser.id)
     }
+    clearAvatarSelectionState()
     setPendingAvatar(null)
     pendingAvatarRef.current = null
+    selectedAvatarFileRef.current = null
     setAvatarPreview(savedAvatarRef.current || "")
     setIsEditing(false)
     setShowDiscardDialog(false)
@@ -202,7 +257,7 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
       description: "Tu perfil volvió al estado guardado.",
     })
     return true
-  }, [currentUser?.id, refreshUser])
+  }, [clearAvatarSelectionState, currentUser?.id, refreshUser])
 
   useEffect(() => {
     registerActions?.({
