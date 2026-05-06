@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import { User, Mail, Image as ImageIcon, Shield, Upload, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,15 @@ type PendingAvatar = {
 
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
 
-export function ConfiguracionModule() {
+type ConfiguracionModuleProps = {
+  onDirtyChange?: (hasDirtyChanges: boolean) => void
+  registerActions?: (actions: {
+    save: () => Promise<boolean>
+    discard: () => Promise<boolean>
+  }) => void
+}
+
+export function ConfiguracionModule({ onDirtyChange, registerActions }: ConfiguracionModuleProps) {
   const { user: currentUser, refreshUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -63,6 +71,10 @@ export function ConfiguracionModule() {
     || formData.email !== (currentUser?.email || "")
     || formData.phone !== (currentUser?.phone || "")
   )
+
+  useEffect(() => {
+    onDirtyChange?.(hasUnsavedChanges)
+  }, [hasUnsavedChanges, onDirtyChange])
 
   const getInitials = (name?: string | null) => {
     const value = String(name || "").trim()
@@ -116,7 +128,7 @@ export function ConfiguracionModule() {
     reader.readAsDataURL(file)
   }
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!currentUser) return
     setIsLoading(true)
     try {
@@ -153,24 +165,26 @@ export function ConfiguracionModule() {
       })
 
       setIsEditing(false)
+      return true
     } catch (err: any) {
       toast.error("Error", {
         description: err.message,
       })
+      return false
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentUser, formData.email, formData.name, formData.phone, pendingAvatar, refreshUser])
 
-  const handleCancel = async () => {
+  const handleCancel = useCallback(async () => {
     if (hasUnsavedChanges) {
       setShowDiscardDialog(true)
       return
     }
     setIsEditing(false)
-  }
+  }, [hasUnsavedChanges])
 
-  const discardChanges = async () => {
+  const discardChanges = useCallback(async () => {
     if (currentUser?.id) {
       clearProfileAvatarDraft(currentUser.id)
     }
@@ -183,7 +197,27 @@ export function ConfiguracionModule() {
     toast.info("Cambios descartados", {
       description: "Tu perfil volvió al estado guardado.",
     })
-  }
+    return true
+  }, [currentUser?.id, refreshUser])
+
+  useEffect(() => {
+    registerActions?.({
+      save: handleSave,
+      discard: discardChanges,
+    })
+  }, [discardChanges, handleSave, registerActions])
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ""
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   return (
     <div className="max-w-2xl space-y-6 pb-12">
