@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, User as UserIcon, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
@@ -115,6 +116,17 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
+  const getInitials = (name?: string | null) => {
+    const value = String(name || "").trim()
+    if (!value) return "?"
+    return value
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("")
+      .slice(0, 2)
+  }
+
   const renderProfileDropdown = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -123,11 +135,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
             <TooltipTrigger asChild>
               <button className="w-full flex items-center justify-center p-2 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors">
                 <Avatar className="h-9 w-9 border-2 border-primary/30">
-                  <div className="h-full w-full rounded-full bg-primary/20 flex items-center justify-center">
-                    <UserIcon className="h-4 w-4 text-primary" />
-                  </div>
+                  <AvatarImage src={user.avatar || ""} alt={user.name} />
                   <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                    {user.name?.split(" ").map((n) => n[0]).join("")}
+                    {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
               </button>
@@ -140,11 +150,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         ) : (
           <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors text-left">
             <Avatar className="h-10 w-10 border-2 border-primary/30 shrink-0">
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <UserIcon className="h-4 w-4 text-primary" />
-              </div>
+              <AvatarImage src={user.avatar || ""} alt={user.name} />
               <AvatarFallback className="bg-primary/20 text-primary">
-                {user.name?.split(" ").map((n) => n[0]).join("")}
+                {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -198,10 +206,13 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       {/* Logo + Collapse Toggle */}
       <div className="border-b border-sidebar-border shrink-0">
         <div className={cn("flex items-center", collapsed ? "p-3 justify-center" : "p-6 gap-3")}>
-          <img
+          <Image
             src="/logo-geofal.svg"
             alt="Geofal CRM"
+            width={160}
+            height={40}
             className={cn("shrink-0 transition-all duration-300", collapsed ? "h-8 w-auto" : "h-10 w-auto")}
+            priority
           />
           {!collapsed && (
             <div className="min-w-0">

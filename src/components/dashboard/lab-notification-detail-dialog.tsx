@@ -1,8 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Bell, CheckCircle2, Clock3, Eye, FileText, Filter, RefreshCw, Search, UserRoundSearch } from "lucide-react"
+import { Bell, Clock3, Eye, Filter, RefreshCw, Search, UserRoundSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -50,6 +51,25 @@ const dateOnlyFormatter = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 })
+
+function getInitials(name?: string | null) {
+  const value = String(name || "").trim()
+  if (!value) return "?"
+  return value
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 2)
+}
+
+function getCreatorName(item: LabNotificationItem) {
+  return String(item.metadata?.created_by || item.metadata?.full_name || item.metadata?.user_name || "Usuario").trim() || "Usuario"
+}
+
+function getCreatorAvatar(item: LabNotificationItem) {
+  return String(item.metadata?.created_by_avatar_url || item.metadata?.avatar_url || "").trim()
+}
 
 function normalizeText(value: unknown) {
   return String(value ?? "").trim().toLowerCase()
@@ -423,7 +443,8 @@ export function LabNotificationDetailDialog({
                       const isAcknowledged = item.status === "acknowledged"
                       const moduleLabel = String(item.metadata?.module_label || item.metadata?.detail_module || "Ensayo")
                       const recordCode = String(item.metadata?.record_code || "Sin código")
-                      const creator = String(item.metadata?.created_by || item.metadata?.full_name || item.metadata?.user_name || "Usuario")
+                      const creator = getCreatorName(item)
+                      const creatorAvatar = getCreatorAvatar(item)
                       const moduleCode = String(item.metadata?.module || "")
                       const action = String(item.metadata?.action || (isAcknowledged ? "viewed" : "created"))
                       const detail = String(item.message || "")
@@ -441,9 +462,12 @@ export function LabNotificationDetailDialog({
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isAcknowledged ? "bg-blue-100 text-blue-700" : "bg-primary/10 text-primary"}`}>
-                                {isAcknowledged ? <CheckCircle2 className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                              </div>
+                              <Avatar className={`mt-0.5 h-10 w-10 shrink-0 border ${isAcknowledged ? "border-blue-200" : "border-primary/30"}`}>
+                                <AvatarImage src={creatorAvatar} alt={creator} />
+                                <AvatarFallback className={`text-[11px] font-semibold ${isAcknowledged ? "bg-blue-100 text-blue-700" : "bg-primary/10 text-primary"}`}>
+                                  {getInitials(creator)}
+                                </AvatarFallback>
+                              </Avatar>
                               <div className="min-w-0 flex-1 space-y-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <p className="truncate text-sm font-semibold text-foreground">

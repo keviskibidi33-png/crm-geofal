@@ -3,6 +3,7 @@
 import { startTransition, useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Bell, Search, Sun, Moon, Building2, FolderKanban, FileText, Loader2, AlertTriangle, CheckCircle2, Clock3, UserRoundSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { useTheme } from "@/components/theme-provider"
 import { type User, type ModuleType } from "@/hooks/use-auth"
@@ -37,6 +38,25 @@ interface DashboardNotification {
   acknowledged_at?: string | null
   resolved_at?: string | null
   metadata?: Record<string, unknown>
+}
+
+function getInitials(name?: string | null) {
+  const value = String(name || "").trim()
+  if (!value) return "?"
+  return value
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 2)
+}
+
+function getNotificationCreatorName(item: DashboardNotification) {
+  return String(item.metadata?.created_by || item.metadata?.full_name || item.metadata?.user_name || "Usuario").trim() || "Usuario"
+}
+
+function getNotificationCreatorAvatar(item: DashboardNotification) {
+  return String(item.metadata?.created_by_avatar_url || item.metadata?.avatar_url || "").trim()
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -654,7 +674,8 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                         {labActiveNotifications.map((item) => {
                           const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
                           const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
-                          const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                          const creator = getNotificationCreatorName(item)
+                          const creatorAvatar = getNotificationCreatorAvatar(item)
                           const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
                           const action = String(item.metadata?.action || "created")
                           const isUpdate = action === "updated"
@@ -667,6 +688,12 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                               onClick={() => canOpenDetail && void handleOpenLabNotification(item)}
                             >
                               <div className="flex items-start gap-3">
+                                <Avatar className="mt-0.5 h-9 w-9 border border-border/70">
+                                  <AvatarImage src={creatorAvatar} alt={creator} />
+                                  <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                                    {getInitials(creator)}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <div className="mt-0.5">
                                   <FileText className="h-4 w-4 text-primary" />
                                 </div>
@@ -708,11 +735,12 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                       ) : labSeenNotifications.length > 0 ? (
                         <div className="space-y-2">
                           {labSeenNotifications.map((item) => {
-                            const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
-                            const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
-                            const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
-                            const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
-                            return (
+                          const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
+                          const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
+                          const creator = getNotificationCreatorName(item)
+                          const creatorAvatar = getNotificationCreatorAvatar(item)
+                          const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                          return (
                               <button
                                 type="button"
                                 key={`${item.id}-seen`}
@@ -723,10 +751,16 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                                 }}
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="mt-0.5">
-                                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
+                                <Avatar className="mt-0.5 h-9 w-9 border border-blue-200">
+                                  <AvatarImage src={creatorAvatar} alt={creator} />
+                                  <AvatarFallback className="bg-blue-100 text-[11px] font-semibold text-blue-700">
+                                    {getInitials(creator)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="mt-0.5">
+                                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                       <p className="text-sm font-semibold text-foreground truncate">
                                         {moduleLabel} {recordCode}
@@ -794,7 +828,8 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                               {commercialActiveNotifications.length > 0 ? (
                                 <div className="space-y-2">
                                   {commercialActiveNotifications.map((item) => {
-                                    const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                                    const creator = getNotificationCreatorName(item)
+                                    const creatorAvatar = getNotificationCreatorAvatar(item)
                                     const client = item.metadata?.cliente ? String(item.metadata.cliente) : "cliente"
                                     const quoteCode = item.metadata?.quote_code ? String(item.metadata.quote_code) : "Nueva cotización"
                                     const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
@@ -810,9 +845,12 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                                         }}
                                       >
                                         <div className="flex items-start gap-3">
-                                          <div className="mt-0.5">
-                                            <Bell className="h-4 w-4 text-primary" />
-                                          </div>
+                                          <Avatar className="mt-0.5 h-9 w-9 border border-border/70">
+                                            <AvatarImage src={creatorAvatar} alt={creator} />
+                                            <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                                              {getInitials(creator)}
+                                            </AvatarFallback>
+                                          </Avatar>
                                           <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
                                               <p className="text-sm font-semibold text-foreground truncate">{quoteCode}</p>
@@ -868,17 +906,23 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                           </div>
                           <div className="space-y-2">
                             {commercialSeenNotifications.map((item) => {
-                              const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                              const creator = getNotificationCreatorName(item)
+                              const creatorAvatar = getNotificationCreatorAvatar(item)
                               const client = item.metadata?.cliente ? String(item.metadata.cliente) : "cliente"
                               const quoteCode = item.metadata?.quote_code ? String(item.metadata.quote_code) : "Cotización"
                               const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
                               return (
                                 <div
                                   key={`${item.id}-seen`}
-                                  className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-blue-600" />
+                                className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm"
+                              >
+                                <div className="flex items-start gap-3">
+                                    <Avatar className="mt-0.5 h-9 w-9 border border-blue-200">
+                                      <AvatarImage src={creatorAvatar} alt={creator} />
+                                      <AvatarFallback className="bg-blue-100 text-[11px] font-semibold text-blue-700">
+                                        {getInitials(creator)}
+                                      </AvatarFallback>
+                                    </Avatar>
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-semibold text-foreground truncate">{quoteCode}</p>
@@ -940,9 +984,11 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                                   }`}
                                 >
                                   <div className="flex items-start gap-3">
-                                    <div className="mt-0.5">
-                                      <AlertTriangle className={`h-4 w-4 ${item.status === "acknowledged" ? "text-blue-500" : "text-amber-500"}`} />
-                                    </div>
+                                    <Avatar className="mt-0.5 h-9 w-9 border border-border/70">
+                                      <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
+                                        {getInitials(fullName)}
+                                      </AvatarFallback>
+                                    </Avatar>
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
