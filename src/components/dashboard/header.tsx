@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useState, useEffect, useRef, useCallback } from "react"
+import { startTransition, useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Bell, Search, Sun, Moon, Building2, FolderKanban, FileText, Loader2, AlertTriangle, CheckCircle2, Clock3, UserRoundSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -447,8 +447,18 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
   const openNotificationCount = notifications.filter((item) => item.status === "open" || !item.status).length
   const acknowledgedNotificationCount = notifications.filter((item) => item.status === "acknowledged").length
   const resolvedNotificationCount = historyNotifications.length
-  const labNotificationPreview = notifications.slice(0, 8)
-
+  const activeNotifications = useMemo(
+    () => notifications.filter((item) => item.status === "open" || !item.status),
+    [notifications]
+  )
+  const acknowledgedNotifications = useMemo(
+    () => notifications.filter((item) => item.status === "acknowledged"),
+    [notifications]
+  )
+  const labActiveNotifications = activeNotifications.slice(0, 8)
+  const labSeenNotifications = acknowledgedNotifications.slice(0, 5)
+  const commercialActiveNotifications = activeNotifications.slice(0, 8)
+  const commercialSeenNotifications = acknowledgedNotifications.slice(0, 5)
   const getResultIcon = (type: SearchResult["type"]) => {
     switch (type) {
       case "cliente":
@@ -572,11 +582,15 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                   <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
                     Pendientes: {openNotificationCount}
                   </span>
-                  {isAdmin && (
+                  {(isAdmin || isCommercialNotificationsRole || isLaboratoryNotifications) && (
                     <>
                       <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
                         Vistas: {acknowledgedNotificationCount}
                       </span>
+                    </>
+                  )}
+                  {isAdmin && (
+                    <>
                       <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5">
                         Historial: {resolvedNotificationCount}
                       </span>
@@ -586,9 +600,10 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
 
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                   {isLaboratoryNotifications ? (
-                    notifications.length > 0 ? (
+                    <>
+                      {notifications.length > 0 ? (
                       <div className="space-y-2">
-                        {labNotificationPreview.map((item) => {
+                        {labActiveNotifications.map((item) => {
                           const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
                           const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
                           const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
@@ -629,9 +644,9 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                             </button>
                           )
                         })}
-                        {notifications.length > labNotificationPreview.length && (
+                        {activeNotifications.length > labActiveNotifications.length && (
                           <div className="text-[11px] text-muted-foreground text-center pt-1">
-                            Mostrando {labNotificationPreview.length} de {notifications.length} notificaciones recientes.
+                            Mostrando {labActiveNotifications.length} de {activeNotifications.length} notificaciones activas.
                           </div>
                         )}
                       </div>
@@ -641,50 +656,195 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                         <p className="text-sm text-muted-foreground">Sin ensayos nuevos</p>
                         <p className="text-xs text-muted-foreground/70 mt-1">Aquí aparecerán los registros de laboratorio en tiempo real</p>
                       </div>
-                    )
+                    )}
+                      {labSeenNotifications.length > 0 && (
+                        <div className="space-y-2 border-t border-border/70 pt-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                              <h5 className="text-xs font-semibold uppercase tracking-wide text-foreground">Vistos recientes</h5>
+                            </div>
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                              {acknowledgedNotifications.length} vistos
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {labSeenNotifications.map((item) => {
+                              const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
+                              const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
+                              const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                              const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                              return (
+                                <button
+                                  type="button"
+                                  key={`${item.id}-seen`}
+                                  className="w-full rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm text-left transition-colors hover:bg-blue-100/60"
+                                  onClick={() => openLabNotification(item)}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">
+                                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-semibold text-foreground truncate">
+                                          {moduleLabel} {recordCode}
+                                        </p>
+                                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
+                                          visto
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
+                                        {creator} actualizó este ensayo
+                                      </p>
+                                      {timestamp && (
+                                        <p className="text-[11px] text-muted-foreground/80 mt-1">
+                                          {timestamp}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : isCommercialNotificationsRole ? (
-                    notifications.length > 0 ? (
-                      notifications.map((item) => {
-                        const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
-                        const client = item.metadata?.cliente ? String(item.metadata.cliente) : "cliente"
-                        const quoteCode = item.metadata?.quote_code ? String(item.metadata.quote_code) : "Nueva cotización"
-                        const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
-                        return (
-                          <div
-                            key={item.id}
-                            className="rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="mt-0.5">
+                    <>
+                      {notifications.length > 0 ? (
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
                                 <Bell className="h-4 w-4 text-primary" />
+                                <h5 className="text-xs font-semibold uppercase tracking-wide text-foreground">Activas</h5>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground truncate">{quoteCode}</p>
-                                  <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/10 text-primary px-2 py-0.5">
-                                    nueva
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
-                                  {creator} creó una cotización para {client}
-                                </p>
-                                {timestamp && (
-                                  <p className="text-[11px] text-muted-foreground/80 mt-1">
-                                    {timestamp}
-                                  </p>
+                              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                {activeNotifications.length} activas
+                              </span>
+                            </div>
+                            {commercialActiveNotifications.length > 0 ? (
+                              <div className="space-y-2">
+                                {commercialActiveNotifications.map((item) => {
+                                  const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                                  const client = item.metadata?.cliente ? String(item.metadata.cliente) : "cliente"
+                                  const quoteCode = item.metadata?.quote_code ? String(item.metadata.quote_code) : "Nueva cotización"
+                                  const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className="rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <div className="mt-0.5">
+                                          <Bell className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <p className="text-sm font-semibold text-foreground truncate">{quoteCode}</p>
+                                            <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                                              nueva
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
+                                            {creator} creó una cotización para {client}
+                                          </p>
+                                          {timestamp && (
+                                            <p className="text-[11px] text-muted-foreground/80 mt-1">
+                                              {timestamp}
+                                            </p>
+                                          )}
+                                          {item.status !== "acknowledged" && (
+                                            <div className="mt-3 flex items-center gap-2">
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 px-2.5 text-[11px]"
+                                                onClick={() => void acknowledgeNotification(item.id)}
+                                                disabled={acknowledgingNotificationId === item.id}
+                                              >
+                                                {acknowledgingNotificationId === item.id ? "Guardando..." : "Marcar como visto"}
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                                {activeNotifications.length > commercialActiveNotifications.length && (
+                                  <div className="text-[11px] text-muted-foreground text-center pt-1">
+                                    Mostrando {commercialActiveNotifications.length} de {activeNotifications.length} cotizaciones activas.
+                                  </div>
                                 )}
                               </div>
-                            </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                                <Bell className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                                <p className="text-sm text-muted-foreground">Sin cotizaciones nuevas</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">Aquí aparecerán las cotizaciones generadas en tiempo real</p>
+                              </div>
+                            )}
                           </div>
-                        )
-                      })
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
-                        <Bell className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                        <p className="text-sm text-muted-foreground">Sin cotizaciones nuevas</p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">Aquí aparecerán las cotizaciones generadas en tiempo real</p>
-                      </div>
-                    )
+
+                          {commercialSeenNotifications.length > 0 && (
+                            <div className="space-y-2 border-t border-border/70 pt-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                                  <h5 className="text-xs font-semibold uppercase tracking-wide text-foreground">Vistas recientes</h5>
+                                </div>
+                                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  {acknowledgedNotifications.length} vistas
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {commercialSeenNotifications.map((item) => {
+                                  const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
+                                  const client = item.metadata?.cliente ? String(item.metadata.cliente) : "cliente"
+                                  const quoteCode = item.metadata?.quote_code ? String(item.metadata.quote_code) : "Cotización"
+                                  const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                                  return (
+                                    <div
+                                      key={`${item.id}-seen`}
+                                      className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="mt-0.5 h-4 w-4 text-blue-600" />
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <p className="text-sm font-semibold text-foreground truncate">{quoteCode}</p>
+                                            <span className="text-[10px] uppercase tracking-wide rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
+                                              visto
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
+                                            {creator} creó una cotización para {client}
+                                          </p>
+                                          {timestamp && (
+                                            <p className="text-[11px] text-muted-foreground/80 mt-1">
+                                              {timestamp}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                          <Bell className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">Sin cotizaciones nuevas</p>
+                          <p className="text-xs text-muted-foreground/70 mt-1">Aquí aparecerán las cotizaciones generadas en tiempo real</p>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <>
                       <section className="space-y-2">
