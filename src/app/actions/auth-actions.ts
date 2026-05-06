@@ -62,6 +62,24 @@ async function verifyAdminRole(): Promise<true | string> {
     return `Rol insuficiente: ${userProfile.role}`;
 }
 
+async function getCurrentSessionUserId(): Promise<string | null> {
+    const cookieStore = await cookies()
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+
+    const sessionId = cookieStore.get('crm_session')?.value
+    if (!sessionId) {
+        return null
+    }
+
+    const { data: sessionData } = await supabaseAdmin
+        .from('active_sessions')
+        .select('user_id')
+        .eq('session_id', sessionId)
+        .maybeSingle()
+
+    return sessionData?.user_id ? String(sessionData.user_id) : null
+}
+
 export async function createUserAction(data: {
     email: string
     password: string
@@ -448,6 +466,66 @@ export async function createSessionAction(userId: string, browserId?: string) {
     } catch (err: any) {
         console.error("Create session error:", err)
         return { error: "Error al crear sesión segura" }
+    }
+}
+
+export async function updateOwnProfileAction(data: {
+    nombre?: string
+    email?: string
+    phone?: string
+}) {
+    if (!supabaseServiceKey) {
+        return {
+            error: "Configuración del servidor incompleta (Falta Service Role Key)."
+        }
+    }
+
+    const currentUserId = await getCurrentSessionUserId()
+    if (!currentUserId) {
+        return { error: "Sesión activa no encontrada." }
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    })
+
+    try {
+        const updates: any = {
+            user_metadata: {}
+        }
+
+        if (data.email) updates.email = data.email
+        if (data.nombre) updates.user_metadata.full_name = data.nombre
+        if (data.phone !== undefined) updates.user_metadata.phone = data.phone
+
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(currentUserId, updates)
+        if (authError) throw authError
+
+        const dbUpdates: any = {
+            id: currentUserId,
+            updated_at: new Date().toISOString(),
+            deleted_at: null
+        }
+
+        if (data.nombre) dbUpdates.full_name = data.nombre
+        if (data.email) dbUpdates.email = data.email
+        if (data.phone !== undefined) dbUpdates.phone = data.phone
+
+        const { error: dbError } = await supabaseAdmin
+            .from('perfiles')
+            .upsert(dbUpdates, { onConflict: 'id' })
+
+        if (dbError) {
+            console.warn("Own profile DB update failed but Auth update succeeded:", dbError)
+        }
+
+        return { success: true }
+    } catch (err: any) {
+        console.error("Update own profile error:", err)
+        return { error: err.message || "Error al actualizar el perfil" }
     }
 }
 

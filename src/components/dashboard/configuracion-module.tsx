@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
 import { useState } from "react"
 import { toast } from "sonner"
-import { updateUserAction } from "@/app/actions/auth-actions"
+import { updateOwnProfileAction } from "@/app/actions/auth-actions"
 import { Loader2, AlertTriangle, Phone } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 
@@ -29,8 +29,7 @@ export function ConfiguracionModule() {
     if (!currentUser) return
     setIsLoading(true)
     try {
-      const result = await updateUserAction({
-        userId: currentUser.id,
+      const result = await updateOwnProfileAction({
         nombre: formData.name,
         email: formData.email,
         phone: formData.phone,
