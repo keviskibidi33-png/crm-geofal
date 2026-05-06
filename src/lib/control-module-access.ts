@@ -88,6 +88,10 @@ export function getPreferredControlModule(role: string | null | undefined, permi
 }
 
 export function canAccessDashboardModule(module: ModuleType, role: string | null | undefined, permissions?: RolePermissions) {
+  if (module === "configuracion") {
+    return true
+  }
+
   if (module === "permisos") {
     return isAdminDashboardRole(role)
   }

@@ -82,7 +82,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: H
   const bellSoundRef = useRef<AudioContext | null>(null)
   const isAdmin = isAdminDashboardRole(user.role)
   const isCommercialNotificationsRole = isComercialDashboardRole(user.role)
-  const showNotifications = true
+  const showNotifications = isAdmin || isCommercialNotificationsRole
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
