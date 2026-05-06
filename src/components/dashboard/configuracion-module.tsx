@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { updateOwnProfileAction } from "@/app/actions/auth-actions"
 import { Loader2, AlertTriangle, Phone } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { clearProfileAvatarDraft, setProfileAvatarDraft } from "@/lib/profile-avatar-draft"
 
 type PendingAvatar = {
   dataUrl: string
@@ -28,7 +30,10 @@ export function ConfiguracionModule() {
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(currentUser?.avatar || "")
   const [pendingAvatar, setPendingAvatar] = useState<PendingAvatar>(null)
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const savedAvatarRef = useRef(currentUser?.avatar || "")
+  const pendingAvatarRef = useRef<PendingAvatar>(null)
   // const { toast } = useToast() // Replaced by Sonner
 
   const [formData, setFormData] = useState({
@@ -44,8 +49,20 @@ export function ConfiguracionModule() {
       phone: currentUser?.phone || "",
     })
     setAvatarPreview(currentUser?.avatar || "")
+    if (!pendingAvatarRef.current) {
+      savedAvatarRef.current = currentUser?.avatar || ""
+    }
     setPendingAvatar(null)
+    pendingAvatarRef.current = null
+    setShowDiscardDialog(false)
   }, [currentUser?.avatar, currentUser?.email, currentUser?.name, currentUser?.phone])
+
+  const hasUnsavedChanges = Boolean(
+    pendingAvatar
+    || formData.name !== (currentUser?.name || "")
+    || formData.email !== (currentUser?.email || "")
+    || formData.phone !== (currentUser?.phone || "")
+  )
 
   const getInitials = (name?: string | null) => {
     const value = String(name || "").trim()
@@ -81,6 +98,14 @@ export function ConfiguracionModule() {
     reader.onload = () => {
       const result = String(reader.result || "")
       setAvatarPreview(result)
+      if (currentUser?.id) {
+        setProfileAvatarDraft(currentUser.id, result)
+      }
+      pendingAvatarRef.current = {
+        dataUrl: result,
+        fileName: file.name,
+        mimeType: file.type,
+      }
       setPendingAvatar({
         dataUrl: result,
         fileName: file.name,
@@ -105,7 +130,15 @@ export function ConfiguracionModule() {
 
       if (result.error) throw new Error(result.error)
 
+      if (currentUser?.id) {
+        clearProfileAvatarDraft(currentUser.id)
+      }
+
+      setPendingAvatar(null)
+      pendingAvatarRef.current = null
+
       await refreshUser()
+      setShowDiscardDialog(false)
 
       toast.success("Perfil actualizado", {
         description: "Tus datos han sido guardados correctamente.",
@@ -129,6 +162,29 @@ export function ConfiguracionModule() {
     }
   }
 
+  const handleCancel = async () => {
+    if (hasUnsavedChanges) {
+      setShowDiscardDialog(true)
+      return
+    }
+    setIsEditing(false)
+  }
+
+  const discardChanges = async () => {
+    if (currentUser?.id) {
+      clearProfileAvatarDraft(currentUser.id)
+    }
+    setPendingAvatar(null)
+    pendingAvatarRef.current = null
+    setAvatarPreview(savedAvatarRef.current || "")
+    setIsEditing(false)
+    setShowDiscardDialog(false)
+    await refreshUser()
+    toast.info("Cambios descartados", {
+      description: "Tu perfil volvió al estado guardado.",
+    })
+  }
+
   return (
     <div className="max-w-2xl space-y-6 pb-12">
       <div className="flex items-center justify-between">
@@ -140,7 +196,7 @@ export function ConfiguracionModule() {
           <Button onClick={() => setIsEditing(true)}>Editar Perfil</Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isLoading}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => void handleCancel()} disabled={isLoading}>Cancelar</Button>
             <Button onClick={handleSave} disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar Cambios
@@ -256,7 +312,11 @@ export function ConfiguracionModule() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
+                      if (currentUser?.id) {
+                        clearProfileAvatarDraft(currentUser.id)
+                      }
                       setPendingAvatar(null)
+                      pendingAvatarRef.current = null
                       setAvatarPreview(currentUser?.avatar || "")
                     }}
                   >
@@ -272,6 +332,29 @@ export function ConfiguracionModule() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Qué quieres hacer con los cambios?</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar en tu perfil. Puedes guardarlos ahora o descartarlos y volver a la versión anterior.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDiscardDialog(false)} disabled={isLoading}>
+              Seguir editando
+            </Button>
+            <Button variant="secondary" onClick={() => void discardChanges()} disabled={isLoading}>
+              Descartar cambios
+            </Button>
+            <Button onClick={() => void handleSave()} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
