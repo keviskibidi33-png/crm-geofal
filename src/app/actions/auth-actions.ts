@@ -7,6 +7,7 @@ import { normalizeRoleId } from "@/lib/role-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const PROFILE_AVATAR_BUCKET = process.env.NEXT_PUBLIC_PROFILE_AVATAR_BUCKET || "profile-avatars"
 const DEFAULT_SESSION_DAYS = 30
 const SESSION_COOKIE_MAX_AGE_DAYS = Number.parseInt(process.env.CRM_SESSION_MAX_AGE_DAYS ?? "", 10)
 const SESSION_COOKIE_MAX_AGE_SECONDS =
@@ -24,6 +25,53 @@ const SESSION_COOKIE_OPTIONS = {
 
 function normalizeBrowserDeviceInfo(browserId?: string | null) {
     return browserId ? `browser:${browserId}` : "browser"
+}
+
+const ALLOWED_AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"])
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024
+
+function getAvatarExtension(mimeType: string) {
+    switch (mimeType) {
+        case "image/jpeg":
+            return "jpg"
+        case "image/png":
+            return "png"
+        case "image/webp":
+            return "webp"
+        case "image/gif":
+            return "gif"
+        default:
+            return "img"
+    }
+}
+
+function parseDataUrl(dataUrl: string) {
+    const match = String(dataUrl || "").trim().match(/^data:([^;]+);base64,(.+)$/)
+    if (!match) {
+        throw new Error("Formato de imagen inválido.")
+    }
+
+    const mimeType = match[1]
+    const base64 = match[2]
+    if (!ALLOWED_AVATAR_MIME_TYPES.has(mimeType)) {
+        throw new Error("Formato de imagen no permitido. Usa JPG, PNG, WEBP o GIF.")
+    }
+
+    const buffer = Buffer.from(base64, "base64")
+    if (buffer.byteLength > MAX_AVATAR_BYTES) {
+        throw new Error("La imagen supera el límite de 2 MB.")
+    }
+
+    return { mimeType, buffer }
+}
+
+function extractStorageObjectPath(publicUrl: string, bucket: string) {
+    const normalizedUrl = String(publicUrl || "").trim()
+    if (!normalizedUrl) return null
+    const marker = `/storage/v1/object/public/${bucket}/`
+    const markerIndex = normalizedUrl.indexOf(marker)
+    if (markerIndex === -1) return null
+    return decodeURIComponent(normalizedUrl.slice(markerIndex + marker.length).split("?")[0] || "").trim() || null
 }
 
 // Helper to verify admin role
@@ -473,6 +521,8 @@ export async function updateOwnProfileAction(data: {
     nombre?: string
     email?: string
     phone?: string
+    avatarDataUrl?: string | null
+    avatarFileName?: string | null
 }) {
     if (!supabaseServiceKey) {
         return {
@@ -493,6 +543,52 @@ export async function updateOwnProfileAction(data: {
     })
 
     try {
+        let avatarPublicUrl: string | null = null
+        let previousAvatarUrl: string | null = null
+        let uploadedAvatarPath: string | null = null
+
+        if (data.avatarDataUrl) {
+            const { mimeType, buffer } = parseDataUrl(data.avatarDataUrl)
+            const safeFileBase = String(data.avatarFileName || "avatar").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 48) || "avatar"
+            const avatarPath = `profiles/${currentUserId}/${Date.now()}-${randomUUID().slice(0, 8)}-${safeFileBase}.${getAvatarExtension(mimeType)}`
+            uploadedAvatarPath = avatarPath
+
+            const { data: currentProfile, error: currentProfileError } = await supabaseAdmin
+                .from('perfiles')
+                .select('avatar_url')
+                .eq('id', currentUserId)
+                .maybeSingle()
+
+            if (currentProfileError) {
+                throw currentProfileError
+            }
+            previousAvatarUrl = currentProfile?.avatar_url ? String(currentProfile.avatar_url) : null
+
+            const { error: bucketError } = await supabaseAdmin.storage.createBucket(PROFILE_AVATAR_BUCKET, {
+                public: true,
+            })
+            if (bucketError && !String(bucketError.message || "").toLowerCase().includes("already exists")) {
+                console.warn("No se pudo asegurar el bucket de avatares:", bucketError)
+            }
+
+            const { error: uploadError } = await supabaseAdmin.storage
+                .from(PROFILE_AVATAR_BUCKET)
+                .upload(avatarPath, buffer, {
+                    contentType: mimeType,
+                    upsert: true,
+                })
+
+            if (uploadError) {
+                throw uploadError
+            }
+
+            const { data: publicData } = supabaseAdmin.storage
+                .from(PROFILE_AVATAR_BUCKET)
+                .getPublicUrl(avatarPath)
+
+            avatarPublicUrl = publicData?.publicUrl || null
+        }
+
         const updates: any = {
             user_metadata: {}
         }
@@ -500,6 +596,7 @@ export async function updateOwnProfileAction(data: {
         if (data.email) updates.email = data.email
         if (data.nombre) updates.user_metadata.full_name = data.nombre
         if (data.phone !== undefined) updates.user_metadata.phone = data.phone
+        if (avatarPublicUrl) updates.user_metadata.avatar_url = avatarPublicUrl
 
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(currentUserId, updates)
         if (authError) throw authError
@@ -513,6 +610,7 @@ export async function updateOwnProfileAction(data: {
         if (data.nombre) dbUpdates.full_name = data.nombre
         if (data.email) dbUpdates.email = data.email
         if (data.phone !== undefined) dbUpdates.phone = data.phone
+        if (avatarPublicUrl) dbUpdates.avatar_url = avatarPublicUrl
 
         const { error: dbError } = await supabaseAdmin
             .from('perfiles')
@@ -520,6 +618,18 @@ export async function updateOwnProfileAction(data: {
 
         if (dbError) {
             console.warn("Own profile DB update failed but Auth update succeeded:", dbError)
+        }
+
+        if (avatarPublicUrl && previousAvatarUrl) {
+            const oldObjectPath = extractStorageObjectPath(previousAvatarUrl, PROFILE_AVATAR_BUCKET)
+            if (oldObjectPath && oldObjectPath !== uploadedAvatarPath) {
+                const { error: removeError } = await supabaseAdmin.storage
+                    .from(PROFILE_AVATAR_BUCKET)
+                    .remove([oldObjectPath])
+                if (removeError) {
+                    console.warn("No se pudo eliminar el avatar anterior:", removeError)
+                }
+            }
         }
 
         return { success: true }
