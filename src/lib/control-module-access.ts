@@ -35,6 +35,11 @@ export function isComercialDashboardRole(role: string | null | undefined) {
   return normalizedRole === "auxiliar_comercial"
 }
 
+export function isLaboratoryNotificationsRole(role: string | null | undefined) {
+  const normalizedRole = normalizeRole(role)
+  return normalizedRole === "jefe_laboratorio" || normalizedRole === "laboratorio_tipificador"
+}
+
 export function isAdministracionDashboardRole(role: string | null | undefined) {
   const normalizedRole = normalizeRole(role)
   return normalizedRole.includes("administracion") || normalizedRole.includes("administrativo")

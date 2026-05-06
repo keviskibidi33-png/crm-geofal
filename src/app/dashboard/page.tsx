@@ -97,6 +97,7 @@ export default function DashboardPage() {
     return "clientes"
   })
   const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
+  const [pendingLabNotification, setPendingLabNotification] = useState<{ module: ModuleType; recordId: number } | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem("crm-sidebar-collapsed") === 'true'
@@ -317,7 +318,12 @@ export default function DashboardPage() {
       case "laboratorio":
         return <LaboratorioModule user={dashboardUser} />
       case "recepcion":
-        return <RecepcionModule />
+        return (
+          <RecepcionModule
+            focusRecepcionId={pendingLabNotification?.module === "recepcion" ? pendingLabNotification.recordId : null}
+            onFocusHandled={() => setPendingLabNotification(null)}
+          />
+        )
       case "comercial":
         return <ComercialModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "administracion":
@@ -344,9 +350,19 @@ export default function DashboardPage() {
           </RoleGuard>
         )
       case "verificacion_muestras":
-        return <VerificacionMuestrasModule />
+        return (
+          <VerificacionMuestrasModule
+            focusVerificacionId={pendingLabNotification?.module === "verificacion_muestras" ? pendingLabNotification.recordId : null}
+            onFocusHandled={() => setPendingLabNotification(null)}
+          />
+        )
       case "compresion":
-        return <CompresionModule />
+        return (
+          <CompresionModule
+            focusEnsayoId={pendingLabNotification?.module === "compresion" ? pendingLabNotification.recordId : null}
+            onFocusHandled={() => setPendingLabNotification(null)}
+          />
+        )
       case "configuracion":
         return <ConfiguracionModule />
       case "tracing":
@@ -434,6 +450,10 @@ export default function DashboardPage() {
           onOpenAffectedUser={(userId) => {
             setPendingNotificationUserId(userId)
             setActiveModule("usuarios")
+          }}
+          onOpenLabNotification={({ module, recordId }) => {
+            setPendingLabNotification({ module, recordId })
+            setActiveModule(module)
           }}
         />
         <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{renderModule()}</main>

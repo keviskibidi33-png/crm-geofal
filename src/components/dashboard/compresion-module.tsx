@@ -23,6 +23,11 @@ interface EnsayoCompresion {
     items_count?: number
 }
 
+interface CompresionModuleProps {
+    focusEnsayoId?: number | null
+    onFocusHandled?: () => void
+}
+
 // --- Smart Iframe Component with Retry Logic ---
 interface SmartIframeProps {
     src: string;
@@ -141,7 +146,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
     );
 }
 
-export function CompresionModule() {
+export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionModuleProps) {
     const { user } = useAuth()
     const [ensayos, setEnsayos] = useState<EnsayoCompresion[]>([])
     const [loading, setLoading] = useState(false)
@@ -155,6 +160,7 @@ export function CompresionModule() {
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [pendingDeleteEnsayo, setPendingDeleteEnsayo] = useState<EnsayoCompresion | null>(null)
     const [deleteConfirmText, setDeleteConfirmText] = useState("")
+    const lastFocusedEnsayoIdRef = useRef<number | null>(null)
     const canWrite = user?.role === "admin" || user?.permissions?.compresion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.compresion?.delete === true
 
@@ -412,7 +418,7 @@ export function CompresionModule() {
         }
     }
 
-    const handleViewDetails = async (item: EnsayoCompresion) => {
+    const handleViewDetails = useCallback(async (item: EnsayoCompresion) => {
         setSelectedEnsayo(item)
         setIsDetailOpen(true)
         setLoadingEnsayo(true)
@@ -427,7 +433,19 @@ export function CompresionModule() {
         } finally {
             setLoadingEnsayo(false)
         }
-    }
+    }, [API_URL])
+
+    useEffect(() => {
+        if (!focusEnsayoId || ensayos.length === 0) return
+        if (lastFocusedEnsayoIdRef.current === focusEnsayoId) return
+
+        const target = ensayos.find((item) => item.id === focusEnsayoId)
+        if (!target) return
+
+        lastFocusedEnsayoIdRef.current = focusEnsayoId
+        void handleViewDetails(target)
+        onFocusHandled?.()
+    }, [focusEnsayoId, onFocusHandled, ensayos, handleViewDetails])
 
     const filteredData = ensayos.filter(item =>
         item.numero_ot?.toLowerCase().includes(searchTerm.toLowerCase()) ||
