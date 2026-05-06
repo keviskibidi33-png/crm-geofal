@@ -33,6 +33,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { isToday, isThisWeek, isThisMonth, parseISO } from "date-fns"
 import { logActionClient as logAction } from "@/lib/audit-client"
+import { authFetch } from "@/lib/api-auth"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 export interface Quote {
   id: string
@@ -244,14 +247,16 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     const request = (async () => {
       setLoadingQuoteDetailsId(quoteId)
 
-      const { data, error } = await supabase
-        .from("cotizaciones")
-        .select("id, cliente_email, cliente_telefono, cliente_contacto, items_json, correo_vendedor, telefono_comercial, plazo_dias, condicion_pago, condiciones_textos")
-        .eq("id", quoteId)
-        .single()
+      const response = await authFetch(`${API_URL}/quotes/${quoteId}`)
+      if (!response.ok) {
+        const message = await response.text().catch(() => "")
+        throw new Error(message || `Error HTTP ${response.status}`)
+      }
 
-      if (error) {
-        throw error
+      const payload = await response.json()
+      const data = payload?.data
+      if (!data) {
+        throw new Error("No se encontró el detalle de la cotización.")
       }
 
       const detailedQuote = mergeQuoteDetails(cachedQuote, data as DbQuoteDetailRow)
