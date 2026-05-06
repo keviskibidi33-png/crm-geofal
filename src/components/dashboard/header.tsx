@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { isAdminDashboardRole, isComercialDashboardRole, isLaboratoryNotificationsRole } from "@/lib/control-module-access"
+import { LabNotificationDetailDialog } from "@/components/dashboard/lab-notification-detail-dialog"
 
 interface HeaderProps {
   user: User
@@ -74,6 +75,8 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
   const [acknowledgingNotificationId, setAcknowledgingNotificationId] = useState<string | null>(null)
   const [notificationTab, setNotificationTab] = useState<"pendientes" | "vistas">("pendientes")
   const [bellPulseNonce, setBellPulseNonce] = useState(0)
+  const [notificationsPopoverOpen, setNotificationsPopoverOpen] = useState(false)
+  const [labDetailOpen, setLabDetailOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchAbortRef = useRef<AbortController | null>(null)
@@ -284,6 +287,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
     if (item.status !== "acknowledged") {
       await acknowledgeNotification(item.id)
     }
+    setNotificationsPopoverOpen(false)
     setNotificationTab("vistas")
     openLabNotification(item)
   }
@@ -555,7 +559,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
 
         {/* Notifications */}
         {showNotifications ? (
-          <Popover>
+          <Popover open={notificationsPopoverOpen} onOpenChange={setNotificationsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <span
@@ -583,7 +587,23 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                         ? "Cotizaciones recientes"
                         : "Notificaciones"}
                   </h4>
-                  {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  <div className="flex items-center gap-2">
+                    {isLaboratoryNotifications && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => {
+                          setNotificationsPopoverOpen(false)
+                          setLabDetailOpen(true)
+                        }}
+                      >
+                        Ver a detalle
+                      </Button>
+                    )}
+                    {notificationsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -697,7 +717,10 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                                 type="button"
                                 key={`${item.id}-seen`}
                                 className="w-full rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm text-left transition-colors hover:bg-blue-100/60"
-                                onClick={() => openLabNotification(item)}
+                                onClick={() => {
+                                  setNotificationsPopoverOpen(false)
+                                  openLabNotification(item)
+                                }}
                               >
                                 <div className="flex items-start gap-3">
                                   <div className="mt-0.5">
@@ -781,6 +804,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                                         type="button"
                                         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm text-left transition-colors hover:bg-accent/40"
                                         onClick={() => {
+                                          setNotificationsPopoverOpen(false)
                                           setNotificationTab("vistas")
                                           void acknowledgeNotification(item.id)
                                         }}
@@ -1067,6 +1091,13 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
         ) : null}
 
       </div>
+
+      <LabNotificationDetailDialog
+        open={labDetailOpen}
+        onOpenChange={setLabDetailOpen}
+        onOpenLabNotification={onOpenLabNotification}
+        onAcknowledgeNotification={acknowledgeNotification}
+      />
       <style jsx global>{`
         @keyframes bell-ring {
           0% { transform: rotate(0deg); }
