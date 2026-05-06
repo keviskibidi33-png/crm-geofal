@@ -62,7 +62,7 @@ async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promis
   return Array.isArray(payload?.data) ? payload.data : []
 }
 
-export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser }: HeaderProps) {
+export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
