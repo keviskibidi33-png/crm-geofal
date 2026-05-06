@@ -7,7 +7,7 @@ import { normalizeRoleId } from "@/lib/role-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const PROFILE_AVATAR_BUCKET = process.env.NEXT_PUBLIC_PROFILE_AVATAR_BUCKET || "profile-avatars"
+const PROFILE_AVATAR_BUCKET = "avatars"
 const DEFAULT_SESSION_DAYS = 30
 const SESSION_COOKIE_MAX_AGE_DAYS = Number.parseInt(process.env.CRM_SESSION_MAX_AGE_DAYS ?? "", 10)
 const SESSION_COOKIE_MAX_AGE_SECONDS =
