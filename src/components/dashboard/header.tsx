@@ -273,6 +273,13 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
     onOpenLabNotification({ module: targetModule, recordId })
   }
 
+  const handleOpenLabNotification = async (item: DashboardNotification) => {
+    if (item.status !== "acknowledged") {
+      await acknowledgeNotification(item.id)
+    }
+    openLabNotification(item)
+  }
+
   const openAffectedUser = useCallback((userId?: unknown) => {
     const normalizedUserId = String(userId || "").trim()
     if (!normalizedUserId || !onOpenAffectedUser) return
@@ -440,6 +447,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
   const openNotificationCount = notifications.filter((item) => item.status === "open" || !item.status).length
   const acknowledgedNotificationCount = notifications.filter((item) => item.status === "acknowledged").length
   const resolvedNotificationCount = historyNotifications.length
+  const labNotificationPreview = notifications.slice(0, 8)
 
   const getResultIcon = (type: SearchResult["type"]) => {
     switch (type) {
@@ -580,7 +588,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                   {isLaboratoryNotifications ? (
                     notifications.length > 0 ? (
                       <div className="space-y-2">
-                        {notifications.map((item) => {
+                        {labNotificationPreview.map((item) => {
                           const moduleLabel = item.metadata?.module_label ? String(item.metadata.module_label) : "Ensayo"
                           const recordCode = item.metadata?.record_code ? String(item.metadata.record_code) : "Sin código"
                           const creator = item.metadata?.created_by ? String(item.metadata.created_by) : "Usuario"
@@ -593,7 +601,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                               type="button"
                               key={item.id}
                               className={`w-full rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm text-left transition-colors ${canOpenDetail ? "hover:bg-accent/40 cursor-pointer" : ""}`}
-                              onClick={() => canOpenDetail && openLabNotification(item)}
+                              onClick={() => canOpenDetail && void handleOpenLabNotification(item)}
                             >
                               <div className="flex items-start gap-3">
                                 <div className="mt-0.5">
@@ -621,6 +629,11 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                             </button>
                           )
                         })}
+                        {notifications.length > labNotificationPreview.length && (
+                          <div className="text-[11px] text-muted-foreground text-center pt-1">
+                            Mostrando {labNotificationPreview.length} de {notifications.length} notificaciones recientes.
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
