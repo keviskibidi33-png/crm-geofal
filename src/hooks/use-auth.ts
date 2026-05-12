@@ -315,7 +315,7 @@ const TECHNICAL_MODULES: PermissionModuleId[] = [
 function buildTechnicalPermissions(): RolePermissions {
     const result: RolePermissions = {}
     for (const moduleId of TECHNICAL_MODULES) {
-        result[moduleId] = { read: true, write: true, delete: false }
+        result[moduleId] = { read: true, write: true, delete: true }
     }
     result.configuracion = { read: true, write: true, delete: false }
     return result

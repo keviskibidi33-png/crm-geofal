@@ -147,6 +147,9 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
     const [token, setToken] = useState<string | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const lastFocusedVerificacionIdRef = useRef<number | null>(null)
+    const [deleteConfirmText, setDeleteConfirmText] = useState("")
+    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false)
     const canWrite = user?.role === "admin" || user?.permissions?.verificacion_muestras?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.verificacion_muestras?.delete === true
 
@@ -450,7 +453,16 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
 
                                             {/* Delete */}
                                             {canDelete && (
-                                                <AlertDialog>
+                                                <AlertDialog open={isDeleteOpen && deleteTargetId === item.id} onOpenChange={(open) => {
+                                                    setIsDeleteOpen(open)
+                                                    if (open) {
+                                                        setDeleteTargetId(item.id)
+                                                        setDeleteConfirmText("")
+                                                    } else {
+                                                        setDeleteTargetId(null)
+                                                        setDeleteConfirmText("")
+                                                    }
+                                                }}>
                                                     <AlertDialogTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                                             <Trash2 className="h-4 w-4" />
@@ -458,14 +470,33 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                                            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
                                                             <AlertDialogDescription>
-                                                                Eliminará la verificación {item.numero_verificacion}. Esta acción no se puede deshacer.
+                                                                Esta acción no se puede deshacer. Escribe <strong>ELIMINAR</strong> para confirmar.
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
+                                                        <div className="py-2">
+                                                            <Input
+                                                                value={deleteConfirmText}
+                                                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                                                placeholder="Escribe ELIMINAR para confirmar"
+                                                                autoComplete="off"
+                                                                data-lpignore="true"
+                                                            />
+                                                        </div>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                            <AlertDialogAction
+                                                                onClick={() => {
+                                                                    if (deleteConfirmText === "ELIMINAR") {
+                                                                        handleDelete(item.id)
+                                                                        setIsDeleteOpen(false)
+                                                                        setDeleteConfirmText("")
+                                                                    }
+                                                                }}
+                                                                disabled={deleteConfirmText !== "ELIMINAR"}
+                                                                className="bg-destructive hover:bg-destructive/90"
+                                                            >
                                                                 Eliminar
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
