@@ -227,6 +227,8 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [traceStatus, setTraceStatus] = useState<any>(null)
+  const [sourceLockField, setSourceLockField] = useState<"codigo_lem" | "fecha_ensayo_programado" | null>(null)
+  const [sourceLockMessage, setSourceLockMessage] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [downloading, setDownloading] = useState(false)
@@ -371,6 +373,15 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     }
   }, [API_URL, searchQuery])
 
+  const showSourceLock = useCallback((field: "codigo_lem" | "fecha_ensayo_programado") => {
+    const messages = {
+      codigo_lem: "El Cód. LEM proviene de Recepción y no puede modificarse desde Compresión.",
+      fecha_ensayo_programado: "La F. Programado proviene de Recepción y no puede modificarse desde Compresión.",
+    }
+    setSourceLockField(field)
+    setSourceLockMessage(messages[field])
+  }, [])
+
   useEffect(() => {
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current)
@@ -457,6 +468,10 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     if (numeroRecepcion) {
       checkTraceStatus(numeroRecepcion)
     }
+  }
+
+  const handleSourceFieldInteraction = (field: "codigo_lem" | "fecha_ensayo_programado") => {
+    showSourceLock(field)
   }
 
   const onSubmit = async (data: FormData) => {
@@ -933,9 +948,14 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                     <td className="px-2 py-2">
                       <Input
                         {...register(`items.${index}.codigo_lem` as const)}
+                        onFocus={() => handleSourceFieldInteraction("codigo_lem")}
+                        onClick={() => handleSourceFieldInteraction("codigo_lem")}
                         onBlur={(e) => {
+                          const current = getValues(`items.${index}.codigo_lem`)
                           const formatted = formatLemCode(e.target.value)
-                          if (formatted) setValue(`items.${index}.codigo_lem`, formatted)
+                          if (formatted && formatted !== current) {
+                            setValue(`items.${index}.codigo_lem`, current || formatted)
+                          }
                         }}
                         className="w-32 text-xs p-1 h-8 font-mono"
                         placeholder="XXXX-CO-26"
@@ -957,6 +977,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                               }
                             }}
                             className="w-36"
+                            onFocus={() => handleSourceFieldInteraction("fecha_ensayo_programado") as unknown as void}
                           />
                         )}
                       />
@@ -1201,6 +1222,30 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={sourceLockField !== null} onOpenChange={(open) => {
+        if (!open) {
+          setSourceLockField(null)
+          setSourceLockMessage(null)
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Campo proveniente de Recepción</AlertDialogTitle>
+            <AlertDialogDescription>
+              {sourceLockMessage || "Este valor no puede modificarse desde Compresión."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              setSourceLockField(null)
+              setSourceLockMessage(null)
+            }}>
+              Entendido
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

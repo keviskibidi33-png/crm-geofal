@@ -117,6 +117,7 @@ interface DatePickerSmartProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  onFocus?: () => void
 }
 
 export function DatePickerSmart({
@@ -125,6 +126,7 @@ export function DatePickerSmart({
   placeholder = "yyyy/mm/dd",
   className,
   disabled = false,
+  onFocus,
 }: DatePickerSmartProps) {
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState("")
@@ -208,6 +210,7 @@ export function DatePickerSmart({
             value={inputValue}
             onChange={handleInputChange}
             onBlur={handleInputBlur}
+            onFocus={onFocus}
             placeholder={placeholder}
             disabled={disabled}
             maxLength={10}
