@@ -680,6 +680,16 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden [&>button]:hidden">
                     {RECEPCION_MODE === "native" && selectedRecepcion?.id ? (
+                        <>
+                            <DialogTitle className="sr-only">
+                                Detalle de Recepción Probetas
+                            </DialogTitle>
+                            <DialogDescription className="sr-only">
+                                Vista detallada nativa de la recepción de probetas.
+                            </DialogDescription>
+                        </>
+                    ) : null}
+                    {RECEPCION_MODE === "native" && selectedRecepcion?.id ? (
                         <OrdenDetail
                             recepcionId={selectedRecepcion.id}
                             onEdit={() => selectedRecepcion && handleEdit(selectedRecepcion)}

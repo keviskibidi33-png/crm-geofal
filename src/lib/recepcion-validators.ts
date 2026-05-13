@@ -244,7 +244,14 @@ export const getFirstClientErrorPath = (
 
 export const sampleSchema = z
   .object({
-    item_numero: z.number().optional(),
+    item_numero: z.preprocess(
+      (val) => {
+        if (val === "" || val === null || val === undefined) return undefined;
+        if (typeof val === "string" && /^\d+$/.test(val)) return Number(val);
+        return val;
+      },
+      z.number().int().positive().optional()
+    ),
     codigo_muestra_lem: z.string().optional(),
     identificacion_muestra: z.string().min(1, "Identificación Requerida"),
     estructura: z.string().min(1, "Estructura Requerida"),

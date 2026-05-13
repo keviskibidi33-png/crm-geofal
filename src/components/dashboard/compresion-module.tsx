@@ -614,6 +614,9 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                         <DialogTitle className="sr-only">
                             {editId ? "Editar F. Probetas" : "Nuevo F. Probetas"}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Formulario nativo de formato de probetas.
+                        </DialogDescription>
                         <div className="w-full h-full relative">
                             <SmartIframe
                                 src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}

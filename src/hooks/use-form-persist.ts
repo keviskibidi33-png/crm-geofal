@@ -1,6 +1,19 @@
 import { useEffect, useCallback, useState } from "react";
 import type { UseFormReturn, FieldValues, DefaultValues } from "react-hook-form";
 
+function normalizeMuestrasItemNumero(muestras: unknown): unknown {
+  if (!Array.isArray(muestras)) return muestras;
+
+  return muestras.map((muestra, index) => {
+    if (!muestra || typeof muestra !== "object") return muestra;
+
+    return {
+      ...(muestra as Record<string, unknown>),
+      item_numero: index + 1,
+    };
+  });
+}
+
 export function useFormPersist<T extends FieldValues>(
   formKey: string,
   formMethods: UseFormReturn<T>,
@@ -43,11 +56,12 @@ export function useFormPersist<T extends FieldValues>(
           if (parsed.muestras.length === 0) {
             parsed.muestras = [
               {
+                item_numero: 1,
                 identificacion_muestra: "",
                 estructura: "",
                 fc_kg_cm2: "",
                 edad: "",
-                requiere_densidad: "",
+                requiere_densidad: false,
                 fecha_moldeo: "",
                 hora_moldeo: "",
                 fecha_rotura: "",
@@ -55,6 +69,7 @@ export function useFormPersist<T extends FieldValues>(
               },
             ];
           }
+          parsed.muestras = normalizeMuestrasItemNumero(parsed.muestras) as typeof parsed.muestras;
           if (parsed.muestras.length !== originalCount) {
             console.debug(
               `[FormPersist] Removed ${originalCount - parsed.muestras.length} ghost muestra(s)`
@@ -78,7 +93,7 @@ export function useFormPersist<T extends FieldValues>(
       if (Object.keys(values).length > 0) {
         const toSave = { ...values };
         if (Array.isArray((toSave as Record<string, unknown>).muestras)) {
-          (toSave as Record<string, unknown>).muestras = (
+          const normalizedMuestras = (
             (toSave as Record<string, unknown>).muestras as Array<Record<string, unknown> | null>
           ).filter((m: Record<string, unknown> | null) => {
             if (!m) return false;
@@ -100,16 +115,25 @@ export function useFormPersist<T extends FieldValues>(
               (hasFc || hasEdad || hasFechaMoldeo)
             );
           });
-          if (
-            ((toSave as Record<string, unknown>).muestras as Array<unknown>).length === 0
-          ) {
-            (toSave as Record<string, unknown>).muestras = [
-              (values as Record<string, unknown>).muestras &&
-              Array.isArray((values as Record<string, unknown>).muestras)
-                ? ((values as Record<string, unknown>).muestras as Array<unknown>)[0] || {}
-                : {},
-            ];
-          }
+          (toSave as Record<string, unknown>).muestras =
+            normalizeMuestrasItemNumero(
+              normalizedMuestras.length > 0
+                ? normalizedMuestras
+                : [
+                    {
+                      item_numero: 1,
+                      identificacion_muestra: "",
+                      estructura: "",
+                      fc_kg_cm2: "",
+                      edad: "",
+                      requiere_densidad: false,
+                      fecha_moldeo: "",
+                      hora_moldeo: "",
+                      fecha_rotura: "",
+                      codigo_muestra_lem: "",
+                    },
+                  ]
+            );
         }
         localStorage.setItem(formKey, JSON.stringify(toSave));
         setHasSavedData(true);
