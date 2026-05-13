@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { OrdenForm } from "./OrdenForm";
 import { OrdenDetail } from "./OrdenDetail";
 
@@ -81,6 +81,9 @@ export function RecepcionNativeModals({
         }}
       >
         <DialogContent className="max-w-5xl h-[90vh] p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">
+            {currentEditId ? "Editar Recepción Probetas" : "Nueva Recepción Probetas"}
+          </DialogTitle>
           {currentView === "form" && (
             <OrdenForm
               mode={currentEditId ? "edit" : "create"}
@@ -100,6 +103,7 @@ export function RecepcionNativeModals({
         }}
       >
         <DialogContent className="max-w-5xl h-[90vh] p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Detalle de Recepción</DialogTitle>
           {currentView === "detail" && currentDetailId && (
             <OrdenDetail
               recepcionId={currentDetailId}

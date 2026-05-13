@@ -26,7 +26,9 @@ export default function CompresionNativeModals({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden flex flex-col bg-background [&>button]:hidden">
-        <DialogTitle className="hidden">{mode === "detail" ? "Detalle" : "Formulario"}</DialogTitle>
+        <DialogTitle className="sr-only">
+          {mode === "detail" ? "Detalle de F. Probetas" : mode === "edit" ? "Editar F. Probetas" : "Nuevo F. Probetas"}
+        </DialogTitle>
         <DialogDescription className="hidden">F. Probetas</DialogDescription>
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {mode === "create" && (
