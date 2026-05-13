@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
+import { getSafeErrorMessage } from "@/lib/error-message"
 import { deleteProjectAction } from "@/app/actions/delete-actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -298,7 +299,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       setProjects(((data as DbProjectRow[] | null) || []).map(mapDbProjectToUi))
     } catch (err: any) {
       toast.error("Error al cargar proyectos", {
-        description: err.message,
+        description: getSafeErrorMessage(err, "No se pudo cargar el progreso"),
       })
     } finally {
       setLoading(false)
@@ -379,7 +380,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       link.click()
       link.remove()
     } catch (err: any) {
-      toast.error("Error al descargar", { description: err.message })
+      toast.error("Error al descargar", { description: getSafeErrorMessage(err, "No se pudo descargar el archivo") })
     }
   }
 
@@ -491,7 +492,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       })
     } catch (err: any) {
       toast.error("Error", {
-        description: err.message || "No se pudo actualizar el progreso.",
+        description: getSafeErrorMessage(err, "No se pudo actualizar el progreso."),
       });
     } finally {
       setEditingProgressId(null);
@@ -567,7 +568,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       })
     } catch (err: any) {
       toast.error("Error", {
-        description: err.message || "No se pudo cerrar el proyecto.",
+        description: getSafeErrorMessage(err, "No se pudo cerrar el proyecto."),
       });
     } finally {
       setIsCloseDialogOpen(false);
@@ -705,7 +706,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         setEditForm({})
       } catch (err: any) {
         toast.error("Error", {
-          description: err.message || "No se pudo actualizar el proyecto.",
+          description: getSafeErrorMessage(err, "No se pudo actualizar el proyecto."),
         })
       } finally {
         setLoading(false)
@@ -751,7 +752,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           severity: "warning",
         })
       } catch (err: any) {
-        toast.error("Error", { description: err.message })
+      toast.error("Error", { description: getSafeErrorMessage(err, "No se pudo eliminar el proyecto") })
       }
       setIsDeleteDialogOpen(false)
       setSelectedProject(null)

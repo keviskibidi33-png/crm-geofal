@@ -17,6 +17,7 @@ import { resetAuthCache } from "@/hooks/use-auth"
 import { createServerSession, verifyServerSessionConsistency } from "@/lib/session-api"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { cn } from "@/lib/utils"
+import { getSafeErrorMessage } from "@/lib/error-message"
 
 const SESSION_SYNC_TIMEOUT_MS = 5000
 
@@ -189,13 +190,13 @@ function LoginForm() {
             resetAuthCache()
             window.location.href = "/dashboard"
         } catch (error: any) {
-            let errorMessage = error.message || "Ocurrió un error al intentar autenticar"
+            let errorMessage = getSafeErrorMessage(error, "Ocurrió un error al intentar autenticar")
             if (errorMessage.includes("Invalid login credentials")) {
                 errorMessage = "Correo o contraseña incorrectos"
             } else if (errorMessage.includes("Email not confirmed")) {
                 errorMessage = "El correo electrónico no ha sido confirmado"
             }
-            toast.error("Error de Acceso", { description: errorMessage })
+            toast.error("Error de Acceso", { description: String(errorMessage) })
             setLoading(false)
         }
     }

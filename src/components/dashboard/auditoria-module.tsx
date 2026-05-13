@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
+import { getSafeErrorMessage } from "@/lib/error-message"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -90,7 +91,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
             setTotalCount(result.count || 0)
         } catch (err: any) {
             toast.error("Error al cargar logs", {
-                description: err.message,
+                description: getSafeErrorMessage(err, "No se pudo cargar los logs"),
             })
         } finally {
             setLoading(false)
@@ -133,7 +134,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                 })
             }
         } catch (err: any) {
-            toast.error("Error", { description: err.message })
+            toast.error("Error", { description: getSafeErrorMessage(err, "No se pudo completar la purga") })
         } finally {
             setIsProcessing(false)
             setIsPurgeDialogOpen(false)
@@ -165,7 +166,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                 toast.info("Sin resultados", { description: "No se encontraron logs en ese rango." })
             }
         } catch (err: any) {
-            toast.error("Error", { description: err.message })
+            toast.error("Error", { description: getSafeErrorMessage(err, "No se pudo completar la purga manual") })
         } finally {
             setIsProcessing(false)
             setIsManualPurgeOpen(false)

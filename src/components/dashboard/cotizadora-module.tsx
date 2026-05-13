@@ -14,6 +14,7 @@ import { QuotePreviewPanel } from "./quote-preview-panel"
 import { User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
+import { getSafeErrorMessage } from "@/lib/error-message"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { CheckCircle2, XCircle, AlertCircle, ChevronDown, Trash2, AlertTriangle } from "lucide-react"
 import {
@@ -222,7 +223,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setQuotes((data || []).map((row) => mapDbQuoteToUi(row as DbQuoteListRow)))
     } catch (err: any) {
       toast.error("Error al cargar cotizaciones", {
-        description: err.message,
+        description: getSafeErrorMessage(err, "No se pudieron cargar las cotizaciones"),
       })
     } finally {
       setLoading(false)
@@ -408,7 +409,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       })
     } catch (err: any) {
       toast.error("Error al actualizar estado", {
-        description: err.message,
+        description: getSafeErrorMessage(err, "No se pudo actualizar el estado"),
       })
     } finally {
       setUpdatingStatus(false)
@@ -447,7 +448,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       })
     } catch (err: any) {
       toast.error("Error al descargar", {
-        description: err.message,
+        description: getSafeErrorMessage(err, "No se pudo descargar el archivo"),
       })
     }
   }
@@ -487,7 +488,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       })
     } catch (err: any) {
       toast.error("Error al eliminar", {
-        description: err.message,
+        description: getSafeErrorMessage(err, "No se pudo eliminar la cotización"),
       })
     }
   }
@@ -619,7 +620,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setImportSelectedCondiciones(data.preview.matched_condiciones_ids || [])
       setImportCondicionSearch("")
     } catch (err: any) {
-      toast.error("Error al leer Excel", { description: err.message })
+      toast.error("Error al leer Excel", { description: getSafeErrorMessage(err, "No se pudo leer el archivo") })
       setIsImportDialogOpen(false)
       setImportFile(null)
     } finally {
@@ -688,7 +689,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       setImportSelectedCondiciones([])
       setImportCondicionSearch("")
     } catch (err: any) {
-      toast.error("Error al importar", { id: toastId, description: err.message })
+      toast.error("Error al importar", { id: toastId, description: getSafeErrorMessage(err, "No se pudo importar la cotización") })
     } finally {
       setImportingExcel(false)
     }

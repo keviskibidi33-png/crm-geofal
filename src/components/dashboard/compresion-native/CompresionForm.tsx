@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
+import { getSafeErrorMessage } from "@/lib/error-message"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -498,16 +499,10 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
         onSaved?.()
         onClose?.()
       } else {
-        let errMsg = "Error al guardar"
+        let errMsg = `Error ${res.status}: ${res.statusText}`
         try {
-          const err = await res.json()
-          if (err.detail) {
-            errMsg = err.detail
-          } else if (err.message) {
-            errMsg = err.message
-          } else if (Array.isArray(err) && err[0]?.msg) {
-            errMsg = err.map((e: any) => e.msg).join("; ")
-          }
+          const err = await res.json().catch(() => null)
+          errMsg = getSafeErrorMessage(err, errMsg)
         } catch {
           errMsg = `Error ${res.status}: ${res.statusText}`
         }
