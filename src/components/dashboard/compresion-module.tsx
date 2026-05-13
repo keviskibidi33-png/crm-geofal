@@ -611,10 +611,9 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
             ) : (
                 <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                     <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-                        <DialogHeader className="hidden">
-                            <DialogTitle>Módulo Formato</DialogTitle>
-                            <DialogDescription>Crea o edita formatos de ensayo</DialogDescription>
-                        </DialogHeader>
+                        <DialogTitle className="sr-only">
+                            {editId ? "Editar F. Probetas" : "Nuevo F. Probetas"}
+                        </DialogTitle>
                         <div className="w-full h-full relative">
                             <SmartIframe
                                 src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}

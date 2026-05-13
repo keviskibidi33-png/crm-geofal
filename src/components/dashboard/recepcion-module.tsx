@@ -627,6 +627,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             {/* Modal for Creation/Edit (Native or Iframe) */}
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden flex flex-col bg-background [&>button]:hidden">
+                    <DialogTitle className="sr-only">
+                        {editId ? "Editar Recepción Probetas" : "Nueva Recepción Probetas"}
+                    </DialogTitle>
                     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                         {RECEPCION_MODE === "native" ? (
                             <OrdenForm
