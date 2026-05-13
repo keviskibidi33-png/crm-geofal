@@ -227,6 +227,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [traceStatus, setTraceStatus] = useState<any>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [downloading, setDownloading] = useState(false)
 
   // Confirm modals
@@ -302,8 +303,10 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     // Populate header if available
     if (importedData.recepcion_numero) {
       setValue("recepcion_numero", importedData.recepcion_numero)
+      setSearchQuery(importedData.recepcion_numero)
       checkTraceStatus(importedData.recepcion_numero)
     }
+    if (importedData.recepcion_id) setValue("recepcion_id", importedData.recepcion_id)
     if (importedData.ot_numero) setValue("ot_numero", importedData.ot_numero)
     if (importedData.codigo_equipo) setValue("codigo_equipo", importedData.codigo_equipo)
     if (importedData.items?.length) {
@@ -343,36 +346,80 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     }
   }
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
+  const handleSearch = useCallback(async (query?: string) => {
+    const term = (query ?? searchQuery).trim()
+    if (!term) {
+      setSearchResults([])
+      setShowSearchDropdown(false)
+      return
+    }
     setSearchLoading(true)
     try {
       const res = await authFetch(
-        `${API_URL}/api/tracing/suggest?q=${encodeURIComponent(searchQuery.trim())}`
+        `${API_URL}/api/tracing/suggest?q=${encodeURIComponent(term)}`
       )
       if (res.ok) {
         const data = await res.json()
         setSearchResults(data || [])
-        setShowSearchDropdown(true)
+        setShowSearchDropdown((data || []).length > 0)
       }
     } catch {
       toast.error("Error de búsqueda")
     } finally {
       setSearchLoading(false)
     }
-  }
+  }, [API_URL, searchQuery])
+
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+    }
+
+    const term = searchQuery.trim()
+    if (!term) {
+      setSearchResults([])
+      setShowSearchDropdown(false)
+      return
+    }
+
+    searchDebounceRef.current = setTimeout(() => {
+      void handleSearch(term)
+    }, 250)
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+      }
+    }
+  }, [searchQuery, handleSearch])
 
   const selectRecepcion = async (item: any) => {
     setShowSearchDropdown(false)
-    setSearchQuery("")
     setSearchResults([])
-    setValue("recepcion_numero", item.numero || item.numero_recepcion || "")
-    setValue("recepcion_id", item.id || null)
+    const numeroRecepcion = item.numero_recepcion || item.numero || ""
+    setSearchQuery(numeroRecepcion)
+    setValue("recepcion_numero", numeroRecepcion)
+    setValue("recepcion_id", item.recepcion_id || item.id || null)
     if (item.numero_ot) setValue("ot_numero", item.numero_ot)
+    setTraceStatus({
+      exists: true,
+      recepcion: { status: item.estados?.recepcion || "pendiente", id: item.recepcion_id || item.id || null, numero_ot: item.numero_ot || "" },
+      verificacion: { status: item.estados?.verificacion || "pendiente" },
+      compresion: { status: item.estados?.compresion || "pendiente" },
+      cliente: item.cliente || "",
+      datos: {
+        id: item.recepcion_id || item.id || null,
+        numero_ot: item.numero_ot || "",
+        cliente: item.cliente || "",
+        fecha_recepcion: item.fecha_recepcion || null,
+        muestras: [],
+      },
+    })
 
     // Try to fetch full recepcion to import samples
     try {
-      const res = await authFetch(`${API_URL}/api/recepcion/${item.id}`)
+      const recepcionId = item.recepcion_id || item.id
+      const res = await authFetch(`${API_URL}/api/recepcion/${recepcionId}`)
       if (res.ok) {
         const recepcion = await res.json()
         if (recepcion.muestras?.length) {
@@ -406,7 +453,9 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
       // ignore
     }
 
-    checkTraceStatus(item.numero || item.numero_recepcion)
+    if (numeroRecepcion) {
+      checkTraceStatus(numeroRecepcion)
+    }
   }
 
   const onSubmit = async (data: FormData) => {
@@ -588,25 +637,25 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                   onChange={(e) => {
+                     setSearchQuery(e.target.value)
+                     setValue("recepcion_numero", e.target.value)
+                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault()
                       handleSearch()
                     }
                   }}
-                  onBlur={(e) => {
-                    const formatted = formatRecepcionNumber(e.target.value)
-                    if (formatted) {
-                      setValue("recepcion_numero", formatted)
-                      checkTraceStatus(formatted)
-                      // Auto-search if user typed a number but didn't select from dropdown
-                      if (!showSearchDropdown) {
-                        setSearchQuery(formatted)
-                        setTimeout(() => handleSearch(), 100)
-                      }
-                    }
-                  }}
+                   onBlur={(e) => {
+                     const formatted = formatRecepcionNumber(e.target.value)
+                     if (formatted) {
+                       setValue("recepcion_numero", formatted)
+                       checkTraceStatus(formatted)
+                       setSearchQuery(formatted)
+                       void handleSearch(formatted)
+                     }
+                   }}
                   placeholder="Buscar recepción..."
                   className="pl-8"
                   autoComplete="off"
@@ -617,7 +666,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={handleSearch}
+                onClick={() => void handleSearch()}
                 disabled={searchLoading}
               >
                 {searchLoading ? (
@@ -630,16 +679,16 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
             {showSearchDropdown && searchResults.length > 0 && (
               <div className="absolute z-50 mt-1 w-full bg-popover border rounded-md shadow-lg max-h-72 overflow-auto">
                 {searchResults.map((item: any) => {
-                  const recStatus = item.recepcion_status || "pendiente"
-                  const verStatus = item.verificacion_status || "pendiente"
-                  const comStatus = item.compresion_status || "pendiente"
+                  const recStatus = item.estados?.recepcion || item.recepcion_status || "pendiente"
+                  const verStatus = item.estados?.verificacion || item.verificacion_status || "pendiente"
+                  const comStatus = item.estados?.compresion || item.compresion_status || "pendiente"
                   const hasExistingCompresion = comStatus === "completado"
                   const faltaRecepcion = recStatus !== "completado"
                   const faltaVerificacion = verStatus !== "completado"
 
                   return (
                     <button
-                      key={item.id}
+                      key={item.recepcion_id || item.id || item.numero_recepcion}
                       type="button"
                       className={`w-full text-left px-3 py-2.5 hover:bg-muted text-sm border-b last:border-b-0 ${
                         hasExistingCompresion ? "bg-red-50/50" : ""
