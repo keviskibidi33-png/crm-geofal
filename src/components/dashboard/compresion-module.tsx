@@ -12,6 +12,11 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
+import dynamic from "next/dynamic"
+
+const CompresionNativeModals = dynamic(() => import("./compresion-native/CompresionNativeModals"), { ssr: false })
+
+const COMPRESION_MODE = process.env.NEXT_PUBLIC_COMPRESION_MODE || "iframe"
 
 interface EnsayoCompresion {
     id: number
@@ -155,6 +160,8 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [iframePath, setIframePath] = useState("/compresion")
     const [token, setToken] = useState<string | null>(null)
+    const [nativeModalMode, setNativeModalMode] = useState<"create" | "edit" | "detail" | null>(null)
+    const [nativeEditId, setNativeEditId] = useState<number | null>(null)
     const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -304,6 +311,17 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
             toast.error("Acceso denegado", { description: "No tienes permisos para editar F. Probetas." })
             return
         }
+        if (COMPRESION_MODE === "native") {
+            const idMatch = path.match(/id=(\d+)/)
+            if (idMatch) {
+                setNativeEditId(Number(idMatch[1]))
+                setNativeModalMode("edit")
+            } else {
+                setNativeEditId(null)
+                setNativeModalMode("create")
+            }
+            return
+        }
         await syncIframeToken()
         setIframePath(path)
         setIsModalOpen(true)
@@ -322,6 +340,16 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
             return
         }
         setIsModalOpen(open)
+    }
+
+    const handleNativeModalClose = () => {
+        setNativeModalMode(null)
+        setNativeEditId(null)
+    }
+
+    const handleNativeSaved = () => {
+        fetchEnsayos()
+        handleNativeModalClose()
     }
 
     const confirmCloseModal = () => {
@@ -572,21 +600,30 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 </Table>
             </div>
 
-            {/* Modal Iframe for Creation/Editing */}
-            <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-                    <DialogHeader className="hidden">
-                        <DialogTitle>Módulo Formato</DialogTitle>
-                        <DialogDescription>Crea o edita formatos de ensayo</DialogDescription>
-                    </DialogHeader>
-                    <div className="w-full h-full relative">
-                        <SmartIframe
-                            src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
-                            title="Compresión Iframe"
-                        />
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* Modal for Creation/Editing */}
+            {COMPRESION_MODE === "native" ? (
+                <CompresionNativeModals
+                    mode={nativeModalMode}
+                    ensayoId={nativeEditId}
+                    onClose={handleNativeModalClose}
+                    onSaved={handleNativeSaved}
+                />
+            ) : (
+                <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
+                    <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+                        <DialogHeader className="hidden">
+                            <DialogTitle>Módulo Formato</DialogTitle>
+                            <DialogDescription>Crea o edita formatos de ensayo</DialogDescription>
+                        </DialogHeader>
+                        <div className="w-full h-full relative">
+                            <SmartIframe
+                                src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
+                                title="Compresión Iframe"
+                            />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
 
             <AlertDialog open={pendingDeleteEnsayo !== null} onOpenChange={(open) => { if (!open) closeDeleteModal() }}>
                 <AlertDialogContent>

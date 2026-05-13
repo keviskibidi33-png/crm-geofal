@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { canAccessDashboardModule, getPreferredControlModule, isRestrictedTechnicalRole } from "@/lib/control-module-access"
 import { Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 
 function DashboardModuleFallback() {
   return (
@@ -109,6 +110,7 @@ export default function DashboardPage() {
   })
   const { user, loading, isSessionTerminated, signOut, bootstrapError, retryBootstrap } = useAuth()
   const [securityViolation, setSecurityViolation] = useState(false)
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true)
   const router = useRouter()
   const configActionsRef = useRef<{
     save: () => Promise<boolean>
@@ -139,6 +141,15 @@ export default function DashboardPage() {
     router.replace("/login")
   }
 
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setShowLoadingScreen(false), 300)
+      return () => clearTimeout(timer)
+    } else {
+      setShowLoadingScreen(true)
+    }
+  }, [loading])
 
   useEffect(() => {
     localStorage.setItem("crm-active-module", activeModule)
@@ -280,15 +291,7 @@ export default function DashboardPage() {
     }
   }, [loading, user])
 
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-zinc-950">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-      </div>
-    )
-  }
-
-  if (!user && !isSessionTerminated) return null
+  if (!user && !isSessionTerminated && !showLoadingScreen) return null
 
   // If session is terminated but user is cleared, show ONLY the termination dialog (and maybe a blurred background)
   if (!user && isSessionTerminated) {
@@ -332,7 +335,13 @@ export default function DashboardPage() {
     )
   }
 
-  if (!user) return null // Should be unreachable given prior checks, but satisfies TS
+  if (!user) {
+    return (
+      <div className="h-screen w-full bg-background">
+        <LoadingScreen message="Iniciando sesión..." />
+      </div>
+    )
+  }
 
   const dashboardUser = {
     id: user.id,
@@ -539,6 +548,9 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Loading Screen Overlay */}
+      {showLoadingScreen && <LoadingScreen message="Iniciando sesión..." />}
     </div>
   )
 }

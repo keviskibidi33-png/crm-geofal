@@ -16,6 +16,8 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { SmartIframe } from "./smart-iframe"
+import { OrdenForm } from "./recepcion-native/OrdenForm"
+import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 
 interface RecepcionModuleProps {
     focusRecepcionId?: number | null
@@ -43,6 +45,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const { user } = useAuth()
     const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
+    const RECEPCION_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_RECEPCION_MODE || "iframe") as "native" | "iframe"
     const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
 
     const getStoredAccessToken = useCallback((): string | null => {
@@ -621,22 +624,33 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 </div>
             </div>
 
-            {/* Modal with Iframe for Creation */}
+            {/* Modal for Creation/Edit (Native or Iframe) */}
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-                    <DialogHeader className="hidden">
-                        <DialogTitle>{editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}</DialogTitle>
-                        <DialogDescription>{editId ? 'Formulario de edición de recepción' : 'Formulario de creación de nueva recepción'}</DialogDescription>
-                    </DialogHeader>
-                    <div className="w-full h-full relative">
-                        <SmartIframe
-                            src={editId
-                                ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar`
-                                : `${FRONTEND_URL}/migration/nueva-recepcion`
-                            }
-                            title={editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}
-                            token={token}
-                        />
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden flex flex-col bg-background [&>button]:hidden">
+                    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                        {RECEPCION_MODE === "native" ? (
+                            <OrdenForm
+                                mode={editId ? "edit" : "create"}
+                                editId={editId ?? undefined}
+                                importedData={importedData}
+                                onClose={(reason) => {
+                                    if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
+                                    else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
+                                    setIsModalOpen(false)
+                                    setEditId(null)
+                                    refreshCurrentPage()
+                                }}
+                            />
+                        ) : (
+                            <SmartIframe
+                                src={editId
+                                    ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar`
+                                    : `${FRONTEND_URL}/migration/nueva-recepcion`
+                                }
+                                title={editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}
+                                token={token}
+                            />
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
@@ -659,18 +673,26 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* Detail Sheet/Dialog */}
+            {/* Detail Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
-                        <DialogTitle className="flex items-center gap-2 text-xl">
-                            <FileText className="h-5 w-5 text-primary" />
-                            Detalle de Recepción Probetas {selectedRecepcion?.numero_recepcion}
-                        </DialogTitle>
-                        <DialogDescription>
-                            Información completa de la orden de trabajo {selectedRecepcion?.numero_ot}
-                        </DialogDescription>
-                    </DialogHeader>
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden [&>button]:hidden">
+                    {RECEPCION_MODE === "native" && selectedRecepcion?.id ? (
+                        <OrdenDetail
+                            recepcionId={selectedRecepcion.id}
+                            onEdit={() => selectedRecepcion && handleEdit(selectedRecepcion)}
+                            onClose={() => setIsDetailOpen(false)}
+                        />
+                    ) : (
+                        <>
+                            <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                                <DialogTitle className="flex items-center gap-2 text-xl">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    Detalle de Recepción Probetas {selectedRecepcion?.numero_recepcion}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Información completa de la orden de trabajo {selectedRecepcion?.numero_ot}
+                                </DialogDescription>
+                            </DialogHeader>
 
                     {isDetailLoading ? (
                         <div className="flex flex-1 items-center justify-center">
@@ -816,6 +838,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                         </Button>
                         <Button onClick={() => setIsDetailOpen(false)}>Cerrar</Button>
                     </DialogFooter>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

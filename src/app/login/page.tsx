@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingScreen } from "@/components/ui/loading-screen"
 import { toast } from "sonner"
 import { Loader2, Lock, Mail, Activity } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
@@ -334,11 +335,7 @@ function LoginForm() {
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen w-full flex items-center justify-center bg-zinc-950">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        }>
+        <Suspense fallback={<LoadingScreen />}>
             <LoginForm />
         </Suspense>
     )
