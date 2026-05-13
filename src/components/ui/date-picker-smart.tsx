@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format, parse } from "date-fns"
+import { parse } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -102,6 +102,15 @@ function normalizeDateInput(rawValue?: string): { display: string; iso: string }
   }
 }
 
+function parseIsoDate(value?: string | null): Date | undefined {
+  if (!value) return undefined
+  const normalized = String(value).trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return undefined
+
+  const parsed = parse(normalized, "yyyy-MM-dd", new Date())
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed
+}
+
 interface DatePickerSmartProps {
   value?: string | null // ISO yyyy-mm-dd
   onChange: (value: string | null) => void
@@ -182,13 +191,12 @@ export function DatePickerSmart({
   }
 
   const parsedDate = React.useMemo(() => {
-    if (!value) return undefined
-    try {
-      return parse(value, "yyyy-MM-dd", new Date())
-    } catch {
-      return undefined
-    }
+    return parseIsoDate(value)
   }, [value])
+
+  const calendarMonth = React.useMemo(() => {
+    return parsedDate || today
+  }, [parsedDate, today])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -222,7 +230,7 @@ export function DatePickerSmart({
             mode="single"
             selected={parsedDate}
             onSelect={handleCalendarSelect}
-            defaultMonth={parsedDate || today}
+            defaultMonth={calendarMonth}
             initialFocus
           />
         </div>
