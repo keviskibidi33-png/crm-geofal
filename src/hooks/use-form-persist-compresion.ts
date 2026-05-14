@@ -4,15 +4,16 @@ import { UseFormReturn, FieldValues, DefaultValues } from "react-hook-form"
 const hasNonEmptyString = (value: unknown): boolean =>
   typeof value === "string" && value.trim() !== ""
 
+const isOfficialCompressionCode = (value: unknown): boolean => {
+  const codigo = String(value || "").trim().toUpperCase()
+  return /^\d+-CO-\d{2}$/.test(codigo)
+}
+
 const hasCompressionItemData = (item: any): boolean => {
   if (!item || typeof item !== "object") return false
 
   const codigoLem = String(item.codigo_lem || "").trim().toUpperCase()
-  const codigoEsPlaceholder =
-    codigoLem === "" ||
-    codigoLem === "-" ||
-    /^X{2,}(?:-CO(?:-\d{2})?)?$/.test(codigoLem)
-  const tieneCodigoUtil = !codigoEsPlaceholder
+  const tieneCodigoUtil = isOfficialCompressionCode(codigoLem)
 
   const stringFields = [
     "fecha_ensayo_programado",
@@ -35,12 +36,13 @@ const hasCompressionItemData = (item: any): boolean => {
     return true
 
   const numericFields = ["carga_maxima", "diametro", "area"]
-  return numericFields.some(
-    (field) =>
-      item[field] !== undefined &&
-      item[field] !== null &&
-      String(item[field]).trim() !== ""
-  )
+  return numericFields.some((field) => {
+    if (item[field] === undefined || item[field] === null) return false
+    const normalized = String(item[field]).trim()
+    if (normalized === "") return false
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) && parsed !== 0
+  })
 }
 
 const sanitizeCompressionItems = (items: any[]): any[] => {
@@ -82,6 +84,13 @@ export function useFormPersistCompression<T extends FieldValues>(
         if (Array.isArray(parsed?.items)) {
           parsed.items = sanitizeCompressionItems(parsed.items)
         }
+        console.debug("[Compresion] Draft restaurado desde localStorage", {
+          formKey,
+          items: parsed?.items?.map((item: any) => ({
+            item: item?.item,
+            codigo_lem: item?.codigo_lem,
+          })),
+        })
         setHasSavedData(true)
         reset(parsed as DefaultValues<T>)
       } catch (e) {
@@ -100,6 +109,10 @@ export function useFormPersistCompression<T extends FieldValues>(
       if (Array.isArray(toSave.items)) {
         toSave.items = sanitizeCompressionItems(toSave.items)
       }
+      console.debug("[Compresion] Draft guardado en localStorage", {
+        formKey,
+        itemsCount: Array.isArray(toSave.items) ? toSave.items.length : 0,
+      })
       localStorage.setItem(formKey, JSON.stringify(toSave))
       setHasSavedData(true)
     }, 1000)

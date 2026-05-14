@@ -126,14 +126,15 @@ function formatLemCode(value: string): string {
   return clean
 }
 
+function isOfficialCompressionCode(value: unknown): boolean {
+  const code = String(value || "").trim().toUpperCase()
+  return /^\d+-CO-\d{2}$/.test(code)
+}
+
 function hasItemData(item: any): boolean {
   if (!item) return false
   const codigoLem = String(item.codigo_lem || "").trim().toUpperCase()
-  const codigoEsPlaceholder =
-    codigoLem === "" ||
-    codigoLem === "-" ||
-    /^X{2,}(?:-CO(?:-\d{2})?)?$/.test(codigoLem)
-  const tieneCodigoUtil = !codigoEsPlaceholder
+  const tieneCodigoUtil = isOfficialCompressionCode(codigoLem)
   const textFields = [
     item.hora_ensayo,
     item.tipo_fractura,
@@ -146,7 +147,13 @@ function hasItemData(item: any): boolean {
   if (tieneCodigoUtil || textFields.some((v) => typeof v === "string" && v.trim() !== ""))
     return true
   const numericFields = [item.carga_maxima, item.diametro, item.area]
-  return numericFields.some((v) => v !== undefined && v !== null && String(v).trim() !== "")
+  return numericFields.some((v) => {
+    if (v === undefined || v === null) return false
+    const normalized = String(v).trim()
+    if (normalized === "") return false
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) && parsed !== 0
+  })
 }
 
 function sanitizeItems(items: any[]): any[] {
@@ -303,6 +310,11 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   // Handle imported data
   useEffect(() => {
     if (!importedData) return
+    console.groupCollapsed(
+      "[Compresion] importedData recibido",
+      importedData?.recepcion_numero || importedData?.numero_recepcion || "-"
+    )
+    console.log("[Compresion] importedData crudo:", importedData)
     // Populate header if available
     if (importedData.recepcion_numero) {
       setValue("recepcion_numero", importedData.recepcion_numero)
@@ -313,11 +325,19 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     if (importedData.ot_numero) setValue("ot_numero", importedData.ot_numero)
     if (importedData.codigo_equipo) setValue("codigo_equipo", importedData.codigo_equipo)
     if (importedData.items?.length) {
+      console.table(
+        importedData.items.map((item: any, idx: number) => ({
+          item: idx + 1,
+          codigo_lem: item.codigo_lem || "",
+          codigo_muestra_lem: item.codigo_muestra_lem || "",
+          identificacion_muestra: item.identificacion_muestra || "",
+        }))
+      )
       setValue(
         "items",
         importedData.items.map((item: any, idx: number) => ({
           item: idx + 1,
-          codigo_lem: item.codigo_lem || "",
+          codigo_lem: String(item.codigo_muestra_lem || item.codigo_lem || "").trim().toUpperCase(),
           fecha_ensayo_programado: item.fecha_ensayo_programado || null,
           fecha_ensayo: item.fecha_ensayo || null,
           hora_ensayo: item.hora_ensayo || null,
@@ -335,6 +355,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
         }))
       )
     }
+    console.groupEnd()
   }, [importedData, setValue])
 
   const checkTraceStatus = async (numero: string) => {
@@ -434,10 +455,16 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
       const res = await authFetch(`${API_URL}/api/recepcion/${recepcionId}`)
       if (res.ok) {
         const recepcion = await res.json()
+        console.groupCollapsed(
+          "[Compresion] Importación desde recepción",
+          recepcion?.numero_recepcion || numeroRecepcion,
+          `ID ${recepcionId}`
+        )
+        console.log("[Compresion] Recepción cruda:", recepcion)
         if (recepcion.muestras?.length) {
           const mapped = recepcion.muestras.map((m: any, idx: number) => ({
             item: idx + 1,
-            codigo_lem: m.identificacion_muestra || "",
+            codigo_lem: String(m.codigo_muestra_lem || m.codigo_lem || "").trim().toUpperCase(),
             fecha_ensayo_programado: m.fecha_rotura
               ? String(m.fecha_rotura).split("T")[0]
               : null,
@@ -457,12 +484,41 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
             aprobado: null,
             fecha_aprobado: null,
           }))
+          console.table(
+            recepcion.muestras.map((m: any, idx: number) => ({
+              item: idx + 1,
+              codigo_muestra_lem: m.codigo_muestra_lem || "",
+              codigo_lem_legacy: m.codigo_lem || "",
+              identificacion_muestra: m.identificacion_muestra || "",
+            }))
+          )
+          console.table(
+            mapped.map((m: any) => ({
+              item: m.item,
+              codigo_lem_mapeado: m.codigo_lem,
+              fecha_ensayo_programado: m.fecha_ensayo_programado,
+            }))
+          )
+          const invalidCodes = mapped.filter((m: any) => !isOfficialCompressionCode(m.codigo_lem))
+          if (invalidCodes.length > 0) {
+            console.warn("[Compresion] Items sin Código LEM oficial:", invalidCodes)
+          }
           setValue("items", mapped)
           toast.success(`${mapped.length} muestras importadas de recepción`)
+        } else {
+          console.warn("[Compresion] La recepción no trajo muestras:", recepcion)
         }
+        console.groupEnd()
+      } else {
+        console.warn(
+          "[Compresion] No se pudo cargar la recepción para importar muestras",
+          recepcionId,
+          res.status,
+          res.statusText
+        )
       }
     } catch {
-      // ignore
+      console.error("[Compresion] Error importando muestras de recepción")
     }
 
     if (numeroRecepcion) {
