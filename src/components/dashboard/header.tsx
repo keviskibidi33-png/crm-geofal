@@ -460,7 +460,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
             : []
           const notificationType = String(row?.type || "")
           const isQuote = notificationType === "quote_created" && audienceRoles.includes("auxiliar_comercial")
-          const isLabEssay = ["lab_essay_created", "lab_essay_updated"].includes(notificationType) &&
+          const isLabEssay = ["lab_essay_created", "lab_essay_updated", "lab_essay_deleted"].includes(notificationType) &&
             (audienceRoles.includes("jefe_laboratorio") || audienceRoles.includes("laboratorio_tipificador"))
           if (!isQuote && !isLabEssay) return
           void fetchNotifications()
