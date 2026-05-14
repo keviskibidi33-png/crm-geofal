@@ -828,6 +828,7 @@ async function buildUser(session: any): Promise<User> {
             recepcion: pick('recepcion'),
             verificacion_muestras: pick('verificacion_muestras'),
             compresion: pick('compresion'),
+            compresion_no_confinada: pick('compresion_no_confinada'),
             configuracion: pick('configuracion'),
         }
     }
