@@ -80,7 +80,7 @@ let refreshInFlight: Promise<void> | null = null
 let globalActivityListenerUserId: string | null = null
 let globalActivityListenerCleanup: (() => void) | null = null
 
-type BootstrapStage = "getSession" | "buildUser" | "fetchProfile" | "fetchRoleDefinition"
+type BootstrapStage = "getSession" | "getUser" | "buildUser" | "fetchProfile" | "fetchRoleDefinition"
 
 class AuthBootstrapError extends Error {
     stage: BootstrapStage
@@ -94,6 +94,7 @@ class AuthBootstrapError extends Error {
 
 const BOOTSTRAP_TIMEOUT_MESSAGES: Record<BootstrapStage, string> = {
     getSession: "No se pudo recuperar tu sesión del CRM a tiempo.",
+    getUser: "No se pudo recuperar el usuario de la sesión a tiempo.",
     buildUser: "No se pudo cargar tu acceso al CRM a tiempo.",
     fetchProfile: "La lectura del perfil tardó demasiado.",
     fetchRoleDefinition: "La lectura de permisos tardó demasiado.",
@@ -318,6 +319,56 @@ function buildTechnicalPermissions(): RolePermissions {
         result[moduleId] = { read: true, write: true, delete: true }
     }
     result.configuracion = { read: true, write: true, delete: false }
+    return result
+}
+
+const OFICINA_TECNICA_DELETE_MODULES: PermissionModuleId[] = [
+    "verificacion_muestras",
+    "recepcion",
+    "compresion",
+    "humedad",
+    "cont_humedad",
+    "planas",
+    "caras",
+    "cbr",
+    "proctor",
+    "llp",
+    "gran_suelo",
+    "gran_agregado",
+    "cont_mat_organica",
+    "terrones_fino_grueso",
+    "azul_metileno",
+    "part_livianas",
+    "imp_organicas",
+    "sul_magnesio",
+    "angularidad",
+    "abra",
+    "abrass",
+    "peso_unitario",
+    "tamiz",
+    "equi_arena",
+    "ge_fino",
+    "ge_grueso",
+    "cd",
+    "ph",
+    "cloro_soluble",
+    "sales_solubles",
+    "sulfatos_solubles",
+    "compresion_no_confinada",
+]
+
+function grantDeleteForOficinaTecnica(perms: RolePermissions | null | undefined): RolePermissions {
+    const result: RolePermissions = { ...(perms || {}) }
+    for (const moduleId of OFICINA_TECNICA_DELETE_MODULES) {
+        const current = result[moduleId]
+        if (current?.write === true) {
+            result[moduleId] = {
+                read: current.read === true,
+                write: true,
+                delete: true,
+            }
+        }
+    }
     return result
 }
 
@@ -723,6 +774,10 @@ async function buildUser(session: any): Promise<User> {
             abra:          grantWrite(), // Abrasión
             tamiz:         grantWrite(), // Malla No. 200
         }
+    }
+
+    if (rNorm.startsWith("oficina_tecnica")) {
+        permissions = grantDeleteForOficinaTecnica(permissions)
     }
 
     // Commercial scope lock:
