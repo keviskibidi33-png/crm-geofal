@@ -1,7 +1,7 @@
 const ROLE_ALIASES: Record<string, string> = {
-  vendor: "auxiliar_comercial",
-  vendedor: "auxiliar_comercial",
   sig_el_rol: "auxiliar_comercial",
+  "auxiliar comercial": "auxiliar_comercial",
+  "auxiliar_comercial": "auxiliar_comercial",
   tecnico_general: "tecnico",
   tecnico_no_lab_write: "tecnico",
   laboratorio_tipificador_no_lab_write: "laboratorio_lector",

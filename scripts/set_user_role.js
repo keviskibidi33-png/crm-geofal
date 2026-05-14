@@ -6,7 +6,7 @@ const { createClient } = require("@supabase/supabase-js");
 //
 // Examples:
 //   node scripts/set_user_role.js asesorcomercial1@geofal.com.pe auxiliar_comercial --ensure-role --name "Asesor Comercial 1"
-//   node scripts/set_user_role.js user@geofal.com.pe vendor --name "Vendedor"
+//   node scripts/set_user_role.js user@geofal.com.pe auxiliar_comercial --name "Auxiliar Comercial"
 //
 // Notes:
 // - Loads env vars from crm-geofal/.env.local by default.
@@ -253,4 +253,3 @@ main().catch((err) => {
   console.error("Fatal:", err?.message || err);
   process.exit(1);
 });
-

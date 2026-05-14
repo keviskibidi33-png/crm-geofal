@@ -3,6 +3,11 @@
 -- Propósito: Activar seguridad por filas compatible con roles
 -- =========================================================
 
+CREATE OR REPLACE FUNCTION public.normalize_role_policy(role_name text)
+RETURNS text AS $$
+  SELECT replace(lower(coalesce(role_name, '')), ' ', '_');
+$$ LANGUAGE sql IMMUTABLE;
+
 -- 1. Función para obtener el rol del usuario autenticado de forma eficiente
 DROP FUNCTION IF EXISTS public.get_my_role();
 
@@ -31,17 +36,17 @@ DROP POLICY IF EXISTS "Permitir escritura a roles administrativos" ON public.pro
 CREATE POLICY "Permitir lectura a usuarios autorizados"
 ON public.programacion_lab FOR SELECT
 TO authenticated
-USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'laboratorio_lector', 'vendor'));
+USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'laboratorio_lector'));
 
 CREATE POLICY "Permitir lectura a usuarios autorizados"
 ON public.programacion_comercial FOR SELECT
 TO authenticated
-USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'laboratorio_lector', 'vendor'));
+USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'));
 
 CREATE POLICY "Permitir lectura a usuarios autorizados"
 ON public.programacion_administracion FOR SELECT
 TO authenticated
-USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'laboratorio_lector', 'vendor'));
+USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'laboratorio_lector'));
 
 -- ==========================================
 -- POLÍTICAS DE ESCRITURA (INSERT/UPDATE/DELETE)
@@ -51,15 +56,15 @@ USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', '
 CREATE POLICY "Permitir escritura a roles operativos"
 ON public.programacion_lab FOR ALL
 TO authenticated
-USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'vendor'))
-WITH CHECK (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', 'vendor'));
+USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador'))
+WITH CHECK (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador'));
 
 -- B. Comercial: Admin, Administrativo y Vendor
 CREATE POLICY "Permitir escritura a roles comerciales"
 ON public.programacion_comercial FOR ALL
 TO authenticated
-USING (get_my_role() IN ('admin', 'administrativo', 'vendor'))
-WITH CHECK (get_my_role() IN ('admin', 'administrativo', 'vendor'));
+USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'))
+WITH CHECK (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'));
 
 -- C. Administración: Solo Admin y Administrativo
 CREATE POLICY "Permitir escritura a roles administrativos"

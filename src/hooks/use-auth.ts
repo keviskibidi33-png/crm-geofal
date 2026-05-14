@@ -845,7 +845,7 @@ async function buildUser(session: any): Promise<User> {
                 ? "Administrador"
                 : role === 'auxiliar_comercial'
                     ? "Auxiliar Comercial"
-                    : role === 'tecnico'
+                : role === 'tecnico'
                         ? "Técnico"
                         : role === 'tecnico_suelos'
                             ? "Tecnico Laboratorio Suelos"

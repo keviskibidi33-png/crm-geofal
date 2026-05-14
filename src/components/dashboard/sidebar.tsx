@@ -165,7 +165,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     : "border-muted-foreground/50 text-muted-foreground",
                 )}
               >
-                {user.roleLabel || (user.role === "admin" ? "Administrador" : user.role === "asesor comercial" ? "Asesor Comercial" : user.role)}
+                {user.roleLabel || (
+                  user.role === "admin"
+                    ? "Administrador"
+                    : user.role
+                )}
               </Badge>
             </div>
           </button>
