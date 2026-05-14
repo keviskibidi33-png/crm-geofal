@@ -273,7 +273,7 @@ export function LabNotificationDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] p-0 overflow-hidden bg-background border-border [&>button]:hidden">
+      <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] flex flex-col p-0 overflow-hidden bg-background border-border [&>button]:hidden">
         <DialogHeader className="hidden">
           <DialogTitle>Detalle de notificaciones de laboratorio</DialogTitle>
           <DialogDescription>Panel extendido con filtros por fechas, días y usuarios.</DialogDescription>
@@ -421,7 +421,7 @@ export function LabNotificationDetailDialog({
           </div>
 
           <div className="flex-1 min-h-0 bg-muted/10">
-            <ScrollArea className="h-full">
+            <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
               <div className="px-6 py-5">
                 {loading ? (
                   <div className="flex h-[calc(92vh-210px)] items-center justify-center">
