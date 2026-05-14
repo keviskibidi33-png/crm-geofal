@@ -8,6 +8,7 @@ const TECNICO_ROLE_PERMISSIONS = {
   recepcion: { read: true, write: false, delete: false },
   verificacion_muestras: { read: true, write: true, delete: false },
   compresion: { read: true, write: true, delete: false },
+  compresion_no_confinada: { read: true, write: true, delete: false },
   configuracion: { read: true, write: false, delete: false },
 };
 
