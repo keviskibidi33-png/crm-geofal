@@ -1,4 +1,5 @@
 const ROLE_ALIASES: Record<string, string> = {
+  comercial: "auxiliar_comercial",
   sig_el_rol: "auxiliar_comercial",
   "auxiliar comercial": "auxiliar_comercial",
   "auxiliar_comercial": "auxiliar_comercial",

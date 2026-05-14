@@ -1120,7 +1120,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                         onChange={(e) => {
                           const value = e.target.value
                           register(`items.${index}.revisado`).onChange(e)
-                          if (value && value !== "-") {
+                          if (value === "Fabian la Rosa") {
                             const current = getValues(`items.${index}.fecha_revisado`)
                             if (!current) {
                               setValue(`items.${index}.fecha_revisado`, getTodayPeruIso())
@@ -1156,7 +1156,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                         onChange={(e) => {
                           const value = e.target.value
                           register(`items.${index}.aprobado`).onChange(e)
-                          if (value && value !== "-") {
+                          if (value === "Irma Coaquira") {
                             const current = getValues(`items.${index}.fecha_aprobado`)
                             if (!current) {
                               setValue(`items.${index}.fecha_aprobado`, getTodayPeruIso())

@@ -41,7 +41,7 @@ USING (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificador', '
 CREATE POLICY "Permitir lectura a usuarios autorizados"
 ON public.programacion_comercial FOR SELECT
 TO authenticated
-USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'));
+USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'comercial'));
 
 CREATE POLICY "Permitir lectura a usuarios autorizados"
 ON public.programacion_administracion FOR SELECT
@@ -63,8 +63,8 @@ WITH CHECK (get_my_role() IN ('admin', 'administrativo', 'laboratorio_tipificado
 CREATE POLICY "Permitir escritura a roles comerciales"
 ON public.programacion_comercial FOR ALL
 TO authenticated
-USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'))
-WITH CHECK (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial'));
+USING (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'comercial'))
+WITH CHECK (public.normalize_role_policy(get_my_role()) IN ('admin', 'admin_general', 'administrativo', 'auxiliar_comercial', 'comercial'));
 
 -- C. Administración: Solo Admin y Administrativo
 CREATE POLICY "Permitir escritura a roles administrativos"
