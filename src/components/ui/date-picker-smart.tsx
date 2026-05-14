@@ -117,6 +117,7 @@ interface DatePickerSmartProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  readOnly?: boolean
   onFocus?: () => void
 }
 
@@ -126,6 +127,7 @@ export function DatePickerSmart({
   placeholder = "yyyy/mm/dd",
   className,
   disabled = false,
+  readOnly = false,
   onFocus,
 }: DatePickerSmartProps) {
   const [open, setOpen] = React.useState(false)
@@ -199,6 +201,24 @@ export function DatePickerSmart({
   const calendarMonth = React.useMemo(() => {
     return parsedDate || today
   }, [parsedDate, today])
+
+  if (readOnly) {
+    return (
+      <div className={cn("relative flex items-center", className)}>
+        <Input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          readOnly
+          disabled={disabled}
+          placeholder={placeholder}
+          maxLength={10}
+          className="pr-8"
+        />
+        <CalendarIcon className="absolute right-2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      </div>
+    )
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

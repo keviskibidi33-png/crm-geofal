@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -30,9 +30,7 @@ import {
   Trash2,
   Plus,
   Download,
-  AlertCircle,
   CheckCircle2,
-  FileText,
 } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -82,7 +80,7 @@ const EQUIPO_OPTIONS = Object.entries(EQUIPO_NOMBRES).map(([codigo, nombre]) => 
 
 // Zod schema
 const itemSchema = z.object({
-  item: z.number().min(1),
+  item: z.coerce.number().int().min(1),
   codigo_lem: z.string().min(1, "Requerido"),
   fecha_ensayo_programado: z.string().nullable().optional(),
   fecha_ensayo: z.string().nullable().optional(),
@@ -116,7 +114,7 @@ function formatLemCode(value: string): string {
   if (!value) return ""
   const currentYear = new Date().getFullYear().toString().slice(-2)
   const suffix = `-CO-${currentYear}`
-  let clean = value.trim().toUpperCase()
+  const clean = value.trim().toUpperCase()
   if (/^\d+$/.test(clean)) return `${clean}${suffix}`
   if (clean.endsWith("-CO") || clean.endsWith("-CO-")) {
     const base = clean.replace(/-CO-?$/, "")
@@ -234,8 +232,6 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [traceStatus, setTraceStatus] = useState<any>(null)
-  const [sourceLockField, setSourceLockField] = useState<"codigo_lem" | "fecha_ensayo_programado" | null>(null)
-  const [sourceLockMessage, setSourceLockMessage] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [downloading, setDownloading] = useState(false)
@@ -392,16 +388,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     } finally {
       setSearchLoading(false)
     }
-  }, [API_URL, searchQuery])
-
-  const showSourceLock = useCallback((field: "codigo_lem" | "fecha_ensayo_programado") => {
-    const messages = {
-      codigo_lem: "El Cód. LEM proviene de Recepción y no puede modificarse desde Compresión.",
-      fecha_ensayo_programado: "La F. Programado proviene de Recepción y no puede modificarse desde Compresión.",
-    }
-    setSourceLockField(field)
-    setSourceLockMessage(messages[field])
-  }, [])
+  }, [searchQuery])
 
   useEffect(() => {
     if (searchDebounceRef.current) {
@@ -524,10 +511,6 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     if (numeroRecepcion) {
       checkTraceStatus(numeroRecepcion)
     }
-  }
-
-  const handleSourceFieldInteraction = (field: "codigo_lem" | "fecha_ensayo_programado") => {
-    showSourceLock(field)
   }
 
   const onSubmit = async (data: FormData) => {
@@ -1004,8 +987,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                     <td className="px-2 py-2">
                       <Input
                         {...register(`items.${index}.codigo_lem` as const)}
-                        onFocus={() => handleSourceFieldInteraction("codigo_lem")}
-                        onClick={() => handleSourceFieldInteraction("codigo_lem")}
+                        readOnly
                         onBlur={(e) => {
                           const current = getValues(`items.${index}.codigo_lem`)
                           const formatted = formatLemCode(e.target.value)
@@ -1033,7 +1015,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                               }
                             }}
                             className="w-36"
-                            onFocus={() => handleSourceFieldInteraction("fecha_ensayo_programado") as unknown as void}
+                            readOnly
                           />
                         )}
                       />
@@ -1278,30 +1260,6 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={sourceLockField !== null} onOpenChange={(open) => {
-        if (!open) {
-          setSourceLockField(null)
-          setSourceLockMessage(null)
-        }
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Campo proveniente de Recepción</AlertDialogTitle>
-            <AlertDialogDescription>
-              {sourceLockMessage || "Este valor no puede modificarse desde Compresión."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => {
-              setSourceLockField(null)
-              setSourceLockMessage(null)
-            }}>
-              Entendido
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
