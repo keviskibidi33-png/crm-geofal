@@ -418,8 +418,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
   const handleDownload = async (quote: Quote) => {
     try {
-      const toastId = toast.loading("Buscando o reconstruyendo fichero antiguo...", {
-        description: "Esto podría tardar un momento si es una cotización antigua."
+      const isLegacy = !quote.objectKey || quote.year < 2026
+      const toastId = toast.loading(isLegacy ? "Buscando o reconstruyendo fichero antiguo..." : "Buscando fichero...", {
+        description: isLegacy ? "Esto podría tardar un momento si es una cotización antigua." : undefined
       })
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
       
