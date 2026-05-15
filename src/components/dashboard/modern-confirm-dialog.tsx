@@ -92,6 +92,7 @@ export function ModernConfirmDialog({
                         {cancelText}
                     </AlertDialogCancel>
                     <AlertDialogAction
+                        disabled={expectedValue !== undefined && inputValue !== expectedValue}
                         onClick={async (e) => {
                             e.preventDefault()
                             await onConfirm()
@@ -100,7 +101,8 @@ export function ModernConfirmDialog({
                             "flex-1 font-semibold transition-all active:scale-[0.98]",
                             variant === "destructive"
                                 ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20"
-                                : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20",
+                            expectedValue !== undefined && inputValue !== expectedValue && "opacity-50 cursor-not-allowed"
                         )}
                     >
                         {confirmText}

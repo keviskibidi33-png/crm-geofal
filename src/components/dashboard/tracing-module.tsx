@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useTracing, TracingSummary } from "@/hooks/use-tracing"
 import { useReactToPrint } from "react-to-print"
+import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import {
     Search,
     CheckCircle2,
@@ -42,6 +43,9 @@ export function TracingModule() {
     const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+    const [deleteTargetNumero, setDeleteTargetNumero] = useState<string | null>(null)
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState("")
     const [isEnsayoDetailOpen, setIsEnsayoDetailOpen] = useState(false)
     const [selectedEnsayo, setSelectedEnsayo] = useState<any>(null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
@@ -206,20 +210,25 @@ export function TracingModule() {
         }
     }
 
-    const handleDeleteTracing = async (numero: string) => {
+    const confirmDelete = (numero: string) => {
         if (!canDelete) {
             toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Seguimiento." })
             return
         }
+        setDeleteTargetNumero(numero)
+        setDeleteConfirmInput("")
+        setIsDeleteConfirmOpen(true)
+    }
 
-        if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el registro ${numero} de la trazabilidad? Esta acción no se puede deshacer.`)) {
-            return
-        }
+    const handleDeleteTracing = async () => {
+        if (!deleteTargetNumero) return
 
-        const success = await deleteTracing(numero)
+        const success = await deleteTracing(deleteTargetNumero)
         if (success) {
             setIsDetailOpen(false)
-            toast.success("Registro eliminado con exito.")
+            setIsDeleteConfirmOpen(false)
+            setDeleteTargetNumero(null)
+            toast.success("Registro eliminado con éxito.")
         } else {
             toast.error("No se pudo eliminar el registro.")
         }
@@ -390,7 +399,7 @@ export function TracingModule() {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="hover:bg-red-50 hover:text-red-500 rounded-full h-8 w-8"
-                                                    onClick={() => handleDeleteTracing(item.numero_recepcion)}
+                                                    onClick={() => confirmDelete(item.numero_recepcion)}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
@@ -470,7 +479,7 @@ export function TracingModule() {
                                         <Button 
                                             variant="destructive" 
                                             size="sm" 
-                                            onClick={() => handleDeleteTracing(tracingData.numero_recepcion)} 
+                                            onClick={() => confirmDelete(tracingData.numero_recepcion)} 
                                             className="gap-2 bg-red-600/50 hover:bg-red-600 text-white border-none"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -1076,6 +1085,19 @@ export function TracingModule() {
                 </DialogContent>
             </Dialog>
 
+            <ModernConfirmDialog
+                open={isDeleteConfirmOpen}
+                onOpenChange={setIsDeleteConfirmOpen}
+                onConfirm={handleDeleteTracing}
+                title="Eliminar Registro de Trazabilidad"
+                description={`¿Estás seguro de que deseas eliminar el registro ${deleteTargetNumero}? Esta acción es permanente y no se puede deshacer.`}
+                confirmText="Eliminar permanentemente"
+                showInput={true}
+                expectedValue="ELIMINAR"
+                inputValue={deleteConfirmInput}
+                onInputChange={setDeleteConfirmInput}
+                inputPlaceholder="Escribe ELIMINAR para confirmar"
+            />
         </div>
     )
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Plus, Scale, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import {
@@ -153,6 +154,8 @@ export function PlanasModule() {
   const [loading, setLoading] = useState(false)
   const [refreshingTable, setRefreshingTable] = useState(false)
   const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("")
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -336,18 +339,23 @@ export function PlanasModule() {
     }
   }, [fetchEnsayos, loading, refreshingTable])
 
-  const handleDeleteEnsayo = useCallback(
-    async (id: number) => {
-      const ensayo = ensayos.find((item) => item.id === id)
-      const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
-      if (!window.confirm(`Enviar a papelera el Ensayo de Planas y Alargadas ${ensayoLabel}? Se puede recuperar luego.`)) return
+  const confirmDelete = (id: number) => {
+    setDeletingEnsayoId(id)
+    setDeleteConfirmInput("")
+    setIsDeleteConfirmOpen(true)
+  }
 
-      setDeletingEnsayoId(id)
+  const handleDeleteEnsayo = useCallback(
+    async () => {
+      if (!deletingEnsayoId) return
+      
+      const id = deletingEnsayoId
       try {
         const res = await authFetch(`${API_URL}/api/planas/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
         toast.success("Ensayo de Planas y Alargadas enviado a papelera.")
+        setIsDeleteConfirmOpen(false)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
         toast.error(message)
@@ -355,7 +363,7 @@ export function PlanasModule() {
         setDeletingEnsayoId(null)
       }
     },
-    [API_URL, ensayos],
+    [API_URL, deletingEnsayoId],
   )
 
   const filtered = ensayos.filter((e) => {
@@ -466,10 +474,10 @@ export function PlanasModule() {
                       </Button>
                       <Button
                         variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => void handleDeleteEnsayo(ensayo.id)}
+                        onClick={() => confirmDelete(ensayo.id)}
                         disabled={deletingEnsayoId === ensayo.id}
                       >
-                        {deletingEnsayoId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deletingEnsayoId === ensayo.id && isDeleteConfirmOpen ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </div>
                   </TableCell>
@@ -546,6 +554,20 @@ export function PlanasModule() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ModernConfirmDialog
+        open={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirm={handleDeleteEnsayo}
+        title="Eliminar Ensayo de Planas y Alargadas"
+        description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
+        confirmText="Eliminar"
+        showInput={true}
+        expectedValue="ELIMINAR"
+        inputValue={deleteConfirmInput}
+        onInputChange={setDeleteConfirmInput}
+        inputPlaceholder="Escribe ELIMINAR para confirmar"
+      />
     </div>
   )
 }

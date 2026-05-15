@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Plus, FlaskConical, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import {
@@ -167,6 +168,8 @@ export function ProctorModule() {
     const [loading, setLoading] = useState(false)
     const [refreshingTable, setRefreshingTable] = useState(false)
     const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState("")
     const [iframePath, setIframePath] = useState<string>('/')
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
     const [search, setSearch] = useState("")
@@ -362,15 +365,16 @@ export function ProctorModule() {
         }
     }, [fetchEnsayos, loading, refreshingTable])
 
-    const handleDeleteEnsayo = useCallback(async (id: number) => {
-        const ensayo = ensayos.find((item) => item.id === id)
-        const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
-
-        if (!window.confirm(`¿Enviar a papelera el ensayo de proctor ${ensayoLabel}? Se puede recuperar luego.`)) {
-            return
-        }
-
+    const confirmDelete = (id: number) => {
         setDeletingEnsayoId(id)
+        setDeleteConfirmInput("")
+        setIsDeleteConfirmOpen(true)
+    }
+
+    const handleDeleteEnsayo = useCallback(async () => {
+        if (!deletingEnsayoId) return
+
+        const id = deletingEnsayoId
         try {
             const res = await authFetch(`${API_URL}/api/proctor/${id}`, {
                 method: "DELETE",
@@ -391,13 +395,14 @@ export function ProctorModule() {
 
             setEnsayos((prev) => prev.filter((row) => row.id !== id))
             toast.success("Ensayo de Proctor enviado a papelera.")
+            setIsDeleteConfirmOpen(false)
         } catch (error) {
             const message = error instanceof Error ? error.message : "Error desconocido"
             toast.error(message)
         } finally {
             setDeletingEnsayoId(null)
         }
-    }, [API_URL, ensayos])
+    }, [API_URL, deletingEnsayoId])
 
     const filtered = ensayos.filter((e) => {
         const term = search.trim().toLowerCase()
@@ -527,8 +532,8 @@ export function ProctorModule() {
                                         <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
                                             <Pencil className="h-4 w-4 text-muted-foreground" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => void handleDeleteEnsayo(ensayo.id)} disabled={deletingEnsayoId === ensayo.id}>
-                                            {deletingEnsayoId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDelete(ensayo.id)} disabled={deletingEnsayoId === ensayo.id}>
+                                            {deletingEnsayoId === ensayo.id && isDeleteConfirmOpen ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                         </Button>
                                     </div>
                                 </TableCell>
@@ -587,6 +592,20 @@ export function ProctorModule() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ModernConfirmDialog
+                open={isDeleteConfirmOpen}
+                onOpenChange={setIsDeleteConfirmOpen}
+                onConfirm={handleDeleteEnsayo}
+                title="Eliminar Ensayo Proctor"
+                description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
+                confirmText="Eliminar"
+                showInput={true}
+                expectedValue="ELIMINAR"
+                inputValue={deleteConfirmInput}
+                onInputChange={setDeleteConfirmInput}
+                inputPlaceholder="Escribe ELIMINAR para confirmar"
+            />
         </div>
     )
 }

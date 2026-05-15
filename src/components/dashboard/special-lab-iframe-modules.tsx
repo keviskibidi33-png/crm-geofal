@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AlertCircle, Beaker, Eye, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -307,6 +308,8 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
   const [loading, setLoading] = useState(false)
   const [refreshingTable, setRefreshingTable] = useState(false)
   const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("")
   const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -503,24 +506,29 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
     }
   }, [config.title, fetchEnsayos, loading, refreshingTable])
 
-  const handleDeleteEnsayo = useCallback(async (id: number) => {
-    const ensayo = ensayos.find((item) => item.id === id)
-    const ensayoLabel = ensayo?.muestra || ensayo?.cliente || `#${id}`
-    if (!window.confirm(`Enviar a papelera el ensayo de ${config.title} ${ensayoLabel}? Se puede recuperar luego.`)) return
-
+  const confirmDelete = (id: number) => {
     setDeletingEnsayoId(id)
+    setDeleteConfirmInput("")
+    setIsDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteEnsayo = useCallback(async () => {
+    if (!deletingEnsayoId) return
+
+    const id = deletingEnsayoId
     try {
       const res = await authFetch(`${API_URL}/api/${config.apiSlug}/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
       setEnsayos((prev) => prev.filter((row) => row.id !== id))
       toast.success(`Ensayo de ${config.title} enviado a papelera.`)
+      setIsDeleteConfirmOpen(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error desconocido"
       toast.error(message)
     } finally {
       setDeletingEnsayoId(null)
     }
-  }, [API_URL, config.apiSlug, config.title, ensayos])
+  }, [API_URL, config.apiSlug, config.title, deletingEnsayoId])
 
   const filtered = ensayos.filter((ensayo) => {
     const term = search.trim().toLowerCase()
@@ -635,11 +643,10 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
                       variant="ghost"
                       size="sm"
                       className="h-8 gap-1 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => void handleDeleteEnsayo(ensayo.id)}
+                      onClick={() => confirmDelete(ensayo.id)}
                       disabled={deletingEnsayoId === ensayo.id}
                     >
-                      {deletingEnsayoId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                     
+                      {deletingEnsayoId === ensayo.id && isDeleteConfirmOpen ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </div>
                 </TableCell>
@@ -686,6 +693,20 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
           )}
         </DialogContent>
       </Dialog>
+
+      <ModernConfirmDialog
+        open={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        onConfirm={handleDeleteEnsayo}
+        title={`Eliminar Ensayo de ${config.title}`}
+        description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
+        confirmText="Eliminar"
+        showInput={true}
+        expectedValue="ELIMINAR"
+        inputValue={deleteConfirmInput}
+        onInputChange={setDeleteConfirmInput}
+        inputPlaceholder="Escribe ELIMINAR para confirmar"
+      />
     </div>
   )
 }
