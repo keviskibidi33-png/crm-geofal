@@ -417,27 +417,44 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   }
 
   const handleDownload = async (quote: Quote) => {
-    if (!quote.objectKey) {
-      toast.error("Error", {
-        description: "No se encontró el archivo de la cotización.",
-      })
-      return
-    }
-
     try {
-      const { data, error } = await supabase.storage
-        .from("cotizaciones")
-        .download(quote.objectKey)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+      
+      const resp = await authFetch(`${baseUrl}/quotes/${quote.id}/download`)
+      
+      if (resp.ok) {
+        const blob = await resp.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", `COT-${quote.numero}-${quote.year}.xlsx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        if (!quote.objectKey) {
+          toast.error("Error", {
+            description: "No se encontró el archivo de la cotización.",
+          })
+          return
+        }
+        
+        const { data, error } = await supabase.storage
+          .from("cotizaciones")
+          .download(quote.objectKey)
 
-      if (error) throw error
+        if (error) throw error
 
-      const url = window.URL.createObjectURL(data)
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", `COT-${quote.numero}-${quote.year}.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
+        const url = window.URL.createObjectURL(data)
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", `COT-${quote.numero}-${quote.year}.xlsx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      }
 
       logAction({
         user_id: user.id,
