@@ -625,11 +625,11 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="sm" className="h-8 gap-1" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
-                      <Eye className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Ver detalle</span>
+                    <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1" onClick={() => void openEditEnsayo(ensayo.id)}>
-                      <Pencil className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Editar</span>
+                    <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -638,8 +638,8 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
                       onClick={() => void handleDeleteEnsayo(ensayo.id)}
                       disabled={deletingEnsayoId === ensayo.id}
                     >
-                      {deletingEnsayoId === ensayo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      <span className="hidden xl:inline">Eliminar</span>
+                      {deletingEnsayoId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                     
                     </Button>
                   </div>
                 </TableCell>
