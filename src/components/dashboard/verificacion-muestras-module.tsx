@@ -13,6 +13,8 @@ import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
+import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard"
+import { TimelineEtapas } from "@/components/dashboard/shared/TimelineEtapas"
 
 // --- Smart Iframe Component with Retry Logic ---
 interface SmartIframeProps {
@@ -144,6 +146,8 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
     const [iframePath, setIframePath] = useState("/nuevo") // Default route for iframe
     const [selectedVerificacion, setSelectedVerificacion] = useState<VerificacionMuestra | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [tracingData, setTracingData] = useState<any>(null)
+    const [loadingTracing, setLoadingTracing] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const lastFocusedVerificacionIdRef = useRef<number | null>(null)
@@ -301,10 +305,33 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
         fetchVerificaciones()
     }
 
-    const openDetail = (item: VerificacionMuestra) => {
+    const openDetail = useCallback(async (item: VerificacionMuestra) => {
         setSelectedVerificacion(item)
+        setTracingData(null)
         setIsDetailOpen(true)
-    }
+        setLoadingTracing(true)
+
+        // Fetch tracing data using numero_verificacion (same as numero_recepcion)
+        if (item.numero_verificacion) {
+            try {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+                const traceRes = await authFetch(
+                    `${API_URL}/api/tracing/flujo/${encodeURIComponent(item.numero_verificacion)}?_ts=${Date.now()}`,
+                    { cache: "no-store" }
+                )
+                if (traceRes.ok) {
+                    const traceData = await traceRes.json()
+                    setTracingData(traceData)
+                }
+            } catch {
+                // Ignore tracing errors
+            } finally {
+                setLoadingTracing(false)
+            }
+        } else {
+            setLoadingTracing(false)
+        }
+    }, [])
 
     useEffect(() => {
         if (!focusVerificacionId || verificaciones.length === 0) return
@@ -557,28 +584,65 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                     {selectedVerificacion && (
                         <div className="flex-1 min-h-0 overflow-auto">
                             <div className="p-6 space-y-6">
-                                {/* Section 1: General Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/20">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cliente</p>
-                                        <p className="font-semibold text-lg">{selectedVerificacion.cliente || "-"}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">N° Verificación</p>
-                                        <p className="font-semibold text-lg">{selectedVerificacion.numero_verificacion}</p>
+                                {/* Estado del Trabajo + Timeline */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <EstadoDelTrabajoCard
+                                        status={
+                                            tracingData?.stages?.[1]?.status === 'completado' ? 'completado' :
+                                            tracingData?.stages?.[1]?.status === 'en_proceso' ? 'en_proceso' : 'pendiente'
+                                        }
+                                        fechaRecepcion={tracingData?.stages?.[0]?.date}
+                                        fechaCulminacion={tracingData?.stages?.[0]?.data?.fecha_entrega}
+                                        vencimiento={tracingData?.stages?.[0]?.data?.fecha_entrega}
+                                        className="lg:col-span-1"
+                                    />
+                                    <TimelineEtapas
+                                        stages={tracingData?.stages}
+                                        loading={loadingTracing}
+                                        className="lg:col-span-2"
+                                    />
+                                </div>
+
+                                {/* Section: General Info */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Información General
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Cliente</p>
+                                                    <p className="text-sm font-semibold text-slate-800">{selectedVerificacion.cliente || '-'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">N° Verificación</p>
+                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedVerificacion.numero_verificacion}</p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Documento de Referencia</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedVerificacion.codigo_documento} (v{selectedVerificacion.version})</p>
+                                                <p className="text-xs text-muted-foreground">Fecha Doc: {selectedVerificacion.fecha_documento} • Pág: {selectedVerificacion.pagina}</p>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Documento de Referencia</p>
-                                        <p className="text-sm font-medium">{selectedVerificacion.codigo_documento} (v{selectedVerificacion.version})</p>
-                                        <p className="text-xs text-muted-foreground">Fecha Doc: {selectedVerificacion.fecha_documento} • Pág: {selectedVerificacion.pagina}</p>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha & Responsable</p>
-                                        <div className="flex flex-col text-sm">
-                                            <span className="font-medium text-foreground">{selectedVerificacion.fecha_verificacion}</span>
-                                            <span className="text-muted-foreground">Verificado por: {selectedVerificacion.verificado_por}</span>
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Fecha y Responsable
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Fecha de Verificación</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedVerificacion.fecha_verificacion || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Verificado Por</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedVerificacion.verificado_por || '-'}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

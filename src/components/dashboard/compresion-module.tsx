@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { RefreshCw, Plus, Search, FileText, Trash2, Eye, FileSpreadsheet, Pencil, Loader2, AlertCircle, CheckCircle2, Clock, Calendar } from "lucide-react"
+import { RefreshCw, Plus, Search, FileText, Trash2, Eye, FileSpreadsheet, Pencil, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -12,6 +12,8 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
+import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard"
+import { TimelineEtapas } from "@/components/dashboard/shared/TimelineEtapas"
 import dynamic from "next/dynamic"
 
 const CompresionNativeModals = dynamic(() => import("./compresion-native/CompresionNativeModals"), { ssr: false })
@@ -725,75 +727,21 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                             <div className="p-6 space-y-6">
                                 {/* Estado del Trabajo + Timeline */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                    {/* Estado del Trabajo */}
-                                    <div className="lg:col-span-1 bg-card rounded-2xl border p-6">
-                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">
-                                            Estado del Trabajo
-                                        </h3>
-                                        <div className="flex items-center gap-4 p-5 rounded-2xl bg-muted/50 border">
-                                            {tracingData?.stages?.[2]?.status === 'completado' ? (
-                                                <CheckCircle2 className="h-10 w-10 text-green-500" />
-                                            ) : (
-                                                <Clock className="h-10 w-10 text-primary animate-pulse" />
-                                            )}
-                                            <div>
-                                                <p className="text-sm font-black uppercase">
-                                                    {tracingData?.stages?.[2]?.status === 'completado' ? 'COMPLETADA' : 'EN PROCESO'}
-                                                </p>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                                                    Vencimiento: {tracingData?.stages?.[0]?.data?.fecha_entrega || selectedEnsayo.fecha_creacion ? new Date(selectedEnsayo.fecha_creacion).toLocaleDateString('es-PE') : '---'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-6 space-y-3">
-                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Recepción</span>
-                                                <span>{tracingData?.stages?.[0]?.date || '---'}</span>
-                                            </div>
-                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Est. Culminación</span>
-                                                <span>{tracingData?.stages?.[0]?.data?.fecha_entrega || '---'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Timeline de Etapas */}
-                                    <div className="lg:col-span-2 bg-card rounded-2xl border p-6">
-                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">
-                                            Seguimiento de Etapas
-                                        </h3>
-                                        <div className="relative">
-                                            <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-200" />
-                                            <div className="space-y-4">
-                                                {tracingData?.stages ? (
-                                                    tracingData.stages.map((stage: any, index: number) => (
-                                                        <div key={stage.key || index} className="flex items-start gap-4 relative">
-                                                            <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                                                                stage.status === 'completado' ? 'bg-green-100 text-green-600' :
-                                                                stage.status === 'en_proceso' ? 'bg-yellow-100 text-yellow-600' :
-                                                                'bg-slate-100 text-slate-400'
-                                                            }`}>
-                                                                {stage.status === 'completado' ? <CheckCircle2 className="h-5 w-5" /> :
-                                                                 stage.status === 'en_proceso' ? <Clock className="h-5 w-5" /> :
-                                                                 <div className="h-3 w-3 rounded-full bg-current" />}
-                                                            </div>
-                                                            <div className="flex-1 pt-1.5">
-                                                                <p className="text-sm font-semibold">{stage.name}</p>
-                                                                <p className="text-xs text-muted-foreground">{stage.message}</p>
-                                                                {stage.date && (
-                                                                    <p className="text-[10px] text-muted-foreground mt-0.5">{stage.date}</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-sm text-muted-foreground py-4">
-                                                        {loadingTracing ? 'Cargando seguimiento...' : 'No hay información de seguimiento disponible'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <EstadoDelTrabajoCard
+                                        status={
+                                            tracingData?.stages?.[2]?.status === 'completado' ? 'completado' :
+                                            tracingData?.stages?.[2]?.status === 'en_proceso' ? 'en_proceso' : 'pendiente'
+                                        }
+                                        fechaRecepcion={tracingData?.stages?.[0]?.date}
+                                        fechaCulminacion={tracingData?.stages?.[0]?.data?.fecha_entrega}
+                                        vencimiento={tracingData?.stages?.[0]?.data?.fecha_entrega || (selectedEnsayo.fecha_creacion ? new Date(selectedEnsayo.fecha_creacion).toLocaleDateString('es-PE') : undefined)}
+                                        className="lg:col-span-1"
+                                    />
+                                    <TimelineEtapas
+                                        stages={tracingData?.stages}
+                                        loading={loadingTracing}
+                                        className="lg:col-span-2"
+                                    />
                                 </div>
 
                                 {/* Ensayo Info Card */}

@@ -22,6 +22,8 @@ import { authFetch } from "@/lib/api-auth";
 import type { RecepcionMuestraData } from "@/types/recepcion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard";
+import { TimelineEtapas } from "@/components/dashboard/shared/TimelineEtapas";
 import {
   Table,
   TableHeader,
@@ -55,6 +57,22 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
       return res.json();
     },
     enabled: !!recepcionId,
+  });
+
+  // Fetch tracing data for intelligent status
+  const { data: tracingData } = useQuery({
+    queryKey: ["recepcion-tracing", orden?.numero_recepcion],
+    queryFn: async () => {
+      if (!orden?.numero_recepcion) return null;
+      const res = await authFetch(
+        `${API_URL}/api/tracing/flujo/${encodeURIComponent(orden.numero_recepcion)}?_ts=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!orden?.numero_recepcion,
+    staleTime: 0,
   });
 
   const handleDownloadExcel = async () => {
@@ -286,38 +304,18 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <div className="bg-card rounded-2xl border p-6">
-              <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">
-                Estado del Trabajo
-              </h3>
-              <div className="flex items-center gap-4 p-5 rounded-2xl bg-muted/50 border">
-                {orden.estado === "COMPLETADA" ? (
-                  <CheckCircle2 className="h-10 w-10 text-green-500" />
-                ) : (
-                  <Clock className="h-10 w-10 text-primary animate-pulse" />
-                )}
-                <div>
-                  <p className="text-sm font-black uppercase">{orden.estado}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
-                    Vencimiento: {orden.fecha_estimada_culminacion || "---"}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 space-y-3">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3 text-muted-foreground" /> Recepción
-                  </span>
-                  <span>{orden.fecha_recepcion || "---"}</span>
-                </div>
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3 text-muted-foreground" /> Est. Culminación
-                  </span>
-                  <span>{orden.fecha_estimada_culminacion || "---"}</span>
-                </div>
-              </div>
-            </div>
+            <EstadoDelTrabajoCard
+              status={
+                tracingData?.stages?.every((s: any) => s.status === 'completado') ? 'completado' :
+                tracingData?.stages?.some((s: any) => s.status === 'en_proceso' || s.status === 'completado') ? 'en_proceso' :
+                'pendiente'
+              }
+              fechaRecepcion={orden.fecha_recepcion}
+              fechaCulminacion={orden.fecha_estimada_culminacion}
+              vencimiento={orden.fecha_estimada_culminacion}
+            />
+
+            <TimelineEtapas stages={tracingData?.stages} />
 
             <div className="bg-card rounded-2xl border p-6 space-y-6">
               <div>
