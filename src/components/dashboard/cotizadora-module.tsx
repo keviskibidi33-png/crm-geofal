@@ -418,6 +418,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
   const handleDownload = async (quote: Quote) => {
     try {
+      const toastId = toast.loading("Buscando o reconstruyendo fichero antiguo...", {
+        description: "Esto puede tomar un momento si es una cotización migrada."
+      })
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
       
       const resp = await authFetch(`${baseUrl}/quotes/${quote.id}/download`)
@@ -432,10 +435,12 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
+        toast.success("Cotización lista", { id: toastId })
       } else {
         if (!quote.objectKey) {
           toast.error("Error", {
-            description: "No se encontró el archivo de la cotización.",
+            id: toastId,
+            description: "No se encontraron los datos para reconstruir la cotización.",
           })
           return
         }
@@ -444,7 +449,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           .from("cotizaciones")
           .download(quote.objectKey)
 
-        if (error) throw error
+        if (error) {
+           toast.error("Error", { id: toastId, description: "No se encontró el archivo ni pudo ser reconstruido." })
+           throw error
+        }
 
         const url = window.URL.createObjectURL(data)
         const link = document.createElement("a")
@@ -454,6 +462,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
+        toast.success("Cotización recuperada de la nube", { id: toastId })
       }
 
       logAction({
