@@ -434,12 +434,7 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                                     <TableCell className="text-center">{item.muestras_verificadas?.length || 0}</TableCell>
                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
-                                            {/* Download Excel */}
-                                            <Button variant="ghost" size="icon" title="Descargar Excel" onClick={() => handleDownloadExcel(item.id)}>
-                                                <FileText className="h-4 w-4 text-green-600" />
-                                            </Button>
-
-                                            {/* View Details (Native Dialog) */}
+                                                {/* View Details (Native Dialog) */}
                                             <Button variant="ghost" size="icon" title="Ver Detalles" onClick={() => openDetail(item)}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>

@@ -557,12 +557,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                     <TableCell>{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString('es-PE') : '-'}</TableCell>
                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
-                                            {/* Download Excel */}
-                                            <Button variant="ghost" size="icon" title="Descargar Excel" onClick={() => handleDownloadExcel(item.id)}>
-                                                <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                            </Button>
-
-                                            {/* Detail */}
+                                                {/* Detail */}
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
