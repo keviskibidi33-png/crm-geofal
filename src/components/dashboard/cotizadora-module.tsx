@@ -419,7 +419,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const handleDownload = async (quote: Quote) => {
     try {
       const toastId = toast.loading("Buscando o reconstruyendo fichero antiguo...", {
-        description: "Esto puede tomar un momento si es una cotización migrada."
+        description: "Esto podría tardar un momento si es una cotización antigua."
       })
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
       
