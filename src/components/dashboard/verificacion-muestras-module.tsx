@@ -432,46 +432,49 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
             {/* Native Table */}
             <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>N° Verificación</TableHead>
-                            <TableHead>Cliente</TableHead>
-                            <TableHead>Verificado Por</TableHead>
-                            <TableHead>Fecha Verificación</TableHead>
-                            <TableHead className="text-center">Probetas</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading && verificaciones.length === 0 ? (
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">Cargando datos...</TableCell>
+                                <TableHead className="w-[120px]">N° Verificación</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Verificado Por</TableHead>
+                                <TableHead>Fecha Verificación</TableHead>
+                                <TableHead className="text-center">Muestras</TableHead>
+                                <TableHead className="text-right">Acciones</TableHead>
                             </TableRow>
-                        ) : filteredData.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">No se encontraron resultados</TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredData.map((item) => (
-                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item)}>
-                                    <TableCell className="font-medium">{item.numero_verificacion}</TableCell>
-                                    <TableCell>{item.cliente || "-"}</TableCell>
-                                    <TableCell>{item.verificado_por || "-"}</TableCell>
-                                    <TableCell>{item.fecha_verificacion || "-"}</TableCell>
-                                    <TableCell className="text-center">{item.muestras_verificadas?.length || 0}</TableCell>
-                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex justify-end items-center gap-2">
-                                                {/* View Details (Native Dialog) */}
-                                            <Button variant="ghost" size="icon" title="Ver Detalles" onClick={() => openDetail(item)}>
-                                                <Eye className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
-
-                                            {/* Edit (Iframe Modal) */}
-                                            {canWrite && (
-                                                <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/editar/${item.id}`)}>
-                                                    <Pencil className="h-4 w-4 text-blue-600" />
+                        </TableHeader>
+                        <TableBody>
+                            {loading && verificaciones.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">Cargando datos...</TableCell>
+                                </TableRow>
+                            ) : filteredData.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">No se encontraron resultados</TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredData.map((item) => (
+                                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openDetail(item)}>
+                                        <TableCell className="font-bold text-primary">{item.numero_verificacion}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate" title={item.cliente}>{item.cliente || "-"}</TableCell>
+                                        <TableCell>{item.verificado_por || "-"}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+                                                {item.fecha_verificacion || "-"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="secondary">{item.muestras_verificadas?.length || 0}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex justify-end items-center gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => openDetail(item)}>
+                                                    <Eye className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
-                                            )}
+                                                {canWrite && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenModal(`/editar/${item.id}`)}>
+                                                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                                                    </Button>
+                                                )}
 
                                             {/* Delete */}
                                             {canDelete && (

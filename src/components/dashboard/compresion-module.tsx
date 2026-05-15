@@ -552,7 +552,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>N° OT</TableHead>
+                            <TableHead className="w-[120px]">N° OT</TableHead>
                             <TableHead>N° Recepción</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Fecha Creación</TableHead>
@@ -567,32 +567,28 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                         ) : filteredData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                    {ensayos.length === 0 ? "No hay ensayos registrados. Crea uno nuevo." : "No se encontraron resultados"}
+                                    No se encontraron resultados
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredData.map((item) => (
                                 <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item)}>
-                                    <TableCell className="font-medium">{item.numero_ot}</TableCell>
+                                    <TableCell className="font-bold text-primary">{item.numero_ot}</TableCell>
                                     <TableCell>{item.numero_recepcion}</TableCell>
                                     <TableCell>{getEstadoBadge(item.estado)}</TableCell>
-                                    <TableCell>{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString('es-PE') : '-'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+                                            {item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString('es-PE') : '-'}
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
-                                                {/* Detail */}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Ver Detalle"
-                                                onClick={() => handleViewDetails(item)}
-                                            >
-                                                <Eye className="h-4 w-4 text-slate-600" />
+                                            <Button variant="ghost" size="icon" onClick={() => handleViewDetails(item)}>
+                                                <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>
-
-                                            {/* Edit */}
                                             {canWrite && (
-                                                <Button variant="ghost" size="icon" title="Editar" onClick={() => handleOpenModal(`/compresion?id=${item.id}`)}>
-                                                    <Pencil className="h-4 w-4 text-blue-600" />
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(`/compresion?id=${item.id}`)}>
+                                                    <Pencil className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             )}
 
