@@ -420,8 +420,8 @@ export function LabNotificationDetailDialog({
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 bg-muted/10">
-            <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex flex-1 min-h-0 flex-col bg-muted/10">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="px-6 py-5">
                 {loading ? (
                   <div className="flex h-[calc(92vh-210px)] items-center justify-center">
