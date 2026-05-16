@@ -7,6 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 
@@ -368,12 +378,10 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
         fetchEnsayos()
     }
 
-
-        if (!deletingEnsayoId) return
-
-        const id = deletingEnsayoId
-
-
+    const handleDelete = async (id: number): Promise<boolean> => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "No tienes permisos para eliminar formatos." })
+            return false
         }
 
         try {
@@ -386,51 +394,52 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                     setIsDetailOpen(false)
                     setSelectedEnsayo(null)
                 }
-                setEnsayos((prev) => prev.filter((row) => row.id !== id))
-                setIsDeleteConfirmOpen(false)
-
-
-            } else {
-                toast.error("Error al eliminar el ensayo")
-
+                fetchEnsayos()
+                return true
             }
+
+            toast.error("Error al eliminar el ensayo")
+            return false
         } catch {
             toast.error("Error de conexión")
-
+            return false
         } finally {
             setDeletingEnsayoId(null)
-            setPendingDeleteEnsayo(null)
-    
+        }
     }
 
-
-
-
+    const openDeleteModal = (ensayo: EnsayoCompresion) => {
+        setPendingDeleteEnsayo(ensayo)
+        setDeleteConfirmInput("")
+        setDeletingEnsayoId(ensayo.id)
+        setIsDeleteConfirmOpen(true)
     }
 
-
-
-
+    const closeDeleteModal = () => {
+        setPendingDeleteEnsayo(null)
+        setDeleteConfirmInput("")
+        setIsDeleteConfirmOpen(false)
+        setDeletingEnsayoId(null)
     }
 
+    const deleteMatchTarget = String(
+        pendingDeleteEnsayo?.numero_recepcion || pendingDeleteEnsayo?.numero_ot || ""
+    ).trim()
+    const deleteDisplayTarget = pendingDeleteEnsayo
+        ? `${pendingDeleteEnsayo.numero_ot} / ${pendingDeleteEnsayo.numero_recepcion}`
+        : ""
+    const isDeleteMatch =
+        deleteMatchTarget !== "" &&
+        deleteConfirmInput.trim().toUpperCase() === deleteMatchTarget.toUpperCase()
 
+    const confirmDeleteEnsayo = async () => {
+        if (!pendingDeleteEnsayo || !isDeleteMatch) return
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        const success = await handleDelete(pendingDeleteEnsayo.id)
+        if (success) {
+            closeDeleteModal()
+        }
+    }
 
     const handleDownloadExcel = async (id: number) => {
         try {
@@ -613,8 +622,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     title="Eliminar"
                                                     onClick={() => {
-                                                        setDeletingEnsayoId(item.id)
-                                                        setIsDeleteConfirmOpen(true)
+                                                        openDeleteModal(item)
                                                     }}
 
                                                 >
@@ -657,47 +665,6 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 </Dialog>
             )}
 
-            <AlertDialog open={pendingDeleteEnsayo !== null} onOpenChange={(open) => { if (!open) closeDeleteModal() }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Eliminar formato de F. Probetas</AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-3">
-                            <span className="block">
-                                Esta acción no se puede deshacer. Para confirmar, escribe el número de recepción:
-                            </span>
-                            <span className="block rounded-md border border-red-200 bg-red-50 px-3 py-2 font-mono text-sm font-semibold text-red-700">
-                                {deleteDisplayTarget || "-"}
-                            </span>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                            Escribe <span className="font-mono font-semibold">{deleteMatchTarget || "-"}</span> para confirmar.
-                        </p>
-                        <Input
-                            value={deleteConfirmText}
-                            onChange={(e) => setDeleteConfirmText(e.target.value)}
-                            placeholder={`Escribe "${deleteMatchTarget || "número de recepción"}"`}
-                            autoComplete="off"
-                            data-lpignore="true"
-                            className="font-mono"
-                        />
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={closeDeleteModal}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={!isDeleteMatch}
-                            onClick={(event) => {
-                                event.preventDefault()
-                                void confirmDeleteEnsayo()
-                            }}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                            Eliminar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
 
             {/* Unsaved changes confirmation */}
             <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
@@ -878,15 +845,23 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 </DialogContent>
             </Dialog>
             <ModernConfirmDialog
-                isOpen={isDeleteConfirmOpen}
-                onClose={() => {
-                    setIsDeleteConfirmOpen(false)
-                    setDeletingEnsayoId(null)
+                open={isDeleteConfirmOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeDeleteModal()
+                    }
                 }}
                 onConfirm={confirmDeleteEnsayo}
                 title="¿Eliminar formato de compresión?"
                 description="Esta acción eliminará permanentemente el formato y todos sus registros asociados. Esta acción no se puede deshacer."
-                isLoading={deletingEnsayoId !== null}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                variant="destructive"
+                showInput={true}
+                inputPlaceholder="Escribe el número de recepción"
+                inputValue={deleteConfirmInput}
+                onInputChange={setDeleteConfirmInput}
+                expectedValue={deleteMatchTarget || undefined}
             />
         </div>
 
