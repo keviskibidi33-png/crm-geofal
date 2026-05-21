@@ -627,7 +627,7 @@ async function buildUser(session: any): Promise<User> {
                 clientes: { read: true, write: true, delete: false },
                 proyectos: { read: true, write: true, delete: false },
                 cotizadora: { read: true, write: true, delete: false },
-                laboratorio: { read: true, write: false, delete: false },
+                laboratorio: { read: false, write: false, delete: false },
                 comercial: { read: true, write: true, delete: false },
                 administracion: { read: true, write: false, delete: false },
                 programacion: { read: true, write: false, delete: false },
@@ -869,6 +869,13 @@ async function buildUser(session: any): Promise<User> {
     const userOverride = await fetchUserPermissionOverride(session.user.id)
     if (userOverride?.enabled && userOverride.permissions) {
         permissions = mergePermissionMaps(permissions, userOverride.permissions)
+    }
+
+    if (rNorm === 'auxiliar_comercial') {
+        permissions = {
+            ...(permissions || {}),
+            laboratorio: { read: false, write: false, delete: false },
+        }
     }
 
     if (CONTROL_ACCESS_REVOKED_EMAILS.has(normalizedEmail)) {

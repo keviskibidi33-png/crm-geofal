@@ -68,6 +68,10 @@ export function canAccessControlModule(
     return true
   }
 
+  if (module === "laboratorio" && isComercialDashboardRole(role)) {
+    return false
+  }
+
   switch (module) {
     case "laboratorio":
       return isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true
@@ -85,8 +89,9 @@ export function getPreferredControlModule(role: string | null | undefined, permi
     return null
   }
 
+  if (isComercialDashboardRole(role)) return "comercial"
   if (isLaboratorioDashboardRole(role) || permissions?.laboratorio?.read === true) return "laboratorio"
-  if (isComercialDashboardRole(role) || permissions?.comercial?.read === true) return "comercial"
+  if (permissions?.comercial?.read === true) return "comercial"
   if (isAdministracionDashboardRole(role) || permissions?.administracion?.read === true) return "administracion"
   if (isAdminDashboardRole(role)) return "laboratorio"
   return null
