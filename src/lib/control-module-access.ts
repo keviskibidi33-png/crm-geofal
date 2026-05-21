@@ -106,6 +106,10 @@ export function canAccessDashboardModule(module: ModuleType, role: string | null
     return isAdminDashboardRole(role)
   }
 
+  if (module === "laboratorio" && isComercialDashboardRole(role)) {
+    return false
+  }
+
   const explicitRead = permissions?.[module]?.read === true
   if (explicitRead) {
     return true
