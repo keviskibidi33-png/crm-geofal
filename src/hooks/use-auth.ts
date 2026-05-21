@@ -796,6 +796,11 @@ async function buildUser(session: any): Promise<User> {
             clientes: pick('clientes'),
             proyectos: pick('proyectos'),
             cotizadora: pick('cotizadora'),
+            laboratorio: {
+                read: source.laboratorio?.read === true,
+                write: false,
+                delete: false,
+            },
             comercial: pick('comercial'),
             programacion: pick('programacion'),
             configuracion: pick('configuracion'),
