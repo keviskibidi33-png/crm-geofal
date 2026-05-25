@@ -273,53 +273,78 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
     }
 
     return (
-        <div className="flex flex-col h-full space-y-4 p-4 bg-zinc-50/50 overflow-y-auto">
+        <div className="flex flex-col h-full space-y-6 p-6 bg-gradient-to-br from-slate-50 via-white to-indigo-50/15 overflow-y-auto">
             {/* Header Compacto */}
-            <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
                 <div>
-                    <h1 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
-                        <Briefcase className="w-5 h-5 text-indigo-600" />
+                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
+                        <div className="p-2 bg-indigo-650 text-white rounded-xl shadow-md shadow-indigo-500/20">
+                            <Briefcase className="w-5 h-5" />
+                        </div>
                         Control Comercial
                     </h1>
-                    <p className="text-zinc-500 text-sm font-medium">Seguimiento de entregas y atención al cliente.</p>
+                    <p className="text-slate-500 text-sm mt-1">Seguimiento de entregas, clientes y cotizaciones.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 self-start sm:self-center">
                     {!canWrite && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">
-                            <Shield className="w-3.5 h-3.5 text-amber-600" />
-                            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
-                                Modo Solo Lectura
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
+                            <Shield className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                            <span className="text-[10px] text-amber-700 font-black uppercase tracking-wider">
+                                SÓLO LECTURA
                             </span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-zinc-200 rounded-lg shadow-sm">
-                        <span className={`h-2 w-2 rounded-full ${realtimeStatus === 'SUBSCRIBED' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">
-                            {realtimeStatus === 'SUBSCRIBED' ? 'Conexión Comercial Activa' : 'Offline'}
-                        </span>
-                    </div>
+                    {/* Dynamic Real-time Connection Status */}
+                    {realtimeStatus === "SUBSCRIBED" ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-[10px] text-emerald-800 font-black tracking-wider uppercase">
+                                CONEXIÓN COMERCIAL ACTIVA
+                            </span>
+                        </div>
+                    ) : realtimeStatus === "CONNECTING" ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
+                            <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
+                            <span className="text-[10px] text-amber-800 font-black tracking-wider uppercase animate-pulse">
+                                CONECTANDO...
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full shadow-sm">
+                            <span className="relative flex h-2 w-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 animate-pulse"></span>
+                            </span>
+                            <span className="text-[10px] text-red-800 font-black tracking-wider uppercase">
+                                DESCONECTADO
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Fila superior: Accesos Comerciales + Tabla */}
-            <Card className="border border-zinc-200 shadow-sm bg-white">
+            {/* Accesos Comerciales + Tabla */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
                 <CardContent className="p-0">
                     <Accordion type="single" collapsible defaultValue="accesos-comercial" className="w-full">
                         <AccordionItem value="accesos-comercial" className="border-b-0">
-                            <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                            <AccordionTrigger className="px-6 py-4 hover:no-underline border-b border-slate-100">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-zinc-100 rounded-lg text-zinc-600">
-                                        <FileSearch className="w-4 h-4" />
+                                    <div className="p-2 bg-slate-50 border border-slate-150 rounded-xl text-slate-600">
+                                        <FileSearch className="w-5 h-5" />
                                     </div>
                                     <div className="text-left">
-                                        <h4 className="text-sm font-bold text-zinc-900">Accesos Comerciales</h4>
-                                        <p className="text-[11px] text-zinc-500 font-medium">Clientes, proyectos, cotizaciones y tabla comercial.</p>
+                                        <h4 className="text-sm font-bold text-slate-800">Accesos Directos del Módulo</h4>
+                                        <p className="text-xs text-slate-500 font-medium">Clientes, proyectos, cotizaciones y matriz comercial.</p>
                                     </div>
                                 </div>
                             </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-2">
+                            <AccordionContent className="p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                    {/* Action Buttons Grid */}
+                                    <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         {quickLinks.map((item) => {
                                             const Icon = item.icon
                                             return (
@@ -327,27 +352,31 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                                                     key={item.id}
                                                     type="button"
                                                     onClick={() => handleQuickNavigate(item.id)}
-                                                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-zinc-700 hover:bg-white hover:text-zinc-900 transition-colors"
+                                                    className="group flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 rounded-xl transition-all duration-200 text-slate-700 hover:text-indigo-700 shadow-sm hover:shadow"
                                                 >
-                                                    <Icon className="w-5 h-5 text-zinc-500" />
-                                                    <span className="text-base font-medium">{item.label}</span>
+                                                    <div className="p-3 bg-white text-slate-500 group-hover:text-indigo-600 rounded-2xl border border-slate-100 group-hover:border-indigo-100 transition-colors shadow-inner">
+                                                        <Icon className="w-6 h-6" />
+                                                    </div>
+                                                    <span className="text-xs font-bold uppercase tracking-wider mt-3">{item.label}</span>
                                                 </button>
                                             )
                                         })}
                                     </div>
 
-                                    <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/40 px-5 py-4">
-                                        <div>
-                                            <h4 className="text-sm font-bold text-zinc-900">Tabla Comercial</h4>
-                                            <p className="text-[11px] text-zinc-500 font-medium">Seguimiento de fechas de entrega y evidencias.</p>
+                                    {/* Control Table Call-to-action */}
+                                    <div className="lg:col-span-6 flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/20 p-5 gap-4">
+                                        <div className="space-y-1">
+                                            <h4 className="text-sm font-bold text-slate-800">Tabla Comercial Unificada</h4>
+                                            <p className="text-xs text-slate-500 leading-relaxed">
+                                                Seguimiento de fechas de entrega de informes a clientes y registro de evidencias de despacho.
+                                            </p>
                                         </div>
                                         <Button
                                             onClick={openModule}
-                                            variant="outline"
-                                            className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-xs px-5 py-4 rounded-lg flex items-center gap-2"
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-6 py-4 rounded-xl flex items-center gap-2 self-start sm:self-center transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-md shadow-indigo-650/10"
                                         >
-                                            <ExternalLink className="w-3.5 h-3.5" />
-                                            ABRIR TABLA
+                                            <ExternalLink className="w-4 h-4" />
+                                            ABRIR TABLA COMERCIAL
                                         </Button>
                                     </div>
                                 </div>
@@ -357,118 +386,171 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                 </CardContent>
             </Card>
 
-            {/* Cuadro de Últimos Cambios */}
-            <Card className="border border-zinc-200 shadow-sm bg-zinc-50/50">
-                <CardHeader className="px-4 py-2 border-b border-zinc-200 bg-white">
-                    <CardTitle className="text-[11px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                        <History className="w-3.5 h-3.5" />
-                        Actividad Comercial Reciente
+            {/* Dashboard Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-900 group-hover:bg-slate-700 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL ORDENES</p>
+                            <p className="text-2xl font-black text-slate-800 mt-1 tabular-nums">{kpis.total}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 text-slate-650 rounded-xl group-hover:bg-slate-100 transition-colors">
+                            <BarChart3 className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-indigo-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500 group-hover:bg-indigo-650 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EN PROCESO</p>
+                            <p className="text-2xl font-black text-indigo-600 mt-1 tabular-nums">{kpis.proceso}</p>
+                        </div>
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-100 transition-colors">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-amber-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500 group-hover:bg-amber-600 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PENDIENTES</p>
+                            <p className="text-2xl font-black text-amber-600 mt-1 tabular-nums">{kpis.pendientes}</p>
+                        </div>
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:bg-amber-100 transition-colors">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-red-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 group-hover:bg-red-650 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PLANES ATRASADOS</p>
+                            <p className="text-2xl font-black text-red-650 mt-1 tabular-nums">{kpis.atrasados}</p>
+                        </div>
+                        <div className="p-3 bg-red-50 text-red-600 rounded-xl group-hover:bg-red-100 transition-colors">
+                            <AlertTriangle className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Recent Comercial Activities */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <CardTitle className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                        <History className="w-4 h-4 text-slate-500" />
+                        Actividad Comercial Reciente (En Vivo)
                     </CardTitle>
+                    <span className="text-[10px] bg-slate-150 text-slate-650 px-2 py-0.5 rounded-full font-semibold">
+                        Últimos 3 cambios
+                    </span>
                 </CardHeader>
                 <CardContent className="p-0">
                     {recentChanges.length > 0 ? (
-                        <div className="divide-y divide-zinc-200">
+                        <div className="divide-y divide-slate-100">
                             {recentChanges.map((item, idx) => (
-                                <div key={idx} className="px-4 py-2 flex items-center justify-between hover:bg-white transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-6 w-1 bg-indigo-500 rounded-full" />
-                                        <div>
-                                            <p className="text-xs font-bold text-zinc-800">
-                                                OT {item.ot || 'S/N'} - {item.cliente_nombre}
-                                            </p>
-                                            <p className="text-[10px] text-zinc-500">
-                                                Cierre: <span className="font-bold text-indigo-600">{item.fecha_entrega_com || 'Por definir'}</span> • Ref: {item.descripcion_servicio || 'N/A'}
-                                            </p>
+                                <div key={idx} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
+                                            {item.ot ? item.ot.slice(-2) : "OT"}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="text-sm font-bold text-slate-800">
+                                                    OT: {item.ot || "SIN OT"}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-medium">|</span>
+                                                <span className="text-xs text-slate-600 font-semibold truncate max-w-[250px]" title={item.cliente_nombre}>
+                                                    {item.cliente_nombre || "Cliente no especificado"}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-500">
+                                                <div className="sm:col-span-2">
+                                                    Proyecto: <span className="font-bold text-slate-700 truncate max-w-[300px]" title={item.proyecto}>{item.proyecto || "-"}</span>
+                                                </div>
+                                                <div>
+                                                    Entrega: <span className="font-bold text-indigo-650">{item.fecha_entrega_com || "Por Definir"}</span>
+                                                </div>
+                                                <div className="sm:col-span-3">
+                                                    Servicio: <span className="font-medium text-slate-600">{item.descripcion_servicio || "No especificado"}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-medium text-zinc-400 tabular-nums">
-                                        {item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                                    </span>
+
+                                    <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-250`}>
+                                                ESTADO: {item.estado_trabajo || "PENDIENTE"}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-400 tabular-nums">
+                                            {item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                                        </span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="p-4 text-center text-xs text-zinc-400 font-medium italic">
-                            Esperando actualizaciones comerciales...
+                        <div className="p-8 text-center text-sm text-slate-400 font-medium italic">
+                            No hay actividad comercial reciente detectada.
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Dashboard Stats Compacto */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                        <BarChart3 className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Total OTs</p>
-                        <p className="text-lg font-black text-indigo-900">{stats.total}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                        <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Atrasos</p>
-                        <p className="text-lg font-black text-red-600">{stats.atrasados}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
-                        <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pte. Envío</p>
-                        <p className="text-lg font-black text-amber-600">{stats.pendientesEnvio}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                        <CheckCircle2 className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Total Mes</p>
-                        <p className="text-lg font-black text-emerald-600">{stats.totalMes}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Footer compact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border border-zinc-200 shadow-sm">
-                    <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-xs font-bold flex items-center gap-2">
-                            <Zap className="w-3.5 h-3.5 text-indigo-500" />
+            {/* Footer / System Status Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
+                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-indigo-500" />
                             Métricas de Atención
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-3 pt-2 space-y-2">
-                        <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-bold uppercase">Base de Datos</span>
-                            <span className="text-zinc-700 font-semibold">CRM Comercial Core</span>
+                    <CardContent className="p-4 pt-3 space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Base de Datos</span>
+                            <span className="text-slate-700 font-semibold">CRM Comercial Core</span>
                         </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-bold uppercase">Canal Realtime</span>
-                            <span className="text-indigo-600 font-bold">ESTABLE</span>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Canal Realtime</span>
+                            <span className="text-indigo-650 font-extrabold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 text-[10px]">ESTABLE</span>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border border-indigo-100 shadow-sm bg-indigo-50/30">
-                    <CardContent className="p-3 flex items-start gap-3">
-                        <Shield className="w-4 h-4 text-indigo-500 mt-1" />
-                        <div>
-                            <h4 className="text-xs font-bold text-indigo-900">Privacidad de Datos</h4>
-                            <p className="text-[10px] text-indigo-700/80 leading-snug">
-                                La información de proyectos y contactos es de uso exclusivo para gestión comercial interna.
-                            </p>
-                        </div>
+                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
+                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-indigo-500" />
+                            Privacidad de Datos
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-3">
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                            La información de clientes, cotizaciones y proyectos es de uso exclusivo para gestión comercial y despacho.
+                        </p>
                     </CardContent>
+                </Card>
+
+                <Card className="border border-indigo-100 bg-indigo-50/20 rounded-2xl p-5 flex items-start gap-4 md:col-span-2 lg:col-span-1">
+                    <div className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+                        <Shield className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">Auditoría Habilitada</h4>
+                        <p className="text-xs text-indigo-700/90 mt-1 leading-relaxed">
+                            Cualquier cambio sobre el despacho de cotizaciones y el estado comercial de las órdenes es auditado automáticamente.
+                        </p>
+                    </div>
                 </Card>
             </div>
 
