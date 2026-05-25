@@ -254,175 +254,252 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
             </div>
         )
     }
-
     return (
-        <div className="flex flex-col h-full space-y-4 p-4 bg-zinc-50/50 overflow-y-auto">
+        <div className="flex flex-col h-full space-y-6 p-6 bg-gradient-to-br from-slate-50 via-white to-blue-50/15 overflow-y-auto">
             {/* Header Compacto */}
-            <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
                 <div>
-                    <h1 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
-                        <FlaskConical className="w-5 h-5 text-blue-600" />
+                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
+                        <div className="p-2 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
+                            <FlaskConical className="w-5 h-5" />
+                        </div>
                         Control Laboratorio
                     </h1>
-                    <p className="text-zinc-500 text-sm font-medium">Gestión técnica operativa de ensayos.</p>
+                    <p className="text-slate-500 text-sm mt-1">Gestión técnica y operativa de ensayos de laboratorio.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 self-start sm:self-center">
                     {!canWrite && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">
-                            <Shield className="w-3.5 h-3.5 text-amber-600" />
-                            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
-                                Modo Solo Lectura
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
+                            <Shield className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                            <span className="text-[10px] text-amber-700 font-black uppercase tracking-wider">
+                                SÓLO LECTURA
                             </span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-zinc-200 rounded-lg shadow-sm">
-                        <span className={`h-2 w-2 rounded-full ${realtimeStatus === 'SUBSCRIBED' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">
-                            {realtimeStatus === 'SUBSCRIBED' ? 'Conexión en Vivo' : 'Desconectado'}
-                        </span>
-                    </div>
+                    {/* Dynamic Real-time Connection Status */}
+                    {realtimeStatus === "SUBSCRIBED" ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-[10px] text-emerald-800 font-black tracking-wider uppercase">
+                                CONEXIÓN EN VIVO ACTIVA
+                            </span>
+                        </div>
+                    ) : realtimeStatus === "CONNECTING" ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
+                            <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
+                            <span className="text-[10px] text-amber-800 font-black tracking-wider uppercase animate-pulse">
+                                CONECTANDO...
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full shadow-sm">
+                            <span className="relative flex h-2 w-2">
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 animate-pulse"></span>
+                            </span>
+                            <span className="text-[10px] text-red-800 font-black tracking-wider uppercase">
+                                DESCONECTADO
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Fila superior: Tabla Acceso Directo (Menos llamativo) */}
-            <div className="flex items-center justify-between bg-white px-6 py-3 rounded-xl border border-zinc-200 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="p-2 bg-zinc-100 rounded-lg text-zinc-600">
-                        <Database className="w-4 h-4" />
+            {/* Quick Access Block */}
+            <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:border-slate-300">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-5 -mt-5" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 shadow-inner">
+                            <Database className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h4 className="text-base font-bold text-slate-900">Matriz Técnica de Datos</h4>
+                            <p className="text-sm text-slate-500 mt-0.5">
+                                Acceso directo al registro, asignación y validación de ensayos operativos.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-zinc-900">Matriz Técnica de Datos</h4>
-                        <p className="text-[11px] text-zinc-500 font-medium">Acceso directo al registro y edición.</p>
-                    </div>
+                    <Button
+                        onClick={openModule}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-4 rounded-xl flex items-center gap-2 tracking-wider shadow transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        ABRIR TABLA DE CONTROL
+                    </Button>
                 </div>
-                <Button
-                    onClick={openModule}
-                    variant="outline"
-                    className="border-blue-200 text-blue-600 hover:bg-blue-50 font-bold text-xs px-6 py-4 rounded-lg flex items-center gap-2"
-                >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    ABRIR TABLA DE CONTROL
-                </Button>
             </div>
 
-            {/* Cuadro de Últimos Cambios */}
-            <Card className="border border-zinc-200 shadow-sm bg-zinc-50/50">
-                <CardHeader className="px-4 py-2 border-b border-zinc-200 bg-white">
-                    <CardTitle className="text-[11px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                        <History className="w-3.5 h-3.5" />
-                        Últimas Modificaciones en Sistema
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-900 group-hover:bg-slate-700 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL ENSAYOS</p>
+                            <p className="text-2xl font-black text-slate-800 mt-1 tabular-nums">{kpis.total}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 text-slate-650 rounded-xl group-hover:bg-slate-100 transition-colors">
+                            <BarChart3 className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 group-hover:bg-blue-600 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EN PROCESO</p>
+                            <p className="text-2xl font-black text-blue-600 mt-1 tabular-nums">{kpis.proceso}</p>
+                        </div>
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-red-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 group-hover:bg-red-600 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PENDIENTES</p>
+                            <p className="text-2xl font-black text-red-600 mt-1 tabular-nums">{kpis.pendientes}</p>
+                        </div>
+                        <div className="p-3 bg-red-50 text-red-650 rounded-xl group-hover:bg-red-100 transition-colors">
+                            <AlertTriangle className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-emerald-300">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 group-hover:bg-emerald-600 transition-colors" />
+                    <CardContent className="p-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COMPLETADOS</p>
+                            <p className="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{kpis.finalizados}</p>
+                        </div>
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                            <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Recent Lab Modifications */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <CardTitle className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                        <History className="w-4 h-4 text-slate-500" />
+                        Últimas Modificaciones en Sistema (En Vivo)
                     </CardTitle>
+                    <span className="text-[10px] bg-slate-150 text-slate-650 px-2 py-0.5 rounded-full font-semibold">
+                        Últimos 3 cambios
+                    </span>
                 </CardHeader>
                 <CardContent className="p-0">
                     {recentChanges.length > 0 ? (
-                        <div className="divide-y divide-zinc-200">
+                        <div className="divide-y divide-slate-100">
                             {recentChanges.map((item, idx) => (
-                                <div key={idx} className="px-4 py-2 flex items-center justify-between hover:bg-white transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-6 w-1 bg-blue-500 rounded-full" />
-                                        <div className="min-w-0 flex-1 overflow-hidden">
-                                            <p className="text-xs font-bold text-zinc-800 truncate block max-w-full" title={`${item.ot || 'S/N'} - ${item.proyecto || item.cliente_nombre || 'Sin nombre'}`}>
-                                                OT {item.ot || 'S/N'} - {item.proyecto || item.cliente_nombre || 'Sin nombre'}
-                                            </p>
-                                            <p className="text-[10px] text-zinc-500 truncate" title={`Estado: ${item.estado_trabajo} • Ensayo: ${item.descripcion_servicio || 'N/A'}`}>
-                                                Estado: <span className="font-bold text-blue-600">{item.estado_trabajo}</span> • Ensayo: {item.descripcion_servicio || 'N/A'}
-                                            </p>
+                                <div key={idx} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                                        <div className="mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
+                                            {item.ot ? item.ot.slice(-2) : "OT"}
+                                        </div>
+                                        <div className="space-y-1 min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="text-sm font-bold text-slate-800">
+                                                    OT: {item.ot || "SIN OT"}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-medium">|</span>
+                                                <span className="text-xs text-slate-600 font-semibold truncate block max-w-full" title={item.cliente_nombre || item.proyecto}>
+                                                    {item.cliente_nombre || item.proyecto || "Cliente no especificado"}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-500">
+                                                <div className="sm:col-span-2 truncate">
+                                                    Servicio: <span className="font-bold text-slate-700">{item.descripcion_servicio || "No especificado"}</span>
+                                                </div>
+                                                <div className="truncate">
+                                                    Muestra: <span className="font-bold text-blue-650">{item.codigo_muestra || "-"}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-medium text-zinc-400 tabular-nums">
-                                        {item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                                    </span>
+
+                                    <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-250`}>
+                                                ESTADO: {item.estado_trabajo || "PENDIENTE"}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-400 tabular-nums">
+                                            {item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                                        </span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="p-4 text-center text-xs text-zinc-400 font-medium italic">
+                        <div className="p-8 text-center text-sm text-slate-400 font-medium italic">
                             Sin cambios recientes detectados.
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            {/* Dashboard Stats Compacto */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                        <BarChart3 className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Total</p>
-                        <p className="text-lg font-black text-zinc-900">{stats.total}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
-                        <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">En Proceso</p>
-                        <p className="text-lg font-black text-amber-600">{stats.proce}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                        <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pendientes</p>
-                        <p className="text-lg font-black text-red-600">{stats.pend}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                        <CheckCircle2 className="w-4 h-4" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Completados</p>
-                        <p className="text-lg font-black text-emerald-600">{stats.compl}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Estado del Sistema e Información Adicional */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border border-zinc-200 shadow-sm">
-                    <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-xs font-bold flex items-center gap-2">
-                            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            {/* Footer / System Status Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
+                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-blue-500" />
                             Estatus Operativo
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-3 pt-2 space-y-2">
-                        <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-bold uppercase">Sincronización</span>
+                    <CardContent className="p-4 pt-3 space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Sincronización</span>
                             <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                <Activity className="w-3 h-3" />
+                                <Activity className="w-3.5 h-3.5 animate-pulse" />
                                 ACTIVA
                             </span>
                         </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-400 font-bold uppercase">Database</span>
-                            <span className="text-zinc-700 font-semibold italic">Supabase Realtime Cloud</span>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Database</span>
+                            <span className="text-slate-700 font-semibold italic">Supabase Realtime Cloud</span>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="border border-blue-100 shadow-sm bg-blue-50/30">
-                    <CardContent className="p-3 flex items-start gap-3">
-                        <Shield className="w-4 h-4 text-blue-500 mt-1" />
-                        <div>
-                            <h4 className="text-xs font-bold text-blue-900">Cumplimiento Técnico</h4>
-                            <p className="text-[10px] text-blue-700/80 leading-snug">
-                                Registros trazables y sujetos a validación normativa. Los cambios se auditan automáticamente.
-                            </p>
-                        </div>
+                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
+                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-blue-500" />
+                            Cumplimiento Técnico
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-3">
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                            Todos los registros del laboratorio son trazables y están sujetos a estrictas auditorías normativas.
+                        </p>
                     </CardContent>
+                </Card>
+
+                <Card className="border border-blue-100 bg-blue-50/20 rounded-2xl p-5 flex items-start gap-4 md:col-span-2 lg:col-span-1">
+                    <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                        <Shield className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Auditoría Habilitada</h4>
+                        <p className="text-xs text-blue-700/90 mt-1 leading-relaxed">
+                            Cualquier cambio sobre el despacho de cotizaciones y el estado comercial de las órdenes es auditado automáticamente.
+                        </p>
+                    </div>
                 </Card>
             </div>
-
+            
             {/* Modal de Tabla Laboratorio (Fullscreen) */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent
