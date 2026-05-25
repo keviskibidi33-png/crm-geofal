@@ -53,7 +53,7 @@ export function useProgramacionData() {
             // Also fetch 3 most recent changes (lightweight — only 3 rows)
             const { data: recent } = await supabase
                 .from("cuadro_control")
-                .select("id,ot,proyecto,cliente_nombre,estado_trabajo,descripcion_servicio,updated_at")
+                .select("id,ot,proyecto,cliente_nombre,estado_trabajo,descripcion_servicio,updated_at,numero_factura,estado_pago,estado_autorizar,orden_servicio,numero_valorizacion,fecha_entrega_com,codigo_muestra")
                 .not("updated_at", "is", null)
                 .order("updated_at", { ascending: false })
                 .limit(3)
