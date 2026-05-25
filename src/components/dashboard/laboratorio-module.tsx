@@ -255,52 +255,46 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
         )
     }
     return (
-        <div className="flex flex-col h-full space-y-6 p-6 bg-gradient-to-br from-slate-50 via-white to-blue-50/15 overflow-y-auto">
-            {/* Header Compacto */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div className="min-h-full bg-[#F8FAFC] p-8 space-y-8 font-sans antialiased">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-6">
                 <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-                        <div className="p-2 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-                            <FlaskConical className="w-5 h-5" />
-                        </div>
-                        Control Laboratorio
-                    </h1>
-                    <p className="text-slate-500 text-sm mt-1">Gestión técnica y operativa de ensayos de laboratorio.</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Control Laboratorio</h1>
+                    <p className="text-slate-500 font-medium mt-1">Gestión técnica y operativa de ensayos de laboratorio</p>
                 </div>
-                <div className="flex items-center gap-3 self-start sm:self-center">
+                <div className="flex items-center gap-3">
                     {!canWrite && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
-                            <Shield className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                            <span className="text-[10px] text-amber-700 font-black uppercase tracking-wider">
-                                SÓLO LECTURA
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl">
+                            <Shield className="w-4 h-4 text-amber-600 animate-pulse" />
+                            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
+                                Modo Solo Lectura
                             </span>
                         </div>
                     )}
-                    {/* Dynamic Real-time Connection Status */}
                     {realtimeStatus === "SUBSCRIBED" ? (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-250 rounded-xl">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <span className="text-[10px] text-emerald-800 font-black tracking-wider uppercase">
-                                CONEXIÓN EN VIVO ACTIVA
+                            <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-widest">
+                                Sincro en Vivo Activa
                             </span>
                         </div>
                     ) : realtimeStatus === "CONNECTING" ? (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full shadow-sm">
-                            <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
-                            <span className="text-[10px] text-amber-800 font-black tracking-wider uppercase animate-pulse">
-                                CONECTANDO...
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl">
+                            <Loader2 className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-widest animate-pulse">
+                                Conectando...
                             </span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full shadow-sm">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl">
                             <span className="relative flex h-2 w-2">
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 animate-pulse"></span>
                             </span>
-                            <span className="text-[10px] text-red-800 font-black tracking-wider uppercase">
-                                DESCONECTADO
+                            <span className="text-[10px] text-red-800 font-bold uppercase tracking-widest">
+                                Desconectado
                             </span>
                         </div>
                     )}
@@ -308,97 +302,82 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
             </div>
 
             {/* Quick Access Block */}
-            <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:border-slate-300">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-5 -mt-5" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 shadow-inner">
-                            <Database className="w-6 h-6" />
+                        <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xl">
+                            <Database className="h-6 w-6" />
                         </div>
                         <div>
-                            <h4 className="text-base font-bold text-slate-900">Matriz Técnica de Datos</h4>
-                            <p className="text-sm text-slate-500 mt-0.5">
-                                Acceso directo al registro, asignación y validación de ensayos operativos.
-                            </p>
+                            <h3 className="font-black text-slate-900 uppercase">Matriz Técnica de Datos</h3>
+                            <p className="text-slate-500 text-xs font-medium mt-1">Acceso directo al registro, asignación y validación de ensayos operativos</p>
                         </div>
                     </div>
-                    <Button
+                    <button
                         onClick={openModule}
-                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-4 rounded-xl flex items-center gap-2 tracking-wider shadow transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                        className="flex items-center gap-3 px-5 py-3 bg-[#0070F3] text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95"
                     >
-                        <ExternalLink className="w-4 h-4" />
+                        <ExternalLink className="h-5 w-5" strokeWidth={3} />
                         ABRIR TABLA DE CONTROL
-                    </Button>
+                    </button>
                 </div>
             </div>
 
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-slate-300">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-900 group-hover:bg-slate-700 transition-colors" />
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL ENSAYOS</p>
-                            <p className="text-2xl font-black text-slate-800 mt-1 tabular-nums">{kpis.total}</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 text-slate-650 rounded-xl group-hover:bg-slate-100 transition-colors">
-                            <BarChart3 className="w-5 h-5" />
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all group flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL ENSAYOS</p>
+                        <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{kpis.total}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-650">
+                        <BarChart3 className="w-5 h-5" />
+                    </div>
+                </div>
 
-                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-300">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 group-hover:bg-blue-600 transition-colors" />
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EN PROCESO</p>
-                            <p className="text-2xl font-black text-blue-600 mt-1 tabular-nums">{kpis.proceso}</p>
-                        </div>
-                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors">
-                            <Clock className="w-5 h-5" />
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all group flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EN PROCESO</p>
+                        <p className="text-2xl font-black text-blue-600 mt-1 tabular-nums">{kpis.proceso}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                        <Clock className="w-5 h-5" />
+                    </div>
+                </div>
 
-                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-red-300">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 group-hover:bg-red-600 transition-colors" />
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PENDIENTES</p>
-                            <p className="text-2xl font-black text-red-600 mt-1 tabular-nums">{kpis.pendientes}</p>
-                        </div>
-                        <div className="p-3 bg-red-50 text-red-650 rounded-xl group-hover:bg-red-100 transition-colors">
-                            <AlertTriangle className="w-5 h-5" />
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all group flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PENDIENTES</p>
+                        <p className="text-2xl font-black text-red-650 mt-1 tabular-nums">{kpis.pendientes}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+                        <AlertTriangle className="w-5 h-5" />
+                    </div>
+                </div>
 
-                <Card className="group relative overflow-hidden bg-white border-slate-200 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-emerald-300">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 group-hover:bg-emerald-600 transition-colors" />
-                    <CardContent className="p-5 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COMPLETADOS</p>
-                            <p className="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{kpis.finalizados}</p>
-                        </div>
-                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                            <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all group flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COMPLETADOS</p>
+                        <p className="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{kpis.finalizados}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                        <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                </div>
             </div>
 
             {/* Recent Lab Modifications */}
-            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-                <CardHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <CardTitle className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                         <History className="w-4 h-4 text-slate-500" />
                         Últimas Modificaciones en Sistema (En Vivo)
-                    </CardTitle>
-                    <span className="text-[10px] bg-slate-150 text-slate-650 px-2 py-0.5 rounded-full font-semibold">
+                    </h3>
+                    <span className="text-[10px] bg-slate-100 text-slate-650 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                         Últimos 3 cambios
                     </span>
-                </CardHeader>
-                <CardContent className="p-0">
+                </div>
+                <div className="p-0">
                     {recentChanges.length > 0 ? (
                         <div className="divide-y divide-slate-100">
                             {recentChanges.map((item, idx) => (
@@ -430,7 +409,7 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
 
                                     <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0">
                                         <div className="flex items-center gap-2">
-                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-250`}>
+                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-200`}>
                                                 ESTADO: {item.estado_trabajo || "PENDIENTE"}
                                             </span>
                                         </div>
@@ -446,19 +425,17 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
                             Sin cambios recientes detectados.
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Footer / System Status Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
-                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-blue-500" />
-                            Estatus Operativo
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-3 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                        <Zap className="w-4 h-4 text-blue-500" />
+                        Estatus Operativo
+                    </h3>
+                    <div className="space-y-3">
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-slate-400 font-bold uppercase tracking-wider">Sincronización</span>
                             <span className="text-emerald-600 font-bold flex items-center gap-1">
@@ -470,34 +447,30 @@ export function LaboratorioModule({ user }: LaboratorioModuleProps) {
                             <span className="text-slate-400 font-bold uppercase tracking-wider">Database</span>
                             <span className="text-slate-700 font-semibold italic">Supabase Realtime Cloud</span>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
 
-                <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardHeader className="p-4 pb-2 border-b border-slate-100">
-                        <CardTitle className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-blue-500" />
-                            Cumplimiento Técnico
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-3">
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                            Todos los registros del laboratorio son trazables y están sujetos a estrictas auditorías normativas.
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                        <Shield className="w-4 h-4 text-blue-500" />
+                        Cumplimiento Técnico
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                        Todos los registros del laboratorio son trazables y están sujetos a estrictas auditorías normativas.
+                    </p>
+                </div>
 
-                <Card className="border border-blue-100 bg-blue-50/20 rounded-2xl p-5 flex items-start gap-4 md:col-span-2 lg:col-span-1">
-                    <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                <div className="bg-blue-50 border border-blue-105 rounded-2xl p-6 flex items-start gap-4 md:col-span-2 lg:col-span-1 shadow-sm">
+                    <div className="p-3 bg-white text-blue-600 rounded-full border border-blue-100 flex-shrink-0">
                         <Shield className="w-5 h-5" />
                     </div>
                     <div>
                         <h4 className="text-xs font-extrabold text-blue-900 uppercase tracking-wider">Auditoría Habilitada</h4>
-                        <p className="text-xs text-blue-700/90 mt-1 leading-relaxed">
+                        <p className="text-xs text-blue-750 mt-1 leading-relaxed">
                             Cualquier cambio sobre el despacho de cotizaciones y el estado comercial de las órdenes es auditado automáticamente.
                         </p>
                     </div>
-                </Card>
+                </div>
             </div>
             
             {/* Modal de Tabla Laboratorio (Fullscreen) */}
