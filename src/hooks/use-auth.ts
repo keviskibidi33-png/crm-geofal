@@ -637,6 +637,10 @@ async function buildUser(session: any): Promise<User> {
             permissions = buildTechnicalPermissions()
         } else if (isTecnicoSuelosRole) {
             permissions = {
+                tracing: { read: true, write: false, delete: false },
+                recepcion: { read: true, write: false, delete: false },
+                verificacion_muestras: { read: true, write: true, delete: false },
+                compresion: { read: true, write: true, delete: false },
                 humedad: { read: true, write: true, delete: false },
                 cont_humedad: { read: true, write: true, delete: false },
                 cbr: { read: true, write: true, delete: false },
@@ -810,6 +814,16 @@ async function buildUser(session: any): Promise<User> {
     if (isTecnicoSuelosRole) {
         permissions = {
             ...(permissions || {}),
+            verificacion_muestras: {
+                read: true,
+                write: true,
+                delete: false,
+            },
+            compresion: {
+                read: true,
+                write: true,
+                delete: false,
+            },
             configuracion: {
                 read: true,
                 write: true,
