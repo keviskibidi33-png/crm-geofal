@@ -446,6 +446,14 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
         .on("postgres_changes", { event: "*", schema: "public", table: "user_permission_overrides" }, () => {
           void fetchNotifications()
         })
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "dashboard_notifications" }, (payload) => {
+          const row = (payload as any)?.new as DashboardNotification | undefined
+          const audienceRoles = Array.isArray(row?.metadata?.audience_roles)
+            ? row?.metadata?.audience_roles.map((value) => String(value || "").trim().toLowerCase())
+            : []
+          if (!audienceRoles.includes("admin")) return
+          void fetchNotifications()
+        })
         .subscribe()
       channels.push(adminChannel)
     }
@@ -955,105 +963,109 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                     </>
                   ) : (
                     <>
-                      <section className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-amber-500" />
-                            <h5 className="text-xs font-semibold uppercase tracking-wide text-foreground">Mini tickets activos</h5>
-                          </div>
-                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {notifications.length} abiertos
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant={notificationTab === "pendientes" ? "default" : "outline"}
+                          className="h-7 px-3 text-[11px] rounded-full"
+                          onClick={() => setNotificationTab("pendientes")}
+                        >
+                          Pendientes {activeNotifications.length}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={notificationTab === "vistas" ? "default" : "outline"}
+                          className="h-7 px-3 text-[11px] rounded-full"
+                          onClick={() => setNotificationTab("vistas")}
+                        >
+                          Vistas {acknowledgedNotifications.length}
+                        </Button>
+                      </div>
 
-                        {notifications.length > 0 ? (
+                      {notificationTab === "pendientes" ? (
+                        activeNotifications.length > 0 ? (
                           <div className="space-y-2">
-                            {notifications.map((item) => {
-                              const fullName = item.metadata?.full_name ? String(item.metadata.full_name) : "Usuario no identificado"
-                              const email = item.metadata?.email ? String(item.metadata.email) : ""
-                              const role = item.metadata?.role ? String(item.metadata.role) : ""
-                              const moduleName = item.metadata?.module ? String(item.metadata.module) : ""
-                              const userId = item.metadata?.user_id
+                            {activeNotifications.map((item) => {
+                              const creator = getNotificationCreatorName(item)
+                              const creatorAvatar = getNotificationCreatorAvatar(item)
+                              const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                              const isCommercial = item.type.startsWith("comercial_tracking_")
+                              
                               return (
                                 <div
                                   key={item.id}
-                                  className={`rounded-lg border px-3 py-2.5 shadow-sm ${
-                                    item.status === "acknowledged"
-                                      ? "border-blue-200 bg-blue-50/60"
-                                      : "border-border bg-background"
-                                  }`}
+                                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm text-left transition-colors"
                                 >
                                   <div className="flex items-start gap-3">
                                     <Avatar className="mt-0.5 h-9 w-9 border border-border/70">
+                                      <AvatarImage src={creatorAvatar} alt={creator} />
                                       <AvatarFallback className="bg-primary/10 text-[11px] font-semibold text-primary">
-                                        {getInitials(fullName)}
+                                        {getInitials(creator)}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
-                                        <span
-                                          className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-0.5 ${
-                                            item.status === "acknowledged"
-                                              ? "bg-blue-100 text-blue-700"
-                                              : "bg-amber-100 text-amber-700"
-                                          }`}
-                                        >
-                                          {item.status === "acknowledged" ? "Visto" : item.severity}
+                                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                                          {isCommercial ? "comercial" : "alerta"}
                                         </span>
                                       </div>
-                                      <p className="text-xs text-muted-foreground mt-1 leading-5">{item.message}</p>
-                                      <div className="mt-2 grid gap-1 text-[11px] text-muted-foreground/85">
-                                        <p>
-                                          Usuario: <span className="font-medium text-foreground">{fullName}</span>
-                                        </p>
-                                        {email && (
-                                          <p>
-                                            Email: <span className="font-medium text-foreground">{email}</span>
-                                          </p>
-                                        )}
-                                        {role && (
-                                          <p>
-                                            Rol: <span className="font-medium text-foreground">{role}</span>
-                                          </p>
-                                        )}
-                                        {moduleName && (
-                                          <p>
-                                            Módulo: <span className="font-medium text-foreground">{moduleName}</span>
-                                          </p>
-                                        )}
-                                        {item.metadata?.reason && (
-                                          <p>
-                                            Motivo: <span className="font-medium text-foreground">{String(item.metadata.reason)}</span>
-                                          </p>
-                                        )}
-                                      </div>
+                                      <p className="text-xs text-muted-foreground mt-1 leading-5">
+                                        {item.message}
+                                      </p>
+                                      
+                                      {!isCommercial && !!(item.metadata?.role || item.metadata?.module) ? (
+                                        <div className="mt-1.5 grid gap-0.5 text-[10px] text-muted-foreground/80">
+                                          {!!item.metadata.role && <p>Rol afectado: {String(item.metadata.role)}</p>}
+                                          {!!item.metadata.module && <p>Módulo: {String(item.metadata.module)}</p>}
+                                          {!!item.metadata.reason && <p>Motivo: {String(item.metadata.reason)}</p>}
+                                        </div>
+                                      ) : null}
+
                                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        {userId && onOpenAffectedUser && (
+                                        {isCommercial ? (
                                           <Button
                                             size="sm"
                                             variant="outline"
                                             className="h-7 px-2.5 text-[11px]"
-                                            onClick={() => openAffectedUser(userId)}
+                                            onClick={() => {
+                                              setNotificationsPopoverOpen(false)
+                                              setActiveModule("comercial")
+                                              void acknowledgeNotification(item.id)
+                                            }}
                                           >
-                                            <UserRoundSearch className="mr-1 h-3.5 w-3.5" />
-                                            Ver usuario
-                                          </Button>
-                                        )}
-                                        {item.status !== "acknowledged" ? (
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 px-2.5 text-[11px]"
-                                            onClick={() => void acknowledgeNotification(item.id)}
-                                            disabled={acknowledgingNotificationId === item.id}
-                                          >
-                                            {acknowledgingNotificationId === item.id ? "Guardando..." : "Marcar como visto"}
+                                            Ver Comercial
                                           </Button>
                                         ) : (
-                                          <span className="text-[11px] text-blue-700 font-medium">Ajuste revisado</span>
+                                          !!item.metadata?.user_id && !!onOpenAffectedUser ? (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-7 px-2.5 text-[11px]"
+                                              onClick={() => openAffectedUser(item.metadata?.user_id)}
+                                            >
+                                              <UserRoundSearch className="mr-1 h-3.5 w-3.5" />
+                                              Ver usuario
+                                            </Button>
+                                          ) : null
                                         )}
+                                        
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 px-2.5 text-[11px]"
+                                          onClick={() => void acknowledgeNotification(item.id)}
+                                          disabled={acknowledgingNotificationId === item.id}
+                                        >
+                                          {acknowledgingNotificationId === item.id ? "Guardando..." : "Marcar como visto"}
+                                        </Button>
                                       </div>
+                                      
+                                      {timestamp && (
+                                        <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                          {timestamp}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1064,70 +1076,71 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
                           <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
                             <Bell className="h-10 w-10 text-muted-foreground/30 mb-2" />
                             <p className="text-sm text-muted-foreground">No hay alertas activas</p>
-                            <p className="text-xs text-muted-foreground/70 mt-1">Si aparece una inconsistencia, se mostrará aquí como mini ticket</p>
                           </div>
-                        )}
-                      </section>
+                        )
+                      ) : acknowledgedNotifications.length > 0 ? (
+                        <div className="space-y-2">
+                          {acknowledgedNotifications.map((item) => {
+                            const creator = getNotificationCreatorName(item)
+                            const creatorAvatar = getNotificationCreatorAvatar(item)
+                            const timestamp = item.created_at ? new Date(item.created_at).toLocaleString("es-PE") : ""
+                            const isCommercial = item.type.startsWith("comercial_tracking_")
 
-                      <section className="space-y-2 border-t border-border/70 pt-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <Clock3 className="h-4 w-4 text-emerald-500" />
-                            <h5 className="text-xs font-semibold uppercase tracking-wide text-foreground">Historial reciente</h5>
-                          </div>
-                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {historyNotifications.length} resueltas
-                          </span>
-                        </div>
-
-                        {historyNotifications.length > 0 ? (
-                          <div className="space-y-2">
-                            {historyNotifications.map((item) => {
-                              const fullName = item.metadata?.full_name ? String(item.metadata.full_name) : "Usuario no identificado"
-                              const role = item.metadata?.role ? String(item.metadata.role) : ""
-                              return (
-                                <div
-                                  key={`${item.id}-history`}
-                                  className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2.5 shadow-sm"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
-                                        <span className="text-[10px] uppercase tracking-wide rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5">
-                                          resuelta
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground mt-1 leading-5">{item.message}</p>
-                                      <div className="mt-2 grid gap-1 text-[11px] text-muted-foreground/85">
-                                        <p>
-                                          Usuario: <span className="font-medium text-foreground">{fullName}</span>
-                                        </p>
-                                        {role && (
-                                          <p>
-                                            Rol: <span className="font-medium text-foreground">{role}</span>
-                                          </p>
-                                        )}
-                                        {item.resolved_at && (
-                                          <p>
-                                            Resuelta: <span className="font-medium text-foreground">{new Date(item.resolved_at).toLocaleString("es-PE")}</span>
-                                          </p>
-                                        )}
-                                      </div>
+                            return (
+                              <div
+                                key={`${item.id}-seen`}
+                                className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-2.5 shadow-sm text-left"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <Avatar className="mt-0.5 h-9 w-9 border border-blue-200">
+                                    <AvatarImage src={creatorAvatar} alt={creator} />
+                                    <AvatarFallback className="bg-blue-100 text-[11px] font-semibold text-blue-700">
+                                      {getInitials(creator)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                                      <span className="text-[10px] uppercase tracking-wide rounded-full bg-blue-100 text-blue-700 px-2 py-0.5">
+                                        visto
+                                      </span>
                                     </div>
+                                    <p className="text-xs text-muted-foreground mt-1 leading-5 truncate">
+                                      {item.message}
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                      {isCommercial && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 px-2 text-[10px] text-blue-700 hover:text-blue-800"
+                                          onClick={() => {
+                                            setNotificationsPopoverOpen(false)
+                                            setActiveModule("comercial")
+                                          }}
+                                        >
+                                          Ver Comercial
+                                        </Button>
+                                      )}
+                                      <span className="text-[11px] text-blue-700 font-medium">Revisado</span>
+                                    </div>
+                                    {timestamp && (
+                                      <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                        {timestamp}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
-                              )
-                            })}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                            Sin historial reciente
-                          </div>
-                        )}
-                      </section>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                          <CheckCircle2 className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">Sin vistos recientes</p>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
