@@ -154,8 +154,8 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
     const [deleteConfirmText, setDeleteConfirmText] = useState("")
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-    const canWrite = user?.role === "admin" || user?.permissions?.verificacion_muestras?.write === true
-    const canDelete = user?.role === "admin" || user?.permissions?.verificacion_muestras?.delete === true
+    const canWrite = user?.role === "admin" || user?.role === "oficina_tecnica" || user?.permissions?.verificacion_muestras?.write === true
+    const canDelete = user?.role === "admin" || user?.role === "oficina_tecnica" || user?.permissions?.verificacion_muestras?.delete === true
 
     const syncIframeToken = async (): Promise<string | null> => {
     const getStoredAccessToken = (): string | null => {
