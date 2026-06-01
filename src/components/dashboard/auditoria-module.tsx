@@ -88,7 +88,71 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
             if (result.error) throw new Error(result.error)
 
-            setLogs(result.data || [])
+            const rawData = result.data || []
+            const unifyLogs = (rawList: any[]): any[] => {
+                if (rawList.length <= 1) return rawList;
+                const unified: any[] = [];
+                for (const log of rawList) {
+                    if (unified.length === 0) {
+                        unified.push(JSON.parse(JSON.stringify(log)));
+                        continue;
+                    }
+                    const last = unified[unified.length - 1];
+                    const sameUser = last.user_id === log.user_id && last.user_name === log.user_name;
+                    const sameModule = last.module === log.module;
+                    
+                    const lastRecordId = last.details?.record_id || last.details?.ensayo_id || last.details?.id;
+                    const currentRecordId = log.details?.record_id || log.details?.ensayo_id || log.details?.id;
+                    const sameRecord = lastRecordId && currentRecordId && String(lastRecordId) === String(currentRecordId);
+                    
+                    const lastOT = last.details?.numero_ot;
+                    const currentOT = log.details?.numero_ot;
+                    const sameOT = lastOT && currentOT && lastOT === currentOT;
+                    
+                    const lastRazon = last.details?.razon_social;
+                    const currentRazon = log.details?.razon_social;
+                    const sameRazon = lastRazon && currentRazon && lastRazon === currentRazon;
+                    
+                    const isSameTarget = sameRecord || sameOT || sameRazon;
+                    
+                    const timeDiff = Math.abs(new Date(last.created_at).getTime() - new Date(log.created_at).getTime()) / 1000;
+                    const isCloseInTime = timeDiff <= 120;
+                    
+                    if (sameUser && sameModule && isSameTarget && isCloseInTime) {
+                        if (!last.details) last.details = {};
+                        if (log.details) {
+                            const lastCampos = last.details.campos_modificados || [];
+                            const currentCampos = log.details.campos_modificados || [];
+                            last.details.campos_modificados = Array.from(new Set([...lastCampos, ...currentCampos]));
+                            
+                            if (log.details.cambios) {
+                                last.details.cambios = {
+                                    ...(last.details.cambios || {}),
+                                    ...log.details.cambios
+                                };
+                            }
+                            
+                            for (const key of Object.keys(log.details)) {
+                                if (key !== 'cambios' && key !== 'campos_modificados' && last.details[key] === undefined) {
+                                    last.details[key] = log.details[key];
+                                }
+                            }
+                        }
+                        
+                        if (last.details.campos_modificados && last.details.campos_modificados.length > 0) {
+                            const actionBase = last.action.split(" actualizó ")[0] || last.user_name;
+                            const fieldsList = last.details.campos_modificados.join(", ");
+                            const moduleName = last.module === "SEGUIMIENTO" ? "seguimiento comercial" : last.module.toLowerCase();
+                            last.action = `${actionBase} actualizó los campos (${fieldsList}) de ${moduleName}`;
+                        }
+                    } else {
+                        unified.push(JSON.parse(JSON.stringify(log)));
+                    }
+                }
+                return unified;
+            };
+
+            setLogs(unifyLogs(rawData))
             setTotalCount(result.count || 0)
         } catch (err: any) {
             toast.error("Error al cargar logs", {
