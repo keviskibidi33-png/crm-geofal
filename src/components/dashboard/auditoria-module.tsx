@@ -66,6 +66,7 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
     const [isProcessing, setIsProcessing] = useState(false)
     const [selectedLog, setSelectedLog] = useState<any>(null)
+    const [animateSuccess, setAnimateSuccess] = useState(false)
 
     const fetchUsers = async () => {
         const { data } = await supabase.from("perfiles").select("id, full_name").order("full_name")
@@ -105,6 +106,16 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
     useEffect(() => {
         fetchLogs()
     }, [fetchLogs])
+
+    const [prevLoading, setPrevLoading] = useState(false)
+    useEffect(() => {
+        if (prevLoading && !loading) {
+            setAnimateSuccess(true)
+            const timer = setTimeout(() => setAnimateSuccess(false), 800)
+            return () => clearTimeout(timer)
+        }
+        setPrevLoading(loading)
+    }, [loading, prevLoading])
 
     const handleDownloadTxt = (content: string, filename: string) => {
         const element = document.createElement("a")
@@ -235,8 +246,14 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                     <p className="text-muted-foreground">Monitoreo de actividad y gestión de logs del sistema</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={fetchLogs} disabled={loading}>
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    <Button variant="outline" onClick={fetchLogs} disabled={loading} className="relative overflow-hidden transition-all duration-300">
+                        <RefreshCw 
+                            className={cn(
+                                "h-4 w-4 mr-2 transition-all duration-700 ease-out", 
+                                loading && "animate-spin text-primary",
+                                animateSuccess && "scale-125 rotate-[360deg] text-emerald-500"
+                            )} 
+                        />
                         Recargar
                     </Button>
                     <Button variant="secondary" onClick={() => setIsPurgeDialogOpen(true)}>
