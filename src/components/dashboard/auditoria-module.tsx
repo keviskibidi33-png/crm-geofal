@@ -324,15 +324,15 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
             <Card className="bg-card border-border overflow-hidden">
                 <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="table-fixed w-full min-w-[900px]">
                         <TableHeader className="bg-secondary/30">
                             <TableRow>
-                                <TableHead className="w-[180px]">Fecha/Hora</TableHead>
-                                <TableHead className="max-w-[200px]">Usuario</TableHead>
-                                <TableHead className="max-w-[200px]">Acción</TableHead>
-                                <TableHead>Módulo</TableHead>
-                                <TableHead>Detalles</TableHead>
-                                <TableHead className="text-right">Estado</TableHead>
+                                <TableHead className="w-[140px]">Fecha/Hora</TableHead>
+                                <TableHead className="w-[150px]">Usuario</TableHead>
+                                <TableHead className="w-[280px]">Acción</TableHead>
+                                <TableHead className="w-[120px]">Módulo</TableHead>
+                                <TableHead className="w-[320px]">Detalles</TableHead>
+                                <TableHead className="w-[90px] text-right">Estado</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -358,25 +358,25 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                                         className="hover:bg-secondary/10 transition-colors cursor-pointer group"
                                         onClick={() => setSelectedLog(log)}
                                     >
-                                        <TableCell className="text-xs text-muted-foreground">
+                                        <TableCell className="text-xs text-muted-foreground truncate" title={new Date(log.created_at).toLocaleString('es-PE')}>
                                             {new Date(log.created_at).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         </TableCell>
-                                        <TableCell className="font-semibold max-w-[150px] truncate text-sm" title={log.user_name || "Sistema"}>
+                                        <TableCell className="font-semibold truncate text-sm" title={log.user_name || "Sistema"}>
                                             {log.user_name || "Sistema"}
                                         </TableCell>
-                                        <TableCell className="max-w-[280px]" title={log.action}>
-                                            <span className="text-sm">{log.action}</span>
+                                        <TableCell className="truncate" title={log.action}>
+                                            <span className="text-sm truncate block">{log.action}</span>
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={cn("text-[10px] font-bold tracking-wider border", getModuleColor(log.module))}>
+                                        <TableCell className="truncate">
+                                            <Badge variant="outline" className={cn("text-[10px] font-bold tracking-wider border truncate max-w-full block text-center", getModuleColor(log.module))}>
                                                 {log.module || "—"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="max-w-[300px]">
+                                        <TableCell className="truncate">
                                             {(() => {
                                                 const summary = formatDetails(log.details)
                                                 return summary ? (
-                                                    <span className="text-xs text-muted-foreground truncate block">{summary}</span>
+                                                    <span className="text-xs text-muted-foreground truncate block" title={summary}>{summary}</span>
                                                 ) : (
                                                     <span className="text-xs text-muted-foreground/40">—</span>
                                                 )
@@ -568,7 +568,11 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
 
                                     {/* Other detail fields (not cambios) */}
                                     {(() => {
-                                        const otherKeys = Object.keys(selectedLog.details).filter(k => k !== 'cambios' && k !== 'campos_modificados')
+                                        const otherKeys = Object.keys(selectedLog.details).filter(k => 
+                                            k !== 'cambios' && 
+                                            k !== 'campos_modificados' &&
+                                            !['created_by_user_id', 'created_by_avatar_url', 'audience_roles', 'created_by_role', 'action', 'module', 'module_label', 'severity', 'user_id', 'user_avatar', 'avatar_url', 'created_by'].includes(k)
+                                        )
                                         if (otherKeys.length === 0) return null
                                         return (
                                             <div className="space-y-2">
@@ -576,11 +580,11 @@ export function AuditoriaModule({ user }: AuditoriaModuleProps) {
                                                     <FileText className="h-4 w-4" />
                                                     Información adicional
                                                 </Label>
-                                                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 space-y-1.5">
+                                                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 space-y-2">
                                                     {otherKeys.map(key => (
-                                                        <div key={key} className="flex items-center gap-2 text-sm">
-                                                            <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
-                                                            <span className="font-medium">{String(selectedLog.details[key])}</span>
+                                                        <div key={key} className="flex flex-col gap-0.5 py-1 border-b border-border/20 last:border-0 last:pb-0">
+                                                            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{key.replace(/_/g, ' ')}</span>
+                                                            <span className="text-sm font-medium break-words whitespace-pre-wrap">{String(selectedLog.details[key])}</span>
                                                         </div>
                                                     ))}
                                                 </div>
