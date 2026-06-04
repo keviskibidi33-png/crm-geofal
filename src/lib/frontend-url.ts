@@ -14,10 +14,18 @@ function normalizeCandidate(raw: string | undefined | null): string {
 
 function ensureProtocol(value: string): string {
   if (!value) return value
-  if (HTTP_PROTOCOL_REGEX.test(value)) return value
-  if (value.startsWith("//")) return `https:${value}`
-  if (value.startsWith("/")) return ""
-  return `https://${value}`
+  
+  // Clean up duplicate protocol prefixes like https://https://
+  let cleanValue = value.trim()
+  if (/^(https?:\/\/){2,}/i.test(cleanValue)) {
+    const isHttp = cleanValue.toLowerCase().startsWith("http://http://")
+    cleanValue = (isHttp ? "http://" : "https://") + cleanValue.replace(/^(https?:\/\/)+/i, "")
+  }
+
+  if (HTTP_PROTOCOL_REGEX.test(cleanValue)) return cleanValue
+  if (cleanValue.startsWith("//")) return `https:${cleanValue}`
+  if (cleanValue.startsWith("/")) return ""
+  return `https://${cleanValue}`
 }
 
 function removeTrailingSlashes(value: string): string {
