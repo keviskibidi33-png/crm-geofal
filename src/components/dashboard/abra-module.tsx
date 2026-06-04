@@ -508,7 +508,11 @@ export function AbraModule() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
+        <DialogContent 
+          className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader className="hidden">
             <DialogTitle>Ensayo ABRA</DialogTitle>
             <DialogDescription>Formulario ABRASION ASTM C535-16</DialogDescription>
