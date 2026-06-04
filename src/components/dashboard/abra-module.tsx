@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
 import { resolveFrontendModuleUrl } from "@/lib/frontend-url"
+import AbraForm from "./abra-native/AbraForm"
 
 interface SmartIframeProps {
   src: string
@@ -507,12 +508,16 @@ export function AbraModule() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
           <DialogHeader className="hidden">
             <DialogTitle>Ensayo ABRA</DialogTitle>
             <DialogDescription>Formulario ABRASION ASTM C535-16</DialogDescription>
           </DialogHeader>
-          <SmartIframe src={iframeSrc} title="ABRA CRM" />
+          <AbraForm
+            editId={editingEnsayoId}
+            onClose={() => setIsModalOpen(false)}
+            onSaved={fetchEnsayos}
+          />
         </DialogContent>
       </Dialog>
 

@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
 import { resolveFrontendModuleUrl } from "@/lib/frontend-url"
+import AbrassForm from "./abrass-native/AbrassForm"
 
 interface SmartIframeProps {
   src: string
@@ -507,12 +508,16 @@ export function AbrassModule() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
           <DialogHeader className="hidden">
             <DialogTitle>Ensayo ABRASS</DialogTitle>
             <DialogDescription>Formulario ABRASS ASTM C131/C131M-20</DialogDescription>
           </DialogHeader>
-          <SmartIframe src={iframeSrc} title="ABRASS CRM" />
+          <AbrassForm
+            editId={editingEnsayoId}
+            onClose={() => setIsModalOpen(false)}
+            onSaved={fetchEnsayos}
+          />
         </DialogContent>
       </Dialog>
 
