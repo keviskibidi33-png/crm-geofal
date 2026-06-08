@@ -67,7 +67,6 @@ export type SaveResponse = {
 }
 
 // --- Constants ---
-const MODULE_TITLE = "Corte Directo"
 const DRAFT_KEY = "cd_form_draft_v2"
 const DEBOUNCE_MS = 700
 const DEF_VALUES = [

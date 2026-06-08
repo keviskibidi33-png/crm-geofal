@@ -1452,7 +1452,7 @@ function ConfirmActionModal({
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="fixed inset-0 z-120 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
             <button
                 type="button"
                 className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default"
