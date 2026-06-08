@@ -165,87 +165,12 @@ export function CDModule() {
   ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
-  const syncIframeToken = async (): Promise<string | null> => {
-    const getStoredAccessToken = (): string | null => {
-      if (typeof window === "undefined") return null
-
-      const direct = localStorage.getItem("token")
-      if (direct) return direct
-
-      const extractToken = (parsed: any): string | null => {
-        if (!parsed) return null
-        if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-        if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
-        if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
-        if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
-        return null
-      }
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
-
-        const raw = localStorage.getItem(key)
-        if (!raw) continue
-
-        try {
-          const parsed = JSON.parse(raw)
-          const token = extractToken(parsed)
-          if (token) return token
-        } catch {
-          // ignore malformed entries
-        }
-      }
-
-      return null
-    }
-
-    const isTokenExpiringSoon = (jwt: string | null, skewMs = 60_000): boolean => {
-      if (!jwt) return true
-
-      try {
-        const [, payload] = jwt.split(".")
-        if (!payload) return true
-
-        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
-        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
-        const parsed = JSON.parse(window.atob(padded))
-        const expMs = typeof parsed?.exp === "number" ? parsed.exp * 1000 : null
-
-        if (!expMs) return true
-        return expMs <= Date.now() + skewMs
-      } catch {
-        return true
-      }
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const sessionToken = session?.access_token ?? null
-    const localToken = getStoredAccessToken()
-    let freshToken = !isTokenExpiringSoon(sessionToken)
-      ? sessionToken
-      : !isTokenExpiringSoon(localToken)
-        ? localToken
-        : null
-
-    if (!freshToken) {
-      try {
-        const { data } = await supabase.auth.refreshSession()
-        freshToken = data?.session?.access_token ?? getStoredAccessToken()
-      } catch {
-        freshToken = getStoredAccessToken()
-      }
-    }
-
-    if (freshToken && typeof window !== "undefined") {
-      localStorage.setItem("token", freshToken)
-    }
-
-    setToken(freshToken)
-    return freshToken
-  }
+  const formatDate = useCallback((value?: string | null) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return value
+    return new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed)
+  }, [])
 
   const fetchEnsayos = useCallback(async (): Promise<boolean> => {
     setLoading(true)
@@ -347,19 +272,6 @@ export function CDModule() {
     setCurrentPage(1)
   }, [search])
 
-  const iframeSrc = useMemo(() => {
-    const url = new URL(FRONTEND_URL)
-    if (token) url.searchParams.set("token", token)
-    if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
-    return url.toString()
-  }, [FRONTEND_URL, token, editingEnsayoId])
-
-  const formatDate = useCallback((value?: string | null) => {
-    if (!value) return "-"
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) return value
-    return new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(parsed)
-  }, [])
 
   return (
     <div className="space-y-4 lg:space-y-6">
