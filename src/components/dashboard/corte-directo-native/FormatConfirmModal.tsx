@@ -18,8 +18,8 @@ export default function FormatConfirmModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-99999 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <button
           type="button"
           onClick={onClose}
