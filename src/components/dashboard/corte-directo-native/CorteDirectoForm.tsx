@@ -416,7 +416,15 @@ async function getEnsayoDetail(ensayoId: number): Promise<EnsayoDetail> {
 }
 
 // --- Form Component ---
-export default function CorteDirectoForm({ editId }: { editId?: number }) {
+export default function CorteDirectoForm({
+  editId,
+  onSaveSuccess,
+  onClose,
+}: {
+  editId?: number
+  onSaveSuccess?: () => void
+  onClose?: () => void
+}) {
   const router = useRouter()
   const [form, setForm] = useState<FormState>(() => initialState())
   const [loading, setLoading] = useState(false)
@@ -599,7 +607,11 @@ export default function CorteDirectoForm({ editId }: { editId?: number }) {
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? "new"}`)
         setForm(initialState())
         setEnsayoId(null)
-        router.push("/dashboard")
+        if (onSaveSuccess) {
+          onSaveSuccess()
+        } else {
+          router.push("/dashboard")
+        }
         toast.success(download ? "Corte directo guardado y descargado." : "Corte directo guardado.")
       } catch (err: any) {
         const msg = err.message || "No se pudo generar CD."
@@ -608,11 +620,15 @@ export default function CorteDirectoForm({ editId }: { editId?: number }) {
         setLoading(false)
       }
     },
-    [ensayoId, form, router]
+    [ensayoId, form, router, onSaveSuccess]
   )
 
   const handleClose = () => {
-    router.push("/dashboard")
+    if (onClose) {
+      onClose()
+    } else {
+      router.push("/dashboard")
+    }
   }
 
   useEffect(() => {

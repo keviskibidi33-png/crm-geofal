@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
+import CorteDirectoForm from "./corte-directo-native/CorteDirectoForm"
 
 interface SmartIframeProps {
   src: string
@@ -194,12 +195,17 @@ export function CDModule() {
     void fetchEnsayos()
   }, [fetchEnsayos])
 
+  const [activeFormMode, setActiveFormMode] = useState<"new" | "edit" | null>(null)
+  const [activeEnsayoId, setActiveEnsayoId] = useState<number | null>(null)
+
   const openNewEnsayo = () => {
-    router.push("/dashboard/corte-directo")
+    setActiveFormMode("new")
+    setActiveEnsayoId(null)
   }
 
   const openEditEnsayo = (id: number) => {
-    router.push(`/dashboard/corte-directo?ensayo_id=${id}`)
+    setActiveEnsayoId(id)
+    setActiveFormMode("edit")
   }
 
   const openDetail = async (id: number) => {
@@ -268,6 +274,18 @@ export function CDModule() {
   const safeCurrentPage = Math.min(currentPage, totalPages)
   const paginatedData = filtered.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage)
 
+  const handleCloseForm = () => {
+    setActiveFormMode(null)
+    setActiveEnsayoId(null)
+    void fetchEnsayos()
+  }
+
+  const handleSaveSuccess = () => {
+    setActiveFormMode(null)
+    setActiveEnsayoId(null)
+    void fetchEnsayos()
+  }
+
   useEffect(() => {
     setCurrentPage(1)
   }, [search])
@@ -275,6 +293,16 @@ export function CDModule() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      {activeFormMode && (
+        <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200">
+          <CorteDirectoForm 
+            editId={activeEnsayoId || undefined} 
+            onClose={handleCloseForm} 
+            onSaveSuccess={handleSaveSuccess}
+          />
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div className="shrink-0 p-2 rounded-lg bg-primary/10">
