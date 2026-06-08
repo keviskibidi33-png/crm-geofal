@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
+import EnsayosEspecialesForm from "./ensayos-especiales-native/EnsayosEspecialesForm"
 import {
   Table,
   TableBody,
@@ -668,33 +669,21 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
         </Table>
       </div>
 
-      {/* Iframe overlay */}
+      {/* Native form overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200">
-          <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
-            <div className="flex items-center gap-3">
-              <Beaker className="h-6 w-6 text-indigo-600" />
-              <div>
-                <h1 className="text-base font-bold text-slate-900 tracking-tight sm:text-lg">{config.title}</h1>
-                <p className="text-xs text-slate-500">Módulo del CRM</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
-              title="Regresar al Dashboard"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <SmartIframe
-              src={iframeSrc}
-              title={`${config.title} CRM`}
-              expectedModule={config.apiSlug}
-              onModuleMismatch={handleIframeModuleMismatch}
-            />
-          </div>
+        <div className="fixed inset-0 z-50 bg-slate-100 overflow-y-auto animate-in fade-in duration-200">
+          <EnsayosEspecialesForm
+            ensayoId={editingEnsayoId}
+            moduleSlug={config.apiSlug}
+            onClose={() => {
+              setIsModalOpen(false)
+              void fetchEnsayos()
+            }}
+            onSaveSuccess={() => {
+              setIsModalOpen(false)
+              void fetchEnsayos()
+            }}
+          />
         </div>
       )}
 
