@@ -1,14 +1,13 @@
-
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { Plus, Beaker, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Plus, Beaker, Loader2, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { authFetch } from "@/lib/api-auth"
+import CorteDirectoForm from "./corte-directo-native/CorteDirectoForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
-import { supabase } from "@/lib/supabaseClient"
-import { toast } from "sonner"
 import {
   Table,
   TableBody,
@@ -18,14 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { authFetch } from "@/lib/api-auth"
-import CorteDirectoForm from "./corte-directo-native/CorteDirectoForm"
-
-interface SmartIframeProps {
-  src: string
-  title: string
-}
+import { toast } from "sonner"
 
 interface EnsayoSummary {
   id: number
@@ -46,106 +38,7 @@ interface EnsayoDetail extends EnsayoSummary {
   } | null
 }
 
-function SmartIframe({ src, title }: SmartIframeProps) {
-  const [key, setKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const handleLoad = () => {
-    setIsLoading(false)
-    setError(null)
-    setRetryCount(0)
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  const handleRetry = useCallback(() => {
-    setIsLoading(true)
-    setError(null)
-    setKey((prev) => prev + 1)
-    setRetryCount((prev) => prev + 1)
-  }, [])
-
-  useEffect(() => {
-    if (!isLoading) return
-
-    const timeoutMs = 12000 + (retryCount * 6000)
-    timeoutRef.current = setTimeout(() => {
-      if (retryCount < 2) {
-        toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
-        setTimeout(() => {
-          toast.dismiss()
-          handleRetry()
-        }, 1500)
-      } else {
-        setError(`El servicio no responde despues de varios intentos (${timeoutMs / 1000}s).`)
-        setIsLoading(false)
-      }
-    }, timeoutMs)
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-    }
-  }, [isLoading, retryCount, handleRetry])
-
-  const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
-    return url.toString()
-  }, [src, retryCount])
-
-  return (
-    <div className="w-full h-full relative bg-gray-50">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">Conectando con el modulo...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center">
-          <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <AlertCircle className="h-10 w-10 text-red-500" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Conexion interrumpida</h3>
-          <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">{error}</p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Recargar pagina
-            </Button>
-            <Button onClick={handleRetry} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reintentar conexion
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <iframe
-        key={key}
-        src={currentSrc}
-        className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
-        title={title}
-        onLoad={handleLoad}
-        onError={() => setError("Error al cargar el iframe.")}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        loading="eager"
-      />
-    </div>
-  )
-}
-
 export function CDModule() {
-  const router = useRouter()
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [ensayos, setEnsayos] = useState<EnsayoSummary[]>([])
   const [selectedDetail, setSelectedDetail] = useState<EnsayoDetail | null>(null)
@@ -159,11 +52,6 @@ export function CDModule() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
 
-  const FRONTEND_URL = (
-    process.env.NEXT_PUBLIC_CD_FRONTEND_URL ||
-    process.env.NEXT_PUBLIC_CD_URL ||
-    "https://cd.geofal.com.pe"
-  ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
   const formatDate = useCallback((value?: string | null) => {
