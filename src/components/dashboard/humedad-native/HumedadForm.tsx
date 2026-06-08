@@ -422,13 +422,6 @@ const isFormAtInitialState = (form: HumedadFormState): boolean => {
 const hasNumberValue = (value: number | undefined | null): boolean =>
     value !== null && value !== undefined && !Number.isNaN(value)
 
-const getEnsayoIdFromQuery = (): number | null => {
-    const raw = new URLSearchParams(window.location.search).get('ensayo_id')
-    if (!raw) return null
-    const parsed = Number(raw)
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
-}
-
 export default function HumedadForm({
     editId,
     onClose,
@@ -757,7 +750,7 @@ export default function HumedadForm({
         } finally {
             setLoading(false)
         }
-    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.muestra, form.numero_ot, form.realizado_por, minimoHastaFila7Completo])
+    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.muestra, form.numero_ot, form.realizado_por, minimoHastaFila7Completo, onSaveSuccess])
 
     // ── Render ────────────────────────────────────────────────────────
     return (

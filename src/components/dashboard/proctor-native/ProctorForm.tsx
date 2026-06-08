@@ -555,13 +555,6 @@ const isFormAtInitialState = (form: ProctorPayload): boolean => {
     return areFormsEquivalent(form, buildInitialState())
 }
 
-const getEnsayoIdFromQuery = (): number | null => {
-    const raw = new URLSearchParams(window.location.search).get('ensayo_id')
-    if (!raw) return null
-    const parsed = Number(raw)
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
-}
-
 interface PointComputed {
     masa_suelo_compactado_c: number | null
     densidad_humeda_x: number | null
@@ -1055,7 +1048,7 @@ export default function ProctorForm({
         } finally {
             setLoading(false)
         }
-    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.excluyo_material_muestra, form.muestra, form.numero_ot, form.observaciones, form.realizado_por])
+    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.excluyo_material_muestra, form.muestra, form.numero_ot, form.observaciones, form.realizado_por, onSaveSuccess])
 
     return (
         <div className="max-w-[1780px] mx-auto p-4 md:p-6">
