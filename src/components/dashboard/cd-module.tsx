@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, Beaker, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -143,9 +144,8 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 
 export function CDModule() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [token, setToken] = useState<string | null>(null)
   const [ensayos, setEnsayos] = useState<EnsayoSummary[]>([])
   const [selectedDetail, setSelectedDetail] = useState<EnsayoDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -154,7 +154,6 @@ export function CDModule() {
   const [deletingEnsayoId, setDeletingEnsayoId] = useState<number | null>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("")
-  const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
@@ -268,44 +267,14 @@ export function CDModule() {
 
   useEffect(() => {
     void fetchEnsayos()
-    void syncIframeToken()
   }, [fetchEnsayos])
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "CLOSE_MODAL") {
-        setIsModalOpen(false)
-        void fetchEnsayos()
-      }
-      if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
-        syncIframeToken().then((freshToken) => {
-          if (freshToken && event.source) {
-            ;(event.source as Window).postMessage(
-              {
-                type: "TOKEN_REFRESH",
-                token: freshToken,
-                requestId: typeof event.data?.requestId === "string" ? event.data.requestId : undefined,
-              },
-              event.origin || "*",
-            )
-          }
-        })
-      }
-    }
-    window.addEventListener("message", handleMessage)
-    return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos])
-
-  const openNewEnsayo = async () => {
-    await syncIframeToken()
-    setEditingEnsayoId(null)
-    setIsModalOpen(true)
+  const openNewEnsayo = () => {
+    router.push("/dashboard/corte-directo")
   }
 
-  const openEditEnsayo = async (id: number) => {
-    await syncIframeToken()
-    setEditingEnsayoId(id)
-    setIsModalOpen(true)
+  const openEditEnsayo = (id: number) => {
+    router.push(`/dashboard/corte-directo?ensayo_id=${id}`)
   }
 
   const openDetail = async (id: number) => {
@@ -498,15 +467,7 @@ export function CDModule() {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-          <DialogHeader className="hidden">
-            <DialogTitle>Ensayo CD</DialogTitle>
-            <DialogDescription>Formulario CD</DialogDescription>
-          </DialogHeader>
-          <SmartIframe src={iframeSrc} title="CD CRM" />
-        </DialogContent>
-      </Dialog>
+
 
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-xl">
