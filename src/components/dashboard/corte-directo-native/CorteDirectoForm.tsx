@@ -268,7 +268,7 @@ const HUMEDAD_NAV_ROWS = {
   "4": 3,
 } as const
 
-const normalizeArray = <T>(value: T[] | undefined, length: number, fallback: T): T[] => {
+const normalizeArray = <T,>(value: T[] | undefined, length: number, fallback: T): T[] => {
   const result = Array.from({ length }, () => fallback)
   if (!value) return result
   value.slice(0, length).forEach((item, idx) => {

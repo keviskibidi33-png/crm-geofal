@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Gauge, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { Plus, Gauge, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
@@ -175,6 +175,17 @@ export function CBRModule() {
     const [search, setSearch] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 100
+    
+    useEffect(() => {
+        if (isModalOpen) {
+            document.body.classList.add("overflow-hidden")
+        } else {
+            document.body.classList.remove("overflow-hidden")
+        }
+        return () => {
+            document.body.classList.remove("overflow-hidden")
+        }
+    }, [isModalOpen])
 
     const FRONTEND_URL = (
         process.env.NEXT_PUBLIC_CBR_FRONTEND_URL ||
@@ -556,19 +567,33 @@ export function CBRModule() {
                 )}
             </div>
 
-            {/* Iframe modal */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-                    <DialogHeader className="hidden">
-                        <DialogTitle>Ensayo CBR</DialogTitle>
-                        <DialogDescription>Formulario CBR ASTM D1883-21</DialogDescription>
-                    </DialogHeader>
-                    <SmartIframe
-                        src={iframeSrc}
-                        title="CBR CRM"
-                    />
-                </DialogContent>
-            </Dialog>
+            {/* Iframe overlay */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200">
+                    <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+                        <div className="flex items-center gap-3">
+                            <Gauge className="h-6 w-6 text-indigo-600" />
+                            <div>
+                                <h1 className="text-base font-bold text-slate-900 tracking-tight sm:text-lg">CBR ASTM D1883-21</h1>
+                                <p className="text-xs text-slate-500">Módulo del CRM</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <SmartIframe
+                            src={iframeSrc}
+                            title="CBR CRM"
+                        />
+                    </div>
+                </div>
+            )}
 
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-xl">

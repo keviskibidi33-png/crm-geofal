@@ -650,7 +650,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                     <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
                         <DialogTitle className="sr-only">
-                            {editId ? "Editar F. Probetas" : "Nuevo F. Probetas"}
+                            {nativeEditId ? "Editar F. Probetas" : "Nuevo F. Probetas"}
                         </DialogTitle>
                         <DialogDescription className="sr-only">
                             Formulario nativo de formato de probetas.
