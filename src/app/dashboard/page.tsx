@@ -92,7 +92,6 @@ export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("crm-active-module") as ModuleType
-      if (saved === "oficina_tecnica") return "laboratorio"
       return saved || "clientes"
     }
     return "clientes"
@@ -156,11 +155,7 @@ export default function DashboardPage() {
     // console.log('[CRM] Nuevo valor de activeModule:', activeModule) // Cleaned log
   }, [activeModule])
 
-  useEffect(() => {
-    if (activeModule === "oficina_tecnica") {
-      setActiveModule("laboratorio")
-    }
-  }, [activeModule])
+
 
   useEffect(() => {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
