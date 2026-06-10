@@ -435,8 +435,9 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
       }
     }
 
-    let nextLem = incrementString(lastLem);
-    while (nextLem && existingCodes.has(nextLem.trim().toUpperCase())) {
+    const isPlaceholderCode = lastLem.trim() === "-";
+    let nextLem = isPlaceholderCode ? "-" : incrementString(lastLem);
+    while (!isPlaceholderCode && nextLem && existingCodes.has(nextLem.trim().toUpperCase())) {
       nextLem = incrementString(nextLem);
     }
 
@@ -580,7 +581,7 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
     e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
     name: string
   ) => {
-    let val = e.target.value.trim();
+    const val = e.target.value.trim();
     if (!val) return;
 
     if (val.includes("/")) {
@@ -1169,7 +1170,7 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
                                 <Input
                                   value={hField.value || ""}
                                   onChange={(e) => {
-                                    let v = e.target.value.replace(/[^\d:]/g, "");
+                                    const v = e.target.value.replace(/[^\d:]/g, "");
                                     const dg = v.replace(/:/g, "");
                                     if (dg.length <= 6) {
                                       let formatted = "";

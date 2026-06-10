@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, Droplets, FlaskConical, Trash2, X } from 'lucide-react'
@@ -253,9 +254,9 @@ const normalizeFlexibleDate = (raw: string): string => {
     return value
 }
 
-const sanitizeAlphaNumericText = (raw: string): string => {
+const sanitizeParticulaText = (raw: string): string => {
     return raw
-        .replace(/[^0-9A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, '')
+        .replace(/[^0-9A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s-]/g, '')
         .replace(/\s+/g, ' ')
 }
 
@@ -386,7 +387,7 @@ const hydrateHumedadFormState = (candidate: Partial<HumedadFormState>): HumedadF
         metodo_prueba: metodoPrueba,
         metodo_a: metodoPrueba === 'A',
         metodo_b: metodoPrueba === 'B',
-        forma_particula: sanitizeAlphaNumericText(mergedPayload.forma_particula || ''),
+        forma_particula: sanitizeParticulaText(mergedPayload.forma_particula || ''),
     }
 }
 
@@ -526,7 +527,7 @@ export default function HumedadForm({
 
     const buildPayload = useCallback((): HumedadPayload & { metodo_prueba?: MetodoPruebaOption; forma_particula?: string } => {
         const metodoPrueba = resolveMetodoPrueba(form)
-        const formaParticula = sanitizeAlphaNumericText(form.forma_particula || '').trim()
+        const formaParticula = sanitizeParticulaText(form.forma_particula || '').trim()
         const payload: HumedadPayload & { metodo_prueba?: MetodoPruebaOption; forma_particula?: string } = {
             ...form,
             metodo_prueba: metodoPrueba,
@@ -750,7 +751,7 @@ export default function HumedadForm({
         } finally {
             setLoading(false)
         }
-    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.muestra, form.numero_ot, form.realizado_por, minimoHastaFila7Completo, onSaveSuccess])
+    }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.muestra, form.numero_ot, form.realizado_por, onSaveSuccess])
 
     // ── Render ────────────────────────────────────────────────────────
     return (
@@ -904,7 +905,7 @@ export default function HumedadForm({
                             <Input
                                 label="Forma de la partícula"
                                 value={form.forma_particula || ''}
-                                onChange={v => set('forma_particula', sanitizeAlphaNumericText(v))}
+                                onChange={v => set('forma_particula', sanitizeParticulaText(v))}
                                 placeholder="Ej: Angular 12"
                             />
                         </div>
@@ -1214,8 +1215,8 @@ function ConfirmActionModal({
 }) {
     if (!isOpen) return null
 
-    return (
-        <div className="fixed inset-0 z-120 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label={title}>
             <button
                 type="button"
                 className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default"
@@ -1251,7 +1252,8 @@ function ConfirmActionModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     )
 }
 
