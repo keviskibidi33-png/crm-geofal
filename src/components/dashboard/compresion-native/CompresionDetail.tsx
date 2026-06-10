@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Loader2, FileText } from "lucide-react"
 import type { CompresionEnsayo } from "@/types/compresion"
+import { formatLocalDate } from "@/lib/utils"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -130,14 +131,10 @@ export default function CompresionDetail({ ensayoId, onClose }: CompresionDetail
                       {item.codigo_lem || "-"}
                     </TableCell>
                     <TableCell className="text-xs py-2">
-                      {item.fecha_ensayo_programado
-                        ? new Date(item.fecha_ensayo_programado).toLocaleDateString("es-PE")
-                        : "-"}
+                      {formatLocalDate(item.fecha_ensayo_programado)}
                     </TableCell>
                     <TableCell className="text-xs font-semibold py-2">
-                      {item.fecha_ensayo
-                        ? new Date(item.fecha_ensayo).toLocaleDateString("es-PE")
-                        : "-"}
+                      {formatLocalDate(item.fecha_ensayo)}
                     </TableCell>
                     <TableCell className="text-xs py-2">{item.hora_ensayo || "-"}</TableCell>
                     <TableCell className="text-xs font-bold text-green-700 py-2">
@@ -148,15 +145,11 @@ export default function CompresionDetail({ ensayoId, onClose }: CompresionDetail
                     <TableCell className="text-[10px] py-2">{item.realizado || "-"}</TableCell>
                     <TableCell className="text-[10px] py-2">{item.revisado || "-"}</TableCell>
                     <TableCell className="text-xs py-2">
-                      {item.fecha_revisado
-                        ? new Date(item.fecha_revisado).toLocaleDateString("es-PE")
-                        : "-"}
+                      {formatLocalDate(item.fecha_revisado)}
                     </TableCell>
                     <TableCell className="text-[10px] py-2">{item.aprobado || "-"}</TableCell>
                     <TableCell className="text-xs py-2">
-                      {item.fecha_aprobado
-                        ? new Date(item.fecha_aprobado).toLocaleDateString("es-PE")
-                        : "-"}
+                      {formatLocalDate(item.fecha_aprobado)}
                     </TableCell>
                   </TableRow>
                 ))}

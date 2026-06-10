@@ -24,6 +24,7 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
+import { formatLocalDate } from "@/lib/utils"
 import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard"
 import { TimelineEtapas } from "@/components/dashboard/shared/TimelineEtapas"
 import dynamic from "next/dynamic"
@@ -800,10 +801,10 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                                         <TableCell className="text-xs font-bold text-center py-2">{m.item}</TableCell>
                                                         <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem || '-'}</TableCell>
                                                         <TableCell className="text-xs py-2">
-                                                            {m.fecha_ensayo_programado ? new Date(m.fecha_ensayo_programado).toLocaleDateString('es-PE') : '-'}
+                                                            {formatLocalDate(m.fecha_ensayo_programado)}
                                                         </TableCell>
                                                         <TableCell className="text-xs font-semibold py-2">
-                                                            {m.fecha_ensayo ? new Date(m.fecha_ensayo).toLocaleDateString('es-PE') : '-'}
+                                                            {formatLocalDate(m.fecha_ensayo)}
                                                         </TableCell>
                                                         <TableCell className="text-xs py-2">{m.hora_ensayo || '-'}</TableCell>
                                                         <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima != null ? `${m.carga_maxima} kN` : '-'}</TableCell>
@@ -812,11 +813,11 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                                         <TableCell className="text-[10px] text-slate-500 py-2">{m.realizado || '-'}</TableCell>
                                                         <TableCell className="text-[10px] text-slate-500 py-2">{m.revisado || '-'}</TableCell>
                                                         <TableCell className="text-xs py-2">
-                                                            {m.fecha_revision ? new Date(m.fecha_revision).toLocaleDateString('es-PE') : '-'}
+                                                            {formatLocalDate(m.fecha_revision)}
                                                         </TableCell>
                                                         <TableCell className="text-[10px] text-slate-500 py-2">{m.aprobado || '-'}</TableCell>
                                                         <TableCell className="text-xs py-2">
-                                                            {m.fecha_aprobacion ? new Date(m.fecha_aprobacion).toLocaleDateString('es-PE') : '-'}
+                                                            {formatLocalDate(m.fecha_aprobacion)}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
