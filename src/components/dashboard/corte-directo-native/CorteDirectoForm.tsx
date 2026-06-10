@@ -192,7 +192,11 @@ const normalizeFlexibleDate = (raw: string): string => {
 
 const parseNum = (value: string) => {
   if (value.trim() === "") return null
-  const parsed = Number(value)
+  const normalized = value
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/,/g, ".")
+  const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : null
 }
 

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Beaker, Trash2, X } from 'lucide-react'
@@ -1444,8 +1445,8 @@ function ConfirmActionModal({
 }) {
     if (!isOpen) return null
 
-    return (
-        <div className="fixed inset-0 z-120 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label={title}>
             <button
                 type="button"
                 className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default"
@@ -1481,7 +1482,8 @@ function ConfirmActionModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     )
 }
 

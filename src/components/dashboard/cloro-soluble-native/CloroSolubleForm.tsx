@@ -340,12 +340,6 @@ const CLORO_NAV_ROWS = {
     h: 6,
 } as const
 
-const getEnsayoId = () => {
-    const raw = new URLSearchParams(window.location.search).get('ensayo_id')
-    const n = Number(raw)
-    return Number.isInteger(n) && n > 0 ? n : null
-}
-
 type FormState = {
     muestra: string
     numero_ot: string
@@ -627,6 +621,8 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
             ensayoId,
             form,
             resolvedTitulacion,
+            onClose,
+            onSaveSuccess,
         ],
     )
 
