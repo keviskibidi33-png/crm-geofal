@@ -1,11 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   RefreshCw,
   Search,
   Calendar,
-  Beaker,
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -21,7 +20,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { useAuth } from "@/hooks/use-auth"
 import { authFetch } from "@/lib/api-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -88,7 +86,7 @@ interface ControlProbetasModuleProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
-export function ControlProbetasModule({ user, onNavigateModule }: ControlProbetasModuleProps) {
+export function ControlProbetasModule({ onNavigateModule }: ControlProbetasModuleProps) {
   const [loading, setLoading] = useState(false)
   const [kpisLoading, setKpisLoading] = useState(false)
   
@@ -380,7 +378,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 [color-scheme:light]"
+                className="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 scheme-light"
               />
             </div>
 
@@ -393,7 +391,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 [color-scheme:light]"
+                className="bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 scheme-light"
               />
             </div>
           </div>

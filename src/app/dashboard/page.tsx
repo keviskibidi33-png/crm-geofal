@@ -413,7 +413,7 @@ export default function DashboardPage() {
         return (
           <ControlProbetasModule
             user={dashboardUser}
-            onNavigateModule={(module, recordId) => {
+            onNavigateModule={(module: any, recordId: number | null) => {
               if (module === "compresion" && recordId) {
                 setPendingLabNotification({ module: "compresion", recordId })
               }
