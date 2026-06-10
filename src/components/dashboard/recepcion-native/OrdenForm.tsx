@@ -257,6 +257,9 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
   useEffect(() => {
     if (importedData && !isEditMode) {
       const d = importedData;
+      if (d.numero_recepcion !== undefined) setValue("numero_recepcion", normalizeImportedText(d.numero_recepcion).toUpperCase());
+      if (d.numero_cotizacion !== undefined) setValue("numero_cotizacion", normalizeImportedText(d.numero_cotizacion).toUpperCase());
+      if (d.numero_ot !== undefined) setValue("numero_ot", normalizeImportedText(d.numero_ot).toUpperCase());
       if (d.cliente) setValue("cliente", normalizeImportedText(d.cliente));
       if (d.ruc) setValue("ruc", normalizeRucValue(d.ruc));
       if (d.persona_contacto) {
