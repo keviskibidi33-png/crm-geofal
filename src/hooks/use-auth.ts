@@ -282,6 +282,7 @@ const TECHNICAL_MODULES: PermissionModuleId[] = [
     "recepcion",
     "verificacion_muestras",
     "compresion",
+    "control_probetas",
     "humedad",
     "cont_humedad",
     "planas",

@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -37,6 +37,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
+  { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
   { id: "humedad", label: "Humedad Suelo", icon: Beaker, adminOnly: true },
   { id: "cont_humedad", label: "Humedad AG", icon: Beaker, adminOnly: true },
   { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
@@ -74,7 +75,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "auditoria", label: "Auditoría", icon: Activity, adminOnly: true },
   { id: "configuracion", label: "Configuración", icon: Settings },
 ]
-
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)

@@ -8,6 +8,7 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "recepcion", label: "Recepción Probetas" },
   { id: "verificacion_muestras", label: "Verificación Probetas" },
   { id: "compresion", label: "F. Probetas" },
+  { id: "control_probetas", label: "Control Probetas" },
   { id: "humedad", label: "Humedad Suelo" },
   { id: "cont_humedad", label: "Humedad AG" },
   { id: "cbr", label: "CBR" },
