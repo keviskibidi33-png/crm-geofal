@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FileText, X } from 'lucide-react'
 
@@ -40,7 +40,7 @@ export default function FormatConfirmModal({ open, formatLabel, actionLabel, onC
 
     const modalContent = (
         <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md"
+            className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-md"
             onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
         >
             <div className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -60,7 +60,7 @@ export default function FormatConfirmModal({ open, formatLabel, actionLabel, onC
                 <div className="text-center">
                     <h3 className="text-xl font-bold text-slate-900">Confirmar formato</h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                        Se generarÃ¡ el registro con la siguiente denominaciÃ³n obligatoria antes de continuar.
+                        Se generará el registro con la siguiente denominación obligatoria antes de continuar.
                     </p>
                 </div>
 
