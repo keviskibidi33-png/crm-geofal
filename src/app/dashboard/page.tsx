@@ -51,6 +51,7 @@ const ProgramacionModule = dashboardDynamic(async () => (await import("@/compone
 const VerificacionMuestrasModule = dashboardDynamic(async () => (await import("@/components/dashboard/verificacion-muestras-module")).VerificacionMuestrasModule)
 const CompresionModule = dashboardDynamic(async () => (await import("@/components/dashboard/compresion-module")).CompresionModule)
 const ControlProbetasModule = dashboardDynamic(async () => (await import("@/components/dashboard/control-probetas-module")).ControlProbetasModule)
+const ControlProbetasNativeModule = dashboardDynamic(async () => (await import("@/components/dashboard/control-probetas-native-module")).ControlProbetasNativeModule)
 const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
 const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
@@ -418,6 +419,18 @@ export default function DashboardPage() {
                 setPendingLabNotification({ module: "compresion", recordId })
               }
               setActiveModule(module)
+            }}
+          />
+        )
+      case "control_probetas_nativo":
+        return (
+          <ControlProbetasNativeModule
+            user={dashboardUser}
+            onNavigateModule={(module: any, recordId: number | null) => {
+              if (module === "compresion" && recordId) {
+                setPendingLabNotification({ module: "compresion", recordId })
+              }
+              setActiveModule(module as any)
             }}
           />
         )
