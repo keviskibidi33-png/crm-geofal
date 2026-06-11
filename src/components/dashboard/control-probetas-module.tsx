@@ -674,7 +674,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
       if (fechaInicio) queryParams.set("fecha_inicio", fechaInicio)
       if (fechaFin) queryParams.set("fecha_fin", fechaFin)
 
-      const response = await authFetch(`${API_URL}/api/control-probetas?${queryParams.toString()}`)
+      const response = await authFetch(`${API_URL}/api/control-probetas/?${queryParams.toString()}`)
       if (!response.ok) throw new Error("No se pudieron cargar los especímenes")
       const data = await response.json()
       setItems(data.items)
