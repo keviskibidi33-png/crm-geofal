@@ -22,13 +22,24 @@ export async function buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<
 }
 
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+    let finalInput = input
+    if (typeof finalInput === "string") {
+        if (finalInput.startsWith("http://api.geofal.com.pe")) {
+            finalInput = finalInput.replace("http://api.geofal.com.pe", "https://api.geofal.com.pe")
+        }
+    } else if (finalInput instanceof URL) {
+        if (finalInput.href.startsWith("http://api.geofal.com.pe")) {
+            finalInput = new URL(finalInput.href.replace("http://api.geofal.com.pe", "https://api.geofal.com.pe"))
+        }
+    }
+
     const headers = await buildAuthHeaders(init.headers)
 
     if (init.body instanceof FormData) {
         headers.delete("Content-Type")
     }
 
-    return fetch(input, {
+    return fetch(finalInput, {
         ...init,
         headers,
     })
