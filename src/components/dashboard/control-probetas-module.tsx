@@ -1,16 +1,19 @@
 "use client"
 
-import { useMemo } from "react"
+import { useState, useMemo } from "react"
 import { BarChart3, Calendar, ArrowRight, CheckCircle2, ClipboardList } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { ControlProbetasNativeModule } from "@/components/dashboard/control-probetas-native-module"
 
 interface ControlProbetasModuleProps {
   user: any
   onNavigateModule: (module: any, recordId: number | null) => void
 }
 
-export function ControlProbetasModule({ onNavigateModule }: ControlProbetasModuleProps) {
+export function ControlProbetasModule({ user, onNavigateModule }: ControlProbetasModuleProps) {
+  const [nativeOpen, setNativeOpen] = useState(false)
   const stats = useMemo(
     () => [
       { label: "Recepciones activas", value: "—", icon: ClipboardList },
@@ -30,7 +33,7 @@ export function ControlProbetasModule({ onNavigateModule }: ControlProbetasModul
           </p>
         </div>
         <Button
-          onClick={() => onNavigateModule("control_probetas_nativo", null)}
+          onClick={() => setNativeOpen(true)}
           className="h-10 rounded-xl bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700"
         >
           Abrir Nativo
@@ -67,7 +70,7 @@ export function ControlProbetasModule({ onNavigateModule }: ControlProbetasModul
           </div>
           <Button
             variant="outline"
-            onClick={() => onNavigateModule("control_probetas_nativo", null)}
+            onClick={() => setNativeOpen(true)}
             className="h-9 border-slate-200 bg-white text-xs font-bold"
           >
             Ir a tabla nativa
@@ -75,6 +78,18 @@ export function ControlProbetasModule({ onNavigateModule }: ControlProbetasModul
           </Button>
         </CardContent>
       </Card>
+
+      <Dialog open={nativeOpen} onOpenChange={setNativeOpen}>
+        <DialogContent className="max-h-[92vh] max-w-[96vw] overflow-hidden p-0">
+          <ControlProbetasNativeModule
+            user={user}
+            onNavigateModule={(module: any, recordId: number | null) => {
+              setNativeOpen(false)
+              onNavigateModule(module, recordId)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
