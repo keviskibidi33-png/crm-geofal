@@ -570,7 +570,7 @@ export function HumedadModule() {
 
             {/* Native Humedad Form overlay */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200 overflow-y-auto">
+                <div data-form-overlay className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200 overflow-y-auto">
                     <HumedadForm
                         editId={editingEnsayoId ?? undefined}
                         onClose={() => {

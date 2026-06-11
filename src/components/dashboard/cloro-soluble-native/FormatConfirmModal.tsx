@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FileText, X } from 'lucide-react'
 
@@ -12,16 +12,37 @@ type FormatConfirmModalProps = {
 
 export default function FormatConfirmModal({ open, formatLabel, actionLabel, onClose, onConfirm }: FormatConfirmModalProps) {
     const [mounted, setMounted] = useState(false)
+    const scrollContainerRef = useRef<Element | null>(null)
 
     useEffect(() => {
         setMounted(true)
         return () => setMounted(false)
     }, [])
 
+    // Lock scroll on the nearest overflow-y-auto ancestor when modal is open
+    useEffect(() => {
+        if (!open) return
+
+        // Find the scrollable container: fixed inset-0 overlay OR document.documentElement
+        const overlay = document.querySelector('[data-form-overlay]')
+        const target = overlay ?? document.documentElement
+        scrollContainerRef.current = target
+
+        const prev = (target as HTMLElement).style.overflow
+        ;(target as HTMLElement).style.overflow = 'hidden'
+
+        return () => {
+            ;(target as HTMLElement).style.overflow = prev
+        }
+    }, [open])
+
     if (!open) return null
 
     const modalContent = (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md">
+        <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+        >
             <div className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                 <button
                     type="button"

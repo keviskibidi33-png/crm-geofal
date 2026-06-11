@@ -671,7 +671,7 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
 
       {/* Native form overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-100 overflow-y-auto animate-in fade-in duration-200">
+        <div data-form-overlay className="fixed inset-0 z-50 bg-slate-100 overflow-y-auto animate-in fade-in duration-200">
           <EnsayosEspecialesForm
             ensayoId={editingEnsayoId}
             moduleSlug={config.apiSlug}
