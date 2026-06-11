@@ -111,6 +111,89 @@ const formatDateDisplay = (dateStr?: string) => {
   return dateStr.replace(/-/g, "/")
 }
 
+// Date Parsing and Formatting Helpers (Spreadsheet Style)
+const formatDateToDDMMYY = (dateStr?: string | null) => {
+  if (!dateStr) return ""
+  const clean = dateStr.replace(/\//g, "-").split("T")[0]
+  const parts = clean.split("-")
+  if (parts.length !== 3) return dateStr
+  const [year, month, day] = parts
+  return `${day}/${month}/${year.slice(-2)}`
+}
+
+const parseDDMMYYToDate = (displayStr: string): string | null => {
+  const clean = displayStr.trim().replace(/[-\s.]/g, "/");
+  if (!clean) return null;
+
+  let day = "";
+  let month = "";
+  let year = "";
+
+  if (clean.includes("/")) {
+    const parts = clean.split("/").filter(Boolean);
+    if (parts.length === 2) {
+      day = parts[0];
+      month = parts[1];
+      year = String(new Date().getFullYear());
+    } else if (parts.length === 3) {
+      day = parts[0];
+      month = parts[1];
+      year = parts[2];
+    } else {
+      return null;
+    }
+  } else {
+    if (!/^\d+$/.test(clean)) return null;
+
+    if (clean.length === 2) {
+      day = clean[0];
+      month = clean[1];
+      year = String(new Date().getFullYear());
+    } else if (clean.length === 3) {
+      const d12 = parseInt(clean.slice(0, 2), 10);
+      const m12 = parseInt(clean.slice(2), 10);
+      const d1 = parseInt(clean.slice(0, 1), 10);
+      const m23 = parseInt(clean.slice(1), 10);
+
+      if (d12 <= 31 && m12 >= 1 && m12 <= 12) {
+        day = clean.slice(0, 2);
+        month = clean.slice(2);
+      } else if (d1 <= 31 && m23 >= 1 && m23 <= 12) {
+        day = clean.slice(0, 1);
+        month = clean.slice(1);
+      } else {
+        return null;
+      }
+      year = String(new Date().getFullYear());
+    } else if (clean.length === 4) {
+      day = clean.slice(0, 2);
+      month = clean.slice(2, 4);
+      year = String(new Date().getFullYear());
+    } else if (clean.length === 6) {
+      day = clean.slice(0, 2);
+      month = clean.slice(2, 4);
+      year = clean.slice(4, 6);
+    } else if (clean.length === 8) {
+      day = clean.slice(0, 2);
+      month = clean.slice(2, 4);
+      year = clean.slice(4, 8);
+    } else {
+      return null;
+    }
+  }
+
+  const dNum = parseInt(day, 10);
+  const mNum = parseInt(month, 10);
+  if (isNaN(dNum) || isNaN(mNum) || dNum < 1 || dNum > 31 || mNum < 1 || mNum > 12) {
+    return null;
+  }
+
+  const fullYear = year.length === 2 ? `20${year}` : year;
+  const formattedDay = String(dNum).padStart(2, "0");
+  const formattedMonth = String(mNum).padStart(2, "0");
+  return `${fullYear}/${formattedMonth}/${formattedDay}`;
+}
+
 // Subcomponent: VincularMuestrasModal
 interface VincularMuestrasModalProps {
   isOpen: boolean
@@ -128,6 +211,18 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [samples, setSamples] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
+
+  // Ghost Row State for inline addition (spreadsheet style)
+  const [ghostSample, setGhostSample] = useState<any>({
+    codigo_muestra_lem: "",
+    identificacion_muestra: "",
+    estructura: "",
+    fc_kg_cm2: 280,
+    fecha_moldeo: "",
+    edad: 28,
+    fecha_rotura: "",
+    requiere_densidad: false
+  })
 
   // Debounce search term
   useEffect(() => {
@@ -165,25 +260,6 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
     }
   }, [debouncedSearch, apiUrl])
 
-  const handleSelectReception = async (rec: any) => {
-    setSelectedReception(rec)
-    setReceptions([])
-    setSearchTerm("")
-    
-    try {
-      setLoadingDetail(true)
-      const res = await authFetch(`${apiUrl}/api/recepcion/${rec.id}`)
-      if (!res.ok) throw new Error("Failed to load details")
-      const data = await res.json()
-      setSamples(data.muestras || [])
-    } catch (err) {
-      console.error(err)
-      toast.error("Error al cargar las muestras de la recepción")
-    } finally {
-      setLoadingDetail(false)
-    }
-  }
-
   const calculateRoturaDate = (moldeoStr: string, edadDays: number) => {
     if (!moldeoStr) return ""
     try {
@@ -197,6 +273,58 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
       return `${y}/${m}/${day}`
     } catch {
       return ""
+    }
+  }
+
+  const handleSelectReception = async (rec: any) => {
+    setSelectedReception(rec)
+    setReceptions([])
+    setSearchTerm("")
+
+    const defaultDate = rec.fecha_recepcion 
+      ? rec.fecha_recepcion.replace(/-/g, "/") 
+      : new Date().toISOString().split("T")[0].replace(/-/g, "/")
+    const defaultEdad = 28
+    const defaultRotura = calculateRoturaDate(defaultDate, defaultEdad)
+    
+    setGhostSample({
+      codigo_muestra_lem: "",
+      identificacion_muestra: "",
+      estructura: "",
+      fc_kg_cm2: 280,
+      fecha_moldeo: defaultDate,
+      edad: defaultEdad,
+      fecha_rotura: defaultRotura,
+      requiere_densidad: false
+    })
+    
+    try {
+      setLoadingDetail(true)
+      const res = await authFetch(`${apiUrl}/api/recepcion/${rec.id}`)
+      if (!res.ok) throw new Error("Failed to load details")
+      const data = await res.json()
+      
+      const muestrasList = data.muestras || []
+      setSamples(muestrasList)
+      
+      if (muestrasList.length > 0) {
+        const last = muestrasList[muestrasList.length - 1]
+        setGhostSample({
+          codigo_muestra_lem: "",
+          identificacion_muestra: "",
+          estructura: last.estructura || "",
+          fc_kg_cm2: last.fc_kg_cm2 ?? 280,
+          fecha_moldeo: last.fecha_moldeo || defaultDate,
+          edad: last.edad ?? 28,
+          fecha_rotura: last.fecha_rotura || (last.fecha_moldeo ? calculateRoturaDate(last.fecha_moldeo, last.edad ?? 28) : defaultRotura),
+          requiere_densidad: last.requiere_densidad ?? false
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Error al cargar las muestras de la recepción")
+    } finally {
+      setLoadingDetail(false)
     }
   }
 
@@ -216,30 +344,45 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
     setSamples(updated)
   }
 
-  const handleAddSample = () => {
-    const nextItem = samples.length + 1
-    const defaultDate = selectedReception?.fecha_recepcion 
-      ? selectedReception.fecha_recepcion.replace(/-/g, "/") 
-      : new Date().toISOString().split("T")[0].replace(/-/g, "/")
-    const defaultEdad = 28
-    const defaultRotura = calculateRoturaDate(defaultDate, defaultEdad)
+  const handleGhostChange = (field: string, value: any) => {
+    setGhostSample((prev: any) => {
+      const updated = { ...prev, [field]: value }
+      if (field === "fecha_moldeo" || field === "edad") {
+        const moldeo = field === "fecha_moldeo" ? value : updated.fecha_moldeo
+        const edad = field === "edad" ? Number(value) : updated.edad
+        updated.fecha_rotura = calculateRoturaDate(moldeo, edad)
+      }
+      return updated
+    })
+  }
 
-    setSamples([
-      ...samples,
+  const submitGhostSample = () => {
+    const nextItem = samples.length + 1
+    const idMuestra = ghostSample.identificacion_muestra.trim() || `Muestra ${nextItem}`
+    
+    setSamples((prev) => [
+      ...prev,
       {
+        ...ghostSample,
         item_numero: nextItem,
-        codigo_muestra: "",
-        codigo_muestra_lem: "",
-        identificacion_muestra: `Muestra ${nextItem}`,
-        estructura: "",
-        fc_kg_cm2: 280,
-        fecha_moldeo: defaultDate,
-        hora_moldeo: "09:00",
-        edad: defaultEdad,
-        fecha_rotura: defaultRotura,
-        requiere_densidad: false
+        identificacion_muestra: idMuestra,
+        hora_moldeo: "09:00"
       }
     ])
+
+    // Reset only lem code and sample identification, keep others!
+    setGhostSample((prev: any) => ({
+      ...prev,
+      codigo_muestra_lem: "",
+      identificacion_muestra: "",
+    }))
+  }
+
+  const handleGhostKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      submitGhostSample()
+    }
   }
 
   const handleDeleteSample = (index: number) => {
@@ -431,20 +574,12 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
 
           {/* Specimens edit section */}
           {selectedReception && (
-            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 overflow-visible">
               <div className="flex justify-between items-center">
                 <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
                   <Layers className="h-4 w-4 text-blue-600" />
                   Muestras en esta Recepción ({samples.length})
                 </h4>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleAddSample}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold gap-1 rounded-lg"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar Muestra
-                </Button>
               </div>
 
               {loadingDetail ? (
@@ -452,109 +587,259 @@ function VincularMuestrasModal({ isOpen, onClose, onSave, apiUrl }: VincularMues
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Cargando muestras de la recepción...
                 </div>
-              ) : samples.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 italic border border-dashed rounded-xl">
-                  No hay muestras registradas en esta recepción. Presiona "Agregar Muestra" para registrar.
-                </div>
               ) : (
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
+                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-visible shadow-sm bg-white">
+                  <table className="w-full text-left border-collapse min-w-[800px] table-fixed overflow-visible">
                     <thead>
                       <tr className="bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 text-[10px] uppercase font-bold text-slate-500">
-                        <th className="p-2.5 text-center w-10">Item</th>
-                        <th className="p-2.5 w-[140px]">Cod. LEM</th>
-                        <th className="p-2.5">Identificación</th>
-                        <th className="p-2.5 w-[140px]">Estructura</th>
-                        <th className="p-2.5 w-16 text-center">f'c</th>
-                        <th className="p-2.5 w-32 text-center">Moldeo</th>
-                        <th className="p-2.5 w-14 text-center">Edad</th>
-                        <th className="p-2.5 w-32 text-center">Rotura</th>
-                        <th className="p-2.5 w-12 text-center">Dens.</th>
-                        <th className="p-2.5 w-10 text-center"></th>
+                        <th className="p-2 text-center w-12 bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Item</th>
+                        <th className="p-2 w-28 bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Cod. LEM</th>
+                        <th className="p-2 w-48 bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Identificación</th>
+                        <th className="p-2 w-48 bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Estructura</th>
+                        <th className="p-2 w-20 text-center bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">f'c</th>
+                        <th className="p-2 w-28 text-center bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Moldeo</th>
+                        <th className="p-2 w-16 text-center bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Edad</th>
+                        <th className="p-2 w-28 text-center bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Rotura</th>
+                        <th className="p-2 w-16 text-center bg-[#f4f4f5] shadow-[inset_-1px_0_0_0_#e4e4e7] border-b border-zinc-200 font-bold">Dens.</th>
+                        <th className="p-2 w-12 text-center bg-[#f4f4f5] border-b border-zinc-200 font-bold"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-850 text-xs">
-                      {samples.map((sample, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/10">
-                          <td className="p-2 text-center font-bold text-slate-400">{sample.item_numero}</td>
-                          <td className="p-2">
-                            <Input
-                              value={sample.codigo_muestra_lem || ""}
-                              onChange={(e) => handleSampleChange(idx, "codigo_muestra_lem", e.target.value)}
-                              placeholder="Ej. 1024"
-                              className="h-8 text-xs py-1 px-2 border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              value={sample.identificacion_muestra || ""}
-                              onChange={(e) => handleSampleChange(idx, "identificacion_muestra", e.target.value)}
-                              placeholder="Identificación muestra..."
-                              className="h-8 text-xs py-1 px-2 border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              value={sample.estructura || ""}
-                              onChange={(e) => handleSampleChange(idx, "estructura", e.target.value)}
-                              placeholder="Estructura..."
-                              className="h-8 text-xs py-1 px-2 border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={sample.fc_kg_cm2 ?? 280}
-                              onChange={(e) => handleSampleChange(idx, "fc_kg_cm2", Number(e.target.value))}
-                              className="h-8 text-xs py-1 px-1.5 text-center border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="text"
-                              value={sample.fecha_moldeo || ""}
-                              onChange={(e) => handleSampleChange(idx, "fecha_moldeo", e.target.value)}
-                              placeholder="YYYY/MM/DD"
-                              className="h-8 text-xs py-1 px-2 text-center border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 font-mono"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={sample.edad ?? 28}
-                              onChange={(e) => handleSampleChange(idx, "edad", Number(e.target.value))}
-                              className="h-8 text-xs py-1 px-1 text-center border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="text"
-                              value={sample.fecha_rotura || ""}
-                              onChange={(e) => handleSampleChange(idx, "fecha_rotura", e.target.value)}
-                              placeholder="YYYY/MM/DD"
-                              className="h-8 text-xs py-1 px-2 text-center border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 font-mono"
-                            />
-                          </td>
-                          <td className="p-2 text-center">
+                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-850 text-xs overflow-visible">
+                      {samples.map((sample, idx) => {
+                        const moldeoDisplay = formatDateToDDMMYY(sample.fecha_moldeo)
+                        const roturaDisplay = formatDateToDDMMYY(sample.fecha_rotura)
+                        return (
+                          <tr key={idx} className="hover:bg-sky-100/50 transition-colors">
+                            <td className="p-2 text-center font-bold text-slate-400 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                              {sample.item_numero}
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                              <input
+                                type="text"
+                                value={sample.codigo_muestra_lem || ""}
+                                onChange={(e) => handleSampleChange(idx, "codigo_muestra_lem", e.target.value)}
+                                placeholder="Ej. 1024"
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                              <input
+                                type="text"
+                                value={sample.identificacion_muestra || ""}
+                                onChange={(e) => handleSampleChange(idx, "identificacion_muestra", e.target.value)}
+                                placeholder="Identificación..."
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                              <input
+                                type="text"
+                                value={sample.estructura || ""}
+                                onChange={(e) => handleSampleChange(idx, "estructura", e.target.value)}
+                                placeholder="Estructura..."
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                              <input
+                                type="number"
+                                value={sample.fc_kg_cm2 ?? 280}
+                                onChange={(e) => handleSampleChange(idx, "fc_kg_cm2", Number(e.target.value))}
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800 text-center"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                              <input
+                                type="text"
+                                defaultValue={moldeoDisplay}
+                                key={`moldeo-${idx}-${sample.fecha_moldeo}`}
+                                placeholder="dd/mm/aa"
+                                onBlur={(e) => {
+                                  const val = e.target.value.trim()
+                                  if (!val) return
+                                  const parsed = parseDDMMYYToDate(val)
+                                  if (parsed) {
+                                    handleSampleChange(idx, "fecha_moldeo", parsed)
+                                  } else {
+                                    toast.error("Fecha de moldeo inválida. Use dd/mm/aa.")
+                                    e.target.value = moldeoDisplay
+                                  }
+                                }}
+                                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur() }}
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800 text-center font-mono"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                              <input
+                                type="number"
+                                value={sample.edad ?? 28}
+                                onChange={(e) => handleSampleChange(idx, "edad", Number(e.target.value))}
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800 text-center"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                              <input
+                                type="text"
+                                defaultValue={roturaDisplay}
+                                key={`rotura-${idx}-${sample.fecha_rotura}`}
+                                placeholder="dd/mm/aa"
+                                onBlur={(e) => {
+                                  const val = e.target.value.trim()
+                                  if (!val) return
+                                  const parsed = parseDDMMYYToDate(val)
+                                  if (parsed) {
+                                    handleSampleChange(idx, "fecha_rotura", parsed)
+                                  } else {
+                                    toast.error("Fecha de rotura inválida. Use dd/mm/aa.")
+                                    e.target.value = roturaDisplay
+                                  }
+                                }}
+                                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur() }}
+                                className="w-full bg-transparent border-0 border-none outline-none shadow-none text-[11.5px] p-0.5 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded font-semibold text-zinc-800 text-center font-mono"
+                              />
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 text-center">
+                              <div className="flex items-center justify-center h-full">
+                                <Checkbox
+                                  checked={sample.requiere_densidad ?? false}
+                                  onCheckedChange={(val) => handleSampleChange(idx, "requiere_densidad", !!val)}
+                                />
+                              </div>
+                            </td>
+                            <td className="p-1 border-b border-zinc-150 text-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteSample(idx)}
+                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+
+                      {/* Ghost Row for Quick Inline Adding */}
+                      <tr className="bg-zinc-50 hover:bg-zinc-100/70 border-t-2 border-zinc-200 transition-colors overflow-visible group">
+                        <td
+                          onClick={submitGhostSample}
+                          className="p-2 text-center text-blue-700 select-none font-bold cursor-pointer hover:bg-zinc-200 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]"
+                          title="Agregar muestra (Enter)"
+                        >
+                          <Plus className="mx-auto h-4 w-4 animate-pulse" />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                          <input
+                            type="text"
+                            placeholder="Cod. LEM..."
+                            value={ghostSample.codigo_muestra_lem}
+                            onChange={(e) => handleGhostChange("codigo_muestra_lem", e.target.value)}
+                            onKeyDown={handleGhostKeyDown}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                          <input
+                            type="text"
+                            placeholder={`Muestra ${samples.length + 1}...`}
+                            value={ghostSample.identificacion_muestra}
+                            onChange={(e) => handleGhostChange("identificacion_muestra", e.target.value)}
+                            onKeyDown={handleGhostKeyDown}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7]">
+                          <input
+                            type="text"
+                            placeholder="Estructura..."
+                            value={ghostSample.estructura}
+                            onChange={(e) => handleGhostChange("estructura", e.target.value)}
+                            onKeyDown={handleGhostKeyDown}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                          <input
+                            type="number"
+                            value={ghostSample.fc_kg_cm2}
+                            onChange={(e) => handleGhostChange("fc_kg_cm2", Number(e.target.value))}
+                            onKeyDown={handleGhostKeyDown}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 text-center h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                          <input
+                            type="text"
+                            defaultValue={formatDateToDDMMYY(ghostSample.fecha_moldeo)}
+                            key={`ghost-moldeo-${ghostSample.fecha_moldeo}`}
+                            placeholder="dd/mm/aa"
+                            onBlur={(e) => {
+                              const val = e.target.value.trim()
+                              if (!val) return
+                              const parsed = parseDDMMYYToDate(val)
+                              if (parsed) {
+                                handleGhostChange("fecha_moldeo", parsed)
+                              } else {
+                                toast.error("Fecha de moldeo inválida. Use dd/mm/aa.")
+                                e.target.value = formatDateToDDMMYY(ghostSample.fecha_moldeo)
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.currentTarget.blur()
+                                submitGhostSample()
+                              }
+                            }}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 text-center font-mono h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                          <input
+                            type="number"
+                            value={ghostSample.edad}
+                            onChange={(e) => handleGhostChange("edad", Number(e.target.value))}
+                            onKeyDown={handleGhostKeyDown}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 text-center h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                          <input
+                            type="text"
+                            defaultValue={formatDateToDDMMYY(ghostSample.fecha_rotura)}
+                            key={`ghost-rotura-${ghostSample.fecha_rotura}`}
+                            placeholder="dd/mm/aa"
+                            onBlur={(e) => {
+                              const val = e.target.value.trim()
+                              if (!val) return
+                              const parsed = parseDDMMYYToDate(val)
+                              if (parsed) {
+                                handleGhostChange("fecha_rotura", parsed)
+                              } else {
+                                toast.error("Fecha de rotura inválida. Use dd/mm/aa.")
+                                e.target.value = formatDateToDDMMYY(ghostSample.fecha_rotura)
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.currentTarget.blur()
+                                submitGhostSample()
+                              }
+                            }}
+                            className="w-full bg-transparent border border-zinc-200 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-[11px] p-1 font-semibold text-zinc-800 text-center font-mono h-7"
+                          />
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 shadow-[inset_-1px_0_0_0_#e4e4e7] text-center">
+                          <div className="flex items-center justify-center h-full mt-1.5">
                             <Checkbox
-                              checked={sample.requiere_densidad ?? false}
-                              onCheckedChange={(val) => handleSampleChange(idx, "requiere_densidad", !!val)}
-                              className="mx-auto"
+                              checked={ghostSample.requiere_densidad ?? false}
+                              onCheckedChange={(val) => handleGhostChange("requiere_densidad", !!val)}
                             />
-                          </td>
-                          <td className="p-2 text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteSample(idx)}
-                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                          </div>
+                        </td>
+                        <td className="p-1 border-b border-zinc-150 text-center"></td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
