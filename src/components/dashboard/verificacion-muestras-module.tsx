@@ -149,6 +149,8 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
     const [tracingData, setTracingData] = useState<any>(null)
     const [loadingTracing, setLoadingTracing] = useState(false)
     const [token, setToken] = useState<string | null>(null)
+    const tokenRef = useRef<string | null>(null)
+    const isSyncingRef = useRef(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const lastFocusedVerificacionIdRef = useRef<number | null>(null)
     const [deleteConfirmText, setDeleteConfirmText] = useState("")
@@ -235,6 +237,7 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
       localStorage.setItem("token", freshToken)
     }
 
+    tokenRef.current = freshToken
     setToken(freshToken)
     return freshToken
   }
@@ -256,23 +259,27 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                 fetchVerificaciones()
             }
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
+                if (isSyncingRef.current) return
+                isSyncingRef.current = true
                 syncIframeToken().then((freshToken) => {
                     if (freshToken && event.source) {
-                        (event.source as Window).postMessage(
-                            {
-                                type: 'TOKEN_REFRESH',
-                                token: freshToken,
-                                requestId: typeof event.data?.requestId === 'string' ? event.data.requestId : undefined,
-                            },
-                            event.origin || '*',
-                        )
+                        try {
+                            ;(event.source as Window).postMessage(
+                                {
+                                    type: 'TOKEN_REFRESH',
+                                    token: freshToken,
+                                    requestId: typeof event.data?.requestId === 'string' ? event.data.requestId : undefined,
+                                },
+                                event.origin || '*',
+                            )
+                        } catch { /* noop */ }
                     }
-                })
+                }).finally(() => { isSyncingRef.current = false })
             }
             // Handle REQUEST_TOKEN from iframe when it navigates internally (e.g., /importar)
             // and doesn't have the token available in its localStorage (cross-domain isolation)
             if (event.data?.type === 'REQUEST_TOKEN' && event.source) {
-                const currentToken = token || localStorage.getItem('token')
+                const currentToken = tokenRef.current || localStorage.getItem('token')
                 if (currentToken) {
                     try {
                         ;(event.source as Window).postMessage(
@@ -284,6 +291,8 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                     }
                 } else {
                     // Token not ready yet, sync and then respond
+                    if (isSyncingRef.current) return
+                    isSyncingRef.current = true
                     syncIframeToken().then((freshToken) => {
                         if (freshToken && event.source) {
                             try {
@@ -293,13 +302,13 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                                 )
                             } catch { /* noop */ }
                         }
-                    })
+                    }).finally(() => { isSyncingRef.current = false })
                 }
             }
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [fetchVerificaciones, token])
+    }, [fetchVerificaciones])
 
     const handleOpenModal = async (path: string) => {
         if (!canWrite) {
