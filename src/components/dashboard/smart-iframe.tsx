@@ -104,30 +104,46 @@ export function SmartIframe({ src, title, token }: SmartIframeProps) {
     }, [src, configurationError])
 
     // ── Signal 1: Listen for IFRAME_READY postMessage (fast path) ──
+    // Also handles REQUEST_TOKEN messages from child iframes (cross-domain localStorage isolation fix)
     useEffect(() => {
         if (!expectedOrigin || configurationError) return
 
         const handleMessage = (event: MessageEvent) => {
             // Security: only accept messages from the expected origin
             if (event.origin !== expectedOrigin) return
-            if (event.data?.type !== "IFRAME_READY") return
 
-            // Send acknowledgment back to iframe
-            try {
-                ;(event.source as Window | null)?.postMessage(
-                    { type: "IFRAME_READY_ACK", source: "crm-shell" },
-                    event.origin
-                )
-            } catch {
-                // Ignore — source may have navigated away
+            // Handle IFRAME_READY handshake
+            if (event.data?.type === "IFRAME_READY") {
+                // Send acknowledgment back to iframe
+                try {
+                    ;(event.source as Window | null)?.postMessage(
+                        { type: "IFRAME_READY_ACK", source: "crm-shell" },
+                        event.origin
+                    )
+                } catch {
+                    // Ignore — source may have navigated away
+                }
+                completeLoad()
+                return
             }
 
-            completeLoad()
+            // Handle REQUEST_TOKEN: child iframe doesn't have token in its localStorage
+            // (cross-domain isolation in micro-frontend architecture)
+            if (event.data?.type === "REQUEST_TOKEN" && token) {
+                try {
+                    ;(event.source as Window | null)?.postMessage(
+                        { type: "SET_TOKEN", token, source: "crm-shell" },
+                        event.origin
+                    )
+                } catch {
+                    // Ignore — source may have navigated away
+                }
+            }
         }
 
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [expectedOrigin, completeLoad, configurationError])
+    }, [expectedOrigin, completeLoad, configurationError, token])
 
     // ── Signal 3: Absolute fallback timeout ──
     useEffect(() => {

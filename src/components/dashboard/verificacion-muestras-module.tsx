@@ -269,10 +269,37 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                     }
                 })
             }
+            // Handle REQUEST_TOKEN from iframe when it navigates internally (e.g., /importar)
+            // and doesn't have the token available in its localStorage (cross-domain isolation)
+            if (event.data?.type === 'REQUEST_TOKEN' && event.source) {
+                const currentToken = token || localStorage.getItem('token')
+                if (currentToken) {
+                    try {
+                        ;(event.source as Window).postMessage(
+                            { type: 'SET_TOKEN', token: currentToken, source: 'crm-shell' },
+                            event.origin || '*',
+                        )
+                    } catch {
+                        // Ignore — source may have navigated away
+                    }
+                } else {
+                    // Token not ready yet, sync and then respond
+                    syncIframeToken().then((freshToken) => {
+                        if (freshToken && event.source) {
+                            try {
+                                ;(event.source as Window).postMessage(
+                                    { type: 'SET_TOKEN', token: freshToken, source: 'crm-shell' },
+                                    event.origin || '*',
+                                )
+                            } catch { /* noop */ }
+                        }
+                    })
+                }
+            }
         }
         window.addEventListener("message", handleMessage)
         return () => window.removeEventListener("message", handleMessage)
-    }, [fetchVerificaciones])
+    }, [fetchVerificaciones, token])
 
     const handleOpenModal = async (path: string) => {
         if (!canWrite) {
