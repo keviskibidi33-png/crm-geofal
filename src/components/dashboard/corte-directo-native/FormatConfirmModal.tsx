@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { FileText, X } from "lucide-react"
 
 type FormatConfirmModalProps = {
@@ -15,10 +17,17 @@ export default function FormatConfirmModal({
   onClose,
   onConfirm,
 }: FormatConfirmModalProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
   if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-99999 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+  const modalContent = (
+    <div className="fixed inset-0 z-99999 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md">
       <div className="relative w-full max-w-lg rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <button
           type="button"
@@ -64,4 +73,6 @@ export default function FormatConfirmModal({
       </div>
     </div>
   )
+
+  return mounted ? createPortal(modalContent, document.body) : null
 }
