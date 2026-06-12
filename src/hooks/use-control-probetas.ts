@@ -186,9 +186,19 @@ export function useControlProbetas() {
     return []
   }, [])
 
+  const fetchByRecepcion = useCallback(async (recepcionId: number): Promise<ProbetaRow[]> => {
+    try {
+      const res = await authFetch(`${API_URL}/api/control-probetas/by-recepcion/${recepcionId}`)
+      if (res.ok) {
+        return await res.json()
+      }
+    } catch { /* noop */ }
+    return []
+  }, [])
+
   return {
     items, recentItems, loading, kpis, total, totalPages, page, pageSize, search,
     setPage, setPageSize, setSearch,
-    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones,
+    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion,
   }
 }

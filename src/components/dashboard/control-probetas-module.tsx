@@ -58,6 +58,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               items={store.items} loading={store.loading}
               onUpdateRow={store.updateRow} onCreateRow={store.createRow}
               searchRecepciones={store.searchRecepciones}
+              fetchByRecepcion={store.fetchByRecepcion}
             />
           </div>
         </DialogFullscreenContent>
@@ -317,39 +318,50 @@ interface DataTableProps {
   onUpdateRow: (id: number, payload: Record<string, unknown>) => Promise<void>
   onCreateRow: (payload: Record<string, unknown>) => Promise<void>
   searchRecepciones: (q: string) => Promise<Receipt[]>
+  fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
 }
 
-function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones }: DataTableProps) {
+function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion }: DataTableProps) {
+  const [importedItems, setImportedItems] = useState<ProbetaRow[]>([])
+
+  const handleImportProbetas = (imported: ProbetaRow[]) => {
+    const existingIds = new Set(items.map(i => i.muestra_id))
+    const newOnes = imported.filter(i => !existingIds.has(i.muestra_id))
+    setImportedItems(newOnes)
+  }
+
+  const displayItems = [...items, ...importedItems.filter(i => !items.some(x => x.muestra_id === i.muestra_id))]
+
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
       <div className="h-full overflow-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300 sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-14 text-center">ITEM</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-40">RECEPCIÓN</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-44">CÓDIGO</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-52">CLIENTE</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-36">ELEMENTO</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-32 text-center">F. ROTURA</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-28 text-center">DENSIDAD</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-28 text-center">F'C</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-36">STATUS ENSAYO</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-36">STATUS ENTREGA</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-32 text-center">F. ENTREGA</th>
-              <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-20"></th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-10 text-center">ITEM</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-28 text-center">RECEPCIÓN</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-28 text-center">CÓDIGO</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-36 text-center">CLIENTE</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">ELEMENTO</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">F. ROTURA</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-20 text-center">DENSIDAD</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-16 text-center">F'C</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">STATUS ENSAYO</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">STATUS ENTREGA</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">F. ENTREGA</th>
+              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} />
-            {loading && items.length === 0 ? (
+            <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onImportProbetas={handleImportProbetas} />
+            {loading && displayItems.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-20 text-center">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
               </tr>
-            ) : items.length === 0 ? (
+            ) : displayItems.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-20 text-center">
                   <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
@@ -358,7 +370,7 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
                 </td>
               </tr>
             ) : (
-              items.map((it) => <DataRow key={it.muestra_id} item={it} onUpdate={onUpdateRow} />)
+              displayItems.map((it) => <DataRow key={it.muestra_id} item={it} onUpdate={onUpdateRow} />)
             )}
           </tbody>
         </table>
@@ -372,10 +384,13 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
 interface GhostRowProps {
   onCreateRow: (payload: Record<string, unknown>) => Promise<void>
   searchRecepciones: (q: string) => Promise<Receipt[]>
+  fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
+  onImportProbetas: (items: ProbetaRow[]) => void
 }
 
-function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
+function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportProbetas }: GhostRowProps) {
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [recepcionQuery, setRecepcionQuery] = useState("")
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
   const [searching, setSearching] = useState(false)
@@ -419,6 +434,20 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  const handleSelectRecepcion = async (rec: Receipt) => {
+    setGhost(g => ({ ...g, recepcion_id: rec.id, numero_recepcion: rec.numero_recepcion, numero_ot: rec.numero_ot || "", cliente: rec.cliente || "" }))
+    setRecepcionQuery(rec.numero_recepcion)
+    setShowDropdown(false)
+    setImporting(true)
+    const existingProbetas = await fetchByRecepcion(rec.id)
+    if (existingProbetas.length > 0) {
+      onImportProbetas(existingProbetas)
+      setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
+      setRecepcionQuery("")
+    }
+    setImporting(false)
+  }
+
   const handleSave = async () => {
     if (!ghost.recepcion_id || !ghost.identificacion_muestra.trim()) return
     setSaving(true)
@@ -431,15 +460,15 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
 
   return (
     <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-      <td className="px-4 py-2 text-center">
+      <td className="px-2 py-1.5 text-center">
         <button
-          type="button" onClick={handleSave} disabled={saving}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0070F3] text-white hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
+          type="button" onClick={handleSave} disabled={saving || importing}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-white hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
         </button>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <div className="relative" ref={dropdownRef}>
           <Input
             value={recepcionQuery}
@@ -448,7 +477,7 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
               setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
             }}
             onFocus={() => recepcionOpts.length > 0 && setShowDropdown(true)}
-            className="h-9 text-xs rounded-lg border-slate-200"
+            className="h-8 text-xs rounded-lg border-slate-200"
             placeholder="Buscar recepción..."
           />
           {showDropdown && (
@@ -464,9 +493,7 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
                     className="block w-full px-3 py-2.5 text-left text-xs hover:bg-blue-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
                     onMouseDown={(e) => {
                       e.preventDefault()
-                      setGhost(g => ({ ...g, recepcion_id: rec.id, numero_recepcion: rec.numero_recepcion, numero_ot: rec.numero_ot || "", cliente: rec.cliente || "" }))
-                      setRecepcionQuery(rec.numero_recepcion)
-                      setShowDropdown(false)
+                      void handleSelectRecepcion(rec)
                     }}
                   >
                     <div className="font-bold text-slate-800">{rec.numero_recepcion}</div>
@@ -478,70 +505,70 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
           )}
         </div>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Input
           ref={codeRef} value={ghost.identificacion_muestra}
           onChange={(e) => setGhost(g => ({ ...g, identificacion_muestra: e.target.value }))}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleSave() } }}
-          className="h-9 text-xs font-mono rounded-lg border-slate-200"
+          className="h-8 text-xs font-mono rounded-lg border-slate-200"
           placeholder="001-CO-26"
         />
       </td>
-      <td className="px-3 py-2">
-        <span className="text-xs font-semibold text-slate-500">{ghost.cliente || "—"}</span>
+      <td className="px-2 py-1.5 text-center">
+        <span className="text-[11px] font-semibold text-slate-500 truncate block max-w-[140px]" title={ghost.cliente}>{ghost.cliente || "—"}</span>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Input
           value={ghost.fecha_rotura}
           onChange={(e) => setGhost(g => ({ ...g, fecha_rotura: e.target.value }))}
           onBlur={(e) => setGhost(g => ({ ...g, fecha_rotura: parseDateInput(e.target.value) }))}
-          className="h-9 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           placeholder="DD/MM/AA"
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Input
           value={ghost.densidad}
           onChange={(e) => setGhost(g => ({ ...g, densidad: e.target.value }))}
-          className="h-9 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200"
           placeholder="2.400"
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Input
           type="number" value={ghost.fc_kg_cm2}
           onChange={(e) => setGhost(g => ({ ...g, fc_kg_cm2: Number(e.target.value) || 0 }))}
-          className="h-9 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200"
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Select value={ghost.status_entrega} onValueChange={(v) => setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue }))}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-3 py-2">
+      <td className="px-2 py-1.5 text-center">
         <Input
           value={ghost.fecha_entrega}
           onChange={(e) => setGhost(g => ({ ...g, fecha_entrega: e.target.value }))}
           onBlur={(e) => setGhost(g => ({ ...g, fecha_entrega: parseDateInput(e.target.value) }))}
-          className="h-9 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           placeholder="DD/MM/AA"
         />
       </td>
-      <td className="px-3 py-2"></td>
+      <td className="px-2 py-1.5"></td>
     </tr>
   )
 }
@@ -563,63 +590,63 @@ function DataRow({ item, onUpdate }: DataRowProps) {
 
   return (
     <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-6 py-4 text-center font-bold text-slate-700">{item.item_numero}</td>
-      <td className="px-6 py-4">
-        <div className="font-bold text-slate-800">{item.numero_recepcion}</div>
-        <div className="text-[10px] text-slate-400 font-medium">{item.numero_ot}</div>
+      <td className="px-2 py-1.5 text-center font-bold text-slate-700 text-xs">{item.item_numero}</td>
+      <td className="px-2 py-1.5 text-center">
+        <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
+        <div className="text-[9px] text-slate-400 font-medium">{item.numero_ot}</div>
       </td>
-      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-700">{item.identificacion_muestra || "—"}</td>
-      <td className="px-6 py-4">
-        <span className="text-xs font-semibold text-slate-700 truncate block max-w-[200px]" title={item.cliente}>{item.cliente}</span>
+      <td className="px-2 py-1.5 text-center font-mono text-xs font-bold text-slate-700">{item.identificacion_muestra || "—"}</td>
+      <td className="px-2 py-1.5 text-center">
+        <span className="text-[11px] font-semibold text-slate-700 truncate block max-w-[140px]" title={item.cliente}>{item.cliente}</span>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Input
           defaultValue={formatDateDisplay(item.fecha_rotura)}
-          className="h-9 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(e.target.value) || "" })}
         />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Input
           defaultValue={item.densidad || ""}
-          className="h-9 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { densidad: e.target.value || "-" })}
         />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Input
           type="number" defaultValue={item.fc_kg_cm2}
-          className="h-9 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fc_kg_cm2: Number(e.target.value) || 0 })}
         />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Select value={(item.status_entrega as StatusEntregaValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_entrega: v })}>
-          <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-1.5 text-center">
         <Input
           defaultValue={formatDateDisplay(item.fecha_entrega)}
-          className="h-9 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
         />
       </td>
-      <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+      <td className="px-2 py-1.5 text-center">
+        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
           {item.estado_probeta}
         </span>
       </td>
