@@ -391,7 +391,6 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
             {loading && displayItems.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-20 text-center border-r-0">
@@ -400,22 +399,28 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
                 </td>
               </tr>
             ) : displayItems.length === 0 ? (
-              <tr>
-                <td colSpan={12} className="py-20 text-center border-r-0">
-                  <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                  <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
-                  <p className="text-xs text-slate-400 mt-1">Crea una nueva usando el formulario superior</p>
-                </td>
-              </tr>
+              <>
+                <tr>
+                  <td colSpan={12} className="py-20 text-center border-r-0">
+                    <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+                    <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
+                    <p className="text-xs text-slate-400 mt-1">Crea una nueva usando el formulario inferior</p>
+                  </td>
+                </tr>
+                {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
+              </>
             ) : (
-              displayItems.map((it) => (
-                <DataRow
-                  key={it.muestra_id}
-                  item={it}
-                  onUpdate={onUpdateRow}
-                  isPreview={!!pendingImport}
-                />
-              ))
+              <>
+                {displayItems.map((it) => (
+                  <DataRow
+                    key={it.muestra_id}
+                    item={it}
+                    onUpdate={onUpdateRow}
+                    isPreview={!!pendingImport}
+                  />
+                ))}
+                {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
+              </>
             )}
           </tbody>
         </table>
