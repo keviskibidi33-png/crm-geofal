@@ -71,6 +71,7 @@ export function parseDateInput(v: string): string {
 
 export function useControlProbetas() {
   const [items, setItems] = useState<ProbetaRow[]>([])
+  const [recentItems, setRecentItems] = useState<ProbetaRow[]>([])
   const [loading, setLoading] = useState(false)
   const [kpis, setKpis] = useState<ProbetasKpis>({ total: 0, curado: 0, pendiente: 0, ensayado: 0, vencido: 0 })
   const [total, setTotal] = useState(0)
@@ -118,6 +119,16 @@ export function useControlProbetas() {
     }
   }, [])
 
+  const fetchRecentItems = useCallback(async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/control-probetas/?page=1&page_size=5`)
+      if (res.ok) {
+        const data = await res.json()
+        setRecentItems(data.items || [])
+      }
+    } catch { /* noop */ }
+  }, [])
+
   useEffect(() => {
     void fetchItems()
   }, [fetchItems])
@@ -125,6 +136,10 @@ export function useControlProbetas() {
   useEffect(() => {
     void fetchKpis()
   }, [fetchKpis])
+
+  useEffect(() => {
+    void fetchRecentItems()
+  }, [fetchRecentItems])
 
   const updateRow = useCallback(async (id: number, payload: Record<string, unknown>) => {
     try {
@@ -172,8 +187,8 @@ export function useControlProbetas() {
   }, [])
 
   return {
-    items, loading, kpis, total, totalPages, page, pageSize, search,
+    items, recentItems, loading, kpis, total, totalPages, page, pageSize, search,
     setPage, setPageSize, setSearch,
-    fetchItems, fetchKpis, updateRow, createRow, searchRecepciones,
+    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones,
   }
 }

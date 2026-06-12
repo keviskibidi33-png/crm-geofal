@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, Search, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, Loader2, Wifi, Calendar, Database, ExternalLink,
+  ChevronLeft, ChevronRight, Loader2, Calendar, Database, ExternalLink, X, Activity,
 } from "lucide-react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -12,6 +13,7 @@ import {
   useControlProbetas, ProbetaRow, Receipt, ElementoValue, StatusEnsayoValue, StatusEntregaValue,
   ELEMENTOS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
+import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
 
 interface ControlProbetasModuleProps {
   user: any
@@ -19,33 +21,50 @@ interface ControlProbetasModuleProps {
 }
 
 export function ControlProbetasModule({ user, onNavigateModule }: ControlProbetasModuleProps) {
-  const {
-    items, loading, kpis, total, totalPages, page, pageSize, search,
-    setPage, setPageSize, setSearch, fetchItems, updateRow, createRow, searchRecepciones,
-  } = useControlProbetas()
+  const store = useControlProbetas()
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleRefreshAll = () => {
+    store.fetchItems()
+    store.fetchKpis()
+    store.fetchRecentItems()
+  }
 
   return (
     <div className="min-h-full bg-[#F8FAFC] p-8 space-y-8 font-sans antialiased">
-      <Header onRefresh={fetchItems} loading={loading} />
-      <KPICards kpis={kpis} loading={loading} />
-      <FilterBar
-        search={search} onSearchChange={setSearch}
-        pageSize={pageSize} onPageSizeChange={(v) => { setPageSize(v); setPage(1) }}
-        total={total} page={page} totalPages={totalPages}
-        onPrev={() => setPage(p => Math.max(1, p - 1))}
-        onNext={() => setPage(p => Math.min(totalPages, p + 1))}
-      />
-      <DataTable
-        items={items} loading={loading} onUpdateRow={updateRow} onCreateRow={createRow}
-        searchRecepciones={searchRecepciones}
-      />
+      {/* ─────────────── DASHBOARD ─────────────── */}
+      <Header loading={store.loading} onRefresh={handleRefreshAll} />
+      <QuickAccessCard onOpen={() => setIsOpen(true)} />
+      <KPICards kpis={store.kpis} loading={store.loading} />
+      <RecentPreview items={store.recentItems} loading={store.loading} />
+
+      {/* ─────────────── DIALOG FULLSCREEN ─────────────── */}
+      <DialogFullscreen open={isOpen} onOpenChange={setIsOpen}>
+        <DialogFullscreenContent>
+          <DialogTitleBar onClose={() => setIsOpen(false)} />
+          <div className="flex-1 min-h-0 flex flex-col gap-4 p-4 overflow-hidden">
+            <FilterBar
+              search={store.search} onSearchChange={store.setSearch}
+              pageSize={store.pageSize} onPageSizeChange={(v) => { store.setPageSize(v); store.setPage(1) }}
+              total={store.total} page={store.page} totalPages={store.totalPages}
+              onPrev={() => store.setPage(p => Math.max(1, p - 1))}
+              onNext={() => store.setPage(p => Math.min(store.totalPages, p + 1))}
+            />
+            <DataTable
+              items={store.items} loading={store.loading}
+              onUpdateRow={store.updateRow} onCreateRow={store.createRow}
+              searchRecepciones={store.searchRecepciones}
+            />
+          </div>
+        </DialogFullscreenContent>
+      </DialogFullscreen>
     </div>
   )
 }
 
-/* ─────────────────────────── HEADER ─────────────────────────── */
+/* ═══════════════════════════ HEADER ═══════════════════════════ */
 
-function Header({ onRefresh, loading }: { onRefresh: () => void; loading: boolean }) {
+function Header({ loading, onRefresh }: { loading: boolean; onRefresh: () => void }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-6">
       <div>
@@ -68,14 +87,41 @@ function Header({ onRefresh, loading }: { onRefresh: () => void; loading: boolea
   )
 }
 
-/* ─────────────────────────── KPI CARDS ─────────────────────────── */
+/* ═══════════════════════════ QUICK ACCESS CARD ═══════════════════════════ */
+
+function QuickAccessCard({ onOpen }: { onOpen: () => void }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xl">
+            <Database className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="font-black text-slate-900 uppercase">Matriz Técnica de Probetas</h3>
+            <p className="text-slate-500 text-xs font-medium mt-1">Acceso directo al control, registro y trazabilidad de probetas de concreto</p>
+          </div>
+        </div>
+        <button
+          onClick={onOpen}
+          className="flex items-center gap-3 px-5 py-3 bg-[#0070F3] text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95"
+        >
+          <ExternalLink className="h-5 w-5" strokeWidth={3} />
+          ABRIR TABLA DE CONTROL
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════ KPI CARDS ═══════════════════════════ */
 
 function KPICards({ kpis, loading }: { kpis: any; loading: boolean }) {
   const cards = [
     { label: "TOTAL PROBETAS", value: kpis.total, icon: Database, color: "slate" },
     { label: "EN CURADO", value: kpis.curado, icon: Clock, color: "blue" },
     { label: "PENDIENTES HOY", value: kpis.pendiente, icon: AlertTriangle, color: "amber" },
-    { label: "ENsayados", value: kpis.ensayado, icon: CheckCircle2, color: "emerald" },
+    { label: "ENSAYADOS", value: kpis.ensayado, icon: CheckCircle2, color: "emerald" },
   ]
 
   return (
@@ -102,7 +148,111 @@ function KPICards({ kpis, loading }: { kpis: any; loading: boolean }) {
   )
 }
 
-/* ─────────────────────────── FILTER BAR ─────────────────────────── */
+/* ═══════════════════════════ RECENT PREVIEW ═══════════════════════════ */
+
+function RecentPreview({ items, loading }: { items: ProbetaRow[]; loading: boolean }) {
+  const statusColors: Record<string, string> = {
+    ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pendiente: "bg-amber-50 text-amber-700 border-amber-200",
+    vencido: "bg-red-50 text-red-700 border-red-200",
+    curado: "bg-blue-50 text-blue-700 border-blue-200",
+  }
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-slate-500" />
+          Últimos Registros
+        </h3>
+        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+          Últimos 5
+        </span>
+      </div>
+      <div className="p-0">
+        {loading && items.length === 0 ? (
+          <div className="divide-y divide-slate-100">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="px-6 py-4 flex items-center gap-4">
+                <div className="h-8 w-8 bg-slate-100 rounded-full animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-slate-100 rounded animate-pulse" />
+                  <div className="h-3 w-48 bg-slate-50 rounded animate-pulse" />
+                </div>
+                <div className="h-6 w-16 bg-slate-100 rounded-lg animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="px-6 py-8 text-center">
+            <Database className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+            <p className="text-xs text-slate-500 font-medium">No hay registros recientes</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <div key={item.muestra_id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-start gap-4 min-w-0 flex-1">
+                  <div className="mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
+                    {item.numero_recepcion ? item.numero_recepcion.slice(-2) : "--"}
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-slate-800">{item.numero_recepcion}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">|</span>
+                      <span className="text-xs text-slate-600 font-semibold truncate block max-w-full" title={item.cliente}>
+                        {item.cliente || "Sin cliente"}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <span>Código: <span className="font-bold text-slate-700">{item.identificacion_muestra || "-"}</span></span>
+                      <span>F'C: <span className="font-bold text-slate-700">{item.fc_kg_cm2}</span></span>
+                      <span>Elemento: <span className="font-bold text-slate-700">{item.elemento || "-"}</span></span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                    {item.estado_probeta}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════ DIALOG TITLE BAR ═══════════════════════════ */
+
+function DialogTitleBar({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="flex-none flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200">
+      <div className="flex items-center gap-3">
+        <Activity className="w-4 h-4 text-blue-600" />
+        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Control Probetas - Matriz de Datos</h2>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-widest">Online</span>
+        </div>
+        <DialogPrimitive.Close asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-50 hover:text-red-500">
+            <X className="h-4 w-4" />
+          </Button>
+        </DialogPrimitive.Close>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════ FILTER BAR ═══════════════════════════ */
 
 interface FilterBarProps {
   search: string; onSearchChange: (v: string) => void
@@ -113,7 +263,7 @@ interface FilterBarProps {
 
 function FilterBar({ search, onSearchChange, pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext }: FilterBarProps) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex-none">
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4">
         <div className="flex-1 relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -156,7 +306,7 @@ function FilterBar({ search, onSearchChange, pageSize, onPageSizeChange, total, 
   )
 }
 
-/* ─────────────────────────── DATA TABLE ─────────────────────────── */
+/* ═══════════════════════════ DATA TABLE ═══════════════════════════ */
 
 interface DataTableProps {
   items: ProbetaRow[]; loading: boolean
@@ -167,10 +317,10 @@ interface DataTableProps {
 
 function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones }: DataTableProps) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="h-full overflow-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300">
+          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300 sticky top-0 z-10">
             <tr>
               <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-14 text-center">ITEM</th>
               <th className="px-6 py-4 text-[9px] font-black uppercase tracking-wider w-40">RECEPCIÓN</th>
@@ -213,7 +363,7 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
   )
 }
 
-/* ─────────────────────────── GHOST ROW ─────────────────────────── */
+/* ═══════════════════════════ GHOST ROW ═══════════════════════════ */
 
 interface GhostRowProps {
   onCreateRow: (payload: Record<string, unknown>) => Promise<void>
@@ -266,9 +416,7 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
   }, [])
 
   const handleSave = async () => {
-    if (!ghost.recepcion_id || !ghost.identificacion_muestra.trim()) {
-      return
-    }
+    if (!ghost.recepcion_id || !ghost.identificacion_muestra.trim()) return
     setSaving(true)
     await onCreateRow(ghost)
     setGhost(g => ({ ...g, identificacion_muestra: "", fecha_rotura: "", densidad: "", fecha_entrega: "" }))
@@ -394,7 +542,7 @@ function GhostRow({ onCreateRow, searchRecepciones }: GhostRowProps) {
   )
 }
 
-/* ─────────────────────────── DATA ROW ─────────────────────────── */
+/* ═══════════════════════════ DATA ROW ═══════════════════════════ */
 
 interface DataRowProps {
   item: ProbetaRow
