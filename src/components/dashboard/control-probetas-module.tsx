@@ -40,7 +40,11 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
 
       {/* ─────────────── DIALOG FULLSCREEN ─────────────── */}
       <DialogFullscreen open={isOpen} onOpenChange={setIsOpen}>
-        <DialogFullscreenContent>
+        <DialogFullscreenContent
+          style={{ backgroundColor: '#fff' }}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={() => setIsOpen(false)}
+        >
           <DialogTitleBar onClose={() => setIsOpen(false)} />
           <div className="flex-1 min-h-0 flex flex-col gap-4 p-4 overflow-hidden">
             <FilterBar
@@ -229,10 +233,10 @@ function RecentPreview({ items, loading }: { items: ProbetaRow[]; loading: boole
 
 function DialogTitleBar({ onClose }: { onClose: () => void }) {
   return (
-    <div className="flex-none flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200">
+    <div className="flex-none flex items-center justify-between px-6 py-2 bg-white border-b border-zinc-200">
       <div className="flex items-center gap-3">
-        <Activity className="w-4 h-4 text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Control Probetas - Matriz de Datos</h2>
+        <Activity className="w-4 h-4 text-emerald-600" />
+        <h2 className="font-bold text-zinc-900 text-xs uppercase tracking-widest">Control Probetas - Matriz de Datos</h2>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl">
