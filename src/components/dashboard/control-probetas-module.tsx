@@ -313,6 +313,9 @@ function FilterBar({ search, onSearchChange, pageSize, onPageSizeChange, total, 
 
 /* ═══════════════════════════ DATA TABLE ═══════════════════════════ */
 
+const TH = "px-2 py-2 text-[9px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
+const TD = "px-2 py-1.5 text-center border-r border-slate-100 last:border-r-0"
+
 interface DataTableProps {
   items: ProbetaRow[]; loading: boolean
   onUpdateRow: (id: number, payload: Record<string, unknown>) => Promise<void>
@@ -322,55 +325,97 @@ interface DataTableProps {
 }
 
 function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion }: DataTableProps) {
-  const [importedItems, setImportedItems] = useState<ProbetaRow[]>([])
+  const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
+  const [importing, setImporting] = useState(false)
 
-  const handleImportProbetas = (imported: ProbetaRow[]) => {
-    const existingIds = new Set(items.map(i => i.muestra_id))
-    const newOnes = imported.filter(i => !existingIds.has(i.muestra_id))
-    setImportedItems(newOnes)
+  const handleRequestImport = (imported: ProbetaRow[]) => {
+    setPendingImport(imported)
   }
 
-  const displayItems = [...items, ...importedItems.filter(i => !items.some(x => x.muestra_id === i.muestra_id))]
+  const handleConfirmImport = async () => {
+    if (!pendingImport) return
+    setImporting(true)
+    for (const probeta of pendingImport) {
+      await onUpdateRow(probeta.muestra_id, {
+        elemento: probeta.elemento || "-",
+        densidad: probeta.densidad || "-",
+        fc_kg_cm2: probeta.fc_kg_cm2,
+        status_ensayo: probeta.status_ensayo || "-",
+        status_entrega: probeta.status_entrega || "-",
+      })
+    }
+    setPendingImport(null)
+    setImporting(false)
+  }
+
+  const handleCancelImport = () => {
+    setPendingImport(null)
+  }
+
+  const displayItems = pendingImport || items
 
   return (
-    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="h-full overflow-auto">
-        <table className="w-full text-sm text-center">
-          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300 sticky top-0 z-10">
+    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      {pendingImport && (
+        <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200">
+          <span className="text-xs font-bold text-amber-800">
+            Vista previa: {pendingImport.length} probetas a importar
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleCancelImport} className="h-7 text-[10px] rounded-lg border-slate-200">
+              <X className="h-3 w-3 mr-1" /> Cancelar
+            </Button>
+            <Button size="sm" onClick={handleConfirmImport} disabled={importing} className="h-7 text-[10px] rounded-lg bg-emerald-600 hover:bg-emerald-700">
+              {importing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+              Aprobar importación
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-slate-100 text-slate-600 font-bold border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-10 text-center">ITEM</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-28 text-center">RECEPCIÓN</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-28 text-center">CÓDIGO</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-36 text-center">CLIENTE</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">ELEMENTO</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">F. ROTURA</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-20 text-center">DENSIDAD</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-16 text-center">F'C</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">STATUS ENSAYO</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">STATUS ENTREGA</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-24 text-center">F. ENTREGA</th>
-              <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-10"></th>
+              <th className={`${TH} w-10`}>ITEM</th>
+              <th className={`${TH} w-28`}>RECEPCIÓN</th>
+              <th className={`${TH} w-28`}>CÓDIGO</th>
+              <th className={`${TH} w-36`}>CLIENTE</th>
+              <th className={`${TH} w-24`}>ELEMENTO</th>
+              <th className={`${TH} w-24`}>F. ROTURA</th>
+              <th className={`${TH} w-20`}>DENSIDAD</th>
+              <th className={`${TH} w-16`}>F'C</th>
+              <th className={`${TH} w-24`}>STATUS ENSAYO</th>
+              <th className={`${TH} w-24`}>STATUS ENTREGA</th>
+              <th className={`${TH} w-24`}>F. ENTREGA</th>
+              <th className={`${TH} w-10 border-r-0`}></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onImportProbetas={handleImportProbetas} />
+            {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
             {loading && displayItems.length === 0 ? (
               <tr>
-                <td colSpan={12} className="py-20 text-center">
+                <td colSpan={12} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
               </tr>
             ) : displayItems.length === 0 ? (
               <tr>
-                <td colSpan={12} className="py-20 text-center">
+                <td colSpan={12} className="py-20 text-center border-r-0">
                   <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                   <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                   <p className="text-xs text-slate-400 mt-1">Crea una nueva usando el formulario superior</p>
                 </td>
               </tr>
             ) : (
-              displayItems.map((it) => <DataRow key={it.muestra_id} item={it} onUpdate={onUpdateRow} />)
+              displayItems.map((it) => (
+                <DataRow
+                  key={it.muestra_id}
+                  item={it}
+                  onUpdate={onUpdateRow}
+                  isPreview={!!pendingImport}
+                />
+              ))
             )}
           </tbody>
         </table>
@@ -385,10 +430,10 @@ interface GhostRowProps {
   onCreateRow: (payload: Record<string, unknown>) => Promise<void>
   searchRecepciones: (q: string) => Promise<Receipt[]>
   fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
-  onImportProbetas: (items: ProbetaRow[]) => void
+  onRequestImport: (items: ProbetaRow[]) => void
 }
 
-function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportProbetas }: GhostRowProps) {
+function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [recepcionQuery, setRecepcionQuery] = useState("")
@@ -435,17 +480,15 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
   }, [])
 
   const handleSelectRecepcion = async (rec: Receipt) => {
-    setGhost(g => ({ ...g, recepcion_id: rec.id, numero_recepcion: rec.numero_recepcion, numero_ot: rec.numero_ot || "", cliente: rec.cliente || "" }))
     setRecepcionQuery(rec.numero_recepcion)
     setShowDropdown(false)
     setImporting(true)
     const existingProbetas = await fetchByRecepcion(rec.id)
     if (existingProbetas.length > 0) {
-      onImportProbetas(existingProbetas)
-      setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
-      setRecepcionQuery("")
+      onRequestImport(existingProbetas)
     }
     setImporting(false)
+    setRecepcionQuery("")
   }
 
   const handleSave = async () => {
@@ -460,15 +503,15 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
 
   return (
     <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-      <td className="px-2 py-1.5 text-center">
+      <td className={`${TD} border-r-0`}>
         <button
           type="button" onClick={handleSave} disabled={saving || importing}
           className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-white hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          {saving || importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
         </button>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <div className="relative" ref={dropdownRef}>
           <Input
             value={recepcionQuery}
@@ -505,7 +548,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           )}
         </div>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           ref={codeRef} value={ghost.identificacion_muestra}
           onChange={(e) => setGhost(g => ({ ...g, identificacion_muestra: e.target.value }))}
@@ -514,16 +557,16 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           placeholder="001-CO-26"
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
-        <span className="text-[11px] font-semibold text-slate-500 text-center block truncate max-w-[140px] mx-auto" title={ghost.cliente}>{ghost.cliente || "—"}</span>
+      <td className={TD}>
+        <span className="text-[11px] font-semibold text-slate-500 block truncate max-w-[140px] mx-auto" title={ghost.cliente}>{ghost.cliente || "—"}</span>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           value={ghost.fecha_rotura}
           onChange={(e) => setGhost(g => ({ ...g, fecha_rotura: e.target.value }))}
@@ -532,7 +575,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           placeholder="DD/MM/AA"
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           value={ghost.densidad}
           onChange={(e) => setGhost(g => ({ ...g, densidad: e.target.value }))}
@@ -540,26 +583,26 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           placeholder="2.400"
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           type="number" value={ghost.fc_kg_cm2}
           onChange={(e) => setGhost(g => ({ ...g, fc_kg_cm2: Number(e.target.value) || 0 }))}
           className="h-8 text-center text-xs rounded-lg border-slate-200"
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={ghost.status_entrega} onValueChange={(v) => setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue }))}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           value={ghost.fecha_entrega}
           onChange={(e) => setGhost(g => ({ ...g, fecha_entrega: e.target.value }))}
@@ -568,7 +611,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           placeholder="DD/MM/AA"
         />
       </td>
-      <td className="px-2 py-1.5"></td>
+      <td className={`${TD} border-r-0`}></td>
     </tr>
   )
 }
@@ -578,9 +621,10 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
 interface DataRowProps {
   item: ProbetaRow
   onUpdate: (id: number, payload: Record<string, unknown>) => Promise<void>
+  isPreview?: boolean
 }
 
-function DataRow({ item, onUpdate }: DataRowProps) {
+function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
   const statusColors: Record<string, string> = {
     ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
@@ -589,63 +633,64 @@ function DataRow({ item, onUpdate }: DataRowProps) {
   }
 
   return (
-    <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-2 py-1.5 text-center font-bold text-slate-700 text-xs">{item.item_numero}</td>
-      <td className="px-2 py-1.5 text-center">
-        <div className="font-bold text-slate-800 text-xs text-center">{item.numero_recepcion}</div>
-        <div className="text-[9px] text-slate-400 font-medium text-center">{item.numero_ot}</div>
+    <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-slate-50/50"}`}>
+      <td className={`${TD} font-bold text-slate-700 text-xs border-r-0`}>{item.item_numero}</td>
+      <td className={TD}>
+        <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
+        <div className="text-[9px] text-slate-400 font-medium">{item.numero_ot}</div>
       </td>
-      <td className="px-2 py-1.5 text-center font-mono text-xs font-bold text-slate-700">{item.identificacion_muestra || "—"}</td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.identificacion_muestra || "—"}</td>
+      <td className={TD}>
         <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[140px] mx-auto" title={item.cliente}>{item.cliente}</span>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           defaultValue={formatDateDisplay(item.fecha_rotura)}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(e.target.value) || "" })}
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
-          defaultValue={item.densidad || ""}
+          defaultValue={item.densidad === "-" ? "" : (item.densidad || "")}
           className="h-8 text-center text-xs rounded-lg border-slate-200"
+          placeholder="-"
           onBlur={(e) => void onUpdate(item.muestra_id, { densidad: e.target.value || "-" })}
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           type="number" defaultValue={item.fc_kg_cm2}
           className="h-8 text-center text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fc_kg_cm2: Number(e.target.value) || 0 })}
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Select value={(item.status_entrega as StatusEntregaValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_entrega: v })}>
           <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={TD}>
         <Input
           defaultValue={formatDateDisplay(item.fecha_entrega)}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
         />
       </td>
-      <td className="px-2 py-1.5 text-center">
+      <td className={`${TD} border-r-0`}>
         <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
           {item.estado_probeta}
         </span>
