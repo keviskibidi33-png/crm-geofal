@@ -335,7 +335,7 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
       <div className="h-full overflow-auto">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-center">
           <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300 sticky top-0 z-10">
             <tr>
               <th className="px-2 py-2 text-[9px] font-black uppercase tracking-wider w-10 text-center">ITEM</th>
@@ -477,7 +477,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
               setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
             }}
             onFocus={() => recepcionOpts.length > 0 && setShowDropdown(true)}
-            className="h-8 text-xs rounded-lg border-slate-200"
+            className="h-8 text-xs text-center rounded-lg border-slate-200"
             placeholder="Buscar recepción..."
           />
           {showDropdown && (
@@ -510,16 +510,16 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
           ref={codeRef} value={ghost.identificacion_muestra}
           onChange={(e) => setGhost(g => ({ ...g, identificacion_muestra: e.target.value }))}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleSave() } }}
-          className="h-8 text-xs font-mono rounded-lg border-slate-200"
+          className="h-8 text-xs font-mono text-center rounded-lg border-slate-200"
           placeholder="001-CO-26"
         />
       </td>
       <td className="px-2 py-1.5 text-center">
-        <span className="text-[11px] font-semibold text-slate-500 truncate block max-w-[140px]" title={ghost.cliente}>{ghost.cliente || "—"}</span>
+        <span className="text-[11px] font-semibold text-slate-500 text-center block truncate max-w-[140px] mx-auto" title={ghost.cliente}>{ghost.cliente || "—"}</span>
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -549,13 +549,13 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onImportPr
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={ghost.status_entrega} onValueChange={(v) => setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -592,16 +592,16 @@ function DataRow({ item, onUpdate }: DataRowProps) {
     <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-2 py-1.5 text-center font-bold text-slate-700 text-xs">{item.item_numero}</td>
       <td className="px-2 py-1.5 text-center">
-        <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
-        <div className="text-[9px] text-slate-400 font-medium">{item.numero_ot}</div>
+        <div className="font-bold text-slate-800 text-xs text-center">{item.numero_recepcion}</div>
+        <div className="text-[9px] text-slate-400 font-medium text-center">{item.numero_ot}</div>
       </td>
       <td className="px-2 py-1.5 text-center font-mono text-xs font-bold text-slate-700">{item.identificacion_muestra || "—"}</td>
       <td className="px-2 py-1.5 text-center">
-        <span className="text-[11px] font-semibold text-slate-700 truncate block max-w-[140px]" title={item.cliente}>{item.cliente}</span>
+        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[140px] mx-auto" title={item.cliente}>{item.cliente}</span>
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -628,13 +628,13 @@ function DataRow({ item, onUpdate }: DataRowProps) {
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className="px-2 py-1.5 text-center">
         <Select value={(item.status_entrega as StatusEntregaValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_entrega: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>

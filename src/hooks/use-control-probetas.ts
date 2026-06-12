@@ -188,7 +188,10 @@ export function useControlProbetas() {
 
   const fetchByRecepcion = useCallback(async (recepcionId: number): Promise<ProbetaRow[]> => {
     try {
-      const res = await authFetch(`${API_URL}/api/control-probetas/by-recepcion/${recepcionId}`)
+      const res = await authFetch(`${API_URL}/api/control-probetas/importar-recepcion/${recepcionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
       if (res.ok) {
         return await res.json()
       }
