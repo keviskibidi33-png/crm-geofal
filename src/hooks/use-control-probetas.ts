@@ -55,17 +55,56 @@ export function formatDateDisplay(v?: string | null): string {
   const clean = v.split("T")[0].replace(/\//g, "-")
   const parts = clean.split("-")
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`
+    const [a, b, c] = parts
+    if (a.length === 4) return `${a}/${b.padStart(2, "0")}/${c.padStart(2, "0")}`
+    if (c.length === 4) return `${c}/${b.padStart(2, "0")}/${a.padStart(2, "0")}`
+    if (a.length === 2 && c.length === 2) return `20${c}/${b.padStart(2, "0")}/${a.padStart(2, "0")}`
   }
   return v
 }
 
 export function parseDateInput(v: string): string {
-  const p = v.trim().split(/[\/\-]/).filter(Boolean)
-  if (p.length === 3) {
-    const year = p[2].length === 2 ? `20${p[2]}` : p[2]
-    return `${year}/${p[1].padStart(2, "0")}/${p[0].padStart(2, "0")}`
+  const raw = v.trim()
+  if (!raw || raw === "-") return ""
+  const clean = raw.replace(/[\/\-\.]/g, "/")
+  const parts = clean.split("/").filter(Boolean)
+
+  if (parts.length === 3) {
+    const [p1, p2, p3] = parts
+    if (p1.length === 4) {
+      const y = p1, m = p2.padStart(2, "0"), d = p3.padStart(2, "0")
+      return `${y}/${m}/${d}`
+    }
+    if (p3.length === 4) {
+      const d = p1.padStart(2, "0"), m = p2.padStart(2, "0"), y = p3
+      return `${y}/${m}/${d}`
+    }
+    if (p1.length === 2 && p3.length === 2) {
+      const d = p1.padStart(2, "0"), m = p2.padStart(2, "0"), y = `20${p3}`
+      return `${y}/${m}/${d}`
+    }
   }
+
+  if (parts.length === 2) {
+    const [p1, p2] = parts
+    if (p1.length === 4) {
+      return `${p1}/${p2.padStart(2, "0")}/01`
+    }
+    if (p2.length === 4) {
+      return `${p2}/${p1.padStart(2, "0")}/01`
+    }
+  }
+
+  const digits = raw.replace(/\D/g, "")
+  if (digits.length === 6) {
+    const dd = digits.slice(0, 2), mm = digits.slice(2, 4), yy = digits.slice(4, 6)
+    return `20${yy}/${mm}/${dd}`
+  }
+  if (digits.length === 8) {
+    const dd = digits.slice(0, 2), mm = digits.slice(2, 4), yyyy = digits.slice(4, 8)
+    if (Number(yyyy) > 1900) return `${yyyy}/${mm}/${dd}`
+  }
+
   return ""
 }
 
