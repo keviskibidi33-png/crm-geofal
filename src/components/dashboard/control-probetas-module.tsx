@@ -592,7 +592,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
         <Input
           type="number" value={ghost.fc_kg_cm2}
           onChange={(e) => setGhost(g => ({ ...g, fc_kg_cm2: Number(e.target.value) || 0 }))}
-          className="h-8 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       </td>
       <td className={TD}>
@@ -672,7 +672,7 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       <td className={TD}>
         <Input
           type="number" defaultValue={item.fc_kg_cm2}
-          className="h-8 text-center text-xs rounded-lg border-slate-200"
+          className="h-8 text-center text-xs rounded-lg border-slate-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           onBlur={(e) => void onUpdate(item.muestra_id, { fc_kg_cm2: Number(e.target.value) || 0 })}
         />
       </td>
