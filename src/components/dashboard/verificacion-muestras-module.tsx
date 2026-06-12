@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { RefreshCw, Plus, Search, FileText, Trash2, Eye, Pencil, FileSpreadsheet, AlertCircle, Loader2 } from "lucide-react"
+import { RefreshCw, Plus, Search, FileText, Trash2, Eye, Pencil, FileSpreadsheet, AlertCircle, Loader2, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -158,6 +158,19 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
     const canWrite = user?.role === "admin" || user?.role === "oficina_tecnica" || user?.permissions?.verificacion_muestras?.write === true
     const canDelete = user?.role === "admin" || user?.role === "oficina_tecnica" || user?.permissions?.verificacion_muestras?.delete === true
+    const [menuOpen, setMenuOpen] = useState(false)
+    const [importIframeOpen, setImportIframeOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
 
     const syncIframeToken = async (): Promise<string | null> => {
     const getStoredAccessToken = (): string | null => {
@@ -439,7 +452,7 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">Verificación Probetas</h1>
                     <p className="text-muted-foreground">Gestión y control de verificaciones de muestras</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" ref={menuRef}>
                     <Button variant="outline" size="icon" onClick={() => fetchVerificaciones()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
@@ -449,6 +462,22 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                             Nueva Verificación
                         </Button>
                     )}
+                    <div className="relative">
+                        <Button variant="outline" size="icon" onClick={() => setMenuOpen(!menuOpen)}>
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                        {menuOpen && (
+                            <div className="absolute right-0 mt-2 w-56 bg-popover rounded-md border shadow-md py-1 z-50">
+                                <button
+                                    onClick={() => { setMenuOpen(false); setImportIframeOpen(true) }}
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors flex items-center gap-3"
+                                >
+                                    <span className="text-muted-foreground">📥</span>
+                                    Validar Excel
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -584,6 +613,22 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
                         <SmartIframe
                             src={`${FRONTEND_URL}${iframePath}${iframePath.includes('?') ? '&' : '?'}token=${token || ''}`}
                             title="Verificación Probetas Iframe"
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Iframe for Import */}
+            <Dialog open={importIframeOpen} onOpenChange={setImportIframeOpen}>
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+                    <DialogHeader className="hidden">
+                        <DialogTitle>Importar Verificaciones</DialogTitle>
+                        <DialogDescription>Importa verificaciones desde Excel</DialogDescription>
+                    </DialogHeader>
+                    <div className="w-full h-full relative">
+                        <SmartIframe
+                            src={`${FRONTEND_URL}/importar${token ? `?token=${token}` : ''}`}
+                            title="Importar Verificaciones Iframe"
                         />
                     </div>
                 </DialogContent>
