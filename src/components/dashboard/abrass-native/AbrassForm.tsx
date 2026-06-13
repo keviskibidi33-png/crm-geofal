@@ -558,7 +558,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                             <Beaker className="h-5 w-5 text-slate-900" />
                         </div>
                         <div>
-                            <h1 className="text-base font-semibold text-slate-900 md:text-lg">ABRASS - ASTM C131/C131M-20 (NATIVO)</h1>
+                            <h1 className="text-base font-semibold text-slate-900 md:text-lg">ABRASS - ASTM C535 (NATIVO)</h1>
                             <p className="text-xs text-slate-600">Réplica del formato Excel oficial</p>
                         </div>
                     </div>
@@ -579,7 +579,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                 <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
                     <div className="border-b border-slate-300 bg-slate-50 px-4 py-4 text-center">
                         <p className="text-[28px] font-semibold leading-tight text-slate-900">LABORATORIO DE ENSAYO DE MATERIALES</p>
-                        <p className="text-xl font-semibold leading-tight text-slate-900">FORMATO N° F-LEM-P-AG-36.01</p>
+                        <p className="text-xl font-semibold leading-tight text-slate-900">FORMATO N° F-LEM-P-AG-26.01</p>
                     </div>
 
                     <div className="border-b border-slate-300 bg-white px-3 py-3">
@@ -667,12 +667,12 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
 
                     <div className="border-b border-slate-300 bg-slate-100 px-4 py-3 text-center">
                         <p className="text-[27px] font-semibold leading-tight text-slate-900">
-                            STANDARD TEST METHOD FOR RESISTANCE TO DEGRADATION OF SMALL-SIZE COARSE AGGREGATE
+                            STANDARD TEST METHOD FOR RESISTANCE TO DEGRADATION OF LARGE-SIZE COARSE
                         </p>
                         <p className="text-[27px] font-semibold leading-tight text-slate-900">
                             AGGREGATE BY ABRASION AND IMPACT IN THE LOS ANGELES MACHINE
                         </p>
-                        <p className="text-[27px] font-semibold text-slate-900">ASTM C131/C131M-20</p>
+                        <p className="text-[27px] font-semibold text-slate-900">ASTM C535 - 16</p>
                     </div>
 
                     <div className="space-y-3 p-3">
