@@ -865,14 +865,21 @@ export default function SulfatosSolublesForm({ ensayoId: initialEnsayoId, onClos
                             <button
                                 onClick={() => setPendingFormatAction(false)}
                                 disabled={loading}
-                                className="h-11 rounded-lg border border-slate-900 bg-white font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 disabled:opacity-50"
+                                className="h-11 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                             >
-                                {loading ? 'Guardando...' : 'Guardar'}
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Guardando...
+                                    </>
+                                ) : (
+                                    'Guardar'
+                                )}
                             </button>
                             <button
                                 onClick={() => setPendingFormatAction(true)}
                                 disabled={loading}
-                                className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50"
+                                className="h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {loading ? (
                                     <>
