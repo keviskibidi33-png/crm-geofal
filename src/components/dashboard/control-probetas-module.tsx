@@ -567,7 +567,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -597,13 +597,13 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className={TD}>
         <Select value={ghost.status_entrega} onValueChange={(v) => setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -650,7 +650,7 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -678,13 +678,13 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className={TD}>
         <Select value={(item.status_entrega as StatusEntregaValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_entrega: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
