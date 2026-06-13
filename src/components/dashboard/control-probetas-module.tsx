@@ -380,8 +380,8 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
               <th className={`${TH} w-28`}>RECEPCIÓN</th>
               <th className={`${TH} w-28`}>CÓDIGO</th>
               <th className={`${TH} w-36`}>CLIENTE</th>
-              <th className={`${TH} w-24`}>ELEMENTO</th>
-              <th className={`${TH} w-24`}>F. ROTURA</th>
+              <th className={`${TH} w-20`}>ELEMENTO</th>
+              <th className={`${TH} w-32`}>F. ROTURA</th>
               <th className={`${TH} w-20`}>DENSIDAD</th>
               <th className={`${TH} w-16`}>F'C</th>
               <th className={`${TH} w-24`}>STATUS ENSAYO</th>
@@ -609,11 +609,10 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Input
-          value={ghost.fecha_entrega}
+          type="date"
+          value={ghost.fecha_entrega || ""}
           onChange={(e) => setGhost(g => ({ ...g, fecha_entrega: e.target.value }))}
-          onBlur={(e) => setGhost(g => ({ ...g, fecha_entrega: parseDateInput(e.target.value) }))}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
-          placeholder="DD/MM/AA"
         />
       </td>
       <td className={`${TD} border-r-0`}></td>
@@ -690,9 +689,10 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Input
-          defaultValue={formatDateDisplay(item.fecha_entrega)}
+          type="date"
+          value={item.fecha_entrega && item.fecha_entrega !== "-" ? item.fecha_entrega.replace(/\//g, "-") : ""}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
-          onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
+          onChange={(e) => void onUpdate(item.muestra_id, { fecha_entrega: e.target.value ? e.target.value.replace(/-/g, "/") : "-" })}
         />
       </td>
       <td className={`${TD} border-r-0`}>
