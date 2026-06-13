@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { Beaker, Download, Loader2, Lock, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormatConfirmModal from './FormatConfirmModal'
+import FormatConfirmModal from '../shared/FormatConfirmModal'
 
 // --- Local Types ---
 export interface CloroSolubleResultado {

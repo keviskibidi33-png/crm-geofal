@@ -6,11 +6,21 @@ type FormatConfirmModalProps = {
     open: boolean
     formatLabel: string
     actionLabel: string
+    title?: string
+    description?: string
     onClose: () => void
     onConfirm: () => void
 }
 
-export default function FormatConfirmModal({ open, formatLabel, actionLabel, onClose, onConfirm }: FormatConfirmModalProps) {
+export default function FormatConfirmModal({ 
+    open, 
+    formatLabel, 
+    actionLabel, 
+    title = "Confirmar formato",
+    description = "Se generará el registro con la siguiente denominación obligatoria antes de continuar.",
+    onClose, 
+    onConfirm 
+}: FormatConfirmModalProps) {
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -36,9 +46,9 @@ export default function FormatConfirmModal({ open, formatLabel, actionLabel, onC
                 </div>
 
                 <div className="text-center">
-                    <h3 className="text-xl font-bold text-slate-900">Confirmar formato</h3>
+                    <h3 className="text-xl font-bold text-slate-900">{title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                        Se generará el registro con la siguiente denominación obligatoria antes de continuar.
+                        {description}
                     </p>
                 </div>
 

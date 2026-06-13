@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Beaker, Trash2, X } from 'lucide-react'
-import FormatConfirmModal from './FormatConfirmModal'
+import FormatConfirmModal from '../shared/FormatConfirmModal'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Beaker, Download, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-import FormatConfirmModal from "../abra-native/FormatConfirmModal"
+import FormatConfirmModal from "../shared/FormatConfirmModal"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"

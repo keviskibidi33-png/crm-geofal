@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent }
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Gauge, X } from 'lucide-react'
 import { authFetch } from '@/lib/api-auth'
-import FormatConfirmModal from './FormatConfirmModal'
+import FormatConfirmModal from '../shared/FormatConfirmModal'
 
 // --- Local Types ---
 export interface CBRLecturaPenetracionRow {

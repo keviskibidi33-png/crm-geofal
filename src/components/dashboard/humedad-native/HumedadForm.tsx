@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, Droplets, FlaskConical, Trash2, X } from 'lucide-react'
 import TMCalculator from './TMCalculator'
-import FormatConfirmModal from './FormatConfirmModal'
+import FormatConfirmModal from '../shared/FormatConfirmModal'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---

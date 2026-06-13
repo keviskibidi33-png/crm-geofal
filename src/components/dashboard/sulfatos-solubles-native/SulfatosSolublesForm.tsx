@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Beaker, Download, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormatConfirmModal from './FormatConfirmModal'
+import FormatConfirmModal from '../shared/FormatConfirmModal'
 
 // --- Local Types ---
 export interface SulfatosSolublesPayload {

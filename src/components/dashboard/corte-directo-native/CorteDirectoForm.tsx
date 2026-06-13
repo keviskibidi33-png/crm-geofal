@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { authFetch } from "@/lib/api-auth"
-import FormatConfirmModal from "./FormatConfirmModal"
+import FormatConfirmModal from "../shared/FormatConfirmModal"
 
 // --- Types ---
 export type CdHumedadPunto = {
