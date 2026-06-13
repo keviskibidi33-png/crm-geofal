@@ -15,6 +15,18 @@ import {
 } from "@/hooks/use-control-probetas"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
 
+function toInputDateFormat(dateStr?: string | null): string {
+  if (!dateStr || dateStr === "-") return ""
+  const clean = dateStr.split("T")[0].replace(/\//g, "-")
+  const parts = clean.split("-")
+  if (parts.length === 3) {
+    const [a, b, c] = parts
+    if (a.length === 4) return `${a}-${b.padStart(2, "0")}-${c.padStart(2, "0")}`
+    if (c.length === 4) return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`
+  }
+  return ""
+}
+
 interface ControlProbetasModuleProps {
   user: any
   onNavigateModule: (module: any, recordId: number | null) => void
@@ -567,7 +579,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -597,13 +609,26 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className={TD}>
-        <Select value={ghost.status_entrega} onValueChange={(v) => setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue }))}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+        <Select
+          value={ghost.status_entrega}
+          onValueChange={(v) => {
+            let extra = {}
+            if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!ghost.fecha_entrega || ghost.fecha_entrega === "-")) {
+              const today = new Date()
+              const yyyy = today.getFullYear()
+              const mm = String(today.getMonth() + 1).padStart(2, '0')
+              const dd = String(today.getDate()).padStart(2, '0')
+              extra = { fecha_entrega: `${yyyy}-${mm}-${dd}` }
+            }
+            setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue, ...extra }))
+          }}
+        >
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -649,7 +674,7 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -677,20 +702,33 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className={TD}>
-        <Select value={(item.status_entrega as StatusEntregaValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_entrega: v })}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]]:text-center"><SelectValue /></SelectTrigger>
+        <Select
+          value={(item.status_entrega as StatusEntregaValue) || "-"}
+          onValueChange={(v) => {
+            const payload: Record<string, any> = { status_entrega: v }
+            if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
+              const today = new Date()
+              const yyyy = today.getFullYear()
+              const mm = String(today.getMonth() + 1).padStart(2, '0')
+              const dd = String(today.getDate()).padStart(2, '0')
+              payload.fecha_entrega = `${yyyy}/${mm}/${dd}`
+            }
+            void onUpdate(item.muestra_id, payload)
+          }}
+        >
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       <td className={TD}>
         <Input
           type="date"
-          value={item.fecha_entrega && item.fecha_entrega !== "-" ? item.fecha_entrega.replace(/\//g, "-") : ""}
+          value={toInputDateFormat(item.fecha_entrega)}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
           onChange={(e) => void onUpdate(item.muestra_id, { fecha_entrega: e.target.value ? e.target.value.replace(/-/g, "/") : "-" })}
         />
