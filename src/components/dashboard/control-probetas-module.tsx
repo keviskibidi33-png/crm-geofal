@@ -623,7 +623,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
               const dd = String(today.getDate()).padStart(2, '0')
-              extra = { fecha_entrega: `${yyyy}-${mm}-${dd}` }
+              extra = { fecha_entrega: `${yyyy}/${mm}/${dd}` }
             }
             setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue, ...extra }))
           }}
@@ -634,10 +634,11 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       </td>
       <td className={TD}>
         <Input
-          type="date"
-          value={ghost.fecha_entrega || ""}
+          value={ghost.fecha_entrega}
           onChange={(e) => setGhost(g => ({ ...g, fecha_entrega: e.target.value }))}
+          onBlur={(e) => setGhost(g => ({ ...g, fecha_entrega: parseDateInput(e.target.value) }))}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
+          placeholder="DD/MM/AA"
         />
       </td>
       <td className={`${TD} border-r-0`}></td>
@@ -727,10 +728,11 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
       </td>
       <td className={TD}>
         <Input
-          type="date"
-          value={toInputDateFormat(item.fecha_entrega)}
+          key={item.fecha_entrega || ""}
+          defaultValue={formatDateDisplay(item.fecha_entrega)}
           className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
-          onChange={(e) => void onUpdate(item.muestra_id, { fecha_entrega: e.target.value ? e.target.value.replace(/-/g, "/") : "-" })}
+          placeholder="DD/MM/AA"
+          onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
         />
       </td>
       <td className={`${TD} border-r-0`}>
