@@ -56,9 +56,9 @@ export function formatDateDisplay(v?: string | null): string {
   const parts = clean.split("-")
   if (parts.length === 3) {
     const [a, b, c] = parts
-    if (a.length === 4) return `${a}/${b.padStart(2, "0")}/${c.padStart(2, "0")}`
-    if (c.length === 4) return `${c}/${b.padStart(2, "0")}/${a.padStart(2, "0")}`
-    if (a.length === 2 && c.length === 2) return `20${c}/${b.padStart(2, "0")}/${a.padStart(2, "0")}`
+    if (a.length === 4) return `${c.padStart(2, "0")}/${b.padStart(2, "0")}/${a}`
+    if (c.length === 4) return `${a.padStart(2, "0")}/${b.padStart(2, "0")}/${c}`
+    if (a.length === 2 && c.length === 2) return `${a.padStart(2, "0")}/${b.padStart(2, "0")}/20${c}`
   }
   return v
 }
@@ -87,6 +87,11 @@ export function parseDateInput(v: string): string {
 
   if (parts.length === 2) {
     const [p1, p2] = parts
+    if (p1.length <= 2 && p2.length <= 2) {
+      const d = p1.padStart(2, "0"), m = p2.padStart(2, "0")
+      const y = new Date().getFullYear()
+      return `${y}/${m}/${d}`
+    }
     if (p1.length === 4) {
       return `${p1}/${p2.padStart(2, "0")}/01`
     }
@@ -96,6 +101,11 @@ export function parseDateInput(v: string): string {
   }
 
   const digits = raw.replace(/\D/g, "")
+  if (digits.length === 4) {
+    const dd = digits.slice(0, 2), mm = digits.slice(2, 4)
+    const yyyy = new Date().getFullYear()
+    return `${yyyy}/${mm}/${dd}`
+  }
   if (digits.length === 6) {
     const dd = digits.slice(0, 2), mm = digits.slice(2, 4), yy = digits.slice(4, 6)
     return `20${yy}/${mm}/${dd}`
