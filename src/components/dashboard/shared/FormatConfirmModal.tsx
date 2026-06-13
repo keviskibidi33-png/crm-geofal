@@ -41,7 +41,7 @@ export default function FormatConfirmModal({
                     <X className="h-5 w-5" />
                 </button>
 
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 text-blue-600">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#0089b3]/10 text-[#0089b3]">
                     <FileText className="h-8 w-8" />
                 </div>
 
@@ -68,7 +68,7 @@ export default function FormatConfirmModal({
                     <button
                         type="button"
                         onClick={onConfirm}
-                        className="rounded-2xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-700"
+                        className="rounded-2xl bg-[#0089b3] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#007499] shadow-[#0089b3]/25"
                     >
                         {actionLabel}
                     </button>
