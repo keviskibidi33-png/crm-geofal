@@ -30,7 +30,7 @@ export default function FormatConfirmModal({
     if (!open || !mounted) return null
 
     return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-md pointer-events-auto">
             <div className="relative w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                 <button
                     type="button"
