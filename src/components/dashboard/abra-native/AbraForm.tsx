@@ -782,12 +782,8 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                                 {withCurrentOption(form.maquina_los_angeles_codigo, EQUIPO_OPTIONS.maquina_los_angeles_codigo).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
                                         </td>
-                                        <td className="border-t border-r border-slate-300 px-2 py-1">Malla No. 4</td>
-                                        <td className="border-t border-slate-300 p-1">
-                                            <select className={denseInputClass} value={form.malla_no_4_codigo ?? '-'} onChange={(e) => setField('malla_no_4_codigo', e.target.value)}>
-                                                {withCurrentOption(form.malla_no_4_codigo, EQUIPO_OPTIONS.malla_no_4_codigo).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                                            </select>
-                                        </td>
+                                        <td className="border-t border-r border-slate-300 px-2 py-1"></td>
+                                        <td className="border-t border-slate-300 p-1"></td>
                                     </tr>
                                     <tr>
                                         <td className="border-t border-r border-slate-300 px-2 py-1">Balanza 1g</td>
