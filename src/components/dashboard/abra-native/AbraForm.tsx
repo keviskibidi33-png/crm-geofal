@@ -634,6 +634,18 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                             </td>
                                         </tr>
                                         <tr>
+                                            <td className="border-b border-r border-slate-300 px-2 py-1">TMN</td>
+                                            <td className="border-b border-slate-300 p-1" colSpan={2}>
+                                                <input
+                                                    className={denseInputClass}
+                                                    value={form.tmn ?? ''}
+                                                    onChange={(e) => setField('tmn', e.target.value)}
+                                                    autoComplete="off"
+                                                    data-lpignore="true"
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
                                             <td className="border-r border-slate-300 px-2 py-1">Masa de las 12 esferas mayor 4975g y menor 5025g</td>
                                             <td className="p-1" colSpan={2}>
                                                 <input
