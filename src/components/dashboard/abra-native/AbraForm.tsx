@@ -245,7 +245,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
     const [form, setForm] = useState<AbraPayload>(() => initialState())
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
-    const [ensayoId, setEnsayoId] = useState<number | null>(editId || null)
+    const [ensayoId] = useState<number | null>(editId || null)
 
     const [muestraInput, setMuestraInput] = useState('')
     const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('SU')
@@ -416,7 +416,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
             toast.success(download ? 'ABRA guardado y descargado.' : 'ABRA guardado.')
             onSaved?.()
             onClose?.()
-        } catch (err) {
+        } catch {
             toast.error('No se pudo generar ABRA.')
         } finally {
             setLoading(false)
