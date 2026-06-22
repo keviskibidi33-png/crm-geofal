@@ -775,6 +775,7 @@ async function buildUser(session: any): Promise<User> {
             gran_suelo:    grantWrite(), // Granulometría Fino (suelo)
             gran_agregado: grantWrite(), // Granulometría Grueso (agregado)
             llp:           grantWrite(), // Límites
+            cbr:           grantWrite(), // CBR
         }
     }
 
