@@ -761,6 +761,22 @@ async function buildUser(session: any): Promise<User> {
         }
     }
 
+    // User-specific hotfix: Oficina Tecnica 3 — acceso a Proctor y Granulometría (fino/grueso)
+    if (normalizedEmail === "oficinatecnica3@geofal.com.pe") {
+        const grantWrite = (): Permission => ({
+            read: true,
+            write: true,
+            delete: false,
+        })
+
+        permissions = {
+            ...(permissions || {}),
+            proctor:       grantWrite(), // Proctor
+            gran_suelo:    grantWrite(), // Granulometría Fino (suelo)
+            gran_agregado: grantWrite(), // Granulometría Grueso (agregado)
+        }
+    }
+
     // User-specific hotfix: Johanie (oficiatecnica5) — acceso a
     // Proctor, CBR, Granulometría (fino/grueso), Abrasión y Malla No. 200.
     if (normalizedEmail === "oficiatecnica5@geofal.com.pe") {
