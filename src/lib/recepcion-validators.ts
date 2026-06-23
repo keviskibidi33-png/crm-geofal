@@ -111,10 +111,10 @@ export const sanitizeImportedMuestras = (muestras: unknown[] | undefined | null)
       codigo_muestra_lem: normalizeLemCode(
         normalizeImportedText(m.codigo_muestra_lem)
       ),
-      identificacion_muestra: normalizeImportedText(
-        m.identificacion_muestra || m.descripcion
-      ),
-      estructura: normalizeImportedText(m.estructura),
+      identificacion_muestra: String(
+        m.identificacion_muestra || m.descripcion || ""
+      ).trim(),
+      estructura: String(m.estructura || "").trim(),
       fc_kg_cm2:
         m.fc_kg_cm2 !== null &&
         m.fc_kg_cm2 !== undefined &&
