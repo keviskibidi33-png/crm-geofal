@@ -61,16 +61,17 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
           <div className="flex-1 min-h-0 flex flex-col gap-4 p-4 overflow-hidden">
             <FilterBar
               search={store.search} onSearchChange={store.setSearch}
-              pageSize={store.pageSize} onPageSizeChange={(v) => { store.setPageSize(v); store.setPage(1) }}
-              total={store.total} page={store.page} totalPages={store.totalPages}
-              onPrev={() => store.setPage(p => Math.max(1, p - 1))}
-              onNext={() => store.setPage(p => Math.min(store.totalPages, p + 1))}
+              total={store.total}
             />
             <DataTable
               items={store.items} loading={store.loading}
               onUpdateRow={store.updateRow} onCreateRow={store.createRow}
               searchRecepciones={store.searchRecepciones}
               fetchByRecepcion={store.fetchByRecepcion}
+              pageSize={store.pageSize} onPageSizeChange={(v) => { store.setPageSize(v); store.setPage(1) }}
+              total={store.total} page={store.page} totalPages={store.totalPages}
+              onPrev={() => store.setPage(p => Math.max(1, p - 1))}
+              onNext={() => store.setPage(p => Math.min(store.totalPages, p + 1))}
             />
           </div>
         </DialogFullscreenContent>
@@ -273,12 +274,10 @@ function DialogTitleBar({ onClose }: { onClose: () => void }) {
 
 interface FilterBarProps {
   search: string; onSearchChange: (v: string) => void
-  pageSize: number; onPageSizeChange: (v: number) => void
-  total: number; page: number; totalPages: number
-  onPrev: () => void; onNext: () => void
+  total: number
 }
 
-function FilterBar({ search, onSearchChange, pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext }: FilterBarProps) {
+function FilterBar({ search, onSearchChange, total }: FilterBarProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex-none">
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4">
@@ -292,30 +291,9 @@ function FilterBar({ search, onSearchChange, pageSize, onPageSizeChange, total, 
           />
         </div>
         <div className="flex items-center gap-3">
-          <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-            <SelectTrigger className="h-10 w-[100px] text-sm rounded-xl border-slate-200">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
             <Calendar className="h-4 w-4" />
             {total} registros
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={onPrev} disabled={page <= 1} className="rounded-xl border-slate-200 h-9 w-9">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs font-bold text-slate-700 min-w-[80px] text-center">
-              {page} / {totalPages}
-            </span>
-            <Button variant="outline" size="icon" onClick={onNext} disabled={page >= totalPages} className="rounded-xl border-slate-200 h-9 w-9">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
@@ -334,9 +312,21 @@ interface DataTableProps {
   onCreateRow: (payload: Record<string, unknown>) => Promise<void>
   searchRecepciones: (q: string) => Promise<Receipt[]>
   fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
+  pageSize: number
+  onPageSizeChange: (v: number) => void
+  total: number
+  page: number
+  totalPages: number
+  onPrev: () => void
+  onNext: () => void
 }
 
-function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion }: DataTableProps) {
+import { useMemo } from "react"
+
+function DataTable({
+  items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion,
+  pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext
+}: DataTableProps) {
   const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
   const [importing, setImporting] = useState(false)
 
@@ -366,6 +356,21 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
 
   const displayItems = pendingImport || items
 
+  const rowBackgrounds = useMemo(() => {
+    const mapping: Record<string, string> = {}
+    let lastRecepcion = ""
+    let isBlue = false
+    for (const it of displayItems) {
+      const rec = it.numero_recepcion || ""
+      if (rec !== lastRecepcion) {
+        isBlue = !isBlue
+        lastRecepcion = rec
+      }
+      mapping[it.muestra_id] = isBlue ? "bg-[#f0f7ff]" : "bg-white"
+    }
+    return mapping
+  }, [displayItems])
+
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
@@ -386,20 +391,20 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
       )}
       <div className="flex-1 min-h-0 overflow-auto">
         <table className="w-full text-sm border-collapse">
-          <thead className="bg-slate-100 text-slate-600 font-bold border-b-2 border-slate-300 sticky top-0 z-10">
+          <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
-              <th className={`${TH} w-10`}>ITEM</th>
-              <th className={`${TH} w-28`}>RECEPCIÓN</th>
-              <th className={`${TH} w-28`}>CÓDIGO</th>
-              <th className={`${TH} w-36`}>CLIENTE</th>
-              <th className={`${TH} w-20`}>ELEMENTO</th>
-              <th className={`${TH} w-32`}>F. ROTURA</th>
-              <th className={`${TH} w-20`}>DENSIDAD</th>
-              <th className={`${TH} w-16`}>F'C</th>
-              <th className={`${TH} w-24`}>STATUS ENSAYO</th>
-              <th className={`${TH} w-24`}>STATUS ENTREGA</th>
-              <th className={`${TH} w-24`}>F. ENTREGA</th>
-              <th className={`${TH} w-10 border-r-0`}></th>
+              <th className={`${TH} w-10 text-zinc-950 font-black`}>ITEM</th>
+              <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
+              <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO</th>
+              <th className={`${TH} w-36 text-zinc-950 font-black`}>CLIENTE</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
+              <th className={`${TH} w-32 text-zinc-950 font-black`}>F. ROTURA</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>DENSIDAD</th>
+              <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENTREGA</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>F. ENTREGA</th>
+              <th className={`${TH} w-10 border-r-0 text-zinc-950 font-black`}></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -429,6 +434,7 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
                     item={it}
                     onUpdate={onUpdateRow}
                     isPreview={!!pendingImport}
+                    bgClass={rowBackgrounds[it.muestra_id]}
                   />
                 ))}
                 {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
@@ -436,6 +442,35 @@ function DataTable({ items, loading, onUpdateRow, onCreateRow, searchRecepciones
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* STICKY FOOTER / PAGINADO */}
+      <div className="flex-none flex items-center justify-between border-t border-slate-200 px-6 py-3 bg-white">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-medium">Filas por página:</span>
+          <Select value={String(pageSize)} onValueChange={(val) => onPageSizeChange(Number(val))}>
+            <SelectTrigger className="w-16 h-8 text-xs rounded-xl border-slate-200 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 20, 50, 100].map(v => (
+                <SelectItem key={v} value={String(v)}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-slate-400 ml-2">Total: {total} registros</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-slate-500 font-medium">Página {page} de {totalPages}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl border-slate-200" onClick={onPrev} disabled={page <= 1}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl border-slate-200" onClick={onNext} disabled={page >= totalPages}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -457,6 +492,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [openUpward, setOpenUpward] = useState(false)
   const [ghost, setGhost] = useState({
     recepcion_id: null as number | null,
     numero_recepcion: "",
@@ -485,6 +521,26 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
     }, 300)
     return () => clearTimeout(t)
   }, [recepcionQuery, searchRecepciones])
+
+  const checkPosition = () => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      setOpenUpward(spaceBelow < 220)
+    }
+  }
+
+  useEffect(() => {
+    if (showDropdown) {
+      checkPosition()
+      window.addEventListener("scroll", checkPosition, true)
+      window.addEventListener("resize", checkPosition)
+    }
+    return () => {
+      window.removeEventListener("scroll", checkPosition, true)
+      window.removeEventListener("resize", checkPosition)
+    }
+  }, [showDropdown])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -536,12 +592,16 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
               setRecepcionQuery(e.target.value)
               setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
             }}
-            onFocus={() => recepcionOpts.length > 0 && setShowDropdown(true)}
+            onFocus={() => {
+              if (recepcionOpts.length > 0) {
+                setShowDropdown(true)
+              }
+            }}
             className="h-8 text-xs text-center rounded-lg border-slate-200"
             placeholder="Buscar recepción..."
           />
           {showDropdown && (
-            <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className={`absolute left-0 z-50 w-full rounded-xl border border-slate-200 bg-white shadow-xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
               {searching ? (
                 <div className="p-3 text-xs text-slate-500 flex items-center gap-2">
                   <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
@@ -652,9 +712,10 @@ interface DataRowProps {
   item: ProbetaRow
   onUpdate: (id: number, payload: Record<string, unknown>) => Promise<void>
   isPreview?: boolean
+  bgClass?: string
 }
 
-function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
+function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
   const statusColors: Record<string, string> = {
     ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
@@ -663,7 +724,7 @@ function DataRow({ item, onUpdate, isPreview }: DataRowProps) {
   }
 
   return (
-    <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : "hover:bg-slate-50/50"}`}>
+    <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : `${bgClass || "bg-white"} hover:bg-slate-100/60`}`}>
       <td className={`${TD} font-bold text-slate-700 text-xs border-r-0`}>{item.item_numero}</td>
       <td className={TD}>
         <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
