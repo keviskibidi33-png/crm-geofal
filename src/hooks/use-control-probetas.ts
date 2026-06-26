@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
-export type ElementoValue = "-" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA" | "CUBO Y VIGA"
+export type ElementoValue = "-" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA" | "CUBO" | "VIGA"
 export type StatusEnsayoValue = "-" | "ENSAYADO" | "PENDIENTE" | "FALTA" | "ANULADO"
 export type StatusEntregaValue = "-" | "ENTREGADO" | "INFORME LISTO"
 
@@ -17,10 +17,16 @@ export interface ProbetaRow {
   numero_recepcion: string
   numero_ot: string
   cliente: string
+  proyecto?: string
+  fecha_recepcion?: string
+  codigo_muestra_lem?: string
   identificacion_muestra?: string
+  estructura?: string
   elemento?: string
   fecha_rotura?: string
+  /** "SI" or "NO" derived from requiere_densidad */
   densidad?: string
+  requiere_densidad?: boolean
   fc_kg_cm2: number
   status_ensayo?: string
   status_entrega?: string
@@ -46,7 +52,7 @@ export interface ProbetasKpis {
   vencido: number
 }
 
-export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO Y VIGA"]
+export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
 export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "ENSAYADO", "PENDIENTE", "FALTA", "ANULADO"]
 export const STATUS_ENTREGA: StatusEntregaValue[] = ["-", "ENTREGADO", "INFORME LISTO"]
 

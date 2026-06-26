@@ -13,6 +13,9 @@ import {
   useControlProbetas, ProbetaRow, Receipt, ElementoValue, StatusEnsayoValue, StatusEntregaValue,
   ELEMENTOS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
+
+const STATUS_DENSIDAD = ["SI", "NO"] as const
+type DensidadValue = "SI" | "NO"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
 
 function toInputDateFormat(dateStr?: string | null): string {
@@ -63,7 +66,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               search={store.search} onSearchChange={store.setSearch}
               total={store.total}
             />
-            <DataTable
+          <DataTable
               items={store.items} loading={store.loading}
               onUpdateRow={store.updateRow} onCreateRow={store.createRow}
               searchRecepciones={store.searchRecepciones}
@@ -340,7 +343,7 @@ function DataTable({
     for (const probeta of pendingImport) {
       await onUpdateRow(probeta.muestra_id, {
         elemento: probeta.elemento || "-",
-        densidad: probeta.densidad || "-",
+        densidad: probeta.densidad || "NO",
         fc_kg_cm2: probeta.fc_kg_cm2,
         status_ensayo: probeta.status_ensayo || "-",
         status_entrega: probeta.status_entrega || "-",
@@ -371,6 +374,9 @@ function DataTable({
     return mapping
   }, [displayItems])
 
+  // Global row offset for the # column
+  const rowOffset = (page - 1) * pageSize
+
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
@@ -393,13 +399,15 @@ function DataTable({
         <table className="w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
-              <th className={`${TH} w-10 text-zinc-950 font-black`}>ITEM</th>
+              <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
-              <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO</th>
-              <th className={`${TH} w-36 text-zinc-950 font-black`}>CLIENTE</th>
+              <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO LEM</th>
+              <th className={`${TH} w-44 text-zinc-950 font-black`}>IDENTIFICACIÓN</th>
+              <th className={`${TH} w-32 text-zinc-950 font-black`}>CLIENTE</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
-              <th className={`${TH} w-32 text-zinc-950 font-black`}>F. ROTURA</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>DENSIDAD</th>
+              <th className={`${TH} w-28 text-zinc-950 font-black`}>F. RECEPCIÓN</th>
+              <th className={`${TH} w-28 text-zinc-950 font-black`}>F. ROTURA</th>
+              <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENTREGA</th>
@@ -410,7 +418,7 @@ function DataTable({
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                <td colSpan={12} className="py-20 text-center border-r-0">
+                <td colSpan={14} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -418,20 +426,21 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={12} className="py-20 text-center border-r-0">
+                  <td colSpan={14} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
-                    <p className="text-xs text-slate-400 mt-1">Crea una nueva usando el formulario inferior</p>
+                    <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
                   </td>
                 </tr>
                 {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
               </>
             ) : (
               <>
-                {displayItems.map((it) => (
+                {displayItems.map((it, idx) => (
                   <DataRow
                     key={it.muestra_id}
                     item={it}
+                    rowNumber={rowOffset + idx + 1}
                     onUpdate={onUpdateRow}
                     isPreview={!!pendingImport}
                     bgClass={rowBackgrounds[it.muestra_id]}
@@ -486,28 +495,12 @@ interface GhostRowProps {
 }
 
 function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
-  const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [recepcionQuery, setRecepcionQuery] = useState("")
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [openUpward, setOpenUpward] = useState(false)
-  const [ghost, setGhost] = useState({
-    recepcion_id: null as number | null,
-    numero_recepcion: "",
-    numero_ot: "",
-    cliente: "",
-    identificacion_muestra: "",
-    elemento: "-" as ElementoValue,
-    fecha_rotura: "",
-    densidad: "",
-    fc_kg_cm2: 280,
-    status_ensayo: "-" as StatusEnsayoValue,
-    status_entrega: "-" as StatusEntregaValue,
-    fecha_entrega: "",
-  })
-  const codeRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -564,41 +557,19 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
     setRecepcionQuery("")
   }
 
-  const handleSave = async () => {
-    if (!ghost.recepcion_id || !ghost.identificacion_muestra.trim()) return
-    setSaving(true)
-    await onCreateRow(ghost)
-    setGhost(g => ({ ...g, identificacion_muestra: "", fecha_rotura: "", densidad: "", fecha_entrega: "" }))
-    setRecepcionQuery("")
-    requestAnimationFrame(() => codeRef.current?.focus())
-    setSaving(false)
-  }
-
   return (
     <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-      <td className={`${TD} border-r-0`}>
-        <button
-          type="button" onClick={handleSave} disabled={saving || importing}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-white hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
-        >
-          {saving || importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-        </button>
-      </td>
-      <td className={TD}>
+      {/* # col — no action */}
+      <td className={TD}></td>
+      {/* RECEPCIÓN: autocomplete search to import */}
+      <td className={TD} colSpan={3}>
         <div className="relative" ref={dropdownRef}>
           <Input
             value={recepcionQuery}
-            onChange={(e) => {
-              setRecepcionQuery(e.target.value)
-              setGhost(g => ({ ...g, recepcion_id: null, numero_recepcion: "", numero_ot: "", cliente: "" }))
-            }}
-            onFocus={() => {
-              if (recepcionOpts.length > 0) {
-                setShowDropdown(true)
-              }
-            }}
+            onChange={(e) => { setRecepcionQuery(e.target.value) }}
+            onFocus={() => { if (recepcionOpts.length > 0) setShowDropdown(true) }}
             className="h-8 text-xs text-center rounded-lg border-slate-200"
-            placeholder="Buscar recepción..."
+            placeholder="Buscar recepción para importar..."
           />
           {showDropdown && (
             <div className={`absolute left-0 z-50 w-full rounded-xl border border-slate-200 bg-white shadow-xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
@@ -611,10 +582,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
                   <button
                     key={rec.id} type="button"
                     className="block w-full px-3 py-2.5 text-left text-xs hover:bg-blue-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      void handleSelectRecepcion(rec)
-                    }}
+                    onMouseDown={(e) => { e.preventDefault(); void handleSelectRecepcion(rec) }}
                   >
                     <div className="font-bold text-slate-800">{rec.numero_recepcion}</div>
                     <div className="text-[10px] text-slate-500">{rec.numero_ot || "-"} · {rec.cliente || "Sin cliente"}</div>
@@ -625,97 +593,45 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
           )}
         </div>
       </td>
-      <td className={TD}>
-        <Input
-          ref={codeRef} value={ghost.identificacion_muestra}
-          onChange={(e) => setGhost(g => ({ ...g, identificacion_muestra: e.target.value }))}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleSave() } }}
-          className="h-8 text-xs font-mono text-center rounded-lg border-slate-200"
-          placeholder="001-CO-26"
-        />
+      {/* CLIENTE — empty placeholder */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* ELEMENTO */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* F. RECEPCIÓN */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* F. ROTURA */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* DENSIDAD */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* F'C */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* STATUS ENSAYO */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* STATUS ENTREGA */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* F. ENTREGA */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* Actions */}
+      <td className={`${TD} border-r-0`}>
+        {importing && <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-blue-500" />}
       </td>
-      <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-500 block truncate max-w-[140px] mx-auto" title={ghost.cliente}>{ghost.cliente || "—"}</span>
-      </td>
-      <td className={TD}>
-        <Select value={ghost.elemento} onValueChange={(v) => setGhost(g => ({ ...g, elemento: v as ElementoValue }))}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
-      </td>
-      <td className={TD}>
-        <Input
-          value={ghost.fecha_rotura}
-          onChange={(e) => setGhost(g => ({ ...g, fecha_rotura: e.target.value }))}
-          onBlur={(e) => setGhost(g => ({ ...g, fecha_rotura: parseDateInput(e.target.value) }))}
-          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
-          placeholder="DD/MM/AA"
-        />
-      </td>
-      <td className={TD}>
-        <Input
-          value={ghost.densidad}
-          onChange={(e) => setGhost(g => ({ ...g, densidad: e.target.value }))}
-          className="h-8 text-center text-xs rounded-lg border-slate-200"
-          placeholder="2.400"
-        />
-      </td>
-      <td className={TD}>
-        <Input
-          type="number" value={ghost.fc_kg_cm2}
-          onChange={(e) => setGhost(g => ({ ...g, fc_kg_cm2: Number(e.target.value) || 0 }))}
-          className="h-8 text-center text-xs rounded-lg border-slate-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        />
-      </td>
-      <td className={TD}>
-        <Select value={ghost.status_ensayo} onValueChange={(v) => setGhost(g => ({ ...g, status_ensayo: v as StatusEnsayoValue }))}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
-      </td>
-      <td className={TD}>
-        <Select
-          value={ghost.status_entrega}
-          onValueChange={(v) => {
-            let extra = {}
-            if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!ghost.fecha_entrega || ghost.fecha_entrega === "-")) {
-              const today = new Date()
-              const yyyy = today.getFullYear()
-              const mm = String(today.getMonth() + 1).padStart(2, '0')
-              const dd = String(today.getDate()).padStart(2, '0')
-              extra = { fecha_entrega: `${yyyy}/${mm}/${dd}` }
-            }
-            setGhost(g => ({ ...g, status_entrega: v as StatusEntregaValue, ...extra }))
-          }}
-        >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
-      </td>
-      <td className={TD}>
-        <Input
-          value={ghost.fecha_entrega}
-          onChange={(e) => setGhost(g => ({ ...g, fecha_entrega: e.target.value }))}
-          onBlur={(e) => setGhost(g => ({ ...g, fecha_entrega: parseDateInput(e.target.value) }))}
-          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
-          placeholder="DD/MM/AA"
-        />
-      </td>
-      <td className={`${TD} border-r-0`}></td>
     </tr>
   )
 }
 
 /* ═══════════════════════════ DATA ROW ═══════════════════════════ */
 
+/* ═══════════════════════════ DATA ROW ═══════════════════════════ */
+
 interface DataRowProps {
   item: ProbetaRow
+  rowNumber: number
   onUpdate: (id: number, payload: Record<string, unknown>) => Promise<void>
   isPreview?: boolean
   bgClass?: string
 }
 
-function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
+function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps) {
   const statusColors: Record<string, string> = {
     ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
@@ -723,23 +639,46 @@ function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
     curado: "bg-blue-50 text-blue-700 border-blue-200",
   }
 
+  const densidadColors: Record<string, string> = {
+    SI: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    NO: "bg-slate-50 text-slate-500 border-slate-200",
+  }
+
+  const currentDensidad = (item.densidad === "SI" ? "SI" : "NO") as DensidadValue
+
   return (
     <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : `${bgClass || "bg-white"} hover:bg-slate-100/60`}`}>
-      <td className={`${TD} font-bold text-slate-700 text-xs border-r-0`}>{item.item_numero}</td>
+      {/* # — global row number */}
+      <td className={`${TD} font-black text-slate-500 text-[10px]`}>{rowNumber}</td>
+      {/* RECEPCIÓN */}
       <td className={TD}>
         <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
         <div className="text-[9px] text-slate-400 font-medium">{item.numero_ot}</div>
       </td>
-      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.identificacion_muestra || "—"}</td>
+      {/* CÓDIGO LEM (from recepcion) */}
+      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
+      {/* IDENTIFICACIÓN (read-only) */}
       <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[140px] mx-auto" title={item.cliente}>{item.cliente}</span>
+        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[170px] mx-auto" title={item.identificacion_muestra}>
+          {item.identificacion_muestra || "—"}
+        </span>
       </td>
+      {/* CLIENTE */}
+      <td className={TD}>
+        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[130px] mx-auto" title={item.cliente}>{item.cliente}</span>
+      </td>
+      {/* ELEMENTO */}
       <td className={TD}>
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
+      {/* F. RECEPCIÓN (read-only from recepción) */}
+      <td className={`${TD} font-mono text-xs text-slate-600`}>
+        {item.fecha_recepcion ? formatDateDisplay(item.fecha_recepcion) : "—"}
+      </td>
+      {/* F. ROTURA */}
       <td className={TD}>
         <Input
           defaultValue={formatDateDisplay(item.fecha_rotura)}
@@ -747,27 +686,30 @@ function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(e.target.value) || "" })}
         />
       </td>
+      {/* DENSIDAD — SI/NO dropdown */}
       <td className={TD}>
-        <Input
-          defaultValue={item.densidad === "-" ? "" : (item.densidad || "")}
-          className="h-8 text-center text-xs rounded-lg border-slate-200"
-          placeholder="-"
-          onBlur={(e) => void onUpdate(item.muestra_id, { densidad: e.target.value || "-" })}
-        />
+        <Select
+          value={currentDensidad}
+          onValueChange={(v) => void onUpdate(item.muestra_id, { densidad: v })}
+        >
+          <SelectTrigger className={`w-full h-8 text-xs rounded-lg justify-center mx-auto font-bold border [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center ${densidadColors[currentDensidad] || "border-slate-200"}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_DENSIDAD.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </td>
-      <td className={TD}>
-        <Input
-          type="number" defaultValue={item.fc_kg_cm2}
-          className="h-8 text-center text-xs rounded-lg border-slate-200 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          onBlur={(e) => void onUpdate(item.muestra_id, { fc_kg_cm2: Number(e.target.value) || 0 })}
-        />
-      </td>
+      {/* F'C (read-only) */}
+      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
+      {/* STATUS ENSAYO */}
       <td className={TD}>
         <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
+      {/* STATUS ENTREGA */}
       <td className={TD}>
         <Select
           value={(item.status_entrega as StatusEntregaValue) || "-"}
@@ -787,6 +729,7 @@ function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
           <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
+      {/* F. ENTREGA */}
       <td className={TD}>
         <Input
           key={item.fecha_entrega || ""}
@@ -796,6 +739,7 @@ function DataRow({ item, onUpdate, isPreview, bgClass }: DataRowProps) {
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
         />
       </td>
+      {/* ESTADO badge */}
       <td className={`${TD} border-r-0`}>
         <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
           {item.estado_probeta}
