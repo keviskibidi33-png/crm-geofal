@@ -480,7 +480,7 @@ function DataTable({
         </div>
       )}
       <div className="flex-1 min-h-0 overflow-auto">
-        <table className="min-w-[1700px] w-full text-sm border-collapse">
+        <table className="min-w-[1100px] w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
@@ -851,8 +851,6 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>
             {STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-            <SelectItem value="ROTAS">ROTAS</SelectItem>
-            <SelectItem value="ANULADAS">ANULADAS</SelectItem>
           </SelectContent>
         </Select>
       </td>
