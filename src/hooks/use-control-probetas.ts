@@ -138,9 +138,9 @@ export function useControlProbetas() {
   const getInitialPageSize = () => {
     if (typeof window === "undefined") return 25
     const raw = Number(window.localStorage.getItem(PAGE_SIZE_STORAGE_KEY))
-    return [10, 20, 50, 100, 1000, 2000, 4000].includes(raw) ? raw : 25
+    return [100, 1000, 2000, 4000].includes(raw) ? raw : 100
   }
-  const [pageSize, setPageSizeState] = useState<number>(25)
+  const [pageSize, setPageSizeState] = useState<number>(100)
   const [search, setSearch] = useState("")
   const debouncedSearch = useRef("")
 
@@ -149,7 +149,7 @@ export function useControlProbetas() {
   }, [])
 
   const setPageSize = useCallback((next: number) => {
-    const normalized = [10, 20, 50, 100, 1000, 2000, 4000].includes(next) ? next : 25
+    const normalized = [100, 1000, 2000, 4000].includes(next) ? next : 100
     setPageSizeState(normalized)
     if (typeof window !== "undefined") {
       window.localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(normalized))

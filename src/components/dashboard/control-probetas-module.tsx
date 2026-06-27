@@ -574,7 +574,7 @@ function DataTable({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[10, 20, 50, 100, 1000, 2000, 4000].map(v => (
+              {[100, 1000, 2000, 4000].map(v => (
                 <SelectItem key={v} value={String(v)}>{v}</SelectItem>
               ))}
             </SelectContent>
