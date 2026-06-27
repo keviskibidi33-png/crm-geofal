@@ -142,6 +142,8 @@ export function useControlProbetas() {
   }
   const [pageSize, setPageSizeState] = useState<number>(100)
   const [search, setSearch] = useState("")
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const debouncedSearch = useRef("")
 
   useEffect(() => {
@@ -169,6 +171,10 @@ export function useControlProbetas() {
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
       if (debouncedSearch.current) params.set("search", debouncedSearch.current)
+      if (sortColumn) {
+        params.set("sort_column", sortColumn)
+        params.set("sort_direction", sortDirection)
+      }
       const res = await authFetch(`${API_URL}/api/control-probetas/?${params}`)
       if (!res.ok) throw new Error("No se pudo cargar")
       const data = await res.json()
@@ -180,7 +186,7 @@ export function useControlProbetas() {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize])
+  }, [page, pageSize, sortColumn, sortDirection])
 
   const fetchKpis = useCallback(async () => {
     try {
@@ -274,9 +280,21 @@ export function useControlProbetas() {
     return []
   }, [])
 
+  const setSort = useCallback((column: string | null) => {
+    setSortColumn(prev => {
+      if (prev === column) {
+        setSortDirection(d => d === "asc" ? "desc" : "asc")
+        return column
+      }
+      setSortDirection("asc")
+      return column
+    })
+  }, [])
+
   return {
     items, recentItems, loading, kpis, total, totalPages, page, pageSize, search,
-    setPage, setPageSize, setSearch,
+    sortColumn, sortDirection,
+    setPage, setPageSize, setSearch, setSort,
     fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion,
   }
 }

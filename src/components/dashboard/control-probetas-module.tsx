@@ -161,6 +161,8 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               total={store.total} page={store.page} totalPages={store.totalPages}
               onPrev={() => store.setPage(p => Math.max(1, p - 1))}
               onNext={() => store.setPage(p => Math.min(store.totalPages, p + 1))}
+              sortColumn={store.sortColumn} sortDirection={store.sortDirection}
+              onSort={(col) => { store.setSort(col); store.setPage(1) }}
             />
           </div>
         </DialogFullscreenContent>
@@ -400,6 +402,26 @@ function FilterBar({ search, onSearchChange, total }: FilterBarProps) {
 const TH = "px-2 py-2 text-[9px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
 const TD = "px-2 py-1.5 text-center border-r border-slate-100 last:border-r-0"
 
+function SortTh({ label, column, sortColumn, sortDirection, onSort, className = "" }: {
+  label: string; column: string; sortColumn: string | null; sortDirection: "asc" | "desc"
+  onSort: (column: string) => void; className?: string
+}) {
+  const active = sortColumn === column
+  return (
+    <th
+      className={`${TH} ${className} text-zinc-950 font-black cursor-pointer select-none hover:bg-zinc-300 transition-colors`}
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center justify-center gap-1">
+        <span>{label}</span>
+        <span className={`text-[8px] leading-none ${active ? "text-blue-600" : "text-zinc-400"}`}>
+          {active ? (sortDirection === "asc" ? "▲" : "▼") : "▽"}
+        </span>
+      </div>
+    </th>
+  )
+}
+
 interface DataTableProps {
   items: ProbetaRow[]; loading: boolean
   onUpdateRow: (id: number, payload: Record<string, unknown>) => Promise<void>
@@ -413,11 +435,15 @@ interface DataTableProps {
   totalPages: number
   onPrev: () => void
   onNext: () => void
+  sortColumn: string | null
+  sortDirection: "asc" | "desc"
+  onSort: (column: string) => void
 }
 
 function DataTable({
   items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion,
-  pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext
+  pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext,
+  sortColumn, sortDirection, onSort
 }: DataTableProps) {
   const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
   const [importing, setImporting] = useState(false)
@@ -512,19 +538,19 @@ function DataTable({
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
-              <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
-              <th className={`${TH} w-[88px] text-zinc-950 font-black`}>CÓDIGO LEM</th>
-              <th className={`${TH} w-[136px] text-zinc-950 font-black`}>CLIENTE</th>
-              <th className={`${TH} w-[72px] text-zinc-950 font-black`}>ELEMENTO</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ROTURA</th>
-              <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>EDAD</th>
-              <th className={`${TH} w-[72px] text-zinc-950 font-black`}>FOSA</th>
-              <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
-              <th className={`${TH} w-[84px] text-zinc-950 font-black`}>STATUS ENSAYO</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ENTREGA</th>
-              <th className={`${TH} w-16 text-zinc-950 font-black`}>ESTADO</th>
+              <SortTh label="RECEPCIÓN" column="numero_recepcion" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-28" />
+              <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[88px]" />
+              <SortTh label="CLIENTE" column="cliente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[136px]" />
+              <SortTh label="ELEMENTO" column="elemento" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
+              <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
+              <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="FOSA" column="fosa" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
+              <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
+              <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[84px]" />
+              <SortTh label="STATUS ENTREGA" column="status_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="F. ENTREGA" column="fecha_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="ESTADO" column="estado_probeta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
