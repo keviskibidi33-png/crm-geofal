@@ -455,15 +455,15 @@ function DataTable({
             <tr>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>CÓDIGO LEM</th>
-              <th className={`${TH} w-32 text-zinc-950 font-black`}>CLIENTE</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
+              <th className={`${TH} w-[88px] text-zinc-950 font-black`}>CÓDIGO LEM</th>
+              <th className={`${TH} w-[136px] text-zinc-950 font-black`}>CLIENTE</th>
+              <th className={`${TH} w-[72px] text-zinc-950 font-black`}>ELEMENTO</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ROTURA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>EDAD</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
+              <th className={`${TH} w-[72px] text-zinc-950 font-black`}>FOSA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
+              <th className={`${TH} w-[84px] text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ENTREGA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>OTROS</th>
@@ -731,7 +731,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
-        <div className="text-[11px] font-semibold text-slate-700 block max-w-[140px] mx-auto leading-tight break-words" title={item.cliente}>
+        <div className="text-[11px] font-semibold text-slate-700 block max-w-[160px] mx-auto leading-tight break-words" title={item.cliente}>
           {item.cliente}
         </div>
       </td>
