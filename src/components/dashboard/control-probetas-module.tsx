@@ -402,7 +402,6 @@ function DataTable({
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO LEM</th>
-              <th className={`${TH} w-20 text-zinc-950 font-black`}>EDAD</th>
               <th className={`${TH} w-32 text-zinc-950 font-black`}>CLIENTE</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
@@ -413,6 +412,7 @@ function DataTable({
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENTREGA</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>F. ENTREGA</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>OTROS</th>
               <th className={`${TH} w-10 border-r-0 text-zinc-950 font-black`}></th>
             </tr>
           </thead>
@@ -611,13 +611,13 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* ELEMENTO */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* FOSA */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. RECEPCIÓN */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ROTURA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* DENSIDAD */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* EDAD */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F'C */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
@@ -626,6 +626,8 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       {/* STATUS ENTREGA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ENTREGA */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* OTROS */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* Actions */}
       <td className={`${TD} border-r-0`}>
@@ -673,10 +675,6 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
       {/* CÓDIGO LEM (from recepcion) */}
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
-      {/* EDAD */}
-      <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700">{item.edad ?? "—"}</span>
-      </td>
       {/* CLIENTE */}
       <td className={TD}>
         <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[130px] mx-auto" title={item.cliente}>{item.cliente}</span>
@@ -686,13 +684,6 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
-      </td>
-      {/* FOSA */}
-      <td className={TD}>
-        <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{FOSAS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       {/* F. RECEPCIÓN (read-only from recepción) */}
@@ -721,22 +712,53 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           </SelectContent>
         </Select>
       </td>
+      {/* EDAD */}
+      <td className={TD}>
+        <span className="text-[11px] font-semibold text-slate-700">{item.edad ?? "—"}</span>
+      </td>
+      {/* OTROS / FOSA */}
+      <td className={TD}>
+        <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
+          <SelectContent>{FOSAS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+        </Select>
+      </td>
       {/* F'C (read-only) */}
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* STATUS ENSAYO */}
       <td className={TD}>
-        <Select
-          value={(item.status_ensayo as StatusEnsayoValue | "ANULADO") || "PENDIENTE"}
-          onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}
-        >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ANULADO">ANULADO</SelectItem>
-            <SelectItem value="PENDIENTE">AUTO</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center justify-center gap-2">
+          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${
+            item.status_ensayo === "ENSAYADO"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : item.status_ensayo === "FALTA"
+                ? "bg-red-50 text-red-700 border-red-200"
+                : item.status_ensayo === "CURADO"
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+          }`}>
+            {item.status_ensayo || "PENDIENTE"}
+          </span>
+          {item.status_ensayo !== "ANULADO" ? (
+            <button
+              type="button"
+              onClick={() => void onUpdate(item.muestra_id, { status_ensayo: "ANULADO" })}
+              className="h-8 px-2 rounded-lg border border-red-200 text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-50 hover:bg-red-100"
+              title="Marcar como anulado"
+            >
+              ANULAR
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void onUpdate(item.muestra_id, { status_ensayo: "" })}
+              className="h-8 px-2 rounded-lg border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-white hover:bg-slate-50"
+              title="Volver a automático"
+            >
+              AUTO
+            </button>
+          )}
+        </div>
       </td>
       {/* STATUS ENTREGA */}
       <td className={TD}>
