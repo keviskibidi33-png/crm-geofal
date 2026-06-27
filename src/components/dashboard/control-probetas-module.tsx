@@ -480,7 +480,7 @@ function DataTable({
         </div>
       )}
       <div className="flex-1 min-h-0 overflow-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="min-w-[1700px] w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
@@ -496,12 +496,13 @@ function DataTable({
               <th className={`${TH} w-[84px] text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ENTREGA</th>
+              <th className={`${TH} w-16 text-zinc-950 font-black`}>ESTADO</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                  <td colSpan={13} className="py-20 text-center border-r-0">
+                  <td colSpan={14} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -509,7 +510,7 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={13} className="py-20 text-center border-r-0">
+                  <td colSpan={14} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                     <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
@@ -706,6 +707,8 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ENTREGA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* ESTADO preview */}
+      <td className={`${TD} border-r-0`}><span className="text-[11px] text-slate-400">—</span></td>
     </tr>
   )
 }
@@ -723,6 +726,13 @@ interface DataRowProps {
 }
 
 function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps) {
+  const statusColors: Record<string, string> = {
+    ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pendiente: "bg-amber-50 text-amber-700 border-amber-200",
+    vencido: "bg-red-50 text-red-700 border-red-200",
+    curado: "bg-blue-50 text-blue-700 border-blue-200",
+  }
+
   const densidadColors: Record<string, string> = {
     SI: "bg-emerald-50 text-emerald-700 border-emerald-200",
     NO: "bg-slate-50 text-slate-500 border-slate-200",
@@ -854,6 +864,12 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           className="font-mono text-xs"
           placeholder="—"
         />
+      </td>
+      {/* ESTADO preview */}
+      <td className={`${TD} border-r-0`}>
+        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+          {item.estado_probeta}
+        </span>
       </td>
     </tr>
   )
