@@ -61,7 +61,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
           onEscapeKeyDown={() => setIsOpen(false)}
         >
           <DialogTitleBar onClose={() => setIsOpen(false)} />
-          <div className="flex-1 min-h-0 flex flex-col gap-4 p-4 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col gap-3 p-2 overflow-hidden">
             <FilterBar
               search={store.search} onSearchChange={store.setSearch}
               total={store.total}
@@ -378,7 +378,7 @@ function DataTable({
   const rowOffset = (page - 1) * pageSize
 
   return (
-    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
         <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200">
           <span className="text-xs font-bold text-amber-800">
@@ -463,7 +463,7 @@ function DataTable({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[10, 20, 50, 100].map(v => (
+              {[10, 20, 50, 100, 1000, 2000, 4000].map(v => (
                 <SelectItem key={v} value={String(v)}>{v}</SelectItem>
               ))}
             </SelectContent>
@@ -677,7 +677,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[130px] mx-auto" title={item.cliente}>{item.cliente}</span>
+        <span className="text-[8px] font-semibold text-slate-700 block truncate max-w-[130px] mx-auto" title={item.cliente}>{item.cliente}</span>
       </td>
       {/* ELEMENTO */}
       <td className={TD}>
@@ -727,38 +727,25 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* STATUS ENSAYO */}
       <td className={TD}>
-        <div className="flex items-center justify-center gap-2">
-          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${
-            item.status_ensayo === "ENSAYADO"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : item.status_ensayo === "FALTA"
-                ? "bg-red-50 text-red-700 border-red-200"
-                : item.status_ensayo === "CURADO"
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200"
-          }`}>
-            {item.status_ensayo || "PENDIENTE"}
-          </span>
-          {item.status_ensayo !== "ANULADO" ? (
-            <button
-              type="button"
-              onClick={() => void onUpdate(item.muestra_id, { status_ensayo: "ANULADO" })}
-              className="h-8 px-2 rounded-lg border border-red-200 text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-50 hover:bg-red-100"
-              title="Marcar como anulado"
-            >
-              ANULAR
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void onUpdate(item.muestra_id, { status_ensayo: "" })}
-              className="h-8 px-2 rounded-lg border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-white hover:bg-slate-50"
-              title="Volver a automático"
-            >
-              AUTO
-            </button>
-          )}
-        </div>
+        <Select
+          value={(item.status_ensayo as string) || "PENDIENTE"}
+          onValueChange={(v) => {
+            const payload: Record<string, any> = { status_ensayo: v }
+            if (v === "ANULADO") payload.status_entrega = "ANULADAS"
+            if (v === "PENDIENTE") payload.status_entrega = "-"
+            void onUpdate(item.muestra_id, payload)
+          }}
+        >
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
+            <SelectItem value="FALTA">FALTA</SelectItem>
+            <SelectItem value="ENSAYADO">ENSAYADO</SelectItem>
+            <SelectItem value="ANULADO">ANULADO</SelectItem>
+          </SelectContent>
+        </Select>
       </td>
       {/* STATUS ENTREGA */}
       <td className={TD}>
@@ -777,7 +764,11 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           }}
         >
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+          <SelectContent>
+            {STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            <SelectItem value="ROTAS">ROTAS</SelectItem>
+            <SelectItem value="ANULADAS">ANULADAS</SelectItem>
+          </SelectContent>
         </Select>
       </td>
       {/* F. ENTREGA */}

@@ -8,7 +8,7 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe")
 
 export type ElementoValue = "-" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA" | "CUBO" | "VIGA"
 export type StatusEnsayoValue = "-" | "ENSAYADO" | "PENDIENTE" | "FALTA" | "ANULADO"
-export type StatusEntregaValue = "-" | "ENTREGADO" | "INFORME LISTO"
+export type StatusEntregaValue = "-" | "ENTREGADO" | "INFORME LISTO" | "ROTAS" | "ANULADAS"
 
 export interface ProbetaRow {
   muestra_id: number
@@ -54,9 +54,9 @@ export interface ProbetasKpis {
 }
 
 export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
-export const FOSAS = ["-", "FOSA 1", "FOSA 2", "FOSA 3", "FOSA 4", "FOSA 5", "FOSA 6"] as const
+export const FOSAS = ["-", "FOSA 1", "FOSA 2", "FOSA 3", "FOSA 4", "FOSA 5", "FOSA 6", "ROTAS"] as const
 export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "ENSAYADO", "PENDIENTE", "FALTA", "ANULADO"]
-export const STATUS_ENTREGA: StatusEntregaValue[] = ["-", "ENTREGADO", "INFORME LISTO"]
+export const STATUS_ENTREGA: StatusEntregaValue[] = ["-", "ENTREGADO", "INFORME LISTO", "ROTAS", "ANULADAS"]
 
 export function formatDateDisplay(v?: string | null): string {
   if (!v || v === "-") return ""
@@ -134,9 +134,27 @@ export function useControlProbetas() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const PAGE_SIZE_STORAGE_KEY = "control-probetas-page-size"
+  const getInitialPageSize = () => {
+    if (typeof window === "undefined") return 25
+    const raw = Number(window.localStorage.getItem(PAGE_SIZE_STORAGE_KEY))
+    return [10, 20, 50, 100, 1000, 2000, 4000].includes(raw) ? raw : 25
+  }
+  const [pageSize, setPageSizeState] = useState<number>(25)
   const [search, setSearch] = useState("")
   const debouncedSearch = useRef("")
+
+  useEffect(() => {
+    setPageSizeState(getInitialPageSize())
+  }, [])
+
+  const setPageSize = useCallback((next: number) => {
+    const normalized = [10, 20, 50, 100, 1000, 2000, 4000].includes(next) ? next : 25
+    setPageSizeState(normalized)
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(normalized))
+    }
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => {
