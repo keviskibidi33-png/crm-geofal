@@ -339,7 +339,12 @@ function DialogTitleBar({ onClose }: { onClose: () => void }) {
     <div className="flex-none flex items-center justify-between px-6 py-2 bg-white border-b border-zinc-200">
       <div className="flex items-center gap-3">
         <Activity className="w-4 h-4 text-emerald-600" />
-        <h2 className="font-bold text-zinc-900 text-xs uppercase tracking-widest">Control Probetas - Matriz de Datos</h2>
+        <DialogPrimitive.Title asChild>
+          <h2 className="font-bold text-zinc-900 text-xs uppercase tracking-widest">Control Probetas - Matriz de Datos</h2>
+        </DialogPrimitive.Title>
+        <DialogPrimitive.Description asChild>
+          <span className="sr-only">Matriz de datos de control de probetas de concreto</span>
+        </DialogPrimitive.Description>
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl">
@@ -416,9 +421,15 @@ function DataTable({
 }: DataTableProps) {
   const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
   const [importing, setImporting] = useState(false)
+  const [previewFosa, setPreviewFosa] = useState("FOSA 1")
 
   const handleRequestImport = (imported: ProbetaRow[]) => {
     setPendingImport(imported)
+  }
+
+  const handleApplyFosaToAll = () => {
+    if (!pendingImport) return
+    setPendingImport(pendingImport.map(p => ({ ...p, fosa: previewFosa })))
   }
 
   const handleConfirmImport = async () => {
@@ -465,9 +476,26 @@ function DataTable({
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
         <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200">
-          <span className="text-xs font-bold text-amber-800">
-            Vista previa: {pendingImport.length} probetas a importar
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-amber-800">
+              Vista previa: {pendingImport.length} probetas a importar
+            </span>
+            <div className="flex items-center gap-2">
+              <Select value={previewFosa} onValueChange={setPreviewFosa}>
+                <SelectTrigger className="h-7 w-28 text-[10px] rounded-lg border-amber-300 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FOSAS.filter((v) => v !== "-").map((fosa) => (
+                    <SelectItem key={fosa} value={fosa}>{fosa}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={handleApplyFosaToAll} className="h-7 text-[10px] rounded-lg border-amber-300 text-amber-700 hover:bg-amber-100">
+                Aplicar fosa a todas
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleCancelImport} className="h-7 text-[10px] rounded-lg border-slate-200">
               <X className="h-3 w-3 mr-1" /> Cancelar
@@ -769,19 +797,11 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           placeholder="—"
         />
       </td>
-      {/* DENSIDAD — SI/NO dropdown */}
+      {/* DENSIDAD — read-only badge */}
       <td className={TD}>
-        <Select
-          value={currentDensidad}
-          onValueChange={(v) => void onUpdate(item.muestra_id, { densidad: v })}
-        >
-          <SelectTrigger className={`w-full h-8 text-xs rounded-lg justify-center mx-auto font-bold border border-slate-300 shadow-sm bg-white [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center ${densidadColors[currentDensidad] || "border-slate-200"}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_DENSIDAD.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <span className={`inline-flex items-center justify-center w-full h-8 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${densidadColors[currentDensidad] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
+          {currentDensidad}
+        </span>
       </td>
       {/* EDAD */}
       <td className={TD}>
