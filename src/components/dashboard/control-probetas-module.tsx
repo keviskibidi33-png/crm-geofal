@@ -496,14 +496,12 @@ function DataTable({
               <th className={`${TH} w-[84px] text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ENTREGA</th>
-              <th className={`${TH} w-16 text-zinc-950 font-black`}>OTROS</th>
-              <th className={`${TH} w-10 border-r-0 text-zinc-950 font-black`}></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                <td colSpan={14} className="py-20 text-center border-r-0">
+                  <td colSpan={13} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -511,7 +509,7 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={14} className="py-20 text-center border-r-0">
+                  <td colSpan={13} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                     <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
@@ -580,7 +578,6 @@ interface GhostRowProps {
 }
 
 function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
-  const [importing, setImporting] = useState(false)
   const [recepcionQuery, setRecepcionQuery] = useState("")
   const [selectedFosa, setSelectedFosa] = useState("FOSA 1")
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
@@ -634,12 +631,10 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
   const handleSelectRecepcion = async (rec: Receipt) => {
     setRecepcionQuery(rec.numero_recepcion)
     setShowDropdown(false)
-    setImporting(true)
     const existingProbetas = await fetchByRecepcion(rec.id)
     if (existingProbetas.length > 0) {
       onRequestImport(existingProbetas.map((p) => ({ ...p, fosa: selectedFosa })))
     }
-    setImporting(false)
     setRecepcionQuery("")
   }
 
@@ -711,12 +706,6 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ENTREGA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* OTROS */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* Actions */}
-      <td className={`${TD} border-r-0`}>
-        {importing && <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-blue-500" />}
-      </td>
     </tr>
   )
 }
@@ -734,13 +723,6 @@ interface DataRowProps {
 }
 
 function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps) {
-  const statusColors: Record<string, string> = {
-    ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    pendiente: "bg-amber-50 text-amber-700 border-amber-200",
-    vencido: "bg-red-50 text-red-700 border-red-200",
-    curado: "bg-blue-50 text-blue-700 border-blue-200",
-  }
-
   const densidadColors: Record<string, string> = {
     SI: "bg-emerald-50 text-emerald-700 border-emerald-200",
     NO: "bg-slate-50 text-slate-500 border-slate-200",
@@ -802,7 +784,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           placeholder="—"
         />
       </td>
-      {/* OTROS / FOSA */}
+      {/* FOSA */}
       <td className={TD}>
         <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
@@ -813,8 +795,13 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* STATUS ENSAYO */}
       <td className={TD}>
+        {(() => {
+          const statusEnsayoReal = ((item.status_ensayo || "PENDIENTE").toString().trim().toUpperCase() || "PENDIENTE") as "PENDIENTE" | "FALTA" | "ENSAYADO" | "ANULADO"
+          const statusEnsayoDisplay = statusEnsayoReal === "ANULADO" ? "ANULADO" : statusEnsayoReal
+          const statusEnsayoItems = statusEnsayoReal === "ANULADO" ? ["ANULADO"] : [statusEnsayoDisplay, "ANULADO"]
+          return (
         <Select
-          value={(item.status_ensayo as string) === "ANULADO" ? "ANULADO" : "AUTO"}
+              value={statusEnsayoDisplay}
           onValueChange={(v) => {
             if (v === "ANULADO") {
               void onUpdate(item.muestra_id, { status_ensayo: "ANULADO", status_entrega: "ANULADAS" })
@@ -825,10 +812,15 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="AUTO" disabled>AUTOMÁTICO (SISTEMA)</SelectItem>
-            <SelectItem value="ANULADO">ANULADO</SelectItem>
+            {statusEnsayoItems.map((status) => (
+              <SelectItem key={status} value={status} disabled={status !== "ANULADO"}>
+                {status}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+          )
+        })()}
       </td>
       {/* STATUS ENTREGA */}
       <td className={TD}>
@@ -862,12 +854,6 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           className="font-mono text-xs"
           placeholder="—"
         />
-      </td>
-      {/* ESTADO badge */}
-      <td className={`${TD} w-4 border-r-0 px-1`}>
-        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-          {item.estado_probeta}
-        </span>
       </td>
     </tr>
   )
