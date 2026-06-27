@@ -814,21 +814,18 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       {/* STATUS ENSAYO */}
       <td className={TD}>
         <Select
-          value={(item.status_ensayo as string) || "PENDIENTE"}
+          value={(item.status_ensayo as string) === "ANULADO" ? "ANULADO" : "AUTO"}
           onValueChange={(v) => {
-            const payload: Record<string, any> = { status_ensayo: v }
-            if (v === "ANULADO") payload.status_entrega = "ANULADAS"
-            if (v === "PENDIENTE") payload.status_entrega = "-"
-            void onUpdate(item.muestra_id, payload)
+            if (v === "ANULADO") {
+              void onUpdate(item.muestra_id, { status_ensayo: "ANULADO", status_entrega: "ANULADAS" })
+            }
           }}
         >
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
-            <SelectItem value="FALTA">FALTA</SelectItem>
-            <SelectItem value="ENSAYADO">ENSAYADO</SelectItem>
+            <SelectItem value="AUTO" disabled>AUTOMÁTICO (SISTEMA)</SelectItem>
             <SelectItem value="ANULADO">ANULADO</SelectItem>
           </SelectContent>
         </Select>
