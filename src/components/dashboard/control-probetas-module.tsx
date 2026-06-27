@@ -687,8 +687,6 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
           )}
         </div>
       </td>
-      {/* CLIENTE — empty placeholder */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* ELEMENTO */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ROTURA */}
