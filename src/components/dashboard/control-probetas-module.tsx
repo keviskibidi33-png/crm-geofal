@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, Search, Plus, RefreshCw,
   ChevronLeft, ChevronRight, Loader2, Calendar, Database, ExternalLink, X, Activity,
@@ -28,6 +28,60 @@ function toInputDateFormat(dateStr?: string | null): string {
     if (c.length === 4) return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`
   }
   return ""
+}
+
+function InlineEditableText({
+  value,
+  onCommit,
+  className = "",
+  placeholder = "—",
+}: {
+  value?: string | number | null
+  onCommit: (next: string) => void
+  className?: string
+  placeholder?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(value ?? ""))
+
+  useEffect(() => {
+    if (!editing) setDraft(String(value ?? ""))
+  }, [value, editing])
+
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false)
+          onCommit(draft.trim())
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            ;(e.target as HTMLInputElement).blur()
+          }
+          if (e.key === "Escape") {
+            setDraft(String(value ?? ""))
+            setEditing(false)
+          }
+        }}
+        className={`h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white ${className}`}
+      />
+    )
+  }
+
+  return (
+    <div
+      onDoubleClick={() => setEditing(true)}
+      className={`min-h-8 flex items-center justify-center cursor-text select-none rounded-md px-1 ${className}`}
+      title="Doble click para editar"
+    >
+      <span className="block w-full text-center break-words leading-tight">{String(value ?? "") || placeholder}</span>
+    </div>
+  )
 }
 
 interface ControlProbetasModuleProps {
@@ -677,9 +731,9 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700 block max-w-[140px] mx-auto leading-tight break-words" title={item.cliente}>
+        <div className="text-[11px] font-semibold text-slate-700 block max-w-[140px] mx-auto leading-tight break-words" title={item.cliente}>
           {item.cliente}
-        </span>
+        </div>
       </td>
       {/* ELEMENTO */}
       <td className={TD}>
@@ -690,10 +744,11 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
       {/* F. ROTURA */}
       <td className={TD}>
-        <Input
-          defaultValue={formatDateDisplay(item.fecha_rotura)}
-          className="h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white"
-          onBlur={(e) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(e.target.value) || "" })}
+        <InlineEditableText
+          value={formatDateDisplay(item.fecha_rotura)}
+          onCommit={(next) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(next) || "" })}
+          className="font-mono text-xs"
+          placeholder="—"
         />
       </td>
       {/* DENSIDAD — SI/NO dropdown */}
@@ -712,13 +767,18 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
       {/* EDAD */}
       <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700">{item.edad ?? "—"}</span>
+        <InlineEditableText
+          value={item.edad ?? ""}
+          onCommit={(next) => void onUpdate(item.muestra_id, { edad: Number(next) || item.edad })}
+          className="font-semibold text-slate-700 text-[11px]"
+          placeholder="—"
+        />
       </td>
       {/* OTROS / FOSA */}
       <td className={TD}>
         <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{FOSAS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+          <SelectContent>{FOSAS.filter((o) => o !== "-").map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       {/* F'C (read-only) */}
@@ -748,9 +808,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       {/* STATUS ENTREGA */}
       <td className={TD}>
         <Select
-          value={
-            (item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : (item.status_entrega as StatusEntregaValue) || "-")
-          }
+          value={(item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : (item.status_entrega as StatusEntregaValue) || "-")}
           onValueChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
             if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
@@ -773,12 +831,11 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
       {/* F. ENTREGA */}
       <td className={TD}>
-        <Input
-          key={item.fecha_entrega || ""}
-          defaultValue={formatDateDisplay(item.fecha_entrega)}
-          className="h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white"
-          placeholder="DD/MM/AA"
-          onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
+        <InlineEditableText
+          value={formatDateDisplay(item.fecha_entrega)}
+          onCommit={(next) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(next) || "" })}
+          className="font-mono text-xs"
+          placeholder="—"
         />
       </td>
       {/* ESTADO badge */}
