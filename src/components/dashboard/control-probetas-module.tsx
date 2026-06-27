@@ -61,7 +61,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
           onEscapeKeyDown={() => setIsOpen(false)}
         >
           <DialogTitleBar onClose={() => setIsOpen(false)} />
-          <div className="flex-1 min-h-0 flex flex-col gap-3 p-2 overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col gap-2 p-1 overflow-hidden">
             <FilterBar
               search={store.search} onSearchChange={store.setSearch}
               total={store.total}
@@ -378,7 +378,7 @@ function DataTable({
   const rowOffset = (page - 1) * pageSize
 
   return (
-    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+    <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
         <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200">
           <span className="text-xs font-bold text-amber-800">
@@ -406,13 +406,13 @@ function DataTable({
               <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>F. RECEPCIÓN</th>
-              <th className={`${TH} w-28 text-zinc-950 font-black`}>F. ROTURA</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ROTURA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENTREGA</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>F. ENTREGA</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>OTROS</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ENTREGA</th>
+              <th className={`${TH} w-16 text-zinc-950 font-black`}>OTROS</th>
               <th className={`${TH} w-10 border-r-0 text-zinc-950 font-black`}></th>
             </tr>
           </thead>
@@ -682,7 +682,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       {/* ELEMENTO */}
       <td className={TD}>
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -694,7 +694,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={TD}>
         <Input
           defaultValue={formatDateDisplay(item.fecha_rotura)}
-          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(e.target.value) || "" })}
         />
       </td>
@@ -704,7 +704,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           value={currentDensidad}
           onValueChange={(v) => void onUpdate(item.muestra_id, { densidad: v })}
         >
-          <SelectTrigger className={`w-full h-8 text-xs rounded-lg justify-center mx-auto font-bold border [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center ${densidadColors[currentDensidad] || "border-slate-200"}`}>
+          <SelectTrigger className={`w-full h-8 text-xs rounded-lg justify-center mx-auto font-bold border border-slate-300 shadow-sm bg-white [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center ${densidadColors[currentDensidad] || "border-slate-200"}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -719,7 +719,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       {/* OTROS / FOSA */}
       <td className={TD}>
         <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{FOSAS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
@@ -736,7 +736,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
             void onUpdate(item.muestra_id, payload)
           }}
         >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -763,7 +763,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
             void onUpdate(item.muestra_id, payload)
           }}
         >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>
             {STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             <SelectItem value="ROTAS">ROTAS</SelectItem>
@@ -776,7 +776,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
         <Input
           key={item.fecha_entrega || ""}
           defaultValue={formatDateDisplay(item.fecha_entrega)}
-          className="h-8 text-center font-mono text-xs rounded-lg border-slate-200"
+          className="h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white"
           placeholder="DD/MM/AA"
           onBlur={(e) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(e.target.value) || "" })}
         />
