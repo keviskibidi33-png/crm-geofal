@@ -84,6 +84,38 @@ function InlineEditableText({
   )
 }
 
+function ClientValue({ value }: { value?: string | null }) {
+  const text = value?.trim() || "—"
+  const isLong = text.length > 36
+
+  if (text === "—") {
+    return <span className="block text-center text-slate-400">{text}</span>
+  }
+
+  if (isLong) {
+    return (
+      <div
+        className="mx-auto max-w-[160px] text-[11px] font-semibold text-slate-700 leading-tight break-words"
+        style={{
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+        title={text}
+      >
+        {text}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-[160px] truncate text-[11px] font-semibold text-slate-700 leading-tight" title={text}>
+      {text}
+    </div>
+  )
+}
+
 interface ControlProbetasModuleProps {
   user: any
   onNavigateModule: (module: any, recordId: number | null) => void
@@ -731,9 +763,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
-        <div className="text-[11px] font-semibold text-slate-700 block max-w-[160px] mx-auto leading-tight break-words" title={item.cliente}>
-          {item.cliente}
-        </div>
+        <ClientValue value={item.cliente} />
       </td>
       {/* ELEMENTO */}
       <td className={TD}>
@@ -839,7 +869,7 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
         />
       </td>
       {/* ESTADO badge */}
-      <td className={`${TD} border-r-0`}>
+      <td className={`${TD} w-4 border-r-0 px-1`}>
         <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
           {item.estado_probeta}
         </span>
