@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   useControlProbetas, ProbetaRow, Receipt, ElementoValue, StatusEnsayoValue, StatusEntregaValue,
-  ELEMENTOS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
+  ELEMENTOS, FOSAS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
 
 const STATUS_DENSIDAD = ["SI", "NO"] as const
@@ -343,9 +343,9 @@ function DataTable({
     for (const probeta of pendingImport) {
       await onUpdateRow(probeta.muestra_id, {
         elemento: probeta.elemento || "-",
+        fosa: probeta.fosa || "-",
         densidad: probeta.densidad || "NO",
         fc_kg_cm2: probeta.fc_kg_cm2,
-        status_ensayo: probeta.status_ensayo || "-",
         status_entrega: probeta.status_entrega || "-",
       })
     }
@@ -402,9 +402,10 @@ function DataTable({
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO LEM</th>
-              <th className={`${TH} w-44 text-zinc-950 font-black`}>IDENTIFICACIÓN</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>EDAD</th>
               <th className={`${TH} w-32 text-zinc-950 font-black`}>CLIENTE</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>F. RECEPCIÓN</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>F. ROTURA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
@@ -418,7 +419,7 @@ function DataTable({
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                <td colSpan={14} className="py-20 text-center border-r-0">
+                <td colSpan={15} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -426,7 +427,7 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={14} className="py-20 text-center border-r-0">
+                  <td colSpan={15} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                     <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
@@ -497,6 +498,7 @@ interface GhostRowProps {
 function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
   const [importing, setImporting] = useState(false)
   const [recepcionQuery, setRecepcionQuery] = useState("")
+  const [selectedFosa, setSelectedFosa] = useState("FOSA 1")
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -551,7 +553,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
     setImporting(true)
     const existingProbetas = await fetchByRecepcion(rec.id)
     if (existingProbetas.length > 0) {
-      onRequestImport(existingProbetas)
+      onRequestImport(existingProbetas.map((p) => ({ ...p, fosa: selectedFosa })))
     }
     setImporting(false)
     setRecepcionQuery("")
@@ -564,13 +566,25 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       {/* RECEPCIÓN: autocomplete search to import */}
       <td className={TD} colSpan={3}>
         <div className="relative" ref={dropdownRef}>
-          <Input
-            value={recepcionQuery}
+        <Input
+          value={recepcionQuery}
             onChange={(e) => { setRecepcionQuery(e.target.value) }}
             onFocus={() => { if (recepcionOpts.length > 0) setShowDropdown(true) }}
             className="h-8 text-xs text-center rounded-lg border-slate-200"
             placeholder="Buscar recepción para importar..."
           />
+          <div className="mt-2">
+            <Select value={selectedFosa} onValueChange={setSelectedFosa}>
+              <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200">
+                <SelectValue placeholder="Fosa" />
+              </SelectTrigger>
+              <SelectContent>
+                {FOSAS.filter((v) => v !== "-").map((fosa) => (
+                  <SelectItem key={fosa} value={fosa}>{fosa}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {showDropdown && (
             <div className={`absolute left-0 z-50 w-full rounded-xl border border-slate-200 bg-white shadow-xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
               {searching ? (
@@ -596,6 +610,8 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       {/* CLIENTE — empty placeholder */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* ELEMENTO */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* FOSA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. RECEPCIÓN */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
@@ -657,11 +673,9 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
       {/* CÓDIGO LEM (from recepcion) */}
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
-      {/* IDENTIFICACIÓN (read-only) */}
+      {/* EDAD */}
       <td className={TD}>
-        <span className="text-[11px] font-semibold text-slate-700 block truncate max-w-[170px] mx-auto" title={item.identificacion_muestra}>
-          {item.identificacion_muestra || "—"}
-        </span>
+        <span className="text-[11px] font-semibold text-slate-700">{item.edad ?? "—"}</span>
       </td>
       {/* CLIENTE */}
       <td className={TD}>
@@ -672,6 +686,13 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
         <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+        </Select>
+      </td>
+      {/* FOSA */}
+      <td className={TD}>
+        <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
+          <SelectContent>{FOSAS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
       </td>
       {/* F. RECEPCIÓN (read-only from recepción) */}
@@ -704,9 +725,17 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* STATUS ENSAYO */}
       <td className={TD}>
-        <Select value={(item.status_ensayo as StatusEnsayoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{STATUS_ENSAYO.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+        <Select
+          value={(item.status_ensayo as StatusEnsayoValue | "ANULADO") || "PENDIENTE"}
+          onValueChange={(v) => void onUpdate(item.muestra_id, { status_ensayo: v })}
+        >
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border-slate-200 justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ANULADO">ANULADO</SelectItem>
+            <SelectItem value="PENDIENTE">AUTO</SelectItem>
+          </SelectContent>
         </Select>
       </td>
       {/* STATUS ENTREGA */}
