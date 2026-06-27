@@ -401,13 +401,13 @@ function DataTable({
             <tr>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <th className={`${TH} w-28 text-zinc-950 font-black`}>RECEPCIÓN</th>
-              <th className={`${TH} w-28 text-zinc-950 font-black`}>CÓDIGO LEM</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>CÓDIGO LEM</th>
               <th className={`${TH} w-32 text-zinc-950 font-black`}>CLIENTE</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>ELEMENTO</th>
-              <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
-              <th className={`${TH} w-28 text-zinc-950 font-black`}>F. RECEPCIÓN</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>F. ROTURA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>DENSIDAD</th>
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>EDAD</th>
+              <th className={`${TH} w-24 text-zinc-950 font-black`}>FOSA</th>
               <th className={`${TH} w-16 text-zinc-950 font-black`}>F'C</th>
               <th className={`${TH} w-24 text-zinc-950 font-black`}>STATUS ENSAYO</th>
               <th className={`${TH} w-20 text-zinc-950 font-black`}>STATUS ENTREGA</th>
@@ -419,7 +419,7 @@ function DataTable({
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                <td colSpan={15} className="py-20 text-center border-r-0">
+                <td colSpan={14} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -427,7 +427,7 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={15} className="py-20 text-center border-r-0">
+                  <td colSpan={14} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                     <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
@@ -611,13 +611,13 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* ELEMENTO */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* F. RECEPCIÓN */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F. ROTURA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* DENSIDAD */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* EDAD */}
+      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
+      {/* FOSA */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
       {/* F'C */}
       <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
@@ -677,7 +677,9 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
-        <span className="text-[8px] font-semibold text-slate-700 block truncate max-w-[130px] mx-auto" title={item.cliente}>{item.cliente}</span>
+        <span className="text-[11px] font-semibold text-slate-700 block max-w-[140px] mx-auto leading-tight break-words" title={item.cliente}>
+          {item.cliente}
+        </span>
       </td>
       {/* ELEMENTO */}
       <td className={TD}>
@@ -685,10 +687,6 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
           <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
           <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
         </Select>
-      </td>
-      {/* F. RECEPCIÓN (read-only from recepción) */}
-      <td className={`${TD} font-mono text-xs text-slate-600`}>
-        {item.fecha_recepcion ? formatDateDisplay(item.fecha_recepcion) : "—"}
       </td>
       {/* F. ROTURA */}
       <td className={TD}>
@@ -750,7 +748,9 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       {/* STATUS ENTREGA */}
       <td className={TD}>
         <Select
-          value={(item.status_entrega as StatusEntregaValue) || "-"}
+          value={
+            (item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : (item.status_entrega as StatusEntregaValue) || "-")
+          }
           onValueChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
             if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
