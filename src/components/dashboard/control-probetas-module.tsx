@@ -410,8 +410,6 @@ interface DataTableProps {
   onNext: () => void
 }
 
-import { useMemo } from "react"
-
 function DataTable({
   items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion,
   pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext
