@@ -532,30 +532,30 @@ function FilterBar({
 
         {/* Date Filters & State */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Fecha Inicio */}
+          {/* Fecha Rotura */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
-            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Rotura:</span>
             <input
               type="date"
               value={fechaInicio}
               onChange={(e) => onFechaInicioChange(e.target.value)}
               className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
-              title="Fecha Inicio (Rotura)"
+              title="Fecha de Rotura"
             />
             {fechaInicio && (
               <button onClick={() => onFechaInicioChange("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
             )}
           </div>
 
-          {/* Fecha Fin */}
+          {/* Fecha Entrega */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
-            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Entrega:</span>
             <input
               type="date"
               value={fechaFin}
               onChange={(e) => onFechaFinChange(e.target.value)}
               className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
-              title="Fecha Fin (Rotura)"
+              title="Fecha de Entrega"
             />
             {fechaFin && (
               <button onClick={() => onFechaFinChange("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
@@ -811,8 +811,8 @@ function DataTable({
               <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-12" />
               <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-10" />
-              <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
+              <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
               <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[84px]" />
               <SortTh label="STATUS ENTREGA" column="status_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="F. ENTREGA" column="fecha_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
@@ -1118,6 +1118,8 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           placeholder="—"
         />
       </td>
+      {/* F'C (read-only) */}
+      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* POZA */}
       <td className={TD}>
         <SuggestionInput
@@ -1127,8 +1129,6 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           placeholder="Poza"
         />
       </td>
-      {/* F'C (read-only) */}
-      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* STATUS ENSAYO */}
       <td className={TD}>
         {(() => {
