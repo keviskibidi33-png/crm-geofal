@@ -13,12 +13,75 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   useControlProbetas, ProbetaRow, Receipt, ElementoValue, StatusEnsayoValue, StatusEntregaValue,
-  ELEMENTOS, FOSAS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
+  ELEMENTOS, POZAS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
 
 const STATUS_DENSIDAD = ["SI", "NO"] as const
 type DensidadValue = "SI" | "NO"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
+
+function SuggestionInput({
+  value,
+  onChange,
+  options,
+  placeholder = "",
+  className = "",
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: readonly string[] | string[]
+  placeholder?: string
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const filteredOptions = useMemo(() => {
+    const term = (value || "").trim().toLowerCase()
+    if (!term) return options
+    return options.filter(o => o.toLowerCase().includes(term))
+  }, [value, options])
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <Input
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className={`h-8 text-xs text-center rounded-lg border-slate-200 bg-white ${className}`}
+      />
+      {open && filteredOptions.length > 0 && (
+        <div className="absolute left-0 z-50 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+          {filteredOptions.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              className="block w-full px-2 py-1.5 text-center text-xs hover:bg-blue-50 text-slate-700 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onChange(opt)
+                setOpen(false)
+              }}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function toInputDateFormat(dateStr?: string | null): string {
   if (!dateStr || dateStr === "-") return ""
@@ -546,16 +609,16 @@ function DataTable({
 }: DataTableProps) {
   const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
   const [importing, setImporting] = useState(false)
-  const [previewFosa, setPreviewFosa] = useState("FOSA 1")
-  const [previewElemento, setPreviewElemento] = useState<ElementoValue>("-")
+  const [previewPoza, setPreviewPoza] = useState("1")
+  const [previewElemento, setPreviewElemento] = useState<string>("-")
 
   const handleRequestImport = (imported: ProbetaRow[]) => {
     setPendingImport(imported)
   }
 
-  const handleApplyFosaToAll = () => {
+  const handleApplyPozaToAll = () => {
     if (!pendingImport) return
-    setPendingImport(pendingImport.map(p => ({ ...p, fosa: previewFosa })))
+    setPendingImport(pendingImport.map(p => ({ ...p, poza: previewPoza })))
   }
 
   const handleApplyElementoToAll = () => {
@@ -570,7 +633,7 @@ function DataTable({
       for (const probeta of pendingImport) {
         await onUpdateRow(probeta.muestra_id, {
           elemento: probeta.elemento || "-",
-          fosa: probeta.fosa || "-",
+          poza: probeta.poza || "-",
           densidad: probeta.densidad || "NO",
           fc_kg_cm2: probeta.fc_kg_cm2,
           status_entrega: probeta.status_entrega || "-",
@@ -589,7 +652,17 @@ function DataTable({
     setPendingImport(null)
   }
 
-  const displayItems = pendingImport || items
+  const [visibleCount, setVisibleCount] = useState(100)
+
+  const allDisplayItems = pendingImport || items
+
+  useEffect(() => {
+    setVisibleCount(100)
+  }, [items])
+
+  const displayItems = useMemo(() => {
+    return allDisplayItems.slice(0, visibleCount)
+  }, [allDisplayItems, visibleCount])
 
   const rowBackgrounds = useMemo(() => {
     const mapping: Record<string, string> = {}
@@ -609,6 +682,13 @@ function DataTable({
   // Global row offset for the # column
   const rowOffset = (page - 1) * pageSize
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    if (target.scrollHeight - target.scrollTop <= target.clientHeight * 1.5) {
+      setVisibleCount(prev => Math.min(prev + 100, allDisplayItems.length))
+    }
+  }
+
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
       {pendingImport && (
@@ -618,23 +698,23 @@ function DataTable({
               Vista previa: {pendingImport.length} probetas a importar
             </span>
             <div className="flex items-center gap-2">
-              <Select value={previewFosa} onValueChange={setPreviewFosa}>
+              <Select value={previewPoza} onValueChange={setPreviewPoza}>
                 <SelectTrigger className="h-7 w-28 text-[10px] rounded-lg border-amber-300 bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FOSAS.filter((v) => v !== "-").map((fosa) => (
-                    <SelectItem key={fosa} value={fosa}>{fosa}</SelectItem>
+                  {POZAS.filter((v) => v !== "-").map((poza) => (
+                    <SelectItem key={poza} value={poza}>{poza}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={handleApplyFosaToAll} className="h-7 text-[10px] rounded-lg border-amber-300 text-amber-700 hover:bg-amber-100">
-                Aplicar fosa a todas
+              <Button variant="outline" size="sm" onClick={handleApplyPozaToAll} className="h-7 text-[10px] rounded-lg border-amber-300 text-amber-700 hover:bg-amber-100">
+                Aplicar poza a todas
               </Button>
             </div>
             
             <div className="flex items-center gap-2 border-l border-amber-300 pl-3">
-              <Select value={previewElemento} onValueChange={(v: ElementoValue) => setPreviewElemento(v)}>
+              <Select value={previewElemento} onValueChange={setPreviewElemento}>
                 <SelectTrigger className="h-7 w-28 text-[10px] rounded-lg border-amber-300 bg-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -660,7 +740,7 @@ function DataTable({
           </div>
         </div>
       )}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto" onScroll={handleScroll}>
         <table className="min-w-[1100px] w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
@@ -668,7 +748,7 @@ function DataTable({
                 <input
                   type="checkbox"
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer"
-                  checked={items.length > 0 && items.every(it => selectedIds.includes(it.muestra_id))}
+                  checked={items.length > 0 && selectedIds.length === items.length}
                   onChange={(e) => {
                     if (e.target.checked) {
                       onToggleSelectAll(items.map(it => it.muestra_id))
@@ -687,7 +767,7 @@ function DataTable({
               <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
               <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
-              <SortTh label="FOSA" column="fosa" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
+              <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
               <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[84px]" />
               <SortTh label="STATUS ENTREGA" column="status_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
@@ -740,7 +820,7 @@ function DataTable({
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 font-medium">Filas por página:</span>
           <Select value={String(pageSize)} onValueChange={(val) => onPageSizeChange(Number(val))}>
-            <SelectTrigger className="w-16 h-8 text-xs rounded-xl border-slate-200 bg-white">
+            <SelectTrigger className="w-24 h-8 text-xs rounded-xl border-slate-200 bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -778,7 +858,7 @@ interface GhostRowProps {
 
 function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
   const [recepcionQuery, setRecepcionQuery] = useState("")
-  const [selectedFosa, setSelectedFosa] = useState("FOSA 1")
+  const [selectedPoza, setSelectedPoza] = useState("1")
   const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -832,7 +912,7 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
     setShowDropdown(false)
     const existingProbetas = await fetchByRecepcion(rec.id)
     if (existingProbetas.length > 0) {
-      onRequestImport(existingProbetas.map((p) => ({ ...p, fosa: selectedFosa })))
+      onRequestImport(existingProbetas.map((p) => ({ ...p, poza: selectedPoza })))
     }
     setRecepcionQuery("")
   }
@@ -854,16 +934,12 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
             placeholder="Buscar recepción para importar..."
           />
           <div className="mt-2">
-            <Select value={selectedFosa} onValueChange={setSelectedFosa}>
-              <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200">
-                <SelectValue placeholder="Fosa" />
-              </SelectTrigger>
-              <SelectContent>
-                {FOSAS.filter((v) => v !== "-").map((fosa) => (
-                  <SelectItem key={fosa} value={fosa}>{fosa}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SuggestionInput
+              value={selectedPoza}
+              onChange={setSelectedPoza}
+              options={POZAS.filter((v) => v !== "-")}
+              placeholder="Poza"
+            />
           </div>
           {showDropdown && (
             <div className={`absolute left-0 z-50 w-full rounded-xl border border-slate-200 bg-white shadow-xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
@@ -967,10 +1043,12 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
       </td>
       {/* ELEMENTO */}
       <td className={TD}>
-        <Select value={(item.elemento as ElementoValue) || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{ELEMENTOS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
+        <SuggestionInput
+          value={item.elemento || "-"}
+          onChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}
+          options={ELEMENTOS}
+          placeholder="Elemento"
+        />
       </td>
       {/* F. ROTURA */}
       <td className={TD}>
@@ -996,12 +1074,14 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           placeholder="—"
         />
       </td>
-      {/* FOSA */}
+      {/* POZA */}
       <td className={TD}>
-        <Select value={item.fosa || "-"} onValueChange={(v) => void onUpdate(item.muestra_id, { fosa: v })}>
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>{FOSAS.filter((o) => o !== "-").map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
+        <SuggestionInput
+          value={item.poza || "-"}
+          onChange={(v) => void onUpdate(item.muestra_id, { poza: v })}
+          options={POZAS}
+          placeholder="Poza"
+        />
       </td>
       {/* F'C (read-only) */}
       <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
@@ -1036,9 +1116,9 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
       </td>
       {/* STATUS ENTREGA */}
       <td className={TD}>
-        <Select
-          value={(item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : (item.status_entrega as StatusEntregaValue) || "-")}
-          onValueChange={(v) => {
+        <SuggestionInput
+          value={(item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : item.status_entrega || "-")}
+          onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
             if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
               const today = new Date()
@@ -1049,12 +1129,9 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
             }
             void onUpdate(item.muestra_id, payload)
           }}
-        >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {STATUS_ENTREGA.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-          </SelectContent>
-        </Select>
+          options={STATUS_ENTREGA}
+          placeholder="Estado"
+        />
       </td>
       {/* F. ENTREGA */}
       <td className={TD}>

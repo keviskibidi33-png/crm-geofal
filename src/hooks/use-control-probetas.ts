@@ -24,7 +24,7 @@ export interface ProbetaRow {
   identificacion_muestra?: string
   estructura?: string
   elemento?: string
-  fosa?: string
+  poza?: string
   fecha_rotura?: string
   /** "SI" or "NO" derived from requiere_densidad */
   densidad?: string
@@ -54,7 +54,7 @@ export interface ProbetasKpis {
 }
 
 export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
-export const FOSAS = ["-", "FOSA 1", "FOSA 2", "FOSA 3", "FOSA 4", "FOSA 5", "FOSA 6", "ROTAS"] as const
+export const POZAS = ["-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "ANULADO", "ROTAS"] as const
 export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "ENSAYADO", "PENDIENTE", "FALTA", "ANULADO"]
 export const STATUS_ENTREGA: StatusEntregaValue[] = ["-", "ENTREGADO", "INFORME LISTO", "ROTAS", "ANULADAS"]
 
