@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react"
 import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, Search, Plus, RefreshCw,
   ChevronLeft, ChevronRight, Loader2, Calendar, Database, ExternalLink, X, Activity,
+  FileSpreadsheet, Download, Filter,
 } from "lucide-react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -124,12 +126,26 @@ interface ControlProbetasModuleProps {
 export function ControlProbetasModule({ user, onNavigateModule }: ControlProbetasModuleProps) {
   const store = useControlProbetas()
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }, [])
+
+  const handleToggleSelectAll = useCallback((ids: number[]) => {
+    setSelectedIds(ids)
+  }, [])
 
   const handleRefreshAll = () => {
     store.fetchItems()
     store.fetchKpis()
     store.fetchRecentItems()
   }
+
+  // Clear selection on filter/page changes
+  useEffect(() => {
+    setSelectedIds([])
+  }, [store.search, store.fechaInicio, store.fechaFin, store.estadoProbeta, store.page])
 
   return (
     <div className="min-h-full bg-[#F8FAFC] p-8 space-y-8 font-sans antialiased">
@@ -150,9 +166,14 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
           <div className="flex-1 min-h-0 flex flex-col gap-2 p-1 overflow-hidden">
             <FilterBar
               search={store.search} onSearchChange={store.setSearch}
+              fechaInicio={store.fechaInicio} onFechaInicioChange={store.setFechaInicio}
+              fechaFin={store.fechaFin} onFechaFinChange={store.setFechaFin}
+              estadoProbeta={store.estadoProbeta} onEstadoProbetaChange={store.setEstadoProbeta}
+              onExport={() => void store.exportToExcel(selectedIds)}
+              selectedCount={selectedIds.length}
               total={store.total}
             />
-          <DataTable
+            <DataTable
               items={store.items} loading={store.loading}
               onUpdateRow={store.updateRow} onCreateRow={store.createRow}
               searchRecepciones={store.searchRecepciones}
@@ -163,6 +184,9 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               onNext={() => store.setPage(p => Math.min(store.totalPages, p + 1))}
               sortColumn={store.sortColumn} sortDirection={store.sortDirection}
               onSort={(col) => { store.setSort(col); store.setPage(1) }}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleSelectAll={handleToggleSelectAll}
             />
           </div>
         </DialogFullscreenContent>
@@ -370,14 +394,26 @@ function DialogTitleBar({ onClose }: { onClose: () => void }) {
 
 interface FilterBarProps {
   search: string; onSearchChange: (v: string) => void
+  fechaInicio: string; onFechaInicioChange: (v: string) => void
+  fechaFin: string; onFechaFinChange: (v: string) => void
+  estadoProbeta: string; onEstadoProbetaChange: (v: string) => void
+  onExport: () => void
+  selectedCount: number
   total: number
 }
 
-function FilterBar({ search, onSearchChange, total }: FilterBarProps) {
+function FilterBar({
+  search, onSearchChange,
+  fechaInicio, onFechaInicioChange,
+  fechaFin, onFechaFinChange,
+  estadoProbeta, onEstadoProbetaChange,
+  onExport, selectedCount, total
+}: FilterBarProps) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex-none">
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4">
-        <div className="flex-1 relative">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible flex-none">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 p-4">
+        {/* Search */}
+        <div className="flex-1 min-w-[200px] relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
@@ -386,11 +422,70 @@ function FilterBar({ search, onSearchChange, total }: FilterBarProps) {
             placeholder="Buscar por recepción, cliente, código..."
           />
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Date Filters & State */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Fecha Inicio */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => onFechaInicioChange(e.target.value)}
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
+              title="Fecha Inicio (Rotura)"
+            />
+            {fechaInicio && (
+              <button onClick={() => onFechaInicioChange("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
+            )}
+          </div>
+
+          {/* Fecha Fin */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => onFechaFinChange(e.target.value)}
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
+              title="Fecha Fin (Rotura)"
+            />
+            {fechaFin && (
+              <button onClick={() => onFechaFinChange("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
+            )}
+          </div>
+
+          {/* Estado Select */}
+          <div className="w-[140px]">
+            <Select value={estadoProbeta || "todos"} onValueChange={(v) => onEstadoProbetaChange(v === "todos" ? "" : v)}>
+              <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-white">
+                <SelectValue placeholder="Filtrar por Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los Estados</SelectItem>
+                <SelectItem value="curado">En Curado</SelectItem>
+                <SelectItem value="pendiente">Pendiente (Hoy)</SelectItem>
+                <SelectItem value="vencido">Vencido (Ayer o antes)</SelectItem>
+                <SelectItem value="ensayado">Ensayado</SelectItem>
+                <SelectItem value="faltas">Faltas (Overdue)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* total */}
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-            <Calendar className="h-4 w-4" />
+            <Database className="h-4 w-4 text-slate-500" />
             {total} registros
           </div>
+
+          {/* Export Button */}
+          <Button
+            onClick={onExport}
+            className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 px-4 shadow-md shadow-emerald-600/10 active:scale-95 transition-all"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            {selectedCount > 0 ? `Exportar (${selectedCount})` : "Exportar"}
+          </Button>
         </div>
       </div>
     </div>
@@ -438,16 +533,21 @@ interface DataTableProps {
   sortColumn: string | null
   sortDirection: "asc" | "desc"
   onSort: (column: string) => void
+  selectedIds: number[]
+  onToggleSelect: (id: number) => void
+  onToggleSelectAll: (ids: number[]) => void
 }
 
 function DataTable({
   items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion,
   pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext,
-  sortColumn, sortDirection, onSort
+  sortColumn, sortDirection, onSort,
+  selectedIds, onToggleSelect, onToggleSelectAll
 }: DataTableProps) {
   const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
   const [importing, setImporting] = useState(false)
   const [previewFosa, setPreviewFosa] = useState("FOSA 1")
+  const [previewElemento, setPreviewElemento] = useState<ElementoValue>("-")
 
   const handleRequestImport = (imported: ProbetaRow[]) => {
     setPendingImport(imported)
@@ -458,20 +558,31 @@ function DataTable({
     setPendingImport(pendingImport.map(p => ({ ...p, fosa: previewFosa })))
   }
 
+  const handleApplyElementoToAll = () => {
+    if (!pendingImport) return
+    setPendingImport(pendingImport.map(p => ({ ...p, elemento: previewElemento })))
+  }
+
   const handleConfirmImport = async () => {
     if (!pendingImport) return
     setImporting(true)
-    for (const probeta of pendingImport) {
-      await onUpdateRow(probeta.muestra_id, {
-        elemento: probeta.elemento || "-",
-        fosa: probeta.fosa || "-",
-        densidad: probeta.densidad || "NO",
-        fc_kg_cm2: probeta.fc_kg_cm2,
-        status_entrega: probeta.status_entrega || "-",
-      })
+    try {
+      for (const probeta of pendingImport) {
+        await onUpdateRow(probeta.muestra_id, {
+          elemento: probeta.elemento || "-",
+          fosa: probeta.fosa || "-",
+          densidad: probeta.densidad || "NO",
+          fc_kg_cm2: probeta.fc_kg_cm2,
+          status_entrega: probeta.status_entrega || "-",
+        })
+      }
+      toast.success("Importación completada correctamente")
+      setPendingImport(null)
+    } catch (e: any) {
+      toast.error("Error durante la importación: " + (e?.message || String(e)))
+    } finally {
+      setImporting(false)
     }
-    setPendingImport(null)
-    setImporting(false)
   }
 
   const handleCancelImport = () => {
@@ -521,6 +632,22 @@ function DataTable({
                 Aplicar fosa a todas
               </Button>
             </div>
+            
+            <div className="flex items-center gap-2 border-l border-amber-300 pl-3">
+              <Select value={previewElemento} onValueChange={(v: ElementoValue) => setPreviewElemento(v)}>
+                <SelectTrigger className="h-7 w-28 text-[10px] rounded-lg border-amber-300 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ELEMENTOS.map((elem) => (
+                    <SelectItem key={elem} value={elem}>{elem}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={handleApplyElementoToAll} className="h-7 text-[10px] rounded-lg border-amber-300 text-amber-700 hover:bg-amber-100">
+                Aplicar elemento a todas
+              </Button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleCancelImport} className="h-7 text-[10px] rounded-lg border-slate-200">
@@ -537,6 +664,21 @@ function DataTable({
         <table className="min-w-[1100px] w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
+              <th className={`${TH} w-8`}>
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer"
+                  checked={items.length > 0 && items.every(it => selectedIds.includes(it.muestra_id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onToggleSelectAll(items.map(it => it.muestra_id))
+                    } else {
+                      onToggleSelectAll([])
+                    }
+                  }}
+                  disabled={!!pendingImport}
+                />
+              </th>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <SortTh label="RECEPCIÓN" column="numero_recepcion" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-28" />
               <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[88px]" />
@@ -556,7 +698,7 @@ function DataTable({
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                  <td colSpan={14} className="py-20 text-center border-r-0">
+                  <td colSpan={15} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -564,7 +706,7 @@ function DataTable({
             ) : displayItems.length === 0 ? (
               <>
                 <tr>
-                  <td colSpan={14} className="py-20 text-center border-r-0">
+                  <td colSpan={15} className="py-20 text-center border-r-0">
                     <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
                     <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
                     <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
@@ -582,6 +724,8 @@ function DataTable({
                     onUpdate={onUpdateRow}
                     isPreview={!!pendingImport}
                     bgClass={rowBackgrounds[it.muestra_id]}
+                    isSelected={selectedIds.includes(it.muestra_id)}
+                    onToggleSelect={onToggleSelect}
                   />
                 ))}
                 {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
@@ -695,6 +839,8 @@ function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestI
 
   return (
     <tr className="bg-slate-50/80 border-b-2 border-slate-200">
+      {/* Checkbox col — empty */}
+      <td className={TD}></td>
       {/* # col — no action */}
       <td className={TD}></td>
       {/* RECEPCIÓN: autocomplete search to import */}
@@ -775,9 +921,11 @@ interface DataRowProps {
   onUpdate: (id: number, payload: Record<string, unknown>) => Promise<void>
   isPreview?: boolean
   bgClass?: string
+  isSelected: boolean
+  onToggleSelect: (id: number) => void
 }
 
-function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps) {
+const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass, isSelected, onToggleSelect }: DataRowProps) {
   const statusColors: Record<string, string> = {
     ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
@@ -793,7 +941,17 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
   const currentDensidad = (item.densidad === "SI" ? "SI" : "NO") as DensidadValue
 
   return (
-    <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : `${bgClass || "bg-white"} hover:bg-slate-100/60`}`}>
+    <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : `${bgClass || "bg-white"} hover:bg-slate-100/60`} ${isSelected ? "bg-blue-50/80 hover:bg-blue-50" : ""}`}>
+      {/* Checkbox cell */}
+      <td className={TD}>
+        <input
+          type="checkbox"
+          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer"
+          checked={isSelected}
+          onChange={() => onToggleSelect(item.muestra_id)}
+          disabled={isPreview}
+        />
+      </td>
       {/* # — global row number */}
       <td className={`${TD} font-black text-slate-500 text-[10px]`}>{rowNumber}</td>
       {/* RECEPCIÓN */}
@@ -915,4 +1073,4 @@ function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass }: DataRowProps
       </td>
     </tr>
   )
-}
+})

@@ -144,7 +144,10 @@ export function useControlProbetas() {
   const [search, setSearch] = useState("")
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const debouncedSearch = useRef("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
+  const [estadoProbeta, setEstadoProbeta] = useState("")
 
   useEffect(() => {
     setPageSizeState(getInitialPageSize())
@@ -160,17 +163,24 @@ export function useControlProbetas() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      debouncedSearch.current = search.trim()
+      setDebouncedSearch(search.trim())
       setPage(1)
     }, 350)
     return () => clearTimeout(t)
   }, [search])
 
+  useEffect(() => {
+    setPage(1)
+  }, [fechaInicio, fechaFin, estadoProbeta])
+
   const fetchItems = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-      if (debouncedSearch.current) params.set("search", debouncedSearch.current)
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      if (fechaInicio) params.set("fecha_inicio", fechaInicio)
+      if (fechaFin) params.set("fecha_fin", fechaFin)
+      if (estadoProbeta) params.set("estado", estadoProbeta)
       if (sortColumn) {
         params.set("sort_column", sortColumn)
         params.set("sort_direction", sortDirection)
@@ -186,11 +196,15 @@ export function useControlProbetas() {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, sortColumn, sortDirection])
+  }, [page, pageSize, sortColumn, sortDirection, debouncedSearch, fechaInicio, fechaFin, estadoProbeta])
 
   const fetchKpis = useCallback(async () => {
     try {
-      const res = await authFetch(`${API_URL}/api/control-probetas/kpis`)
+      const params = new URLSearchParams()
+      if (debouncedSearch) params.set("search", debouncedSearch)
+      if (fechaInicio) params.set("fecha_inicio", fechaInicio)
+      if (fechaFin) params.set("fecha_fin", fechaFin)
+      const res = await authFetch(`${API_URL}/api/control-probetas/kpis?${params}`)
       if (res.ok) {
         const data = await res.json()
         setKpis(data)
@@ -198,7 +212,7 @@ export function useControlProbetas() {
     } catch {
       // KPIs are non-critical
     }
-  }, [])
+  }, [debouncedSearch, fechaInicio, fechaFin])
 
   const fetchRecentItems = useCallback(async () => {
     try {
@@ -236,6 +250,7 @@ export function useControlProbetas() {
     } catch (e: any) {
       toast.error(e?.message || "Error")
       void fetchItems()
+      throw e
     }
   }, [fetchKpis, fetchItems])
 
@@ -291,10 +306,39 @@ export function useControlProbetas() {
     })
   }, [])
 
+  const exportToExcel = useCallback(async (selectedIds?: number[]) => {
+    try {
+      const params = new URLSearchParams()
+      if (selectedIds && selectedIds.length > 0) {
+        params.set("muestra_ids", selectedIds.join(","))
+      } else {
+        if (debouncedSearch) params.set("search", debouncedSearch)
+        if (fechaInicio) params.set("fecha_inicio", fechaInicio)
+        if (fechaFin) params.set("fecha_fin", fechaFin)
+        if (estadoProbeta) params.set("estado", estadoProbeta)
+      }
+      
+      const res = await authFetch(`${API_URL}/api/control-probetas/exportar?${params}`)
+      if (!res.ok) throw new Error("Error al exportar")
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "Control_Probetas.xlsx"
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success("Excel exportado correctamente")
+    } catch (e: any) {
+      toast.error(e?.message || "Error al exportar Excel")
+    }
+  }, [debouncedSearch, fechaInicio, fechaFin, estadoProbeta])
+
   return {
     items, recentItems, loading, kpis, total, totalPages, page, pageSize, search,
-    sortColumn, sortDirection,
-    setPage, setPageSize, setSearch, setSort,
-    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion,
+    sortColumn, sortDirection, fechaInicio, fechaFin, estadoProbeta,
+    setPage, setPageSize, setSearch, setSort, setFechaInicio, setFechaFin, setEstadoProbeta,
+    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion, exportToExcel,
   }
 }
