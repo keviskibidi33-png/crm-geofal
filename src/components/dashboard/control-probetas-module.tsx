@@ -102,7 +102,7 @@ function SuggestionInput({
           }
         }}
         placeholder={placeholder}
-        className={`h-8 text-center rounded-lg border-slate-200 bg-white ${className.includes("text-") ? className : `text-xs ${className}`}`}
+        className={`h-8 text-center rounded-lg border-slate-200 bg-white text-xs ${className}`}
       />
       {open && filteredOptions.length > 0 && (
         <div className="absolute left-0 z-50 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -414,14 +414,13 @@ function QuickAccessCard({ onOpen }: { onOpen: () => void }) {
 
 function KPICards({ kpis, loading }: { kpis: any; loading: boolean }) {
   const cards = [
-    { label: "TOTAL PROBETAS", value: kpis.total, icon: Database, color: "slate" },
     { label: "EN CURADO", value: kpis.curado, icon: Clock, color: "blue" },
     { label: "PENDIENTES HOY", value: kpis.pendiente, icon: AlertTriangle, color: "amber" },
     { label: "ENSAYADOS", value: kpis.ensayado, icon: CheckCircle2, color: "emerald" },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {cards.map((card) => {
         const Icon = card.icon
         return (
@@ -493,7 +492,7 @@ function RecentPreview({ items, loading }: { items: ProbetaRow[]; loading: boole
                     {item.numero_recepcion ? item.numero_recepcion.slice(-2) : "--"}
                   </div>
                   <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
                       <span className="text-sm font-bold text-slate-800">{item.numero_recepcion}</span>
                       <span className="text-[10px] text-slate-400 font-medium">|</span>
                       <span className="text-xs text-slate-600 font-semibold truncate block max-w-full" title={item.cliente}>
@@ -618,26 +617,26 @@ function FilterBar({
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible flex-none">
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 p-4">
+      <div className="flex flex-col xl:flex-row xl:items-center gap-5 p-4">
         {/* Search */}
-        <div className="flex-1 lg:max-w-[200px] relative">
+        <div className="flex-1 xl:max-w-[210px] relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-10 text-xs rounded-xl border-slate-200"
+            className="pl-9 h-9 text-xs rounded-xl border-slate-200"
             placeholder="Buscar por recepción..."
           />
         </div>
 
         {/* Importador de Recepciones */}
-        <div className="flex-1 lg:max-w-[240px] relative" ref={dropdownRef}>
+        <div className="flex-1 xl:max-w-[260px] relative" ref={dropdownRef}>
           <Plus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={recepcionQuery}
             onChange={(e) => setRecepcionQuery(e.target.value)}
             onFocus={() => setShowDropdown(recepcionOpts.length > 0)}
-            className="pl-9 h-10 text-xs rounded-xl border-slate-200 bg-blue-50/20 focus:bg-white border-blue-100 placeholder:text-blue-500/60 font-semibold"
+            className="pl-9 h-9 text-xs rounded-xl border-slate-200 bg-blue-50/20 focus:bg-white border-blue-100 placeholder:text-blue-500/60 font-semibold"
             placeholder="Importar Recepción..."
           />
           {showDropdown && recepcionOpts.length > 0 && (
@@ -656,15 +655,15 @@ function FilterBar({
         </div>
 
         {/* Date Filters & State */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3 xl:gap-4">
           {/* Fecha Rotura */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50 min-w-fit">
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Rotura:</span>
             <input
               type="date"
               value={fechaInicio}
               onChange={(e) => onFechaInicioChange(e.target.value)}
-              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
               title="Fecha de Rotura"
             />
             {fechaInicio && (
@@ -673,13 +672,13 @@ function FilterBar({
           </div>
 
           {/* Fecha Entrega */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50 min-w-fit">
             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Entrega:</span>
             <input
               type="date"
               value={fechaFin}
               onChange={(e) => onFechaFinChange(e.target.value)}
-              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[110px]"
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
               title="Fecha de Entrega"
             />
             {fechaFin && (
@@ -688,9 +687,9 @@ function FilterBar({
           </div>
 
           {/* Estado Select */}
-          <div className="w-[140px]">
+          <div className="w-[150px] min-w-[150px]">
             <Select value={estadoProbeta || "todos"} onValueChange={(v) => onEstadoProbetaChange(v === "todos" ? "" : v)}>
-              <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-white">
+              <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="Filtrar por Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -704,16 +703,10 @@ function FilterBar({
             </Select>
           </div>
 
-          {/* total */}
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-            <Database className="h-4 w-4 text-slate-500" />
-            {total} registros
-          </div>
-
           {/* Export Button */}
           <Button
             onClick={onExport}
-            className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 px-4 shadow-md shadow-emerald-600/10 active:scale-95 transition-all"
+            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 px-4 shadow-md shadow-emerald-600/10 active:scale-95 transition-all"
           >
             <FileSpreadsheet className="h-4 w-4" />
             {selectedCount > 0 ? `Exportar (${selectedCount})` : "Exportar"}
@@ -726,8 +719,8 @@ function FilterBar({
 
 /* ═══════════════════════════ DATA TABLE ═══════════════════════════ */
 
-const TH = "px-2 py-2 text-[9px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
-const TD = "px-2 py-1.5 text-center border-r border-slate-100 last:border-r-0"
+const TH = "px-2 py-2 text-[8px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
+const TD = "px-2 py-1 text-center border-r border-slate-100 last:border-r-0"
 
 function SortTh({ label, column, sortColumn, sortDirection, onSort, className = "" }: {
   label: string; column: string; sortColumn: string | null; sortDirection: "asc" | "desc"
@@ -974,7 +967,7 @@ function DataTable({
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-slate-400 ml-2">Total: {total} registros</span>
+          <span className="text-xs text-slate-400 ml-2 flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> Total: {total} registros</span>
         </div>
 
         {/* Resumen de Estadísticas */}
@@ -1046,14 +1039,14 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
         />
       </td>
       {/* # — global row number */}
-      <td className={`${TD} font-black text-slate-500 text-[10px]`}>{rowNumber}</td>
+      <td className={`${TD} font-black text-slate-500 text-[9px]`}>{rowNumber}</td>
       {/* RECEPCIÓN */}
       <td className={TD}>
-        <div className="font-bold text-slate-800 text-xs">{item.numero_recepcion}</div>
-        <div className="text-[9px] text-slate-400 font-medium">{item.numero_ot}</div>
+        <div className="font-bold text-slate-800 text-[11px] leading-tight">{item.numero_recepcion}</div>
+        <div className="text-[8px] text-slate-400 font-medium">{item.numero_ot}</div>
       </td>
       {/* CÓDIGO LEM (from recepcion) */}
-      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
+      <td className={`${TD} font-mono text-[11px] font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>
       {/* CLIENTE */}
       <td className={TD}>
         <ClientValue value={item.cliente} />
@@ -1065,7 +1058,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           onChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}
           options={ELEMENTOS}
           placeholder="Elemento"
-          className="text-[9px] px-1 font-semibold"
+          className="h-7 text-[8px] px-1 font-semibold"
         />
       </td>
       {/* F. ROTURA */}
@@ -1073,13 +1066,13 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
         <InlineEditableText
           value={formatDateDisplay(item.fecha_rotura)}
           onCommit={(next) => void onUpdate(item.muestra_id, { fecha_rotura: parseDateInput(next) || "" })}
-          className="font-mono text-xs"
+          className="font-mono text-[11px]"
           placeholder="—"
         />
       </td>
       {/* DENSIDAD — read-only badge */}
       <td className={TD}>
-        <span className={`inline-flex items-center justify-center w-full h-8 text-[10px] font-bold rounded-lg border uppercase tracking-wider ${densidadColors[currentDensidad] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
+        <span className={`inline-flex items-center justify-center w-full h-7 text-[9px] font-bold rounded-lg border uppercase tracking-wider ${densidadColors[currentDensidad] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
           {currentDensidad}
         </span>
       </td>
@@ -1088,12 +1081,12 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
         <InlineEditableText
           value={item.edad ?? ""}
           onCommit={(next) => void onUpdate(item.muestra_id, { edad: Number(next) || item.edad })}
-          className="font-semibold text-slate-700 text-[11px]"
+          className="font-semibold text-slate-700 text-[10px]"
           placeholder="—"
         />
       </td>
       {/* F'C (read-only) */}
-      <td className={`${TD} font-mono text-xs font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
+      <td className={`${TD} font-mono text-[11px] font-bold text-slate-700`}>{item.fc_kg_cm2}</td>
       {/* POZA */}
       <td className={TD}>
         <SuggestionInput
@@ -1138,7 +1131,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           value={item.status_entrega || "-"}
           options={STATUS_ENTREGA}
           placeholder="Estado"
-          className="text-[9px] px-1 font-semibold"
+          className="h-7 text-[8px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
             if ((v === "ENTREGADO" || v === "INFORME") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
@@ -1157,7 +1150,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
         <InlineEditableText
           value={formatDateDisplay(item.fecha_entrega)}
           onCommit={(next) => void onUpdate(item.muestra_id, { fecha_entrega: parseDateInput(next) || "" })}
-          className="font-mono text-xs"
+          className="font-mono text-[11px]"
           placeholder="—"
         />
       </td>
