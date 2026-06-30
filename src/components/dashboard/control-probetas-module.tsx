@@ -766,7 +766,7 @@ function FilterBar({
 
 /* ═══════════════════════════ DATA TABLE ═══════════════════════════ */
 
-const TH = "px-3 py-2.5 text-[8px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
+const TH = "px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
 const TD = "px-2 py-1 text-center border-r border-slate-100 last:border-r-0"
 
 function SortTh({ label, column, sortColumn, sortDirection, onSort, className = "" }: {
@@ -781,7 +781,7 @@ function SortTh({ label, column, sortColumn, sortDirection, onSort, className = 
     >
       <div className="flex items-center justify-center gap-1">
         <span>{label}</span>
-        <span className={`text-[8px] leading-none ${active ? "text-blue-600" : "text-zinc-400"}`}>
+        <span className={`text-[10px] leading-none ${active ? "text-blue-600" : "text-zinc-400"}`}>
           {active ? (sortDirection === "asc" ? "▲" : "▼") : "▽"}
         </span>
       </div>
