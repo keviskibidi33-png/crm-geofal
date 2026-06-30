@@ -58,9 +58,22 @@ function SuggestionInput({
   }, [localValue, options])
 
   const handleCommit = (val: string) => {
-    if (val !== value) {
-      onChange(val)
+    let finalVal = val.trim()
+    if (filteredOptions.length > 0) {
+      const exact = options.find(o => o.toLowerCase() === finalVal.toLowerCase())
+      if (exact) {
+        finalVal = exact
+      } else {
+        finalVal = filteredOptions[0]
+      }
+    } else {
+      finalVal = "-"
     }
+
+    if (finalVal !== value) {
+      onChange(finalVal)
+    }
+    setLocalValue(finalVal)
   }
 
   return (
@@ -68,10 +81,16 @@ function SuggestionInput({
       <Input
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true)
+          if (localValue === "-") {
+            setLocalValue("")
+          }
+        }}
         onBlur={() => {
           setTimeout(() => {
-            handleCommit(localValue)
+            const finalVal = localValue.trim() || "-"
+            handleCommit(finalVal)
             setOpen(false)
           }, 180)
         }}
@@ -790,8 +809,8 @@ function DataTable({
               <SortTh label="CLIENTE" column="cliente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[136px]" />
               <SortTh label="ELEMENTO" column="elemento" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
               <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
-              <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
-              <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-12" />
+              <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-10" />
               <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
               <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[84px]" />
