@@ -102,7 +102,7 @@ function SuggestionInput({
           }
         }}
         placeholder={placeholder}
-        className={`h-8 text-xs text-center rounded-lg border-slate-200 bg-white ${className}`}
+        className={`h-8 text-center rounded-lg border-slate-200 bg-white ${className.includes("text-") ? className : `text-xs ${className}`}`}
       />
       {open && filteredOptions.length > 0 && (
         <div className="absolute left-0 z-50 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -700,6 +700,20 @@ function DataTable({
 
   const allDisplayItems = pendingImport || items
 
+  const totalProbetas = items.length
+  const uniqueRecepciones = useMemo(() => {
+    return new Set(items.map(x => x.numero_recepcion).filter(Boolean)).size
+  }, [items])
+  const ensayadas = useMemo(() => {
+    return items.filter(x => (x.status_ensayo || "").toString().toUpperCase() === "ENSAYADO").length
+  }, [items])
+  const pendientes = useMemo(() => {
+    return items.filter(x => {
+      const status = (x.status_ensayo || "").toString().toUpperCase()
+      return status === "PENDIENTE" || status === "FALTA" || !status
+    }).length
+  }, [items])
+
   useEffect(() => {
     setVisibleCount(100)
   }, [page, pageSize, items.length])
@@ -875,6 +889,18 @@ function DataTable({
           </Select>
           <span className="text-xs text-slate-400 ml-2">Total: {total} registros</span>
         </div>
+
+        {/* Resumen de Estadísticas */}
+        <div className="hidden lg:flex items-center gap-4 text-[11px] font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+          <span>Probetas registradas: <strong className="text-slate-800">{totalProbetas}</strong></span>
+          <span className="text-slate-300">|</span>
+          <span>Recepciones: <strong className="text-slate-800">{uniqueRecepciones}</strong></span>
+          <span className="text-slate-300">|</span>
+          <span>Ensayadas: <strong className="text-emerald-600">{ensayadas}</strong></span>
+          <span className="text-slate-300">|</span>
+          <span>Pendientes: <strong className="text-amber-600">{pendientes}</strong></span>
+        </div>
+
         <div className="flex items-center gap-4">
           <span className="text-xs text-slate-500 font-medium">Página {page} de {totalPages}</span>
           <div className="flex items-center gap-1">
@@ -1092,6 +1118,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           onChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}
           options={ELEMENTOS}
           placeholder="Elemento"
+          className="text-[9px] px-1 font-semibold"
         />
       </td>
       {/* F. ROTURA */}
@@ -1161,10 +1188,13 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
       {/* STATUS ENTREGA */}
       <td className={TD}>
         <SuggestionInput
-          value={(item.status_ensayo === "ANULADO" ? "ANULADAS" : item.status_ensayo === "ENSAYADO" ? "ROTAS" : item.status_entrega || "-")}
+          value={item.status_entrega || "-"}
+          options={STATUS_ENTREGA}
+          placeholder="Status"
+          className="text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
-            if ((v === "ENTREGADO" || v === "INFORME LISTO") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
+            if ((v === "ENTREGADO" || v === "INFORME") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
               const today = new Date()
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
