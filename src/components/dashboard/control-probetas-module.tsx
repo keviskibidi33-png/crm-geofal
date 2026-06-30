@@ -279,12 +279,13 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               onExport={() => void store.exportToExcel(selectedIds)}
               selectedCount={selectedIds.length}
               total={store.total}
+              searchRecepciones={store.searchRecepciones}
+              fetchByRecepcion={store.fetchByRecepcion}
+              onRequestImport={handleRequestImport}
             />
             <DataTable
               items={store.items} loading={store.loading}
-              onUpdateRow={store.updateRow} onCreateRow={store.createRow}
-              searchRecepciones={store.searchRecepciones}
-              fetchByRecepcion={store.fetchByRecepcion}
+              onUpdateRow={store.updateRow}
               pageSize={store.pageSize} onPageSizeChange={(v) => { store.setPageSize(v); store.setPage(1) }}
               total={store.total} page={store.page} totalPages={store.totalPages}
               onPrev={() => store.setPage(p => Math.max(1, p - 1))}
@@ -507,6 +508,9 @@ interface FilterBarProps {
   onExport: () => void
   selectedCount: number
   total: number
+  searchRecepciones: (q: string) => Promise<Receipt[]>
+  fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
+  onRequestImport: (items: ProbetaRow[]) => void
 }
 
 function FilterBar({
@@ -514,20 +518,86 @@ function FilterBar({
   fechaInicio, onFechaInicioChange,
   fechaFin, onFechaFinChange,
   estadoProbeta, onEstadoProbetaChange,
-  onExport, selectedCount, total
+  onExport, selectedCount, total,
+  searchRecepciones, fetchByRecepcion, onRequestImport
 }: FilterBarProps) {
+  const [recepcionQuery, setRecepcionQuery] = useState("")
+  const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
+  const [searching, setSearching] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!recepcionQuery.trim()) { setRecepcionOpts([]); return }
+      setSearching(true)
+      const results = await searchRecepciones(recepcionQuery)
+      setRecepcionOpts(results)
+      setShowDropdown(results.length > 0)
+      setSearching(false)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [recepcionQuery, searchRecepciones])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleSelectRecepcion = async (rec: Receipt) => {
+    setRecepcionQuery("")
+    setShowDropdown(false)
+    const existingProbetas = await fetchByRecepcion(rec.id)
+    if (existingProbetas.length > 0) {
+      // Default fosa/poza to "1" on import as standard
+      onRequestImport(existingProbetas.map((p) => ({ ...p, poza: "1" })))
+    } else {
+      toast.error("La recepción no contiene probetas para importar")
+    }
+  }
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible flex-none">
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 p-4">
         {/* Search */}
-        <div className="flex-1 min-w-[200px] relative">
+        <div className="flex-1 lg:max-w-[200px] relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-10 text-sm rounded-xl border-slate-200"
-            placeholder="Buscar por recepción, cliente, código..."
+            className="pl-9 h-10 text-xs rounded-xl border-slate-200"
+            placeholder="Buscar por recepción..."
           />
+        </div>
+
+        {/* Importador de Recepciones */}
+        <div className="flex-1 lg:max-w-[240px] relative" ref={dropdownRef}>
+          <Plus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={recepcionQuery}
+            onChange={(e) => setRecepcionQuery(e.target.value)}
+            onFocus={() => setShowDropdown(recepcionOpts.length > 0)}
+            className="pl-9 h-10 text-xs rounded-xl border-slate-200 bg-blue-50/20 focus:bg-white border-blue-100 placeholder:text-blue-500/60 font-semibold"
+            placeholder="Importar Recepción..."
+          />
+          {showDropdown && recepcionOpts.length > 0 && (
+            <div className="absolute left-0 z-50 mt-1 max-h-40 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+              {recepcionOpts.map((rec) => (
+                <button
+                  key={rec.id}
+                  onClick={() => void handleSelectRecepcion(rec)}
+                  className="w-full text-left px-4 py-2 hover:bg-slate-100 text-xs font-semibold text-slate-700"
+                >
+                  {rec.numero_recepcion} - {rec.cliente}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Date Filters & State */}
@@ -627,9 +697,6 @@ function SortTh({ label, column, sortColumn, sortDirection, onSort, className = 
 interface DataTableProps {
   items: ProbetaRow[]; loading: boolean
   onUpdateRow: (id: number, payload: Record<string, unknown>) => Promise<void>
-  onCreateRow: (payload: Record<string, unknown>) => Promise<void>
-  searchRecepciones: (q: string) => Promise<Receipt[]>
-  fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
   pageSize: number
   onPageSizeChange: (v: number) => void
   total: number
@@ -646,7 +713,7 @@ interface DataTableProps {
 }
 
 function DataTable({
-  items, loading, onUpdateRow, onCreateRow, searchRecepciones, fetchByRecepcion,
+  items, loading, onUpdateRow,
   pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext,
   sortColumn, sortDirection, onSort,
   selectedIds, onToggleSelect, onToggleSelectAll
@@ -842,32 +909,26 @@ function DataTable({
                 </td>
               </tr>
             ) : displayItems.length === 0 ? (
-              <>
-                <tr>
-                  <td colSpan={15} className="py-20 text-center border-r-0">
-                    <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
-                    <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el formulario inferior</p>
-                  </td>
-                </tr>
-                {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
-              </>
+              <tr>
+                <td colSpan={15} className="py-20 text-center border-r-0">
+                  <Database className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+                  <p className="text-sm text-slate-500 font-medium">No hay probetas para mostrar</p>
+                  <p className="text-xs text-slate-400 mt-1">Importa una recepción usando el selector en la barra superior</p>
+                </td>
+              </tr>
             ) : (
-              <>
-                {displayItems.map((it, idx) => (
-                  <DataRow
-                    key={it.muestra_id}
-                    item={it}
-                    rowNumber={rowOffset + idx + 1}
-                    onUpdate={onUpdateRow}
-                    isPreview={!!pendingImport}
-                    bgClass={rowBackgrounds[it.muestra_id]}
-                    isSelected={selectedIds.includes(it.muestra_id)}
-                    onToggleSelect={onToggleSelect}
-                  />
-                ))}
-                {!pendingImport && <GhostRow onCreateRow={onCreateRow} searchRecepciones={searchRecepciones} fetchByRecepcion={fetchByRecepcion} onRequestImport={handleRequestImport} />}
-              </>
+              displayItems.map((it, idx) => (
+                <DataRow
+                  key={it.muestra_id}
+                  item={it}
+                  rowNumber={rowOffset + idx + 1}
+                  onUpdate={onUpdateRow}
+                  isPreview={!!pendingImport}
+                  bgClass={rowBackgrounds[it.muestra_id]}
+                  isSelected={selectedIds.includes(it.muestra_id)}
+                  onToggleSelect={onToggleSelect}
+                />
+              ))
             )}
           </tbody>
         </table>
@@ -891,9 +952,7 @@ function DataTable({
         </div>
 
         {/* Resumen de Estadísticas */}
-        <div className="hidden lg:flex items-center gap-4 text-[11px] font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-          <span>Probetas registradas: <strong className="text-slate-800">{totalProbetas}</strong></span>
-          <span className="text-slate-300">|</span>
+        <div className="hidden lg:flex items-center gap-8 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
           <span>Recepciones: <strong className="text-slate-800">{uniqueRecepciones}</strong></span>
           <span className="text-slate-300">|</span>
           <span>Ensayadas: <strong className="text-emerald-600">{ensayadas}</strong></span>
@@ -917,145 +976,7 @@ function DataTable({
   )
 }
 
-/* ═══════════════════════════ GHOST ROW ═══════════════════════════ */
 
-interface GhostRowProps {
-  onCreateRow: (payload: Record<string, unknown>) => Promise<void>
-  searchRecepciones: (q: string) => Promise<Receipt[]>
-  fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
-  onRequestImport: (items: ProbetaRow[]) => void
-}
-
-function GhostRow({ onCreateRow, searchRecepciones, fetchByRecepcion, onRequestImport }: GhostRowProps) {
-  const [recepcionQuery, setRecepcionQuery] = useState("")
-  const [selectedPoza, setSelectedPoza] = useState("1")
-  const [recepcionOpts, setRecepcionOpts] = useState<Receipt[]>([])
-  const [searching, setSearching] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [openUpward, setOpenUpward] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      if (!recepcionQuery.trim()) { setRecepcionOpts([]); return }
-      setSearching(true)
-      const results = await searchRecepciones(recepcionQuery)
-      setRecepcionOpts(results)
-      setShowDropdown(results.length > 0)
-      setSearching(false)
-    }, 300)
-    return () => clearTimeout(t)
-  }, [recepcionQuery, searchRecepciones])
-
-  const checkPosition = () => {
-    if (dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      setOpenUpward(spaceBelow < 220)
-    }
-  }
-
-  useEffect(() => {
-    if (showDropdown) {
-      checkPosition()
-      window.addEventListener("scroll", checkPosition, true)
-      window.addEventListener("resize", checkPosition)
-    }
-    return () => {
-      window.removeEventListener("scroll", checkPosition, true)
-      window.removeEventListener("resize", checkPosition)
-    }
-  }, [showDropdown])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const handleSelectRecepcion = async (rec: Receipt) => {
-    setRecepcionQuery(rec.numero_recepcion)
-    setShowDropdown(false)
-    const existingProbetas = await fetchByRecepcion(rec.id)
-    if (existingProbetas.length > 0) {
-      onRequestImport(existingProbetas.map((p) => ({ ...p, poza: selectedPoza })))
-    }
-    setRecepcionQuery("")
-  }
-
-  return (
-    <tr className="bg-slate-50/80 border-b-2 border-slate-200">
-      {/* Checkbox col — empty */}
-      <td className={TD}></td>
-      {/* # col — no action */}
-      <td className={TD}></td>
-      {/* RECEPCIÓN: autocomplete search to import */}
-      <td className={TD} colSpan={3}>
-        <div className="relative" ref={dropdownRef}>
-        <Input
-          value={recepcionQuery}
-            onChange={(e) => { setRecepcionQuery(e.target.value) }}
-            onFocus={() => { if (recepcionOpts.length > 0) setShowDropdown(true) }}
-            className="h-8 text-xs text-center rounded-lg border-slate-200"
-            placeholder="Buscar recepción para importar..."
-          />
-          <div className="mt-2">
-            <SuggestionInput
-              value={selectedPoza}
-              onChange={setSelectedPoza}
-              options={POZAS.filter((v) => v !== "-")}
-              placeholder="Poza"
-            />
-          </div>
-          {showDropdown && (
-            <div className={`absolute left-0 z-50 w-full rounded-xl border border-slate-200 bg-white shadow-xl ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-              {searching ? (
-                <div className="p-3 text-xs text-slate-500 flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
-                </div>
-              ) : (
-                recepcionOpts.map((rec) => (
-                  <button
-                    key={rec.id} type="button"
-                    className="block w-full px-3 py-2.5 text-left text-xs hover:bg-blue-50 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                    onMouseDown={(e) => { e.preventDefault(); void handleSelectRecepcion(rec) }}
-                  >
-                    <div className="font-bold text-slate-800">{rec.numero_recepcion}</div>
-                    <div className="text-[10px] text-slate-500">{rec.numero_ot || "-"} · {rec.cliente || "Sin cliente"}</div>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      </td>
-      {/* ELEMENTO */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* F. ROTURA */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* DENSIDAD */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* EDAD */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* FOSA */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* F'C */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* STATUS ENSAYO */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* STATUS ENTREGA */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* F. ENTREGA */}
-      <td className={TD}><span className="text-[11px] text-slate-400">—</span></td>
-      {/* ESTADO preview */}
-      <td className={`${TD} border-r-0`}><span className="text-[11px] text-slate-400">—</span></td>
-    </tr>
-  )
-}
 
 /* ═══════════════════════════ DATA ROW ═══════════════════════════ */
 
