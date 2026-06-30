@@ -33,8 +33,13 @@ function SuggestionInput({
   placeholder?: string
   className?: string
 }) {
+  const [localValue, setLocalValue] = useState(value || "")
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setLocalValue(value || "")
+  }, [value])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -47,17 +52,36 @@ function SuggestionInput({
   }, [])
 
   const filteredOptions = useMemo(() => {
-    const term = (value || "").trim().toLowerCase()
+    const term = (localValue || "").trim().toLowerCase()
     if (!term) return options
     return options.filter(o => o.toLowerCase().includes(term))
-  }, [value, options])
+  }, [localValue, options])
+
+  const handleCommit = (val: string) => {
+    if (val !== value) {
+      onChange(val)
+    }
+  }
 
   return (
     <div className="relative w-full" ref={containerRef}>
       <Input
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
         onFocus={() => setOpen(true)}
+        onBlur={() => {
+          setTimeout(() => {
+            handleCommit(localValue)
+            setOpen(false)
+          }, 180)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            handleCommit(localValue)
+            setOpen(false)
+            e.currentTarget.blur()
+          }
+        }}
         placeholder={placeholder}
         className={`h-8 text-xs text-center rounded-lg border-slate-200 bg-white ${className}`}
       />
@@ -70,7 +94,8 @@ function SuggestionInput({
               className="block w-full px-2 py-1.5 text-center text-xs hover:bg-blue-50 text-slate-700 transition-colors"
               onMouseDown={(e) => {
                 e.preventDefault()
-                onChange(opt)
+                setLocalValue(opt)
+                handleCommit(opt)
                 setOpen(false)
               }}
             >
