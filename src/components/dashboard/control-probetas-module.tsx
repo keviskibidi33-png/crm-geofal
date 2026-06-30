@@ -26,12 +26,14 @@ function SuggestionInput({
   options,
   placeholder = "",
   className = "",
+  displayClassName = "",
 }: {
   value: string
   onChange: (v: string) => void
   options: readonly string[] | string[]
   placeholder?: string
   className?: string
+  displayClassName?: string
 }) {
   const [localValue, setLocalValue] = useState(value || "")
   const [open, setOpen] = useState(false)
@@ -78,39 +80,57 @@ function SuggestionInput({
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <Input
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onFocus={() => {
-          setOpen(true)
-          if (localValue === "-") {
-            setLocalValue("")
-          }
-        }}
-        onBlur={() => {
-          setTimeout(() => {
-            const finalVal = localValue.trim() || "-"
-            handleCommit(finalVal)
-            setOpen(false)
-          }, 180)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleCommit(localValue)
-            setOpen(false)
-            e.currentTarget.blur()
-          }
-        }}
-        placeholder={placeholder}
-        className={`h-8 text-center rounded-lg border-slate-200 bg-white text-xs ${className}`}
-      />
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true)
+            if (localValue === "-") setLocalValue("")
+          }}
+          className={`w-full min-h-8 px-2 text-center text-[10px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 rounded-md ${displayClassName}`}
+          title="Click para editar"
+        >
+          <span className="inline-block max-w-full truncate align-middle">{localValue || placeholder || "-"}</span>
+        </button>
+      ) : (
+        <Input
+          autoFocus
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onFocus={() => {
+            if (localValue === "-") {
+              setLocalValue("")
+            }
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              const finalVal = localValue.trim() || "-"
+              handleCommit(finalVal)
+              setOpen(false)
+            }, 180)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleCommit(localValue)
+              setOpen(false)
+              e.currentTarget.blur()
+            }
+            if (e.key === "Escape") {
+              setLocalValue(value || "-")
+              setOpen(false)
+            }
+          }}
+          placeholder={placeholder}
+          className={`h-8 text-center rounded-lg border-slate-200 bg-white text-xs ${className}`}
+        />
+      )}
       {open && filteredOptions.length > 0 && (
         <div className="absolute left-0 z-50 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
           {filteredOptions.map((opt) => (
             <button
               key={opt}
               type="button"
-              className="block w-full px-2 py-1.5 text-center text-xs hover:bg-blue-50 text-slate-700 transition-colors"
+              className="block w-full px-2 py-1.5 text-center text-[10px] hover:bg-blue-50 text-slate-700 transition-colors"
               onMouseDown={(e) => {
                 e.preventDefault()
                 setLocalValue(opt)
@@ -719,7 +739,7 @@ function FilterBar({
 
 /* ═══════════════════════════ DATA TABLE ═══════════════════════════ */
 
-const TH = "px-2 py-2 text-[8px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
+const TH = "px-3 py-2.5 text-[8px] font-black uppercase tracking-wider text-center border-r border-slate-200 last:border-r-0"
 const TD = "px-2 py-1 text-center border-r border-slate-100 last:border-r-0"
 
 function SortTh({ label, column, sortColumn, sortDirection, onSort, className = "" }: {
@@ -1058,7 +1078,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           onChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}
           options={ELEMENTOS}
           placeholder="Elemento"
-          className="h-7 text-[8px] px-1 font-semibold"
+          className="h-7 text-[9px] px-1 font-semibold"
         />
       </td>
       {/* F. ROTURA */}
@@ -1131,7 +1151,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           value={item.status_entrega || "-"}
           options={STATUS_ENTREGA}
           placeholder="Estado"
-          className="h-7 text-[8px] px-1 font-semibold"
+          className="h-7 text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
             if ((v === "ENTREGADO" || v === "INFORME") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
@@ -1156,7 +1176,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
       </td>
       {/* ESTADO preview */}
       <td className={`${TD} border-r-0`}>
-        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+        <span className={`inline-flex items-center px-1.5 py-0.5 text-[8px] font-bold rounded border uppercase tracking-wider ${statusColors[item.estado_probeta] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
           {item.estado_probeta}
         </span>
       </td>
