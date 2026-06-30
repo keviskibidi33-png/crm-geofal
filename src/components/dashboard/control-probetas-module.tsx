@@ -357,6 +357,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               fechaFin={store.fechaFin} onFechaFinChange={store.setFechaFin}
               estadoProbeta={store.estadoProbeta} onEstadoProbetaChange={store.setEstadoProbeta}
               onExport={() => void store.exportToExcel(selectedIds)}
+              onRefresh={handleRefreshAll}
               selectedCount={selectedIds.length}
               total={store.total}
               searchRecepciones={store.searchRecepciones}
@@ -596,6 +597,7 @@ interface FilterBarProps {
   fechaFin: string; onFechaFinChange: (v: string) => void
   estadoProbeta: string; onEstadoProbetaChange: (v: string) => void
   onExport: () => void
+  onRefresh: () => void
   selectedCount: number
   total: number
   searchRecepciones: (q: string) => Promise<Receipt[]>
@@ -608,7 +610,7 @@ function FilterBar({
   fechaInicio, onFechaInicioChange,
   fechaFin, onFechaFinChange,
   estadoProbeta, onEstadoProbetaChange,
-  onExport, selectedCount, total,
+  onExport, onRefresh, selectedCount, total,
   searchRecepciones, fetchByRecepcion, onRequestImport
 }: FilterBarProps) {
   const [recepcionQuery, setRecepcionQuery] = useState("")
@@ -746,6 +748,15 @@ function FilterBar({
           >
             <FileSpreadsheet className="h-4 w-4" />
             {selectedCount > 0 ? `Exportar (${selectedCount})` : "Exportar"}
+          </Button>
+
+          <Button
+            onClick={onRefresh}
+            variant="outline"
+            className="h-9 rounded-xl border-slate-200 bg-white text-slate-700 font-bold text-xs flex items-center gap-2 px-4 shadow-sm active:scale-95 transition-all"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Recargar
           </Button>
         </div>
       </div>

@@ -148,9 +148,72 @@ export function useControlProbetas() {
   const [fechaInicio, setFechaInicio] = useState("")
   const [fechaFin, setFechaFin] = useState("")
   const [estadoProbeta, setEstadoProbeta] = useState("")
+  const hydratedRef = useRef(false)
+  const cacheSnapshotRef = useRef({
+    items: [] as ProbetaRow[],
+    recentItems: [] as ProbetaRow[],
+    kpis: { total: 0, curado: 0, pendiente: 0, ensayado: 0, vencido: 0 } as ProbetasKpis,
+    total: 0,
+    totalPages: 1,
+    page: 1,
+    pageSize: 100,
+    search: "",
+    fechaInicio: "",
+    fechaFin: "",
+    estadoProbeta: "",
+  })
+  const CACHE_KEY = "control-probetas-cache-v1"
 
   useEffect(() => {
     setPageSizeState(getInitialPageSize())
+  }, [])
+
+  useEffect(() => {
+    cacheSnapshotRef.current = {
+      ...cacheSnapshotRef.current,
+      items,
+      recentItems,
+      kpis,
+      total,
+      totalPages,
+      page,
+      pageSize,
+      search,
+      fechaInicio,
+      fechaFin,
+      estadoProbeta,
+    }
+    if (typeof window !== "undefined") {
+      try {
+        window.sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheSnapshotRef.current))
+      } catch {
+        // cache is best-effort
+      }
+    }
+  }, [items, recentItems, kpis, total, totalPages, page, pageSize, search, fechaInicio, fechaFin, estadoProbeta])
+
+  useEffect(() => {
+    if (hydratedRef.current) return
+    hydratedRef.current = true
+    if (typeof window === "undefined") return
+    try {
+      const cached = window.sessionStorage.getItem(CACHE_KEY)
+      if (!cached) return
+      const parsed = JSON.parse(cached)
+      if (Array.isArray(parsed.items)) setItems(parsed.items)
+      if (Array.isArray(parsed.recentItems)) setRecentItems(parsed.recentItems)
+      if (parsed.kpis && typeof parsed.kpis === "object") setKpis(parsed.kpis)
+      if (typeof parsed.total === "number") setTotal(parsed.total)
+      if (typeof parsed.totalPages === "number") setTotalPages(parsed.totalPages)
+      if (typeof parsed.page === "number") setPage(parsed.page)
+      if (typeof parsed.pageSize === "number") setPageSizeState(parsed.pageSize)
+      if (typeof parsed.search === "string") setSearch(parsed.search)
+      if (typeof parsed.fechaInicio === "string") setFechaInicio(parsed.fechaInicio)
+      if (typeof parsed.fechaFin === "string") setFechaFin(parsed.fechaFin)
+      if (typeof parsed.estadoProbeta === "string") setEstadoProbeta(parsed.estadoProbeta)
+    } catch {
+      // ignore cache hydration failures
+    }
   }, [])
 
   const setPageSize = useCallback((next: number) => {
