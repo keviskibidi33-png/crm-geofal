@@ -235,6 +235,51 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
   const [isOpen, setIsOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
 
+  const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [previewPoza, setPreviewPoza] = useState("1")
+  const [previewElemento, setPreviewElemento] = useState<string>("-")
+
+  const handleRequestImport = useCallback((imported: ProbetaRow[]) => {
+    setPendingImport(imported)
+  }, [])
+
+  const handleApplyPozaToAll = () => {
+    if (!pendingImport) return
+    setPendingImport(pendingImport.map(p => ({ ...p, poza: previewPoza })))
+  }
+
+  const handleApplyElementoToAll = () => {
+    if (!pendingImport) return
+    setPendingImport(pendingImport.map(p => ({ ...p, elemento: previewElemento })))
+  }
+
+  const handleConfirmImport = async () => {
+    if (!pendingImport) return
+    setImporting(true)
+    try {
+      for (const probeta of pendingImport) {
+        await store.updateRow(probeta.muestra_id, {
+          elemento: probeta.elemento || "-",
+          poza: probeta.poza || "-",
+          densidad: probeta.densidad || "NO",
+          fc_kg_cm2: probeta.fc_kg_cm2,
+          status_entrega: probeta.status_entrega || "-",
+        })
+      }
+      toast.success("Importación completada correctamente")
+      setPendingImport(null)
+    } catch (e: any) {
+      toast.error("Error durante la importación: " + (e?.message || String(e)))
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleCancelImport = () => {
+    setPendingImport(null)
+  }
+
   const handleToggleSelect = useCallback((id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }, [])
@@ -295,6 +340,16 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               selectedIds={selectedIds}
               onToggleSelect={handleToggleSelect}
               onToggleSelectAll={handleToggleSelectAll}
+              pendingImport={pendingImport}
+              importing={importing}
+              previewPoza={previewPoza}
+              setPreviewPoza={setPreviewPoza}
+              previewElemento={previewElemento}
+              setPreviewElemento={setPreviewElemento}
+              handleApplyPozaToAll={handleApplyPozaToAll}
+              handleApplyElementoToAll={handleApplyElementoToAll}
+              handleConfirmImport={handleConfirmImport}
+              handleCancelImport={handleCancelImport}
             />
           </div>
         </DialogFullscreenContent>
@@ -710,58 +765,29 @@ interface DataTableProps {
   selectedIds: number[]
   onToggleSelect: (id: number) => void
   onToggleSelectAll: (ids: number[]) => void
+  pendingImport: ProbetaRow[] | null
+  importing: boolean
+  previewPoza: string
+  setPreviewPoza: (v: string) => void
+  previewElemento: string
+  setPreviewElemento: (v: string) => void
+  handleApplyPozaToAll: () => void
+  handleApplyElementoToAll: () => void
+  handleConfirmImport: () => void
+  handleCancelImport: () => void
 }
 
 function DataTable({
   items, loading, onUpdateRow,
   pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext,
   sortColumn, sortDirection, onSort,
-  selectedIds, onToggleSelect, onToggleSelectAll
+  selectedIds, onToggleSelect, onToggleSelectAll,
+  pendingImport, importing,
+  previewPoza, setPreviewPoza,
+  previewElemento, setPreviewElemento,
+  handleApplyPozaToAll, handleApplyElementoToAll,
+  handleConfirmImport, handleCancelImport
 }: DataTableProps) {
-  const [pendingImport, setPendingImport] = useState<ProbetaRow[] | null>(null)
-  const [importing, setImporting] = useState(false)
-  const [previewPoza, setPreviewPoza] = useState("1")
-  const [previewElemento, setPreviewElemento] = useState<string>("-")
-
-  const handleRequestImport = (imported: ProbetaRow[]) => {
-    setPendingImport(imported)
-  }
-
-  const handleApplyPozaToAll = () => {
-    if (!pendingImport) return
-    setPendingImport(pendingImport.map(p => ({ ...p, poza: previewPoza })))
-  }
-
-  const handleApplyElementoToAll = () => {
-    if (!pendingImport) return
-    setPendingImport(pendingImport.map(p => ({ ...p, elemento: previewElemento })))
-  }
-
-  const handleConfirmImport = async () => {
-    if (!pendingImport) return
-    setImporting(true)
-    try {
-      for (const probeta of pendingImport) {
-        await onUpdateRow(probeta.muestra_id, {
-          elemento: probeta.elemento || "-",
-          poza: probeta.poza || "-",
-          densidad: probeta.densidad || "NO",
-          fc_kg_cm2: probeta.fc_kg_cm2,
-          status_entrega: probeta.status_entrega || "-",
-        })
-      }
-      toast.success("Importación completada correctamente")
-      setPendingImport(null)
-    } catch (e: any) {
-      toast.error("Error durante la importación: " + (e?.message || String(e)))
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  const handleCancelImport = () => {
-    setPendingImport(null)
-  }
 
   const [visibleCount, setVisibleCount] = useState(100)
 
@@ -1111,7 +1137,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
         <SuggestionInput
           value={item.status_entrega || "-"}
           options={STATUS_ENTREGA}
-          placeholder="Status"
+          placeholder="Estado"
           className="text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
@@ -1124,8 +1150,6 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
             }
             void onUpdate(item.muestra_id, payload)
           }}
-          options={STATUS_ENTREGA}
-          placeholder="Estado"
         />
       </td>
       {/* F. ENTREGA */}
