@@ -237,6 +237,29 @@ export function useControlProbetas() {
   }, [fetchRecentItems])
 
   const updateRow = useCallback(async (id: number, payload: Record<string, unknown>) => {
+    let previousItems: ProbetaRow[] = []
+    
+    // 1. Optimistic Update
+    setItems(prev => {
+      previousItems = prev
+      return prev.map(x => {
+        if (x.muestra_id === id) {
+          const updatedItem = { ...x, ...payload }
+          if (payload.densidad !== undefined) {
+            updatedItem.densidad = payload.densidad as string
+            updatedItem.requiere_densidad = payload.densidad === "SI"
+          }
+          if (payload.status_ensayo === "ANULADO") {
+            updatedItem.status_ensayo = "ANULADO"
+            updatedItem.status_entrega = "ANULADAS"
+            updatedItem.estado_probeta = "ANULADO"
+          }
+          return updatedItem
+        }
+        return x
+      })
+    })
+
     try {
       const res = await authFetch(`${API_URL}/api/control-probetas/${id}`, {
         method: "PATCH",
@@ -245,10 +268,13 @@ export function useControlProbetas() {
       })
       if (!res.ok) throw new Error((await res.json()).detail || "Error al actualizar")
       const updated = await res.json()
+      // 2. Synchronize with server computed response
       setItems(prev => prev.map(x => x.muestra_id === id ? updated : x))
       void fetchKpis()
     } catch (e: any) {
-      toast.error(e?.message || "Error")
+      // 3. Rollback on failure
+      setItems(previousItems)
+      toast.error(e?.message || "Error al actualizar")
       void fetchItems()
       throw e
     }
