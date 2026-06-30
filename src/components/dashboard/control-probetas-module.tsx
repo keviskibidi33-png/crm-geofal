@@ -314,6 +314,21 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
     store.fetchRecentItems()
   }
 
+  const handlePreviewUpdate = useCallback((id: number, payload: Record<string, unknown>) => {
+    setPendingImport((prev) => {
+      if (!prev) return prev
+      return prev.map((row) => {
+        if (row.muestra_id !== id) return row
+        const nextRow = { ...row, ...payload }
+        const statusEntrega = String(nextRow.status_entrega || "-").toUpperCase()
+        if (statusEntrega === "ENTREGADO" || statusEntrega === "INFORME") {
+          nextRow.fecha_entrega = new Date().toISOString().slice(0, 10)
+        }
+        return nextRow
+      })
+    })
+  }, [])
+
   // Clear selection on filter/page changes
   useEffect(() => {
     setSelectedIds([])
@@ -370,6 +385,7 @@ export function ControlProbetasModule({ user, onNavigateModule }: ControlProbeta
               handleApplyElementoToAll={handleApplyElementoToAll}
               handleConfirmImport={handleConfirmImport}
               handleCancelImport={handleCancelImport}
+              onPreviewUpdate={handlePreviewUpdate}
             />
           </div>
         </DialogFullscreenContent>
@@ -788,6 +804,7 @@ interface DataTableProps {
   handleApplyElementoToAll: () => void
   handleConfirmImport: () => void
   handleCancelImport: () => void
+  onPreviewUpdate: (id: number, payload: Record<string, unknown>) => void
 }
 
 function DataTable({
@@ -799,7 +816,8 @@ function DataTable({
   previewPoza, setPreviewPoza,
   previewElemento, setPreviewElemento,
   handleApplyPozaToAll, handleApplyElementoToAll,
-  handleConfirmImport, handleCancelImport
+  handleConfirmImport, handleCancelImport,
+  onPreviewUpdate
 }: DataTableProps) {
 
   const [visibleCount, setVisibleCount] = useState(100)
@@ -818,6 +836,9 @@ function DataTable({
       const status = (x.status_ensayo || "").toString().toUpperCase()
       return status === "PENDIENTE" || status === "FALTA" || !status
     }).length
+  }, [items])
+  const faltantes = useMemo(() => {
+    return items.filter(x => (x.status_ensayo || "").toString().toUpperCase() === "FALTA").length
   }, [items])
 
   useEffect(() => {
@@ -961,7 +982,7 @@ function DataTable({
                   key={it.muestra_id}
                   item={it}
                   rowNumber={rowOffset + idx + 1}
-                  onUpdate={onUpdateRow}
+                  onUpdate={pendingImport ? onPreviewUpdate : onUpdateRow}
                   isPreview={!!pendingImport}
                   bgClass={rowBackgrounds[it.muestra_id]}
                   isSelected={selectedIds.includes(it.muestra_id)}
@@ -991,12 +1012,14 @@ function DataTable({
         </div>
 
         {/* Resumen de Estadísticas */}
-        <div className="hidden lg:flex items-center gap-8 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
+        <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
           <span>Recepciones: <strong className="text-slate-800">{uniqueRecepciones}</strong></span>
           <span className="text-slate-300">|</span>
           <span>Ensayadas: <strong className="text-emerald-600">{ensayadas}</strong></span>
           <span className="text-slate-300">|</span>
           <span>Pendientes: <strong className="text-amber-600">{pendientes}</strong></span>
+          <span className="text-slate-300">|</span>
+          <span>Faltantes: <strong className="text-rose-600">{faltantes}</strong></span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -1154,12 +1177,12 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           className="h-7 text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
-            if ((v === "ENTREGADO" || v === "INFORME") && (!item.fecha_entrega || item.fecha_entrega === "-")) {
+            if (v === "ENTREGADO" || v === "INFORME") {
               const today = new Date()
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
               const dd = String(today.getDate()).padStart(2, '0')
-              payload.fecha_entrega = `${yyyy}/${mm}/${dd}`
+              payload.fecha_entrega = `${yyyy}-${mm}-${dd}`
             }
             void onUpdate(item.muestra_id, payload)
           }}
