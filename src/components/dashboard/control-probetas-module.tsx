@@ -702,7 +702,7 @@ function DataTable({
 
   useEffect(() => {
     setVisibleCount(100)
-  }, [items])
+  }, [page, pageSize, items.length])
 
   const displayItems = useMemo(() => {
     return allDisplayItems.slice(0, visibleCount)
