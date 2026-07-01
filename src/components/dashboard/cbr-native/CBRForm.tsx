@@ -1788,12 +1788,19 @@ function MoldCodeReferenceTable() {
                             </tr>
                         </thead>
                         <tbody>
-                            {MOLD_CODE_REFERENCE.map((entry) => (
-                                <tr key={entry.codigo}>
-                                    <td className="px-2 py-1.5 border-b border-r border-border text-center">{entry.codigo}</td>
-                                    <td className="px-2 py-1.5 border-b border-border text-center">{entry.label ?? `${entry.codigo} / ${entry.equipo}`}</td>
-                                </tr>
-                            ))}
+                            {MOLD_CODE_REFERENCE.map((entry) => {
+                                const displayCodigo = 
+                                    entry.codigo === 'D' ? 'INS-173' :
+                                    entry.codigo === 'J' ? 'INS-174' :
+                                    entry.codigo === 'T' ? 'INS-175' :
+                                    entry.codigo;
+                                return (
+                                    <tr key={entry.codigo}>
+                                        <td className="px-2 py-1.5 border-b border-r border-border text-center">{displayCodigo}</td>
+                                        <td className="px-2 py-1.5 border-b border-border text-center">{entry.equipo}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
