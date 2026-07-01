@@ -803,21 +803,29 @@ export default function ProctorForm({
         setForm(prev => {
             const next = { ...prev, metodo_ensayo: v }
             if (v === 'A') {
-                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                if (next.tamiz_metodo_a_codigo === '-') {
+                    next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                }
                 next.tamiz_metodo_b_codigo = '-'
                 next.tamiz_metodo_c_codigo = '-'
             } else if (v === 'B') {
-                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
-                next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
+                if (next.tamiz_metodo_a_codigo === '-') {
+                    next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                }
+                if (next.tamiz_metodo_b_codigo === '-') {
+                    next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
+                }
                 next.tamiz_metodo_c_codigo = '-'
             } else if (v === 'C') {
-                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
-                next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
-                next.tamiz_metodo_c_codigo = 'INS-0050 (3/4in)'
-            } else {
-                next.tamiz_metodo_a_codigo = '-'
-                next.tamiz_metodo_b_codigo = '-'
-                next.tamiz_metodo_c_codigo = '-'
+                if (next.tamiz_metodo_a_codigo === '-') {
+                    next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                }
+                if (next.tamiz_metodo_b_codigo === '-') {
+                    next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
+                }
+                if (next.tamiz_metodo_c_codigo === '-') {
+                    next.tamiz_metodo_c_codigo = 'INS-0050 (3/4in)'
+                }
             }
             next.tamiz_utilizado_metodo_codigo = composeTamizMetodoCodigo(
                 next.tamiz_metodo_a_codigo,
@@ -1345,21 +1353,21 @@ export default function ProctorForm({
                             value={form.tamiz_metodo_a_codigo || '-'}
                             options={TAMIZ_METODO_A_OPTIONS}
                             onChange={v => set('tamiz_metodo_a_codigo', v)}
-                            disabled={form.metodo_ensayo !== '-'}
+                            disabled={false}
                         />
                         <SelectField
                             label="Tamiz metodo B (3/8in)"
                             value={form.tamiz_metodo_b_codigo || '-'}
                             options={TAMIZ_METODO_B_OPTIONS}
                             onChange={v => set('tamiz_metodo_b_codigo', v)}
-                            disabled={form.metodo_ensayo !== '-'}
+                            disabled={form.metodo_ensayo === 'A'}
                         />
                         <SelectField
                             label="Tamiz metodo C (3/4in)"
                             value={form.tamiz_metodo_c_codigo || '-'}
                             options={TAMIZ_METODO_C_OPTIONS}
                             onChange={v => set('tamiz_metodo_c_codigo', v)}
-                            disabled={form.metodo_ensayo !== '-'}
+                            disabled={form.metodo_ensayo === 'A' || form.metodo_ensayo === 'B'}
                         />
                         <SelectField
                             label="Balanza 1 g"
