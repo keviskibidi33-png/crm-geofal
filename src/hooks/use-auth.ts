@@ -324,6 +324,7 @@ function buildTechnicalPermissions(): RolePermissions {
 }
 
 const OFICINA_TECNICA_DELETE_MODULES: PermissionModuleId[] = [
+    "control_probetas",
     "verificacion_muestras",
     "recepcion",
     "compresion",
@@ -442,6 +443,11 @@ async function buildUser(session: any): Promise<User> {
 
         // LAW: Everyone can edit their own settings/config
         p.configuracion = { read: true, write: true, delete: false }
+
+        // Habilitar control de probetas para todos los usuarios de Oficina Técnica
+        if (rNorm === "oficina_tecnica" || rNorm.startsWith("oficina_tecnica")) {
+            p.control_probetas = { read: true, write: true, delete: true }
+        }
 
         // Control modules: only enforce read:true if already present in permissions matrix.
         // This prevents technical roles from inheriting commercial/admin dashboards.
