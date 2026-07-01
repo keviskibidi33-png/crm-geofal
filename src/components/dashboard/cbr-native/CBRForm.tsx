@@ -336,10 +336,10 @@ const HUMEDAD_INDEX_GROUPS = {
     sin_saturar: [0, 2, 4],
     saturado: [1, 3, 5],
 } as const
-const MOLD_CODE_REFERENCE: ReadonlyArray<{ codigo: string; equipo: string }> = [
-    { codigo: 'D', equipo: 'MOLDE D' },
-    { codigo: 'J', equipo: 'MOLDE J' },
-    { codigo: 'T', equipo: 'MOLDE T' },
+const MOLD_CODE_REFERENCE: ReadonlyArray<{ codigo: string; equipo: string; label?: string }> = [
+    { codigo: 'D', equipo: 'MOLDE D', label: 'INS-173 / MOLDE D' },
+    { codigo: 'J', equipo: 'MOLDE J', label: 'INS-174 / MOLDE J' },
+    { codigo: 'T', equipo: 'MOLDE T', label: 'INS-175 / MOLDE T' },
     { codigo: 'INS-200', equipo: 'MOLDE A' },
     { codigo: 'INS-201', equipo: 'MOLDE B' },
     { codigo: 'INS-202', equipo: 'MOLDE C' },
@@ -364,7 +364,10 @@ const GOLPES_DROPDOWN_OPTIONS: DropdownOption[] = [
 const CODE_LABEL_BY_VALUE: Record<string, string> = {
     '-': '-',
     'INS-000': 'INS-000',
-    ...Object.fromEntries(MOLD_CODE_REFERENCE.map(({ codigo, equipo }) => [codigo, codigo === 'D' || codigo === 'J' || codigo === 'T' ? equipo : `${codigo} / ${equipo}`])),
+    ...Object.fromEntries(MOLD_CODE_REFERENCE.map((item) => [
+        item.codigo,
+        item.label ?? `${item.codigo} / ${item.equipo}`
+    ])),
 }
 const CODE_DROPDOWN_DISPLAY_OPTIONS: DropdownOption[] = CODE_DROPDOWN_OPTIONS.map((value) => ({
     value,
