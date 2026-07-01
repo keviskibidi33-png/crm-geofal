@@ -673,6 +673,11 @@ export default function ProctorForm({
     onSaveSuccess?: () => void
 }) {
     const [form, setForm] = useState<ProctorPayload>(() => buildInitialState())
+    console.log("PROCTOR_FORM_DEBUG_STATE", {
+        metodo_ensayo: form.metodo_ensayo,
+        disabledB: form.metodo_ensayo === 'A',
+        disabledC: form.metodo_ensayo === 'A' || form.metodo_ensayo === 'B'
+    })
     const [muestraInput, setMuestraInput] = useState('')
     const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('SU')
     const [muestraYear, setMuestraYear] = useState(() => new Date().getFullYear().toString().slice(-2))
