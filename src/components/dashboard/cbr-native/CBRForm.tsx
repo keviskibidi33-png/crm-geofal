@@ -713,6 +713,10 @@ export default function CBRForm({
         set('muestra', newCode)
     }
 
+    const set = useCallback(<K extends keyof CBRPayload>(key: K, value: CBRPayload[K]) => {
+        setForm(prev => ({ ...prev, [key]: value }))
+    }, [])
+
     const [importLoading, setImportLoading] = useState(false)
 
     const handleImportFromReception = useCallback(async () => {
@@ -748,10 +752,6 @@ export default function CBRForm({
             setImportLoading(false)
         }
     }, [muestraInput, muestraType, muestraYear, set])
-
-    const set = useCallback(<K extends keyof CBRPayload>(key: K, value: CBRPayload[K]) => {
-        setForm(prev => ({ ...prev, [key]: value }))
-    }, [])
 
     const setNum = useCallback((key: keyof CBRPayload, raw: string) => {
         const val = raw === '' ? undefined : parseFloat(raw)
