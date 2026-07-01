@@ -337,18 +337,9 @@ const HUMEDAD_INDEX_GROUPS = {
     saturado: [1, 3, 5],
 } as const
 const MOLD_CODE_REFERENCE: ReadonlyArray<{ codigo: string; equipo: string }> = [
-    { codigo: 'INS-173', equipo: 'MOLDE 11' },
-    { codigo: 'INS-174', equipo: 'MOLDE 12' },
-    { codigo: 'INS-175', equipo: 'MOLDE 13' },
-    { codigo: 'INS-030', equipo: 'MOLDE 1' },
-    { codigo: 'INS-031', equipo: 'MOLDE 2' },
-    { codigo: 'INS-032', equipo: 'MOLDE 3' },
-    { codigo: 'INS-027', equipo: 'MOLDE 4' },
-    { codigo: 'INS-028', equipo: 'MOLDE 5' },
-    { codigo: 'INS-029', equipo: 'MOLDE 6' },
-    { codigo: 'INS-033', equipo: 'MOLDE 7' },
-    { codigo: 'INS-034', equipo: 'MOLDE 8' },
-    { codigo: 'INS-035', equipo: 'MOLDE 9' },
+    { codigo: 'D', equipo: 'MOLDE D' },
+    { codigo: 'J', equipo: 'MOLDE J' },
+    { codigo: 'T', equipo: 'MOLDE T' },
     { codigo: 'INS-200', equipo: 'MOLDE A' },
     { codigo: 'INS-201', equipo: 'MOLDE B' },
     { codigo: 'INS-202', equipo: 'MOLDE C' },
@@ -373,7 +364,7 @@ const GOLPES_DROPDOWN_OPTIONS: DropdownOption[] = [
 const CODE_LABEL_BY_VALUE: Record<string, string> = {
     '-': '-',
     'INS-000': 'INS-000',
-    ...Object.fromEntries(MOLD_CODE_REFERENCE.map(({ codigo, equipo }) => [codigo, `${codigo} / ${equipo}`])),
+    ...Object.fromEntries(MOLD_CODE_REFERENCE.map(({ codigo, equipo }) => [codigo, codigo === 'D' || codigo === 'J' || codigo === 'T' ? equipo : `${codigo} / ${equipo}`])),
 }
 const CODE_DROPDOWN_DISPLAY_OPTIONS: DropdownOption[] = CODE_DROPDOWN_OPTIONS.map((value) => ({
     value,
@@ -721,6 +712,42 @@ export default function CBRForm({
         const newCode = buildMuestraCode(number, muestraType, nextYear)
         set('muestra', newCode)
     }
+
+    const [importLoading, setImportLoading] = useState(false)
+
+    const handleImportFromReception = useCallback(async () => {
+        const fullCode = buildMuestraCode(muestraInput, muestraType, muestraYear)
+        if (!fullCode || fullCode.trim() === '-') return
+
+        setImportLoading(true)
+        try {
+            const url = `${API_URL}/api/verificacion/buscar-recepcion?numero=${encodeURIComponent(fullCode)}`
+            const res = await authFetch(url)
+            if (!res.ok) throw new Error('No se encontró el registro')
+            const data = await res.json()
+            if (data.encontrado && data.datos) {
+                if (data.datos.numero_ot) {
+                    set('numero_ot', data.datos.numero_ot)
+                }
+                const sampleLem = fullCode.trim().toUpperCase()
+                const matchingSample = data.datos.muestras?.find((m: any) => {
+                    const mCode = (m.codigo_muestra_lem || m.codigo_muestra || '').trim().toUpperCase()
+                    return mCode && (mCode === sampleLem || mCode.includes(muestraInput))
+                })
+                if (matchingSample?.identificacion_muestra) {
+                    set('descripcion_muestra_astm', matchingSample.identificacion_muestra)
+                }
+                toast.success('Datos importados correctamente')
+            } else {
+                toast.error('No se encontró información para esta muestra')
+            }
+        } catch (err) {
+            console.error(err)
+            toast.error('Error al importar datos de la muestra')
+        } finally {
+            setImportLoading(false)
+        }
+    }, [muestraInput, muestraType, muestraYear, set])
 
     const set = useCallback(<K extends keyof CBRPayload>(key: K, value: CBRPayload[K]) => {
         setForm(prev => ({ ...prev, [key]: value }))
@@ -1151,6 +1178,16 @@ export default function CBRForm({
                                     />
                                 </div>
                             </div>
+                            {muestraInput && (
+                                <button
+                                    type="button"
+                                    onClick={handleImportFromReception}
+                                    disabled={importLoading}
+                                    className="mt-1.5 flex items-center justify-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded border border-blue-100 hover:bg-blue-100 transition-all shadow-sm"
+                                >
+                                    {importLoading ? 'IMPORTANDO...' : 'IMPORTAR DATOS'}
+                                </button>
+                            )}
                         </div>
                         <Input
                             label="N OT *"
@@ -1712,18 +1749,16 @@ function HumedadResumenTable({
                     <table className="w-full text-xs">
                         <thead className="bg-sky-100">
                             <tr>
-                                <th className="px-2 py-1.5 text-left border-b border-r border-border">C.H SATURADO</th>
-                                <th className="px-2 py-1.5 text-center border-b border-border">Estado</th>
+                                <th className="px-2 py-1.5 text-left border-b border-border">C.H SATURADO</th>
                             </tr>
                         </thead>
                         <tbody>
                             {saturado.map((row) => (
                                 <tr key={`sat-${row.muestra}`}>
-                                    <td className="px-2 py-1.5 border-b border-r border-border">
+                                    <td className="px-2 py-1.5 border-b border-border">
                                         <span className="font-medium">{row.muestra}</span>
                                         <span className="ml-2 text-muted-foreground">{row.valor == null ? '-' : `${row.valor.toFixed(2)}%`}</span>
                                     </td>
-                                    <td className="px-2 py-1.5 border-b border-border text-center">{row.estado}</td>
                                 </tr>
                             ))}
                         </tbody>
