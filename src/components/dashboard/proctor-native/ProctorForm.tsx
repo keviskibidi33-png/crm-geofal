@@ -799,6 +799,35 @@ export default function ProctorForm({
         })
     }, [])
 
+    const handleMetodoEnsayoChange = useCallback((v: string) => {
+        setForm(prev => {
+            const next = { ...prev, metodo_ensayo: v }
+            if (v === 'A') {
+                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                next.tamiz_metodo_b_codigo = '-'
+                next.tamiz_metodo_c_codigo = '-'
+            } else if (v === 'B') {
+                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
+                next.tamiz_metodo_c_codigo = '-'
+            } else if (v === 'C') {
+                next.tamiz_metodo_a_codigo = 'INS-0053 (No 4)'
+                next.tamiz_metodo_b_codigo = 'INS-0052 (3/8in)'
+                next.tamiz_metodo_c_codigo = 'INS-0050 (3/4in)'
+            } else {
+                next.tamiz_metodo_a_codigo = '-'
+                next.tamiz_metodo_b_codigo = '-'
+                next.tamiz_metodo_c_codigo = '-'
+            }
+            next.tamiz_utilizado_metodo_codigo = composeTamizMetodoCodigo(
+                next.tamiz_metodo_a_codigo,
+                next.tamiz_metodo_b_codigo,
+                next.tamiz_metodo_c_codigo
+            )
+            return next
+        })
+    }, [])
+
     const applyFormattedField = useCallback((
         key: 'muestra' | 'numero_ot' | 'fecha_ensayo' | 'revisado_fecha' | 'aprobado_fecha',
         formatter: (raw: string) => string,
@@ -1250,7 +1279,7 @@ export default function ProctorForm({
                                 <p className="text-xs text-muted-foreground">
                                     Complete el texto y marque cada condicion. Si marca <span className="font-semibold">SI</span> en exclusion de material, debe detallar en observaciones.
                                 </p>
-                                <SelectField label="- Metodo de ensayo" value={form.metodo_ensayo || ''} options={METODO_ENSAYO_OPTIONS} onChange={v => set('metodo_ensayo', v as ProctorPayload['metodo_ensayo'])} />
+                                <SelectField label="- Metodo de ensayo" value={form.metodo_ensayo || ''} options={METODO_ENSAYO_OPTIONS} onChange={handleMetodoEnsayoChange} />
                                 <SelectField label="- Metodo de preparacion de la muestra" value={form.metodo_preparacion || ''} options={METODO_PREPARACION_OPTIONS} onChange={v => set('metodo_preparacion', v as ProctorPayload['metodo_preparacion'])} />
                                 <SelectField label="- Tipo de apisonador" value={form.tipo_apisonador || ''} options={APISONADOR_OPTIONS} onChange={v => set('tipo_apisonador', v as ProctorPayload['tipo_apisonador'])} />
                                 <NumberInput label="- Contenido de humedad natural (%)" value={form.contenido_humedad_natural_pct} onChange={v => setNum('contenido_humedad_natural_pct', v)} />
@@ -1316,18 +1345,21 @@ export default function ProctorForm({
                             value={form.tamiz_metodo_a_codigo || '-'}
                             options={TAMIZ_METODO_A_OPTIONS}
                             onChange={v => set('tamiz_metodo_a_codigo', v)}
+                            disabled={form.metodo_ensayo !== '-'}
                         />
                         <SelectField
                             label="Tamiz metodo B (3/8in)"
                             value={form.tamiz_metodo_b_codigo || '-'}
                             options={TAMIZ_METODO_B_OPTIONS}
                             onChange={v => set('tamiz_metodo_b_codigo', v)}
+                            disabled={form.metodo_ensayo !== '-'}
                         />
                         <SelectField
                             label="Tamiz metodo C (3/4in)"
                             value={form.tamiz_metodo_c_codigo || '-'}
                             options={TAMIZ_METODO_C_OPTIONS}
                             onChange={v => set('tamiz_metodo_c_codigo', v)}
+                            disabled={form.metodo_ensayo !== '-'}
                         />
                         <SelectField
                             label="Balanza 1 g"
@@ -1552,11 +1584,12 @@ function NumberInput({ label, value, onChange }: {
     )
 }
 
-function SelectField({ label, value, options, onChange }: {
+function SelectField({ label, value, options, onChange, disabled }: {
     label: string
     value: string
     options: readonly string[]
     onChange: (value: string) => void
+    disabled?: boolean
 }) {
     return (
         <div>
@@ -1567,7 +1600,8 @@ function SelectField({ label, value, options, onChange }: {
                     onChange={e => onChange(e.target.value)}
                     onKeyDown={handleAdvanceOnEnter}
                     data-enter-nav="true"
-                    className="w-full h-9 pl-3 pr-8 rounded-md border border-input bg-background text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={disabled}
+                    className="w-full h-9 pl-3 pr-8 rounded-md border border-input bg-background text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                     {options.map(option => (
                         <option key={option} value={option}>{option}</option>
