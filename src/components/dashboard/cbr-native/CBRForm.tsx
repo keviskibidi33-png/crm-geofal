@@ -1791,7 +1791,7 @@ function MoldCodeReferenceTable() {
                             {MOLD_CODE_REFERENCE.map((entry) => (
                                 <tr key={entry.codigo}>
                                     <td className="px-2 py-1.5 border-b border-r border-border text-center">{entry.codigo}</td>
-                                    <td className="px-2 py-1.5 border-b border-border text-center">{entry.equipo}</td>
+                                    <td className="px-2 py-1.5 border-b border-border text-center">{entry.label ?? `${entry.codigo} / ${entry.equipo}`}</td>
                                 </tr>
                             ))}
                         </tbody>
