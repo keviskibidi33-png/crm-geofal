@@ -390,10 +390,10 @@ const buildInitialState = (): ProctorPayload => ({
     tamiz_masa_retenida_g: emptySieveArray(),
     tamiz_porcentaje_retenido: emptySieveArray(),
     tamiz_porcentaje_retenido_acumulado: emptySieveArray(),
-    tamiz_metodo_a_codigo: 'INS-0053 (No 4)',
-    tamiz_metodo_b_codigo: 'INS-0052 (3/8in)',
-    tamiz_metodo_c_codigo: 'INS-0050 (3/4in)',
-    tamiz_utilizado_metodo_codigo: 'INS-0050 (3/4in), INS-0053 (No 4), INS-0052 (3/8in)',
+    tamiz_metodo_a_codigo: '-',
+    tamiz_metodo_b_codigo: '-',
+    tamiz_metodo_c_codigo: '-',
+    tamiz_utilizado_metodo_codigo: '-',
     balanza_1g_codigo: '-',
     balanza_codigo: '-',
     horno_110_codigo: '-',
@@ -453,9 +453,9 @@ const inferTamizCodesFromLegacy = (raw: unknown): {
     const text = String(raw || '').toUpperCase()
     if (!text.trim() || text.trim() === '-') {
         return {
-            a: DEFAULT_TAMIZ_METODO_A,
-            b: DEFAULT_TAMIZ_METODO_B,
-            c: DEFAULT_TAMIZ_METODO_C,
+            a: '-',
+            b: '-',
+            c: '-',
         }
     }
 
