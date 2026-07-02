@@ -543,41 +543,29 @@ export function TracingModule() {
             {/* Modal de Detalle Premium */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden rounded-2xl">
-                    <DialogHeader className="p-6 bg-[#0070F3] text-white shrink-0">
-                        <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                                <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                                    <LayoutList className="w-5 h-5" />
+                    <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
+                        <div className="flex justify-between items-start w-full">
+                            <div className="space-y-1.5 w-full">
+                                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                                    <LayoutList className="w-5 h-5 text-slate-600" />
                                     Detalle de Seguimiento
                                 </DialogTitle>
-                                <DialogDescription className="text-white/80 font-semibold text-xs">
-                                    {loading ? "Cargando trazabilidad..." : `Consolidado de recepción y laboratorio para ${tracingData?.numero_recepcion}`}
+                                <DialogDescription className="text-slate-500 font-semibold text-xs">
+                                    Consolidado de recepción y laboratorio para {tracingData?.numero_recepcion}
                                 </DialogDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
+                                
+                                {/* Datos de Cliente y Proyecto integrados directamente en el encabezado */}
                                 {!loading && tracingData && (
-                                    <Button variant="secondary" size="sm" onClick={handlePrint} className="gap-2 bg-white/20 text-white hover:bg-white/30 border-none font-bold text-xs">
-                                        <Printer className="w-3.5 h-3.5" />
-                                        Imprimir Ficha
-                                    </Button>
-                                )}
-                                {!loading && tracingData && (
-                                    <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold text-xs">
-                                        ID: {tracingData.numero_recepcion}
-                                    </Badge>
-                                )}
-                                {!loading && tracingData && (
-                                    canDelete ? (
-                                        <Button 
-                                            variant="destructive" 
-                                            size="sm" 
-                                            onClick={() => confirmDelete(tracingData.numero_recepcion)} 
-                                            className="gap-2 bg-red-500 hover:bg-red-600 text-white border-none font-bold text-xs"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                            Eliminar Historial
-                                        </Button>
-                                    ) : null
+                                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 gap-4 text-xs">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-400">Cliente / Solicitante</span>
+                                            <span className="font-bold text-slate-700 truncate">{tracingData.cliente || 'No especificado'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-400">Proyecto Relacionado</span>
+                                            <span className="font-bold text-slate-700 truncate">{tracingData.proyecto || 'General'}</span>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -592,21 +580,7 @@ export function TracingModule() {
                                 </div>
                             ) : tracingData ? (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {/* Dashboard Info Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <Card className="bg-white dark:bg-slate-800 border-none shadow-sm">
-                                            <CardContent className="p-4 flex flex-col gap-1">
-                                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Cliente / Solicitante</span>
-                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{tracingData.cliente || 'No especificado'}</span>
-                                            </CardContent>
-                                        </Card>
-                                        <Card className="bg-white dark:bg-slate-800 border-none shadow-sm">
-                                            <CardContent className="p-4 flex flex-col gap-1">
-                                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Proyecto Relacionado</span>
-                                                <span className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{tracingData.proyecto || 'General'}</span>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                                    {/* Dashboard Info Cards (Removed as requested, now integrated in header) */}
 
                                     {/* Timeline Stepper */}
                                     <div className="relative space-y-4 px-2">
@@ -1180,12 +1154,12 @@ export function TracingModule() {
             {/* Modal de Selección e Informe a Medida (Concreto 1-6 Probetas) */}
             <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
                 <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none rounded-2xl">
-                    <DialogHeader className="p-6 bg-[#0070F3] text-white shrink-0">
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <FileSpreadsheet className="h-5 w-5 text-white" />
+                    <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                            <FileSpreadsheet className="h-5 w-5 text-slate-600" />
                             Generar Informe de Concreto a Medida ({customReportNumero})
                         </DialogTitle>
-                        <DialogDescription className="text-white/80 font-semibold text-xs mt-1">
+                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1">
                             Selecciona entre 1 y 6 probetas para generar y descargar su informe en Excel (automatizado por plantillas).
                         </DialogDescription>
                     </DialogHeader>
