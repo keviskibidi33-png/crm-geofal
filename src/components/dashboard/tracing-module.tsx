@@ -490,7 +490,7 @@ export function TracingModule() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                title="Generar Informe de Concreto a Medida"
+                                                title="Generar Informe concreto"
                                                 className="hover:bg-green-50 hover:text-green-600 rounded-full h-8 w-8 text-slate-500"
                                                 onClick={() => handleOpenCustomReportModal(item.numero_recepcion)}
                                             >
@@ -1157,10 +1157,10 @@ export function TracingModule() {
                     <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
                         <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
                             <FileSpreadsheet className="h-5 w-5 text-slate-600" />
-                            Generar Informe de Concreto a Medida ({customReportNumero})
+                            Informe concreto ({customReportNumero})
                         </DialogTitle>
-                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1">
-                            Selecciona entre 1 y 6 probetas para generar y descargar su informe en Excel (automatizado por plantillas).
+                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1 leading-relaxed">
+                            En las columnas: Código muestra LEM, Código cliente, Estructura, F'c (kg/cm²), Fecha Moldeo**, Fecha Rotura, Hora moldeo, Hora rotura, Diametro 1, Longitud 1, Carga Máxima (kN), Tipo fractura, Masa muestra aire (g)
                         </DialogDescription>
                     </DialogHeader>
 
