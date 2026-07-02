@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react"
 import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, Search, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, Loader2, Calendar, Database, ExternalLink, X, Activity,
-  FileSpreadsheet, Download, Filter,
+  ChevronLeft, ChevronRight, Loader2, Database, ExternalLink, X, Activity,
+  FileSpreadsheet,
 } from "lucide-react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { toast } from "sonner"
@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  useControlProbetas, ProbetaRow, Receipt, ElementoValue, StatusEnsayoValue, StatusEntregaValue,
-  ELEMENTOS, POZAS, STATUS_ENSAYO, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
+  useControlProbetas, ProbetaRow, Receipt,
+  ELEMENTOS, POZAS, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
 
 const STATUS_DENSIDAD = ["SI", "NO"] as const
@@ -147,17 +147,7 @@ function SuggestionInput({
   )
 }
 
-function toInputDateFormat(dateStr?: string | null): string {
-  if (!dateStr || dateStr === "-") return ""
-  const clean = dateStr.split("T")[0].replace(/\//g, "-")
-  const parts = clean.split("-")
-  if (parts.length === 3) {
-    const [a, b, c] = parts
-    if (a.length === 4) return `${a}-${b.padStart(2, "0")}-${c.padStart(2, "0")}`
-    if (c.length === 4) return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`
-  }
-  return ""
-}
+// toInputDateFormat removed because it is unused
 
 function InlineEditableText({
   value,
@@ -349,7 +339,7 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={() => setIsOpen(false)}
         >
-          <DialogTitleBar onClose={() => setIsOpen(false)} />
+          <DialogTitleBar />
           <div className="flex-1 min-h-0 flex flex-col gap-2 p-1 overflow-hidden">
             <FilterBar
               search={store.search} onSearchChange={store.setSearch}
@@ -359,7 +349,6 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
               onExport={() => void store.exportToExcel(selectedIds)}
               onRefresh={handleRefreshAll}
               selectedCount={selectedIds.length}
-              total={store.total}
               searchRecepciones={store.searchRecepciones}
               fetchByRecepcion={store.fetchByRecepcion}
               onRequestImport={handleRequestImport}
@@ -997,7 +986,7 @@ function DataTable({
                   key={it.muestra_id}
                   item={it}
                   rowNumber={rowOffset + idx + 1}
-                  onUpdate={pendingImport ? onPreviewUpdate : onUpdateRow}
+                  onUpdate={pendingImport ? async (id, p) => { onPreviewUpdate(id, p) } : onUpdateRow}
                   isPreview={!!pendingImport}
                   bgClass={rowBackgrounds[it.muestra_id]}
                   isSelected={selectedIds.includes(it.muestra_id)}
