@@ -397,7 +397,6 @@ export function TracingModule() {
             <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <Zap className="w-8 h-8 text-yellow-500" />
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">
                             Seguimiento de trabajos
                         </h1>
