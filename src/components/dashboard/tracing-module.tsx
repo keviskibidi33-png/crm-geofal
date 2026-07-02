@@ -69,6 +69,14 @@ export function TracingModule() {
     const itemsPerPage = 100
     const canDelete = user?.role === "admin" || user?.permissions?.tracing?.delete === true
 
+    // Custom Concrete Report States
+    const [isCustomReportOpen, setIsCustomReportOpen] = useState(false)
+    const [customReportNumero, setCustomReportNumero] = useState<string | null>(null)
+    const [customReportProbetas, setCustomReportProbetas] = useState<any[]>([])
+    const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
+    const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
+
+
     const componentRef = useRef<HTMLDivElement>(null)
 
     const handlePrint = useReactToPrint({
@@ -231,6 +239,78 @@ export function TracingModule() {
             toast.success("Registro eliminado con éxito.")
         } else {
             toast.error("No se pudo eliminar el registro.")
+        }
+    }
+
+    const handleOpenCustomReportModal = async (numeroRecepcion: string) => {
+        setCustomReportNumero(numeroRecepcion)
+        setSelectedProbetasIds([])
+        setIsCustomReportOpen(true)
+        try {
+            // Obtener datos de la recepción para listar sus probetas
+            const response = await authFetch(`${API_URL}/api/recepcion/buscar-recepcion?numero=${encodeURIComponent(numeroRecepcion)}`)
+            if (response.ok) {
+                const searchRes = await response.json()
+                if (searchRes.encontrado && searchRes.datos?.id) {
+                    const detailResponse = await authFetch(`${API_URL}/api/recepcion/${searchRes.datos.id}`)
+                    if (detailResponse.ok) {
+                        const detailData = await detailResponse.json()
+                        setCustomReportProbetas(detailData.muestras || [])
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching custom report probetas:", error)
+            toast.error("Error al obtener las probetas de la recepción.")
+        }
+    }
+
+    const handleDownloadCustomReport = async () => {
+        if (selectedProbetasIds.length === 0) {
+            toast.error("Debe seleccionar al menos 1 probeta.")
+            return
+        }
+        if (selectedProbetasIds.length > 6) {
+            toast.error("Límite superado", { description: "Solo puede seleccionar un máximo de 6 probetas por informe." })
+            return
+        }
+
+        setGeneratingCustomReport(true)
+        try {
+            const response = await authFetch(`${API_URL}/api/compresion/informe-medida`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    numero_recepcion: customReportNumero,
+                    muestras_ids: selectedProbetasIds
+                })
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.detail || "Error al generar informe")
+            }
+
+            const blob = await response.blob()
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = `Informe-Concreto-${customReportNumero}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+
+            toast.success("Informe generado y descargado correctamente.")
+            setIsCustomReportOpen(false)
+            fetchTracingList() // Recargar para mostrar los nuevos estados
+        } catch (error: any) {
+            console.error("Error generating custom report:", error)
+            toast.error(error.message || "Error al descargar el informe.")
+        } finally {
+            setGeneratingCustomReport(false)
         }
     }
 
@@ -404,6 +484,15 @@ export function TracingModule() {
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Generar Informe de Concreto a Medida"
+                                                className="hover:bg-green-50 hover:text-green-600 rounded-full h-8 w-8 text-slate-500"
+                                                onClick={() => handleOpenCustomReportModal(item.numero_recepcion)}
+                                            >
+                                                <FileSpreadsheet className="w-4 h-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-white transition-all rounded-full h-8 w-8" onClick={() => handleOpenDetail(item.numero_recepcion)}>
                                                 <ChevronRight className="w-4 h-4" />
                                             </Button>
@@ -1085,6 +1174,143 @@ export function TracingModule() {
                 </DialogContent>
             </Dialog>
 
+            {/* Modal de Selección e Informe a Medida (Concreto 1-6 Probetas) */}
+            <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
+                <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 bg-slate-900 text-white shrink-0">
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <FileSpreadsheet className="h-6 w-6 text-green-400" />
+                            Generar Informe de Concreto a Medida ({customReportNumero})
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-300 font-medium">
+                            Selecciona entre 1 y 6 probetas para generar y descargar su informe en Excel (automatizado por plantillas).
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-6 flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border shadow-sm overflow-hidden">
+                            <div className="p-4 bg-slate-100/50 dark:bg-slate-800/80 border-b flex justify-between items-center">
+                                <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                                    Probetas Disponibles ({customReportProbetas.length})
+                                </span>
+                                <Badge variant={selectedProbetasIds.length > 6 ? "destructive" : "secondary"} className="font-bold">
+                                    Seleccionadas: {selectedProbetasIds.length} / 6 Max
+                                </Badge>
+                            </div>
+                            
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50/50">
+                                        <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Sel</TableHead>
+                                        <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Itm</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código LEM</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">F'c (kg/cm²)</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Moldeo</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Edad (Días)</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {customReportProbetas.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="h-32 text-center text-slate-400 italic">
+                                                No hay probetas cargadas en esta recepción.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        customReportProbetas.map((m: any, idx: number) => {
+                                            const isSelected = selectedProbetasIds.includes(m.id);
+                                            const isReported = m.status_entrega === "GENERADO";
+                                            return (
+                                                <TableRow 
+                                                    key={m.id} 
+                                                    className={cn(
+                                                        "hover:bg-slate-100/50 transition-colors h-12 cursor-pointer select-none",
+                                                        isSelected && "bg-green-50/50 hover:bg-green-50"
+                                                    )}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedProbetasIds(prev => prev.filter(id => id !== m.id));
+                                                        } else {
+                                                            if (selectedProbetasIds.length >= 6) {
+                                                                toast.warning("Límite máximo", { description: "Solo puedes agregar un máximo de 6 probetas por informe." });
+                                                                return;
+                                                            }
+                                                            setSelectedProbetasIds(prev => [...prev, m.id]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    if (selectedProbetasIds.length >= 6) {
+                                                                        toast.warning("Límite máximo", { description: "Solo puedes agregar un máximo de 6 probetas por informe." });
+                                                                        return;
+                                                                    }
+                                                                    setSelectedProbetasIds(prev => [...prev, m.id]);
+                                                                } else {
+                                                                    setSelectedProbetasIds(prev => prev.filter(id => id !== m.id));
+                                                                }
+                                                            }}
+                                                            className="rounded border-slate-300 text-green-600 focus:ring-green-500 h-4 w-4"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-xs font-bold text-slate-400 text-center">{m.item_numero || idx + 1}</TableCell>
+                                                    <TableCell className="text-xs font-bold text-[#0070F3]">
+                                                        {m.codigo_muestra_lem || m.codigo_muestra || m.codigo_lem || '-'}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs font-black text-slate-800 text-center">{m.fc_kg_cm2 || '210'}</TableCell>
+                                                    <TableCell className="text-xs font-bold text-slate-600 text-center">{m.fecha_moldeo}</TableCell>
+                                                    <TableCell className="text-xs font-black text-slate-600 text-center">{m.edad || '7'}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        {isReported ? (
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase text-green-700 bg-green-100 border-none px-2 py-0.5">
+                                                                Descargado
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase text-slate-400 bg-slate-50 border-none px-2 py-0.5">
+                                                                Pendiente
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t bg-muted/5 flex justify-end gap-3 shrink-0">
+                        <Button variant="outline" onClick={() => setIsCustomReportOpen(false)} className="font-bold text-slate-700">
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="default"
+                            disabled={generatingCustomReport || selectedProbetasIds.length === 0}
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2 px-6"
+                            onClick={handleDownloadCustomReport}
+                        >
+                            {generatingCustomReport ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Generando informe...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4" />
+                                    Descargar Excel ({selectedProbetasIds.length})
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <ModernConfirmDialog
                 open={isDeleteConfirmOpen}
                 onOpenChange={setIsDeleteConfirmOpen}
@@ -1101,3 +1327,4 @@ export function TracingModule() {
         </div>
     )
 }
+
