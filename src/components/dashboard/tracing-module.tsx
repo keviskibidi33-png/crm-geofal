@@ -542,27 +542,27 @@ export function TracingModule() {
 
             {/* Modal de Detalle Premium */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden">
-                    <DialogHeader className="p-6 bg-primary text-white shrink-0">
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden rounded-2xl">
+                    <DialogHeader className="p-6 bg-[#0070F3] text-white shrink-0">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
-                                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                                    <LayoutList className="w-6 h-6" />
-                                    Detalle del Seguimiento
+                                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                                    <LayoutList className="w-5 h-5" />
+                                    Detalle de Seguimiento
                                 </DialogTitle>
-                                <DialogDescription className="text-primary-foreground/80 font-medium">
-                                    {loading ? "Cargando trazabilidad..." : `Análisis completo para ${tracingData?.numero_recepcion}`}
+                                <DialogDescription className="text-white/80 font-semibold text-xs">
+                                    {loading ? "Cargando trazabilidad..." : `Consolidado de recepción y laboratorio para ${tracingData?.numero_recepcion}`}
                                 </DialogDescription>
                             </div>
                             <div className="flex items-center gap-2">
                                 {!loading && tracingData && (
-                                    <Button variant="secondary" size="sm" onClick={handlePrint} className="gap-2 bg-white/20 text-white hover:bg-white/30 border-none">
-                                        <Printer className="w-4 h-4" />
+                                    <Button variant="secondary" size="sm" onClick={handlePrint} className="gap-2 bg-white/20 text-white hover:bg-white/30 border-none font-bold text-xs">
+                                        <Printer className="w-3.5 h-3.5" />
                                         Imprimir Ficha
                                     </Button>
                                 )}
                                 {!loading && tracingData && (
-                                    <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1">
+                                    <Badge variant="secondary" className="bg-white/20 text-white border-none px-3 py-1 font-bold text-xs">
                                         ID: {tracingData.numero_recepcion}
                                     </Badge>
                                 )}
@@ -572,10 +572,10 @@ export function TracingModule() {
                                             variant="destructive" 
                                             size="sm" 
                                             onClick={() => confirmDelete(tracingData.numero_recepcion)} 
-                                            className="gap-2 bg-red-600/50 hover:bg-red-600 text-white border-none"
+                                            className="gap-2 bg-red-500 hover:bg-red-600 text-white border-none font-bold text-xs"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                            Eliminar de Historial
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            Eliminar Historial
                                         </Button>
                                     ) : null
                                 )}
@@ -1179,24 +1179,46 @@ export function TracingModule() {
 
             {/* Modal de Selección e Informe a Medida (Concreto 1-6 Probetas) */}
             <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
-                <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
-                    <DialogHeader className="p-6 bg-slate-900 text-white shrink-0">
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none rounded-2xl">
+                    <DialogHeader className="p-6 bg-[#0070F3] text-white shrink-0">
                         <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <FileSpreadsheet className="h-6 w-6 text-green-400" />
+                            <FileSpreadsheet className="h-5 w-5 text-white" />
                             Generar Informe de Concreto a Medida ({customReportNumero})
                         </DialogTitle>
-                        <DialogDescription className="text-slate-300 font-medium">
+                        <DialogDescription className="text-white/80 font-semibold text-xs mt-1">
                             Selecciona entre 1 y 6 probetas para generar y descargar su informe en Excel (automatizado por plantillas).
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="p-6 flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
+                    {/* Metadata de Recepción, Compresión y Verificación */}
+                    <div className="px-6 py-4 bg-slate-50 border-b grid grid-cols-3 gap-4 shrink-0 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Cliente / Solicitante</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.cliente || tracingList.find(x => x.numero_recepcion === customReportNumero)?.cliente || 'Geofal / Cliente'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Estado de Ensayo (Lab)</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.status_ensayo || 'PENDIENTE / CURADO'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Proyecto Relacionado</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.obra || 'General'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="p-6 flex-1 overflow-auto bg-white dark:bg-slate-900">
                         <div className="bg-white dark:bg-slate-800 rounded-xl border shadow-sm overflow-hidden">
-                            <div className="p-4 bg-slate-100/50 dark:bg-slate-800/80 border-b flex justify-between items-center">
-                                <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                                    Probetas Disponibles ({customReportProbetas.length})
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-b flex justify-between items-center">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                                    Probetas Disponibles en esta Recepción ({customReportProbetas.length})
                                 </span>
-                                <Badge variant={selectedProbetasIds.length > 6 ? "destructive" : "secondary"} className="font-bold">
+                                <Badge variant={selectedProbetasIds.length > 6 ? "destructive" : "secondary"} className="font-bold text-xs bg-slate-100 border-none text-slate-700">
                                     Seleccionadas: {selectedProbetasIds.length} / 6 Max
                                 </Badge>
                             </div>
@@ -1288,24 +1310,24 @@ export function TracingModule() {
                         </div>
                     </div>
 
-                    <div className="p-6 border-t bg-muted/5 flex justify-end gap-3 shrink-0">
-                        <Button variant="outline" onClick={() => setIsCustomReportOpen(false)} className="font-bold text-slate-700">
+                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2.5 shrink-0">
+                        <Button variant="outline" onClick={() => setIsCustomReportOpen(false)} className="font-bold text-slate-700 h-9 text-xs rounded-xl px-5">
                             Cancelar
                         </Button>
                         <Button 
                             variant="default"
                             disabled={generatingCustomReport || selectedProbetasIds.length === 0}
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2 px-6"
+                            className="bg-[#0070F3] hover:bg-[#005bc5] text-white font-bold gap-2 px-6 h-9 text-xs rounded-xl shadow-md shadow-blue-500/10"
                             onClick={handleDownloadCustomReport}
                         >
                             {generatingCustomReport ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     Generando informe...
                                 </>
                             ) : (
                                 <>
-                                    <Download className="w-4 h-4" />
+                                    <Download className="w-3.5 h-3.5" />
                                     Descargar Excel ({selectedProbetasIds.length})
                                 </>
                             )}
