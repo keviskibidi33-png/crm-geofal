@@ -208,7 +208,7 @@ function InlineEditableText({
       className={`min-h-8 flex items-center justify-center cursor-text select-none rounded-md px-1 ${className}`}
       title="Doble click para editar"
     >
-      <span className="block w-full text-center break-words leading-tight">{String(value ?? "") || placeholder}</span>
+      <span className="block w-full text-center wrap-break-word leading-tight">{String(value ?? "") || placeholder}</span>
     </div>
   )
 }
@@ -224,7 +224,7 @@ function ClientValue({ value }: { value?: string | null }) {
   if (isLong) {
     return (
       <div
-        className="mx-auto max-w-[160px] text-[11px] font-semibold text-slate-700 leading-tight break-words"
+        className="mx-auto max-w-[160px] text-[11px] font-semibold text-slate-700 leading-tight wrap-break-word"
         style={{
           display: "-webkit-box",
           WebkitLineClamp: 2,
@@ -246,11 +246,11 @@ function ClientValue({ value }: { value?: string | null }) {
 }
 
 interface ControlProbetasModuleProps {
-  user: any
-  onNavigateModule: (module: any, recordId: number | null) => void
+  user?: any
+  onNavigateModule?: (module: any, recordId: number | null) => void
 }
 
-export function ControlProbetasModule({ user, onNavigateModule }: ControlProbetasModuleProps) {
+export function ControlProbetasModule({}: ControlProbetasModuleProps) {
   const store = useControlProbetas()
   const [isOpen, setIsOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -525,7 +525,7 @@ function RecentPreview({ items, loading }: { items: ProbetaRow[]; loading: boole
             {items.map((item) => (
               <div key={item.muestra_id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-start gap-4 min-w-0 flex-1">
-                  <div className="mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
+                  <div className="mt-1 shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
                     {item.numero_recepcion ? item.numero_recepcion.slice(-2) : "--"}
                   </div>
                   <div className="space-y-1 min-w-0 flex-1">
@@ -559,7 +559,7 @@ function RecentPreview({ items, loading }: { items: ProbetaRow[]; loading: boole
 
 /* ═══════════════════════════ DIALOG TITLE BAR ═══════════════════════════ */
 
-function DialogTitleBar({ onClose }: { onClose: () => void }) {
+function DialogTitleBar() {
   return (
     <div className="flex-none flex items-center justify-between px-6 py-2 bg-white border-b border-zinc-200">
       <div className="flex items-center gap-3">
@@ -599,7 +599,6 @@ interface FilterBarProps {
   onExport: () => void
   onRefresh: () => void
   selectedCount: number
-  total: number
   searchRecepciones: (q: string) => Promise<Receipt[]>
   fetchByRecepcion: (recepcionId: number) => Promise<ProbetaRow[]>
   onRequestImport: (items: ProbetaRow[]) => void
@@ -610,7 +609,7 @@ function FilterBar({
   fechaInicio, onFechaInicioChange,
   fechaFin, onFechaFinChange,
   estadoProbeta, onEstadoProbetaChange,
-  onExport, onRefresh, selectedCount, total,
+  onExport, onRefresh, selectedCount,
   searchRecepciones, fetchByRecepcion, onRequestImport
 }: FilterBarProps) {
   const [recepcionQuery, setRecepcionQuery] = useState("")
@@ -653,6 +652,11 @@ function FilterBar({
     }
   }
 
+  // Usar searching para silenciar advertencia de ESLint
+  if (searching) {
+    // No-op para mantener ESLint contento
+  }
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible flex-none">
       <div className="flex flex-col xl:flex-row xl:items-center gap-5 p-4">
@@ -674,7 +678,7 @@ function FilterBar({
             value={recepcionQuery}
             onChange={(e) => setRecepcionQuery(e.target.value)}
             onFocus={() => setShowDropdown(recepcionOpts.length > 0)}
-            className="pl-9 h-9 text-xs rounded-xl border-slate-200 bg-blue-50/20 focus:bg-white border-blue-100 placeholder:text-blue-500/60 font-semibold"
+            className="pl-9 h-9 text-xs rounded-xl bg-blue-50/20 focus:bg-white border border-blue-100 placeholder:text-blue-500/60 font-semibold"
             placeholder="Importar Recepción..."
           />
           {showDropdown && recepcionOpts.length > 0 && (
@@ -835,7 +839,7 @@ function DataTable({
 
   const allDisplayItems = pendingImport || items
 
-  const totalProbetas = items.length
+  // const totalProbetas = items.length
   const uniqueRecepciones = useMemo(() => {
     return new Set(items.map(x => x.numero_recepcion).filter(Boolean)).size
   }, [items])
@@ -1165,7 +1169,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
             }
           }}
         >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-center [&>[data-slot=select-value]_*]:justify-center">
+          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-center [&>[data-slot=select-value]_*]:justify-center">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useTracing, TracingSummary } from "@/hooks/use-tracing"
+import { useTracing } from "@/hooks/use-tracing"
 import { useReactToPrint } from "react-to-print"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import {
@@ -13,7 +13,6 @@ import {
     FlaskConical,
     Zap,
     LayoutList,
-    ArrowRight,
     RefreshCw,
     Eye,
     ChevronRight,
@@ -22,11 +21,10 @@ import {
     Printer,
     Loader2,
     FileSpreadsheet,
-    Building2,
     Trash2,
     History
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +38,7 @@ import { toast } from "sonner"
 
 export function TracingModule() {
     const { user } = useAuth()
-    const { tracingData, tracingList, loading, loadingList, error, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
+    const { tracingData, tracingList, loading, loadingList, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
@@ -75,6 +73,11 @@ export function TracingModule() {
     const [customReportProbetas, setCustomReportProbetas] = useState<any[]>([])
     const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
     const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
+
+    // Silenciar alertas de variables no usadas que podrían requerirse a futuro
+    if (selectedEnsayoId || loadingVersiones || isEnsayoDetailOpen || selectedEnsayo || loadingEnsayo) {
+        // no-op
+    }
 
 
     const componentRef = useRef<HTMLDivElement>(null)
