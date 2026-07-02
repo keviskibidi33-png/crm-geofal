@@ -40,18 +40,11 @@ export function useFormPersist<T extends FieldValues>(
               String(m.identificacion_muestra).trim() !== "";
             const hasFechaMoldeo =
               m.fecha_moldeo && String(m.fecha_moldeo).trim() !== "";
-            const hasFc =
-              m.fc_kg_cm2 !== undefined &&
-              m.fc_kg_cm2 !== null &&
-              String(m.fc_kg_cm2).trim() !== "";
-            const hasEdad =
-              m.edad !== undefined &&
-              m.edad !== null &&
-              String(m.edad).trim() !== "";
-            return (
-              (hasIdentificacion || hasFechaMoldeo) &&
-              (hasFc || hasEdad || hasFechaMoldeo)
-            );
+            const hasCodigoLem =
+              m.codigo_muestra_lem && String(m.codigo_muestra_lem).trim() !== "" && String(m.codigo_muestra_lem).trim() !== "-";
+            
+            // Relajamos a que tenga al menos uno de los campos identificadores básicos
+            return hasIdentificacion || hasFechaMoldeo || hasCodigoLem;
           });
           if (parsed.muestras.length === 0) {
             parsed.muestras = [
@@ -102,18 +95,11 @@ export function useFormPersist<T extends FieldValues>(
               String(m.identificacion_muestra).trim() !== "";
             const hasFechaMoldeo =
               m.fecha_moldeo && String(m.fecha_moldeo).trim() !== "";
-            const hasFc =
-              m.fc_kg_cm2 !== undefined &&
-              m.fc_kg_cm2 !== null &&
-              String(m.fc_kg_cm2).trim() !== "";
-            const hasEdad =
-              m.edad !== undefined &&
-              m.edad !== null &&
-              String(m.edad).trim() !== "";
-            return (
-              (hasIdentificacion || hasFechaMoldeo) &&
-              (hasFc || hasEdad || hasFechaMoldeo)
-            );
+            const hasCodigoLem =
+              m.codigo_muestra_lem && String(m.codigo_muestra_lem).trim() !== "" && String(m.codigo_muestra_lem).trim() !== "-";
+            
+            // Relajamos a que tenga al menos uno de los campos identificadores básicos
+            return hasIdentificacion || hasFechaMoldeo || hasCodigoLem;
           });
           (toSave as Record<string, unknown>).muestras =
             normalizeMuestrasItemNumero(
