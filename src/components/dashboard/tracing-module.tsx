@@ -302,9 +302,27 @@ export function TracingModule() {
 
             const blob = await response.blob()
             const downloadUrl = window.URL.createObjectURL(blob)
+            
+            // Determinar nombre del archivo del header o usar fallback
+            const contentDisposition = response.headers.get("content-disposition")
+            let filename = ""
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename=(.+)/)
+                if (filenameMatch) {
+                    filename = filenameMatch[1].replace(/["']/g, "")
+                }
+            }
+            if (!filename) {
+                const recNum = customReportNumero || ""
+                const match = recNum.match(/(\d+)/)
+                const recCode = match ? match[1] : "000"
+                const nMuestras = selectedProbetasIds.length
+                filename = `1-Inf-N-${recCode}-26-CO12-COM-V04 -${nMuestras}.xlsx`
+            }
+
             const a = document.createElement('a')
             a.href = downloadUrl
-            a.download = `Informe-Concreto-${customReportNumero}.xlsx`
+            a.download = filename
             document.body.appendChild(a)
             a.click()
             a.remove()
