@@ -18,7 +18,6 @@ import {
     ChevronRight,
     Calendar,
     Download,
-    Printer,
     Loader2,
     FileSpreadsheet,
     Trash2,
@@ -87,6 +86,11 @@ export function TracingModule() {
         content: () => componentRef.current,
         documentTitle: `Seguimiento-${tracingData?.numero_recepcion || 'Muestra'}`,
     })
+
+    // Silenciar alerta de handlePrint no usado
+    if (typeof handlePrint === 'function') {
+        // no-op
+    }
 
     // Cargar lista inicial
     useEffect(() => {
@@ -1152,14 +1156,14 @@ export function TracingModule() {
 
             {/* Modal de Selección e Informe a Medida (Concreto 1-6 Probetas) */}
             <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none rounded-2xl">
+                <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none rounded-2xl">
                     <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
                         <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
                             <FileSpreadsheet className="h-5 w-5 text-slate-600" />
                             Informe concreto ({customReportNumero})
                         </DialogTitle>
-                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1 leading-relaxed">
-                            En las columnas: Código muestra LEM, Código cliente, Estructura, F'c (kg/cm²), Fecha Moldeo**, Fecha Rotura, Hora moldeo, Hora rotura, Diametro 1, Longitud 1, Carga Máxima (kN), Tipo fractura, Masa muestra aire (g)
+                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1">
+                            Selecciona entre 1 y 6 probetas para generar su informe.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1201,17 +1205,21 @@ export function TracingModule() {
                                     <TableRow className="bg-slate-50/50">
                                         <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Sel</TableHead>
                                         <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Itm</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código LEM</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código muestra LEM</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código cliente</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Estructura</TableHead>
                                         <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">F'c (kg/cm²)</TableHead>
                                         <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Moldeo</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Edad (Días)</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Rotura</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Diametro 1</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Carga Máxima (kN)</TableHead>
                                         <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Estado</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {customReportProbetas.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-32 text-center text-slate-400 italic">
+                                            <TableCell colSpan={11} className="h-32 text-center text-slate-400 italic">
                                                 No hay probetas cargadas en esta recepción.
                                             </TableCell>
                                         </TableRow>
@@ -1231,8 +1239,8 @@ export function TracingModule() {
                                                             setSelectedProbetasIds(prev => prev.filter(id => id !== m.id));
                                                         } else {
                                                             if (selectedProbetasIds.length >= 6) {
-                                                                toast.warning("Límite máximo", { description: "Solo puedes agregar un máximo de 6 probetas por informe." });
-                                                                return;
+                                                                 toast.warning("Límite máximo", { description: "Solo puedes agregar un máximo de 6 probetas por informe." });
+                                                                 return;
                                                             }
                                                             setSelectedProbetasIds(prev => [...prev, m.id]);
                                                         }
@@ -1260,9 +1268,21 @@ export function TracingModule() {
                                                     <TableCell className="text-xs font-bold text-[#0070F3]">
                                                         {m.codigo_muestra_lem || m.codigo_muestra || m.codigo_lem || '-'}
                                                     </TableCell>
+                                                    <TableCell className="text-xs font-semibold text-slate-700">
+                                                        {m.codigo_muestra || m.identificacion_muestra || '-'}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs font-normal text-slate-600 max-w-[150px] truncate" title={m.estructura}>
+                                                        {m.estructura || '-'}
+                                                    </TableCell>
                                                     <TableCell className="text-xs font-black text-slate-800 text-center">{m.fc_kg_cm2 || '210'}</TableCell>
                                                     <TableCell className="text-xs font-bold text-slate-600 text-center">{m.fecha_moldeo}</TableCell>
-                                                    <TableCell className="text-xs font-black text-slate-600 text-center">{m.edad || '7'}</TableCell>
+                                                    <TableCell className="text-xs font-bold text-slate-600 text-center">{m.fecha_rotura || '-'}</TableCell>
+                                                    <TableCell className="text-xs font-medium text-slate-700 text-center">
+                                                        {m.diametro_1 !== null && m.diametro_1 !== undefined ? m.diametro_1.toFixed(2).replace('.', ',') : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs font-medium text-slate-700 text-center">
+                                                        {m.carga_maxima !== null && m.carga_maxima !== undefined ? m.carga_maxima.toFixed(2).replace('.', ',') : '-'}
+                                                    </TableCell>
                                                     <TableCell className="text-center">
                                                         {isReported ? (
                                                             <Badge variant="outline" className="text-[9px] font-black uppercase text-green-700 bg-green-100 border-none px-2 py-0.5">

@@ -15,8 +15,6 @@ import {
   useControlProbetas, ProbetaRow, Receipt,
   ELEMENTOS, POZAS, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
-
-const STATUS_DENSIDAD = ["SI", "NO"] as const
 type DensidadValue = "SI" | "NO"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
 
