@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
@@ -243,6 +243,7 @@ export function HuantaCompresionModule() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Registrar Rotura — Probeta {editingRow?.codigo_probeta}</DialogTitle>
+            <DialogDescription className="sr-only">Formulario para registrar datos técnicos de rotura</DialogDescription>
           </DialogHeader>
 
           {editingRow && (

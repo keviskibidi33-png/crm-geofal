@@ -98,32 +98,37 @@ export function getPreferredControlModule(role: string | null | undefined, permi
 }
 
 export function canAccessDashboardModule(module: ModuleType, role: string | null | undefined, permissions?: RolePermissions) {
-  if (module === "configuracion") {
+  let activeCheckModule = module;
+  if (module === "huanta_probetas" || module === "huanta_compresion" || module === "huanta_seguimiento") {
+    activeCheckModule = "densidad_huantar";
+  }
+
+  if (activeCheckModule === "configuracion") {
     return true
   }
 
-  if (module === "permisos") {
+  if (activeCheckModule === "permisos") {
     return isAdminDashboardRole(role)
   }
 
-  if (module === "laboratorio" && isComercialDashboardRole(role)) {
+  if (activeCheckModule === "laboratorio" && isComercialDashboardRole(role)) {
     return false
   }
 
-  const explicitRead = permissions?.[module]?.read === true
+  const explicitRead = permissions?.[activeCheckModule]?.read === true
   if (explicitRead) {
     return true
   }
 
-  if (isRestrictedTechnicalRole(role) && RESTRICTED_TECHNICAL_DASHBOARD_MODULES.has(module)) {
+  if (isRestrictedTechnicalRole(role) && RESTRICTED_TECHNICAL_DASHBOARD_MODULES.has(activeCheckModule)) {
     return false
   }
 
-  if (isControlModule(module)) {
-    return canAccessControlModule(module, role, permissions)
+  if (isControlModule(activeCheckModule)) {
+    return canAccessControlModule(activeCheckModule, role, permissions)
   }
 
-  if (COMMERCIAL_BUSINESS_MODULES.has(module)) {
+  if (COMMERCIAL_BUSINESS_MODULES.has(activeCheckModule)) {
     return isAdminDashboardRole(role) || isComercialDashboardRole(role)
   }
 

@@ -59,6 +59,9 @@ const TracingModule = dashboardDynamic(async () => (await import("@/components/d
 const ControlInformesModule = dashboardDynamic(async () => (await import("@/components/dashboard/control-informes-module")).ControlInformesModule)
 const HumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/humedad-module")).HumedadModule)
 const DensidadHuantarModule = dashboardDynamic(async () => (await import("@/components/dashboard/densidad-huantar-module")).DensidadHuantarModule)
+const HuantaProbetasModule = dashboardDynamic(async () => (await import("@/components/dashboard/huanta-probetas-module")).HuantaProbetasModule)
+const HuantaCompresionModule = dashboardDynamic(async () => (await import("@/components/dashboard/huanta-compresion-module")).HuantaCompresionModule)
+const HuantaSeguimientoModule = dashboardDynamic(async () => (await import("@/components/dashboard/huanta-seguimiento-module")).HuantaSeguimientoModule)
 const ContHumedadModule = dashboardDynamic(async () => (await import("@/components/dashboard/cont-humedad-module")).ContHumedadModule)
 const CBRModule = dashboardDynamic(async () => (await import("@/components/dashboard/cbr-module")).CBRModule)
 const ProctorModule = dashboardDynamic(async () => (await import("@/components/dashboard/proctor-module")).ProctorModule)
@@ -437,6 +440,12 @@ export default function DashboardPage() {
         return <ControlInformesModule />
       case "densidad_huantar":
         return <DensidadHuantarModule />
+      case "huanta_probetas":
+        return <HuantaProbetasModule />
+      case "huanta_compresion":
+        return <HuantaCompresionModule />
+      case "huanta_seguimiento":
+        return <HuantaSeguimientoModule />
       case "humedad":
         return <HumedadModule />
       case "cont_humedad":

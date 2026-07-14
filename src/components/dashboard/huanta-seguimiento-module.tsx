@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { authFetch } from "@/lib/api-auth"
 
@@ -230,6 +230,7 @@ export function HuantaSeguimientoModule() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Detalle Lote — {selectedLote?.codigo_lote_interno}</DialogTitle>
+            <DialogDescription className="sr-only">Detalle del lote y selección de probetas para exportación</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">

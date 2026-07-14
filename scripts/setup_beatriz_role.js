@@ -41,6 +41,7 @@ const PERMISSIONS = {
   verificacion:         { read: true,  write: true,  delete: false },
   verificacion_muestras:{ read: true,  write: true,  delete: false },
   compresion:           { read: true,  write: true,  delete: false },
+  densidad_huantar:     { read: true,  write: true,  delete: false },
   humedad:              { read: true,  write: true,  delete: false },
   cont_humedad:         { read: true,  write: true,  delete: false },
   planas:               { read: true,  write: true,  delete: false },

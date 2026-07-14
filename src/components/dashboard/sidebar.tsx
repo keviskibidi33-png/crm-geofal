@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -78,6 +78,26 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 ]
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
+  const huantaSubmodules = React.useMemo(() => [
+    { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
+    { id: "huanta_compresion", label: "Compresión Huanta", icon: Beaker },
+    { id: "huanta_seguimiento", label: "Seguimiento Huanta", icon: Activity },
+    { id: "densidad_huantar", label: "Densidad Huantar", icon: Beaker },
+  ], [])
+
+  const isHuantaActive = React.useMemo(() => 
+    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule),
+    [activeModule]
+  )
+
+  const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive)
+
+  React.useEffect(() => {
+    if (isHuantaActive) {
+      setHuantaExpanded(true)
+    }
+  }, [isHuantaActive])
+
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)
 
   React.useEffect(() => {
@@ -243,6 +263,87 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       {/* Navigation */}
       <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
         {filteredModules.map((module) => {
+          if (module.id === "densidad_huantar") {
+            const hasAccess = canAccessDashboardModule("densidad_huantar", user.role, user.permissions)
+            if (!hasAccess) return null
+
+            if (collapsed) {
+              const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule)
+              return (
+                <Tooltip key="proyecto_huanta">
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleModuleClick("huanta_probetas")}
+                      className={cn(
+                        "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
+                        isHuantaActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                      )}
+                    >
+                      <FolderKanban className="h-5 w-5 shrink-0 text-primary" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={8}>
+                    <p>Proyecto Huanta</p>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return (
+              <div key="proyecto_huanta" className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setHuantaExpanded(prev => !prev)}
+                  className={cn(
+                    "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
+                    isHuantaActive && !huantaExpanded
+                      ? "bg-sidebar-accent/40 text-sidebar-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <FolderKanban className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="flex-1 text-left truncate font-semibold">Proyecto Huanta</span>
+                  {huantaExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                </button>
+
+                {huantaExpanded && (
+                  <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
+                    {huantaSubmodules.map((sub) => {
+                      const SubIcon = sub.icon
+                      const isSubActive = activeModule === sub.id
+                      const readOnly = isModuleReadOnly("densidad_huantar")
+
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => handleModuleClick(sub.id as any)}
+                          className={cn(
+                            "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
+                            isSubActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
+                          )}
+                        >
+                          <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 text-left truncate">{sub.label}</span>
+                          {readOnly && <Eye className="h-3 w-3 text-amber-500/70 shrink-0" />}
+                          {!readOnly && isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           const Icon = module.icon
           const isActive = activeModule === module.id
 
