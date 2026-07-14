@@ -38,6 +38,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
+  { id: "densidad_huantar", label: "Densidad Huantar", icon: Beaker, adminOnly: true },
   { id: "humedad", label: "Humedad Suelo", icon: Beaker, adminOnly: true },
   { id: "cont_humedad", label: "Humedad AG", icon: Beaker, adminOnly: true },
   { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
