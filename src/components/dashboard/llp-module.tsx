@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
+import LLPForm from "./llp-native/LLPForm"
 
 // --- Smart Iframe Component with Retry Logic ---
 interface SmartIframeProps {
@@ -161,7 +162,19 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 
 export function LLPModule() {
+    const LLP_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_LLP_MODE || "iframe") as "native" | "iframe"
     const [isModalOpen, setIsModalOpen] = useState(false)
+
+    useEffect(() => {
+        if (isModalOpen) {
+            document.body.classList.add("overflow-hidden")
+        } else {
+            document.body.classList.remove("overflow-hidden")
+        }
+        return () => {
+            document.body.classList.remove("overflow-hidden")
+        }
+    }, [isModalOpen])
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [token, setToken] = useState<string | null>(null)
     const [ensayos, setEnsayos] = useState<LLPEnsayoSummary[]>([])
@@ -558,19 +571,37 @@ export function LLPModule() {
                 )}
             </div>
 
-            {/* Iframe modal */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-                    <DialogHeader className="hidden">
-                        <DialogTitle>Ensayo LLP</DialogTitle>
-                        <DialogDescription>Formulario LLP ASTM D4318-17e1</DialogDescription>
-                    </DialogHeader>
-                    <SmartIframe
-                        src={iframeSrc}
-                        title="LLP CRM"
-                    />
-                </DialogContent>
-            </Dialog>
+            {/* Modal for Creation/Edit (Native or Iframe) */}
+            {LLP_MODE === "native" ? (
+                isModalOpen && (
+                    <div data-form-overlay className="fixed inset-0 z-50 bg-slate-100 flex flex-col animate-in fade-in duration-200 overflow-y-auto">
+                        <LLPForm
+                            editId={editingEnsayoId ?? undefined}
+                            onClose={() => {
+                                setIsModalOpen(false)
+                                void fetchEnsayos()
+                            }}
+                            onSaveSuccess={() => {
+                                setIsModalOpen(false)
+                                void fetchEnsayos()
+                            }}
+                        />
+                    </div>
+                )
+            ) : (
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+                        <DialogHeader className="hidden">
+                            <DialogTitle>Ensayo LLP</DialogTitle>
+                            <DialogDescription>Formulario LLP ASTM D4318-17e1</DialogDescription>
+                        </DialogHeader>
+                        <SmartIframe
+                            src={iframeSrc}
+                            title="LLP CRM"
+                        />
+                    </DialogContent>
+                </Dialog>
+            )}
 
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-xl">
