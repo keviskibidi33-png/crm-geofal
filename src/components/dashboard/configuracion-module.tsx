@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
-import { User, Mail, Image as ImageIcon, Shield, Upload, RefreshCw } from "lucide-react"
+import { User, Mail, Image as ImageIcon, Shield, Upload, RefreshCw, Download, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,7 @@ import { Loader2, AlertTriangle, Phone } from "lucide-react"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { clearProfileAvatarDraft, setProfileAvatarDraft } from "@/lib/profile-avatar-draft"
+import { downloadBackupFile, importBackupFile } from "@/lib/backup-service"
 
 type PendingAvatar = {
   dataUrl: string
@@ -175,7 +176,7 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
   }
 
   const handleSave = useCallback(async () => {
-    if (!currentUser) return
+    if (!currentUser) return false
     setIsLoading(true)
     try {
       if (isAvatarReading && avatarReadPromiseRef.current) {
@@ -421,6 +422,69 @@ export function ConfiguracionModule({ onDirtyChange, registerActions }: Configur
               <p className="text-xs text-muted-foreground italic">
                 Formatos admitidos: JPG, PNG, WEBP o GIF. Tamaño máximo: 2 MB.
               </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Database className="h-5 w-5 text-primary" />
+            Copias de Seguridad (Borradores Locales)
+          </CardTitle>
+          <CardDescription>
+            Respalda o restaura borradores de tus formularios de laboratorio (Densidad Huantar, Humedad, Compresión, etc.) persistidos en este navegador.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 rounded-lg bg-secondary/10 p-4 md:flex-row md:items-center">
+            <div className="space-y-3 w-full">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Gestión de datos de formularios sin guardar</p>
+                <p className="text-xs text-muted-foreground">
+                  Exporta tu avance a un archivo JSON o restaura borradores creados previamente en otro dispositivo o sesión.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => downloadBackupFile()}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar Borradores (.json)
+                </Button>
+                
+                <label className="inline-flex items-center">
+                  <Input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ""
+                      if (!file) return
+
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        const content = String(reader.result || "")
+                        const res = importBackupFile(content)
+                        if (res.success) {
+                          toast.success("Restauración exitosa", {
+                            description: `Se importaron ${res.count} borradores de formularios. Recarga el módulo correspondiente para ver los cambios.`
+                          })
+                        } else {
+                          toast.error("Error al restaurar", {
+                            description: res.error || "No se pudo restaurar el archivo."
+                          })
+                        }
+                      }
+                      reader.readAsText(file)
+                    }}
+                  />
+                  <span className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3 cursor-pointer">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Importar Borradores (.json)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         </CardContent>
