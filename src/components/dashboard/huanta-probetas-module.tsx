@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, RefreshCw, Loader2, AlertCircle, Search, CalendarDays, Download, Sparkles } from "lucide-react"
+import { Plus, RefreshCw, Loader2, AlertCircle, Search, CalendarDays, Download, Sparkles, ExternalLink, Database } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -389,6 +389,7 @@ export function HuantaProbetasModule() {
   const [refreshing, setRefreshing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -446,11 +447,11 @@ export function HuantaProbetasModule() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-50/50">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-white border-b border-slate-100 shadow-sm">
+    <div className="h-full flex flex-col bg-slate-50/50 p-8 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Control Huanta Probetas</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Control Huanta Probetas</h1>
+          <p className="text-slate-500 font-medium mt-1">
             Alta directa por lotes de 6 probetas con código interno de lote global, incrementador y fecha de rotura automática.
           </p>
         </div>
@@ -463,9 +464,114 @@ export function HuantaProbetasModule() {
             <RefreshCw className={`h-4 w-4 mr-2 text-slate-500 ${refreshing ? "animate-spin" : ""}`} />
             Recargar
           </Button>
-          <HuantaBatchModal onCreated={fetchRows} />
         </div>
       </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xl">
+              <Database className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-black text-slate-900 uppercase">Matriz técnica Huanta</h3>
+              <p className="text-slate-500 text-xs font-medium mt-1">Acceso directo a la tabla, registro por lote y edición rápida</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsOpen(true)}
+              className="flex items-center gap-3 px-5 py-3 bg-[#0070F3] text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95"
+            >
+              <ExternalLink className="h-5 w-5" strokeWidth={3} />
+              ABRIR TABLA DE CONTROL
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-[96vw] w-[1500px] h-[92vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-800">Tabla de control — Huanta Probetas</DialogTitle>
+            <DialogDescription className="sr-only">Tabla principal para revisar las probetas Huanta</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, lote, elemento..." className="pl-9 h-9" />
+                </div>
+                <HuantaBatchModal onCreated={fetchRows} />
+              </div>
+              <div className="overflow-x-auto">
+                {loading && rows.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
+                    <p className="text-sm font-medium">Cargando probetas Huanta...</p>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <AlertCircle className="h-10 w-10 text-slate-300 mb-3" />
+                    <p className="text-sm font-medium">No hay probetas Huanta registradas</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader className="bg-[#f4f4f5]">
+                      <TableRow>
+                        <TableHead className="w-14 text-center font-bold">Item</TableHead>
+                        <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
+                        <TableHead className="w-20 text-center font-bold">Sigla</TableHead>
+                        <TableHead className="min-w-[180px] font-bold">Elemento</TableHead>
+                        <TableHead className="min-w-[180px] font-bold">Detalle</TableHead>
+                        <TableHead className="w-24 text-center font-bold">F'c (kg/cm2)</TableHead>
+                        <TableHead className="w-32 text-center font-bold">Moldeo</TableHead>
+                        <TableHead className="w-20 text-center font-bold">Edad</TableHead>
+                        <TableHead className="w-32 text-center font-bold">Rotura</TableHead>
+                        <TableHead className="min-w-[240px] font-bold">Código Muestra LEM</TableHead>
+                        <TableHead className="w-36 text-center font-bold">Lote interno</TableHead>
+                        <TableHead className="w-28 text-center font-bold">Estado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((row) => (
+                        <TableRow key={row.id} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
+                          <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
+                          <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
+                          <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
+                          <TableCell className="font-medium text-slate-700">{row.elemento}</TableCell>
+                          <TableCell className="text-slate-600 text-xs">{row.detalle_elemento}</TableCell>
+                          <TableCell className="text-center font-semibold text-indigo-600">{row.f_c}</TableCell>
+                          <TableCell className="text-center text-xs text-slate-600">{row.fecha_moldeo}</TableCell>
+                          <TableCell className="text-center font-semibold text-xs text-slate-700">{row.edad}d</TableCell>
+                          <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
+                          <TableCell className="font-mono text-[11px] text-slate-500">{row.codigo_muestra_lem}</TableCell>
+                          <TableCell className="font-mono text-xs text-center text-slate-600">
+                            <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
+                              {row.codigo_lote_interno || "SIN LOTE"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                              row.estado === "ENSAYADO"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}>
+                              {row.estado}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
