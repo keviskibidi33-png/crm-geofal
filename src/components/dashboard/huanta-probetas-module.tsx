@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { authFetch } from "@/lib/api-auth"
 
@@ -390,6 +391,8 @@ export function HuantaProbetasModule() {
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(100)
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -438,6 +441,17 @@ export function HuantaProbetasModule() {
         .some((v) => (v || "").toLowerCase().includes(q))
     )
   }, [rows, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paginated = useMemo(() => {
+    const safePage = Math.min(page, totalPages)
+    const start = (safePage - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize, totalPages])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, pageSize, isOpen])
 
   const onReload = async () => {
     setRefreshing(true)
@@ -536,7 +550,7 @@ export function HuantaProbetasModule() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((row) => (
+                      {paginated.map((row) => (
                         <TableRow key={row.id} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
                           <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
@@ -562,89 +576,43 @@ export function HuantaProbetasModule() {
                               {row.estado}
                             </span>
                           </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
+                      </TableRow>
+                    ))}
+                  </TableBody>
                   </Table>
                 )}
+              </div>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-3 px-4 py-3 border-t bg-white">
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <span>Filas por página:</span>
+                  <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                    <SelectTrigger className="w-[92px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[25, 50, 100, 200].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="ml-3">Total: {filtered.length} registros</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                    Anterior
+                  </Button>
+                  <span className="text-sm font-medium text-slate-600">
+                    Página {Math.min(page, totalPages)} de {totalPages}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                    Siguiente
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b flex items-center gap-3 bg-slate-50/30">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, lote, elemento..." className="pl-9 h-9" />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            {loading && rows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
-                <p className="text-sm font-medium">Cargando probetas Huanta...</p>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                <AlertCircle className="h-10 w-10 text-slate-300 mb-3" />
-                <p className="text-sm font-medium">No hay probetas Huanta registradas</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader className="bg-[#f4f4f5]">
-                  <TableRow>
-                    <TableHead className="w-14 text-center font-bold">Item</TableHead>
-                    <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
-                    <TableHead className="w-20 text-center font-bold">Sigla</TableHead>
-                    <TableHead className="min-w-[180px] font-bold">Elemento</TableHead>
-                    <TableHead className="min-w-[180px] font-bold">Detalle</TableHead>
-                    <TableHead className="w-24 text-center font-bold">F'c (kg/cm2)</TableHead>
-                    <TableHead className="w-32 text-center font-bold">Moldeo</TableHead>
-                    <TableHead className="w-20 text-center font-bold">Edad</TableHead>
-                    <TableHead className="w-32 text-center font-bold">Rotura</TableHead>
-                    <TableHead className="min-w-[240px] font-bold">Código Muestra LEM</TableHead>
-                    <TableHead className="w-36 text-center font-bold">Lote interno</TableHead>
-                    <TableHead className="w-28 text-center font-bold">Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((row) => (
-                    <TableRow key={row.id} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
-                      <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
-                      <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
-                      <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
-                      <TableCell className="font-medium text-slate-700">{row.elemento}</TableCell>
-                      <TableCell className="text-slate-600 text-xs">{row.detalle_elemento}</TableCell>
-                      <TableCell className="text-center font-semibold text-indigo-600">{row.f_c}</TableCell>
-                      <TableCell className="text-center text-xs text-slate-600">{row.fecha_moldeo}</TableCell>
-                      <TableCell className="text-center font-semibold text-xs text-slate-700">{row.edad}d</TableCell>
-                      <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
-                      <TableCell className="font-mono text-[11px] text-slate-500">{row.codigo_muestra_lem}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
-                          {row.codigo_lote_interno || "SIN LOTE"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          row.estado === "ENSAYADO"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
-                        }`}>
-                          {row.estado}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
