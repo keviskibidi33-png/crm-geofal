@@ -42,6 +42,17 @@ export function HuantaCompresionModule() {
   const [editingRow, setEditingRow] = useState<CompRow | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const lotColorClasses = useCallback((lote: string) => {
+    let acc = 0
+    for (const ch of lote || "") acc = (acc + ch.charCodeAt(0)) % 4
+    return [
+      "bg-blue-50 text-blue-800 border-blue-100",
+      "bg-emerald-50 text-emerald-800 border-emerald-100",
+      "bg-amber-50 text-amber-800 border-amber-100",
+      "bg-violet-50 text-violet-800 border-violet-100",
+    ][acc]
+  }, [])
+
   const fetchRows = useCallback(async () => {
     setLoading(true)
     try {
@@ -206,10 +217,14 @@ export function HuantaCompresionModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((row) => (
-                    <TableRow key={row.id}>
+                  {filtered.map((row, idx) => (
+                    <TableRow key={row.id} className={idx % 2 === 0 ? "bg-slate-50/40" : "bg-white"}>
                       <TableCell className="font-mono text-center font-semibold text-slate-900">{row.codigo_probeta}</TableCell>
-                      <TableCell className="font-mono text-xs">{row.codigo_lote_interno}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
+                          {row.codigo_lote_interno}
+                        </span>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{row.codigo_muestra_lem}</TableCell>
                       <TableCell className="text-center">{row.fecha_rotura}</TableCell>
                       <TableCell className="text-center">{row.diam_1 || "-"}</TableCell>
@@ -240,15 +255,15 @@ export function HuantaCompresionModule() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-5xl w-[96vw] h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Registrar Rotura — Probeta {editingRow?.codigo_probeta}</DialogTitle>
             <DialogDescription className="sr-only">Formulario para registrar datos técnicos de rotura</DialogDescription>
           </DialogHeader>
 
           {editingRow && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4 py-2 flex-1 min-h-0 overflow-hidden flex flex-col">
+              <div className="grid grid-cols-2 gap-3 shrink-0">
                 <div>
                   <Label className="text-xs">Diámetro 1 (mm)</Label>
                   <Input value={editingRow.diam_1 || ""} onChange={(e) => setEditingRow({ ...editingRow, diam_1: e.target.value })} placeholder="150.3" />
@@ -274,7 +289,7 @@ export function HuantaCompresionModule() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 shrink-0">
                 <div>
                   <Label className="text-xs">Carga Máxima (kN)</Label>
                   <Input type="number" step="any" value={editingRow.carga_maxima ?? ""} onChange={(e) => setEditingRow({ ...editingRow, carga_maxima: e.target.value !== "" ? Number(e.target.value) : null })} placeholder="392.4" />
@@ -301,7 +316,7 @@ export function HuantaCompresionModule() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
