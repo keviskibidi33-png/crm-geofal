@@ -58,6 +58,7 @@ interface DensidadHuantarFormState {
     eq_tamiz_4: string
     eq_pesa_patron_200g: string
     eq_tamiz_3_8: string
+    eq_balanza_500g: string
     observaciones: string
     revisado_por: string
     revisado_fecha: string
@@ -114,6 +115,7 @@ const INITIAL_STATE: DensidadHuantarFormState = {
     eq_tamiz_4: "-",
     eq_pesa_patron_200g: "-",
     eq_tamiz_3_8: "-",
+    eq_balanza_500g: "-",
     observaciones: "",
     revisado_por: "-",
     revisado_fecha: "",
@@ -140,6 +142,18 @@ const CONO_CODIGO_OPTIONS = [
 ]
 const REVISADO_POR_OPTIONS = ["-", "FABIAN LA ROSA"]
 const APROBADO_POR_OPTIONS = ["-", "IRMA COAQUIRA"]
+
+// Catálogo de equipos por tipo
+const EQ_BALANZA_30KG_OPTIONS   = ["-", "EQP-0142"]
+const EQ_PESA_5KG_OPTIONS       = ["-", "PAT-0034"]
+const EQ_CONO_EQUIPO_OPTIONS    = ["-", "EQP-0143"]
+const EQ_TAMIZ_3_4_OPTIONS      = ["-", "INS-0211"]
+const EQ_TERMOHIGROMETRO_OPTIONS= ["-", "EQP-0152"]
+const EQ_TAMIZ_4_OPTIONS        = ["-", "INS-0212"]
+const EQ_PESA_200G_OPTIONS      = ["-", "PAT-0032"]
+const EQ_BALANZA_500G_OPTIONS   = ["-", "EQP-0141"]
+const EQ_TAMIZ_3_8_OPTIONS      = ["-", "INS-0067", "INS-0086"]
+
 
 const normalizeFlexibleDate = (raw: string): string => {
     const value = raw.trim()
@@ -907,93 +921,6 @@ export default function DensidadHuantarForm({
                     </div>
                 </div>
 
-                {/* Section 4: Códigos de Equipos Utilizados */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-                    <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider pb-3 mb-4 border-b border-slate-200">Códigos de Equipos Utilizados</h2>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Balanza 30 kg :</label>
-                            <input
-                                type="text"
-                                value={form.eq_balanza_30kg}
-                                onChange={(e) => setField("eq_balanza_30kg", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Pesa Patrón 5 kg :</label>
-                            <input
-                                type="text"
-                                value={form.eq_pesa_patron_5kg}
-                                onChange={(e) => setField("eq_pesa_patron_5kg", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Cono :</label>
-                            <input
-                                type="text"
-                                value={form.eq_cono_equipo}
-                                onChange={(e) => setField("eq_cono_equipo", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 3/4 in :</label>
-                            <input
-                                type="text"
-                                value={form.eq_tamiz_3_4}
-                                onChange={(e) => setField("eq_tamiz_3_4", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Termohigrómetro :</label>
-                            <input
-                                type="text"
-                                value={form.eq_termohigrometro}
-                                onChange={(e) => setField("eq_termohigrometro", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 4 in :</label>
-                            <input
-                                type="text"
-                                value={form.eq_tamiz_4}
-                                onChange={(e) => setField("eq_tamiz_4", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Pesa Patrón 200 g :</label>
-                            <input
-                                type="text"
-                                value={form.eq_pesa_patron_200g}
-                                onChange={(e) => setField("eq_pesa_patron_200g", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 3/8 in :</label>
-                            <input
-                                type="text"
-                                value={form.eq_tamiz_3_8}
-                                onChange={(e) => setField("eq_tamiz_3_8", e.target.value)}
-                                placeholder="-"
-                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 {/* Section 5: Puntos de Ensayo (1 al 4) */}
                 <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 overflow-visible">
                     <div className="border-b border-slate-100 pb-3 mb-4">
@@ -1375,7 +1302,84 @@ export default function DensidadHuantarForm({
                     </div>
                 </div>
 
-                {/* Section 4: Observaciones y Footer */}
+                {/* Section 6: Códigos de Equipos Utilizados */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                    <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider pb-3 mb-4 border-b border-slate-200">Códigos de Equipos Utilizados</h2>
+                    <div className="grid grid-cols-4 gap-x-6 gap-y-4">
+                        {/* Row 1 */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Balanza 30 kg</label>
+                            <select value={form.eq_balanza_30kg} onChange={(e) => setField("eq_balanza_30kg", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_BALANZA_30KG_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Pesa Patrón 5 kg</label>
+                            <select value={form.eq_pesa_patron_5kg} onChange={(e) => setField("eq_pesa_patron_5kg", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_PESA_5KG_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Cono</label>
+                            <select value={form.eq_cono_equipo} onChange={(e) => setField("eq_cono_equipo", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_CONO_EQUIPO_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Tamiz 3/4 in</label>
+                            <select value={form.eq_tamiz_3_4} onChange={(e) => setField("eq_tamiz_3_4", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_TAMIZ_3_4_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        {/* Row 2 */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Termohigrómetro</label>
+                            <select value={form.eq_termohigrometro} onChange={(e) => setField("eq_termohigrometro", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_TERMOHIGROMETRO_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Tamiz N° 4</label>
+                            <select value={form.eq_tamiz_4} onChange={(e) => setField("eq_tamiz_4", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_TAMIZ_4_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Pesa Patrón 200 g</label>
+                            <select value={form.eq_pesa_patron_200g} onChange={(e) => setField("eq_pesa_patron_200g", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_PESA_200G_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Balanza 500 g</label>
+                            <select value={form.eq_balanza_500g} onChange={(e) => setField("eq_balanza_500g", e.target.value)}
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                {EQ_BALANZA_500G_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                            </select>
+                        </div>
+                        {/* Row 3 - Tamiz 3/8 in */}
+                        <div className="col-span-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-1/4">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Tamiz 3/8 in</label>
+                                    <select value={form.eq_tamiz_3_8} onChange={(e) => setField("eq_tamiz_3_8", e.target.value)}
+                                        className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-400">
+                                        {EQ_TAMIZ_3_8_OPTIONS.map(o => <option key={o} value={o}>{o === "-" ? "-- Seleccionar --" : o}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section 7: Observaciones y Footer */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
                         <div className="border-b border-slate-100 pb-3 mb-4">
