@@ -1,12 +1,13 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, RefreshCw, Loader2, AlertCircle, Search, CalendarDays, Download, Sparkles, ExternalLink, Database } from "lucide-react"
+import { Plus, RefreshCw, Loader2, AlertCircle, Search, CalendarDays, Download, Sparkles, ExternalLink, Database, Clock3, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -93,6 +94,20 @@ function lotColorClasses(lote: string) {
   ]
   const idx = Math.abs((lote || "HHTA").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0))
   return colors[idx % colors.length]
+}
+
+function getLoteBgClass(lote: string) {
+  const colors = [
+    "bg-blue-50/20 hover:bg-blue-50/40",
+    "bg-emerald-50/20 hover:bg-emerald-50/40",
+    "bg-violet-50/20 hover:bg-violet-50/40",
+    "bg-amber-50/20 hover:bg-amber-50/40",
+    "bg-rose-50/20 hover:bg-rose-50/40",
+    "bg-cyan-50/20 hover:bg-cyan-50/40",
+  ]
+  const val = lote || "DEFAULT"
+  const hash = val.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
+  return colors[Math.abs(hash) % colors.length]
 }
 
 function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
@@ -449,6 +464,16 @@ export function HuantaProbetasModule() {
     return filtered.slice(start, start + pageSize)
   }, [filtered, page, pageSize, totalPages])
 
+  const dashboard = useMemo(() => {
+    const ensayados = rows.filter((r) => r.estado === "ENSAYADO").length
+    const curado = rows.filter((r) => r.estado !== "ENSAYADO").length
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const pendientesHoy = rows.filter(
+      (r) => r.estado !== "ENSAYADO" && r.fecha_rotura === todayStr
+    ).length
+    return { ensayados, curado, pendientesHoy }
+  }, [rows])
+
   useEffect(() => {
     setPage(1)
   }, [search, pageSize, isOpen])
@@ -504,23 +529,41 @@ export function HuantaProbetasModule() {
         </div>
       </div>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[96vw] w-[1500px] h-[92vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-800">Tabla de control — Huanta Probetas</DialogTitle>
-            <DialogDescription className="sr-only">Tabla principal para revisar las probetas Huanta</DialogDescription>
-          </DialogHeader>
+      <DialogFullscreen open={isOpen} onOpenChange={setIsOpen}>
+        <DialogFullscreenContent
+          style={{ backgroundColor: '#fff' }}
+          onInteractOutside={(e: any) => e.preventDefault()}
+          onEscapeKeyDown={() => setIsOpen(false)}
+        >
+          {/* Title Bar */}
+          <div className="flex-none flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Tabla de control — Huanta Probetas</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-widest">EN LÍNEA</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="rounded-xl">
+                Cerrar
+              </Button>
+            </div>
+          </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0">
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+              <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3 shrink-0">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, lote, elemento..." className="pl-9 h-9" />
                 </div>
                 <HuantaBatchModal onCreated={fetchRows} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto flex-1 min-h-0">
                 {loading && rows.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                     <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
@@ -533,7 +576,7 @@ export function HuantaProbetasModule() {
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader className="bg-[#f4f4f5]">
+                    <TableHeader className="bg-[#f4f4f5] sticky top-0 z-10 shadow-sm">
                       <TableRow>
                         <TableHead className="w-14 text-center font-bold">Item</TableHead>
                         <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
@@ -551,7 +594,7 @@ export function HuantaProbetasModule() {
                     </TableHeader>
                     <TableBody>
                       {paginated.map((row) => (
-                        <TableRow key={row.id} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
+                        <TableRow key={row.id} className={`${getLoteBgClass(row.codigo_lote_interno)} transition-colors`}>
                           <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
@@ -576,43 +619,57 @@ export function HuantaProbetasModule() {
                               {row.estado}
                             </span>
                           </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                        </TableRow>
+                      ))}
+                    </TableBody>
                   </Table>
                 )}
               </div>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-3 px-4 py-3 border-t bg-white">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <span>Filas por página:</span>
-                  <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                    <SelectTrigger className="w-[92px] h-9">
+              <div className="flex-none flex items-center justify-between border-t border-slate-200 px-6 py-3 bg-white shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-medium">Filas por página:</span>
+                  <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                    <SelectTrigger className="w-24 h-8 text-xs rounded-xl border-slate-200 bg-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {[25, 50, 100, 200].map((n) => (
+                      {[100, 1000, 2000, 4000].map((n) => (
                         <SelectItem key={n} value={String(n)}>{n}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <span className="ml-3">Total: {filtered.length} registros</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-                    Anterior
-                  </Button>
-                  <span className="text-sm font-medium text-slate-600">
-                    Página {Math.min(page, totalPages)} de {totalPages}
+                  <span className="text-xs text-slate-400 ml-2 flex items-center gap-1.5">
+                    <Database className="h-3.5 w-3.5" /> Total: {filtered.length} registros
                   </span>
-                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
-                    Siguiente
-                  </Button>
+                </div>
+
+                {/* Resumen de Estadísticas */}
+                <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
+                  <span>Lotes: <strong className="text-slate-800">{new Set(rows.map(r => r.codigo_lote_interno).filter(Boolean)).size}</strong></span>
+                  <span className="text-slate-300">|</span>
+                  <span>Ensayadas: <strong className="text-emerald-600">{dashboard.ensayados}</strong></span>
+                  <span className="text-slate-300">|</span>
+                  <span>Pendientes: <strong className="text-amber-600">{dashboard.curado}</strong></span>
+                  <span className="text-slate-300">|</span>
+                  <span>Hoy: <strong className="text-blue-600">{dashboard.pendientesHoy}</strong></span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-slate-500 font-medium">Página {page} de {totalPages}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl border-slate-200" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl border-slate-200" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </DialogFullscreenContent>
+      </DialogFullscreen>
     </div>
   )
 }
