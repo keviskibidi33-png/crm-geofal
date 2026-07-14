@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2, RefreshCw, Search, Plus, ArrowRight, Download, Pencil } from "lucide-react"
+import { Loader2, RefreshCw, Search, Plus, ArrowRight, Download, Pencil, ExternalLink, Database } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,7 @@ export function HuantaCompresionModule() {
   const [refreshing, setRefreshing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -155,11 +156,11 @@ export function HuantaCompresionModule() {
   }, [rows, search])
 
   return (
-    <div className="h-full flex flex-col bg-slate-50/50">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-white border-b border-slate-100">
+    <div className="h-full flex flex-col bg-slate-50/50 p-8 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Compresión Huanta</h1>
-          <p className="text-sm text-slate-500 mt-1">Panel técnico de rotura alimentado desde las probetas Huanta por lote.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Compresión Huanta</h1>
+          <p className="text-slate-500 font-medium mt-1">Gestión técnica de rotura y edición por doble click con lotes Huanta.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <Button variant="outline" onClick={handleExportExcel} disabled={exporting || loading}>
@@ -177,8 +178,36 @@ export function HuantaCompresionModule() {
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xl">
+              <Database className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-black text-slate-900 uppercase">Matriz técnica Huanta</h3>
+              <p className="text-slate-500 text-xs font-medium mt-1">Acceso directo a la tabla de compresión, sincronización y edición</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="flex items-center gap-3 px-5 py-3 bg-[#0070F3] text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20 active:scale-95"
+          >
+            <ExternalLink className="h-5 w-5" strokeWidth={3} />
+            ABRIR TABLA DE CONTROL
+          </button>
+        </div>
+      </div>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-[96vw] w-[1500px] h-[92vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-800">Tabla de control — Compresión Huanta</DialogTitle>
+            <DialogDescription className="sr-only">Tabla principal para revisar y editar la compresión Huanta</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
           <div className="p-4 border-b bg-slate-50/30 flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -249,9 +278,11 @@ export function HuantaCompresionModule() {
                 </TableBody>
               </Table>
             )}
+            </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
