@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { authFetch } from "@/lib/api-auth"
 
@@ -77,6 +78,20 @@ function generateLemCode(row: DraftRow) {
   const fc = (row.f_c || "").trim()
   const numPart = row.codigo_probeta.replace(/\D/g, "") || "0"
   return `${sigla}-${elem}-${det}-${fc}-${numPart}`
+}
+
+
+function lotColorClasses(lote: string) {
+  const colors = [
+    "bg-blue-50 text-blue-700 border-blue-200",
+    "bg-emerald-50 text-emerald-700 border-emerald-200",
+    "bg-violet-50 text-violet-700 border-violet-200",
+    "bg-amber-50 text-amber-700 border-amber-200",
+    "bg-rose-50 text-rose-700 border-rose-200",
+    "bg-cyan-50 text-cyan-700 border-cyan-200",
+  ]
+  const idx = Math.abs((lote || "HHTA").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0))
+  return colors[idx % colors.length]
 }
 
 function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
@@ -216,7 +231,7 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
           Agregar lote
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[96vw] w-[1400px] h-[92vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[96vw] w-[1400px] h-[92vh] overflow-hidden flex flex-col bg-slate-50">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-800">Control Huanta Probetas — Lote de 6</DialogTitle>
           <DialogDescription className="sr-only">Formulario para registro de lote de 6 probetas Huanta</DialogDescription>
@@ -264,7 +279,7 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
 
           <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-[#f4f4f5]">
                 <TableRow>
                   <TableHead className="w-14 text-center">Item</TableHead>
                   <TableHead className="w-32">Código probeta</TableHead>
@@ -280,7 +295,7 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
               </TableHeader>
               <TableBody>
                 {rows.map((row, index) => (
-                  <TableRow key={row.item} className="hover:bg-slate-50/50">
+                  <TableRow key={row.item} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
                     <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
                     <TableCell>
                       <Input
@@ -473,7 +488,7 @@ export function HuantaProbetasModule() {
               </div>
             ) : (
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-[#f4f4f5]">
                   <TableRow>
                     <TableHead className="w-14 text-center font-bold">Item</TableHead>
                     <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
@@ -491,7 +506,7 @@ export function HuantaProbetasModule() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-slate-50/50">
+                    <TableRow key={row.id} className={row.item % 2 === 0 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
                       <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
                       <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                       <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
@@ -502,7 +517,11 @@ export function HuantaProbetasModule() {
                       <TableCell className="text-center font-semibold text-xs text-slate-700">{row.edad}d</TableCell>
                       <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
                       <TableCell className="font-mono text-[11px] text-slate-500">{row.codigo_muestra_lem}</TableCell>
-                      <TableCell className="font-mono text-xs text-center text-slate-600">{row.codigo_lote_interno}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
+                          {row.codigo_lote_interno || "SIN LOTE"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-center">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                           row.estado === "ENSAYADO"

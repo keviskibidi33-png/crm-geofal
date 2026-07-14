@@ -1,13 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Loader2, RefreshCw, Search, Download, Eye, AlertCircle, CalendarDays } from "lucide-react"
+import { Loader2, RefreshCw, Search, Download, Eye, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
@@ -34,6 +35,19 @@ type ProbetaRow = {
   codigo_muestra_lem: string
   estado: string
   codigo_lote_interno: string
+}
+
+function lotColorClasses(lote: string) {
+  const colors = [
+    "bg-blue-50 text-blue-700 border-blue-200",
+    "bg-emerald-50 text-emerald-700 border-emerald-200",
+    "bg-violet-50 text-violet-700 border-violet-200",
+    "bg-amber-50 text-amber-700 border-amber-200",
+    "bg-rose-50 text-rose-700 border-rose-200",
+    "bg-cyan-50 text-cyan-700 border-cyan-200",
+  ]
+  const idx = Math.abs((lote || "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0))
+  return colors[idx % colors.length]
 }
 
 export function HuantaSeguimientoModule() {
@@ -183,7 +197,7 @@ export function HuantaSeguimientoModule() {
               </div>
             ) : (
               <Table>
-                <TableHeader className="bg-slate-50/70 border-b border-slate-100">
+                <TableHeader className="bg-[#f4f4f5] border-b border-slate-100">
                   <TableRow>
                     <TableHead>Lote Interno</TableHead>
                     <TableHead>Fecha Moldeo</TableHead>
@@ -196,8 +210,16 @@ export function HuantaSeguimientoModule() {
                 </TableHeader>
                 <TableBody>
                   {filteredLotes.map((row) => (
-                    <TableRow key={row.codigo_lote_interno} className="hover:bg-slate-50/30 cursor-pointer" onClick={() => void handleRowClick(row)}>
-                      <TableCell className="font-mono font-semibold text-slate-900">{row.codigo_lote_interno}</TableCell>
+                    <TableRow
+                      key={row.codigo_lote_interno}
+                      className="hover:bg-slate-50/30 cursor-pointer"
+                      onClick={() => void handleRowClick(row)}
+                    >
+                      <TableCell className="font-semibold text-slate-900">
+                        <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
+                          {row.codigo_lote_interno}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{row.fecha_moldeo}</TableCell>
                       <TableCell>{row.elemento}</TableCell>
                       <TableCell>{row.detalle_elemento}</TableCell>
@@ -227,14 +249,14 @@ export function HuantaSeguimientoModule() {
 
       {/* Lote Detail / Select Export Dialog */}
       <Dialog open={selectedLote !== null} onOpenChange={(open) => { if (!open) setSelectedLote(null) }}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-[96vw] w-[1100px] h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Detalle Lote — {selectedLote?.codigo_lote_interno}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-slate-800">Detalle Lote — {selectedLote?.codigo_lote_interno}</DialogTitle>
             <DialogDescription className="sr-only">Detalle del lote y selección de probetas para exportación</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-3 rounded-lg border">
+          <div className="flex-1 overflow-auto space-y-4 pr-1 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border">
               <div>
                 <span className="text-slate-500 block text-xs">Elemento</span>
                 <span className="font-semibold text-slate-800">{selectedLote?.elemento}</span>
@@ -253,18 +275,18 @@ export function HuantaSeguimientoModule() {
               </div>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
               {loadingProbetas ? (
                 <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                   <Loader2 className="h-6 w-6 animate-spin mb-2" />
                   <p className="text-xs">Cargando probetas...</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
-                      <TableHead className="w-12 text-center">Seleccionar</TableHead>
-                      <TableHead className="w-16">Item</TableHead>
+                  <Table>
+                    <TableHeader className="bg-[#f4f4f5]">
+                      <TableRow>
+                        <TableHead className="w-12 text-center">Seleccionar</TableHead>
+                        <TableHead className="w-16">Item</TableHead>
                       <TableHead>Código Probeta</TableHead>
                       <TableHead>Edad</TableHead>
                       <TableHead>Rotura Programada</TableHead>
@@ -272,11 +294,11 @@ export function HuantaSeguimientoModule() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {probetas.map((p) => {
+                    {probetas.map((p, idx) => {
                       const isSelected = selectedIds.includes(p.id)
                       const isMaxReached = selectedIds.length >= 3 && !isSelected
                       return (
-                        <TableRow key={p.id}>
+                        <TableRow key={p.id} className={idx % 2 === 0 ? "bg-slate-50/40" : "bg-white"}>
                           <TableCell className="text-center">
                             <Checkbox
                               checked={isSelected}
