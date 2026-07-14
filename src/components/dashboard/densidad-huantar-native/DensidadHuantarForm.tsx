@@ -44,6 +44,20 @@ interface DensidadHuantarFormState {
     peso_unitario_seco_lab: number | undefined
     humedad_optima: number | undefined
     gravedad_especifica: number | undefined
+    // Condiciones ambientales
+    temperatura_inicial: string
+    temperatura_final: string
+    humedad_relativa_inicial: string
+    humedad_relativa_final: string
+    // Códigos de equipos
+    eq_balanza_30kg: string
+    eq_pesa_patron_5kg: string
+    eq_cono_equipo: string
+    eq_tamiz_3_4: string
+    eq_termohigrometro: string
+    eq_tamiz_4: string
+    eq_pesa_patron_200g: string
+    eq_tamiz_3_8: string
     observaciones: string
     revisado_por: string
     revisado_fecha: string
@@ -88,6 +102,18 @@ const INITIAL_STATE: DensidadHuantarFormState = {
     peso_unitario_seco_lab: undefined,
     humedad_optima: undefined,
     gravedad_especifica: undefined,
+    temperatura_inicial: "-",
+    temperatura_final: "-",
+    humedad_relativa_inicial: "-",
+    humedad_relativa_final: "-",
+    eq_balanza_30kg: "-",
+    eq_pesa_patron_5kg: "-",
+    eq_cono_equipo: "-",
+    eq_tamiz_3_4: "-",
+    eq_termohigrometro: "-",
+    eq_tamiz_4: "-",
+    eq_pesa_patron_200g: "-",
+    eq_tamiz_3_8: "-",
     observaciones: "",
     revisado_por: "-",
     revisado_fecha: "",
@@ -834,7 +860,141 @@ export default function DensidadHuantarForm({
                     </div>
                 </div>
 
-                {/* Section 3: Puntos de Ensayo (1 al 4) */}
+                {/* Section 3: Condiciones Ambientales */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                    <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider pb-3 mb-4 border-b border-slate-200">Condiciones Ambientales</h2>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Temperatura Inicial (°C) :</label>
+                            <input
+                                type="text"
+                                value={form.temperatura_inicial}
+                                onChange={(e) => setField("temperatura_inicial", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Temperatura Final (°C) :</label>
+                            <input
+                                type="text"
+                                value={form.temperatura_final}
+                                onChange={(e) => setField("temperatura_final", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Hum. Relativa Inicial (%H.R.) :</label>
+                            <input
+                                type="text"
+                                value={form.humedad_relativa_inicial}
+                                onChange={(e) => setField("humedad_relativa_inicial", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Hum. Relativa Final (%H.R.) :</label>
+                            <input
+                                type="text"
+                                value={form.humedad_relativa_final}
+                                onChange={(e) => setField("humedad_relativa_final", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section 4: Códigos de Equipos Utilizados */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                    <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider pb-3 mb-4 border-b border-slate-200">Códigos de Equipos Utilizados</h2>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Balanza 30 kg :</label>
+                            <input
+                                type="text"
+                                value={form.eq_balanza_30kg}
+                                onChange={(e) => setField("eq_balanza_30kg", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Pesa Patrón 5 kg :</label>
+                            <input
+                                type="text"
+                                value={form.eq_pesa_patron_5kg}
+                                onChange={(e) => setField("eq_pesa_patron_5kg", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Cono :</label>
+                            <input
+                                type="text"
+                                value={form.eq_cono_equipo}
+                                onChange={(e) => setField("eq_cono_equipo", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 3/4 in :</label>
+                            <input
+                                type="text"
+                                value={form.eq_tamiz_3_4}
+                                onChange={(e) => setField("eq_tamiz_3_4", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Termohigrómetro :</label>
+                            <input
+                                type="text"
+                                value={form.eq_termohigrometro}
+                                onChange={(e) => setField("eq_termohigrometro", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 4 in :</label>
+                            <input
+                                type="text"
+                                value={form.eq_tamiz_4}
+                                onChange={(e) => setField("eq_tamiz_4", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Pesa Patrón 200 g :</label>
+                            <input
+                                type="text"
+                                value={form.eq_pesa_patron_200g}
+                                onChange={(e) => setField("eq_pesa_patron_200g", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600 text-right min-w-[155px]">Tamiz 3/8 in :</label>
+                            <input
+                                type="text"
+                                value={form.eq_tamiz_3_8}
+                                onChange={(e) => setField("eq_tamiz_3_8", e.target.value)}
+                                placeholder="-"
+                                className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section 5: Puntos de Ensayo (1 al 4) */}
                 <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 overflow-visible">
                     <div className="border-b border-slate-100 pb-3 mb-4">
                         <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Puntos del Ensayo (Mediciones y Cálculos)</h2>
