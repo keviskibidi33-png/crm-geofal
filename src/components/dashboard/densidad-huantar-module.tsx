@@ -189,7 +189,10 @@ export function DensidadHuantarModule() {
                             setEditingEnsayoId(null)
                             setIsFormOpen(true)
                         }}
-                        className="w-full md:w-auto gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm"
+                        className="w-full md:w-auto gap-2 text-white font-medium shadow-sm"
+                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
                     >
                         <Plus className="h-4 w-4" />
                         Nuevo Ensayo
@@ -220,7 +223,7 @@ export function DensidadHuantarModule() {
                     <div className="flex-1 overflow-x-auto">
                         {loading && ensayos.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mb-3" />
+                                <Loader2 className="h-8 w-8 animate-spin mb-3" style={{ color: 'lab(48.477% -35.0644 -41.4319)' }} />
                                 <p className="text-sm font-medium">Cargando ensayos...</p>
                             </div>
                         ) : paginatedEnsayos.length === 0 ? (
@@ -267,7 +270,7 @@ export function DensidadHuantarModule() {
                                                             setEditingEnsayoId(row.id)
                                                             setIsFormOpen(true)
                                                         }}
-                                                        className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50"
+                                                        className="h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                                                     >
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>

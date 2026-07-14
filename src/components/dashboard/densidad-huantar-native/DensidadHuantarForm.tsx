@@ -460,13 +460,13 @@ export default function DensidadHuantarForm({
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319 / 0.12)', color: 'lab(48.477% -35.0644 -41.4319)' }}>
                         <FlaskConical className="h-6 w-6" />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold text-slate-900">Densidad Huantar — Cono de Arena</h1>
                         <p className="text-sm text-slate-500">Módulo nativo de control de compactación</p>
-                        {ensayoId && <p className="text-xs text-indigo-600 font-semibold mt-1">Editando Ensayo #{ensayoId}</p>}
+                        {ensayoId && <p className="text-xs font-semibold mt-1" style={{ color: 'lab(48.477% -35.0644 -41.4319)' }}>Editando Ensayo #{ensayoId}</p>}
                     </div>
                 </div>
                 {onClose && (
@@ -483,7 +483,7 @@ export default function DensidadHuantarForm({
             {showDraftBanner && draftData && (
                 <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm transition animate-in slide-in-from-top-2">
                     <div className="flex gap-2.5 text-amber-800 text-sm">
-                        <span className="text-base">⚠️</span>
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                         <div>
                             <p className="font-semibold text-amber-900">Borrador local no guardado detectado</p>
                             <p className="text-xs text-amber-700">Hay diferencias entre tu borrador guardado en este navegador y el servidor.</p>
@@ -516,38 +516,32 @@ export default function DensidadHuantarForm({
             )}
 
             <div className="space-y-6">
-                {/* Section 1: Encabezado */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-                    <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-                        <span className="text-indigo-600">⚡</span>
-                        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Encabezado General</h2>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                        {/* Autocomplete Input Container - MUST USE overflow-visible parent */}
-                        <div className="relative overflow-visible">
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Muestra *</label>
+                {/* Section 1: Encabezado — Excel-style layout */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-visible">
+                    {/* Compact header row: 4 key fields */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 border-b border-slate-200">
+                        {/* Muestra autocomplete */}
+                        <div className="relative overflow-visible p-3 border-r border-slate-200">
+                            <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Muestra *</label>
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => handleSearchChange(e.target.value)}
-                                    placeholder="Buscar o escribir código..."
+                                    placeholder="Código muestra..."
                                     autoComplete="off"
                                     data-lpignore="true"
-                                    className="w-full h-9 pl-3 pr-8 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full h-9 pl-3 pr-8 rounded-md border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                                 />
                                 <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
                             </div>
-                            
-                            {/* Suggestions drop-down menu */}
                             {showSearchDropdown && searchResults.length > 0 && (
                                 <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50">
                                     {searchResults.map((item) => (
                                         <div
                                             key={item.id}
                                             onClick={() => void selectSuggestion(item)}
-                                            className="p-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-b-0 text-left transition-colors"
+                                            className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-b-0 text-left transition-colors"
                                         >
                                             <p className="text-xs font-bold text-slate-900">{item.numero_recepcion}</p>
                                             <p className="text-[10px] text-slate-500 mt-0.5 truncate">{item.cliente} • {item.proyecto}</p>
@@ -556,9 +550,9 @@ export default function DensidadHuantarForm({
                                 </div>
                             )}
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Número OT *</label>
+                        {/* No OT */}
+                        <div className="p-3 border-r border-slate-200">
+                            <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">No OT *</label>
                             <input
                                 type="text"
                                 value={form.numero_ot}
@@ -566,38 +560,12 @@ export default function DensidadHuantarForm({
                                 placeholder="Ej: 1234-26"
                                 autoComplete="off"
                                 data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                             />
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Cliente</label>
-                            <input
-                                type="text"
-                                value={form.cliente || ""}
-                                onChange={(e) => setField("cliente", e.target.value)}
-                                placeholder="Cliente"
-                                autoComplete="off"
-                                data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Proyecto</label>
-                            <input
-                                type="text"
-                                value={form.proyecto || ""}
-                                onChange={(e) => setField("proyecto", e.target.value)}
-                                placeholder="Proyecto"
-                                autoComplete="off"
-                                data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Fecha Ensayo</label>
+                        {/* Fecha Ensayo */}
+                        <div className="p-3 border-r border-slate-200">
+                            <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Fecha Ensayo</label>
                             <input
                                 type="text"
                                 value={form.fecha_ensayo}
@@ -605,14 +573,12 @@ export default function DensidadHuantarForm({
                                 placeholder="YYYY/MM/DD"
                                 autoComplete="off"
                                 data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                             />
                         </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-600 mb-1">Realizado por *</label>
+                        {/* Realizado por */}
+                        <div className="p-3">
+                            <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wide">Realizado por *</label>
                             <input
                                 type="text"
                                 value={form.realizado_por}
@@ -620,136 +586,173 @@ export default function DensidadHuantarForm({
                                 placeholder="Nombre de operador"
                                 autoComplete="off"
                                 data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Info rows: Solicitante, Proyecto, Ubicación */}
+                    <div className="p-4 space-y-2.5">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">SOLICITANTE :</span>
+                            <input
+                                type="text"
+                                value={form.cliente || ""}
+                                onChange={(e) => setField("cliente", e.target.value)}
+                                placeholder="Nombre del cliente o solicitante"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                className="flex-1 h-8 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">PROYECTO (*) :</span>
+                            <input
+                                type="text"
+                                value={form.proyecto || ""}
+                                onChange={(e) => setField("proyecto", e.target.value)}
+                                placeholder="Nombre del proyecto"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                className="flex-1 h-8 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">UBICACIÓN (*) :</span>
+                            <input
+                                type="text"
+                                value={form.ubicacion || ""}
+                                onChange={(e) => setField("ubicacion", e.target.value)}
+                                placeholder="Ubicación del ensayo"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                className="flex-1 h-8 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Section 2: Calibración y Proctor */}
-                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-                    <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-                        <span className="text-indigo-600">📐</span>
-                        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Parámetros del Cono y Proctor (Calibración)</h2>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Identificación Cono N°</label>
-                            <input
-                                type="text"
-                                value={form.cono_codigo || ""}
-                                onChange={(e) => setField("cono_codigo", e.target.value)}
-                                placeholder="Ej: CONO-01"
-                                autoComplete="off"
-                                data-lpignore="true"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
+                {/* Section 2: Datos del Cono + Material Compactado — two-panel layout */}
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        {/* Left: DATOS DEL CONO */}
+                        <div className="p-5">
+                            <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider text-center pb-3 mb-4 border-b border-slate-200">DATOS DEL CONO</h2>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Equipo de densidad N° :</label>
+                                    <input
+                                        type="text"
+                                        value={form.cono_codigo || ""}
+                                        onChange={(e) => setField("cono_codigo", e.target.value)}
+                                        placeholder="Ej: EQ. DENS. 4"
+                                        autoComplete="off"
+                                        data-lpignore="true"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Masa de arena embudo y placa :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.masa_arena_embudo ?? ""}
+                                        onChange={(e) => setField("masa_arena_embudo", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="1530"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Densidad de la arena (Q) :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.densidad_arena ?? ""}
+                                        onChange={(e) => setField("densidad_arena", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="1.45"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Volumen calibrado cono :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.volumen_cono ?? ""}
+                                        onChange={(e) => setField("volumen_cono", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="1420"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Masa arena embudo (g)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.masa_arena_embudo ?? ""}
-                                onChange={(e) => setField("masa_arena_embudo", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="1530"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Densidad arena (g/cm3)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.densidad_arena ?? ""}
-                                onChange={(e) => setField("densidad_arena", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="1.45"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Volumen cono (cm3)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.volumen_cono ?? ""}
-                                onChange={(e) => setField("volumen_cono", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="1420"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Proctor Norma</label>
-                            <select
-                                value={form.proctor_norma}
-                                onChange={(e) => setField("proctor_norma", e.target.value)}
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 select-wrapper"
-                            >
-                                {PROCTOR_NORMA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Proctor Método</label>
-                            <select
-                                value={form.proctor_metodo}
-                                onChange={(e) => setField("proctor_metodo", e.target.value)}
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 select-wrapper"
-                            >
-                                {PROCTOR_METODO_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">P.U. Seco Max. Lab (kN/m3)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.peso_unitario_seco_lab ?? ""}
-                                onChange={(e) => setField("peso_unitario_seco_lab", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="21.20"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Humedad Óptima (%)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.humedad_optima ?? ""}
-                                onChange={(e) => setField("humedad_optima", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="10.5"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-slate-505 mb-1">Gs Proctor (P)</label>
-                            <input
-                                type="number"
-                                step="any"
-                                value={form.gravedad_especifica ?? ""}
-                                onChange={(e) => setField("gravedad_especifica", e.target.value === "" ? undefined : parseFloat(e.target.value))}
-                                placeholder="2.68"
-                                className="w-full h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
+                        {/* Right: DATOS DEL MATERIAL COMPACTADO */}
+                        <div className="p-5">
+                            <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider text-center pb-3 mb-4 border-b border-slate-200">DATOS DEL MATERIAL COMPACTADO</h2>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Norma ensayo de Proctor :</label>
+                                    <select
+                                        value={form.proctor_norma}
+                                        onChange={(e) => setField("proctor_norma", e.target.value)}
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    >
+                                        {PROCTOR_NORMA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Método de ensayo :</label>
+                                    <select
+                                        value={form.proctor_metodo}
+                                        onChange={(e) => setField("proctor_metodo", e.target.value)}
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    >
+                                        {PROCTOR_METODO_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Peso Unitario Seco (kN/m³) :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.peso_unitario_seco_lab ?? ""}
+                                        onChange={(e) => setField("peso_unitario_seco_lab", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="21.20"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Humedad Óptima (%) :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.humedad_optima ?? ""}
+                                        onChange={(e) => setField("humedad_optima", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="10.5"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Gravedad específica (P) :</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={form.gravedad_especifica ?? ""}
+                                        onChange={(e) => setField("gravedad_especifica", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+                                        placeholder="2.68"
+                                        className="flex-1 h-9 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-300"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Section 3: Puntos de Ensayo (1 al 4) */}
                 <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 overflow-visible">
-                    <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-                        <span className="text-indigo-600">📊</span>
-                        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Puntos del Ensayo (Mediciones y Cálculos)</h2>
+                    <div className="border-b border-slate-100 pb-3 mb-4">
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Puntos del Ensayo (Mediciones y Cálculos)</h2>
                     </div>
 
                     <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -1216,7 +1219,7 @@ export default function DensidadHuantarForm({
                     <button
                         onClick={() => setPendingFormatAction(false)}
                         disabled={loading}
-                        className="h-11 px-6 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-lg shadow-sm transition flex items-center justify-center gap-2"
+                        className="h-11 px-6 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg shadow-sm transition flex items-center justify-center gap-2"
                     >
                         {loading && pendingFormatAction === false ? (
                             <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
@@ -1227,7 +1230,10 @@ export default function DensidadHuantarForm({
                     <button
                         onClick={() => setPendingFormatAction(true)}
                         disabled={loading}
-                        className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+                        className="h-11 px-6 text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-2"
+                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
                     >
                         {loading && pendingFormatAction === true ? (
                             <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
@@ -1314,7 +1320,10 @@ function ConfirmActionModal({
                     <button
                         type="button"
                         onClick={onConfirm}
-                        className="h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition"
+                        className="h-10 px-4 rounded-lg text-white text-sm font-semibold transition"
+                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
                     >
                         {confirmText}
                     </button>
@@ -1363,7 +1372,10 @@ function FormatConfirmModal({
                     <button
                         type="button"
                         onClick={onConfirm}
-                        className="h-10 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition"
+                        className="h-10 px-4 rounded-lg text-white text-sm font-semibold transition"
+                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
                     >
                         Aceptar
                     </button>
