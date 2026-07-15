@@ -396,6 +396,246 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
   )
 }
 
+function HuantaBatchEditModal({
+  selectedIds,
+  rows,
+  onUpdated,
+  onClearSelection,
+}: {
+  selectedIds: Set<number>
+  rows: HuantaProbetaRow[]
+  onUpdated: () => void
+  onClearSelection: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [localRows, setLocalRows] = useState<HuantaProbetaRow[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    const matched = rows.filter((r) => selectedIds.has(r.id))
+    setLocalRows(JSON.parse(JSON.stringify(matched)))
+  }, [open, rows, selectedIds])
+
+  const updateRow = useCallback((index: number, patch: Partial<HuantaProbetaRow>) => {
+    setLocalRows((prev) =>
+      prev.map((row, idx) => {
+        if (idx !== index) return row
+        const next = { ...row, ...patch }
+        if (patch.fecha_moldeo !== undefined || patch.edad !== undefined) {
+          next.fecha_rotura = addDays(next.fecha_moldeo || "", Number(next.edad || 0))
+        }
+
+        // Auto-generate LEM code if user hasn't manually edited it, or if it matches the previous auto-generated code
+        const prevAuto = generateLemCode(row as any)
+        if (!row.codigo_muestra_lem || row.codigo_muestra_lem === prevAuto) {
+          next.codigo_muestra_lem = generateLemCode(next as any)
+        }
+
+        return next
+      })
+    )
+  }, [])
+
+  const handleAutoFillFromFirstRow = () => {
+    const firstRow = localRows[0]
+    if (!firstRow) return
+
+    const probetaMatch = firstRow.codigo_probeta.match(/^(\d+)(.*)$/)
+
+    setLocalRows((prev) =>
+      prev.map((row, idx) => {
+        if (idx === 0) return row
+
+        let newCodigo = row.codigo_probeta
+        if (probetaMatch) {
+          const baseNum = parseInt(probetaMatch[1], 10)
+          const suffix = probetaMatch[2] || ""
+          const nextNum = baseNum + idx
+          const padLength = probetaMatch[1].length
+          const nextNumStr = String(nextNum).padStart(padLength, "0")
+          newCodigo = `${nextNumStr}${suffix}`
+        }
+
+        const defaultEdad = idx < 3 ? 7 : 28
+
+        const updated = {
+          ...row,
+          f_c: row.f_c === "210" ? firstRow.f_c : row.f_c,
+          elemento: row.elemento === "-" ? firstRow.elemento : row.elemento,
+          detalle_elemento: row.detalle_elemento === "-" ? firstRow.detalle_elemento : row.detalle_elemento,
+          fecha_moldeo: row.fecha_moldeo || firstRow.fecha_moldeo,
+          edad: row.edad === 7 ? defaultEdad : row.edad,
+          codigo_probeta: row.codigo_probeta || newCodigo,
+        }
+
+        updated.fecha_rotura = addDays(updated.fecha_moldeo, updated.edad)
+        updated.codigo_muestra_lem = generateLemCode(updated as any)
+        return updated
+      })
+    )
+    toast.info("Valores auto-completados a partir de Fila 1")
+  }
+
+  const handleSubmit = async () => {
+    if (localRows.some((p) => !p.fecha_moldeo || !p.codigo_probeta)) {
+      toast.error("Completa fecha de moldeo y código de probeta en todas las filas.")
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/huanta-probetas/batch-update`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(localRows),
+      })
+      if (!res.ok) {
+        const detail = await res.text()
+        throw new Error(detail || "No se pudo guardar la modificación por lote")
+      }
+      toast.success("Modificaciones por lote guardadas correctamente")
+      setOpen(false)
+      onClearSelection()
+      onUpdated()
+    } catch (err: any) {
+      toast.error(err?.message || "Error al guardar modificaciones")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white h-7 text-xs">
+          <Sparkles className="h-3.5 w-3.5" />
+          Modificar por lote
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[96vw] w-[1400px] h-[92vh] overflow-hidden flex flex-col bg-slate-50">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-slate-800">Modificación por lote — Huanta Probetas</DialogTitle>
+          <DialogDescription className="sr-only">Formulario para modificación en lote de probetas Huanta</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-auto space-y-4 pr-1">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="text-sm font-semibold text-slate-700">Editar probetas seleccionadas ({localRows.length})</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAutoFillFromFirstRow}
+              className="gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Auto-completar desde Fila 1
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+            <Table>
+              <TableHeader className="bg-[#f4f4f5]">
+                <TableRow>
+                  <TableHead className="w-14 text-center">Item</TableHead>
+                  <TableHead className="w-32">Código probeta</TableHead>
+                  <TableHead className="w-20 text-center">Sigla</TableHead>
+                  <TableHead className="min-w-[180px]">Elemento</TableHead>
+                  <TableHead className="min-w-[200px]">Detalle elemento</TableHead>
+                  <TableHead className="w-24">F'c (kg/cm2)</TableHead>
+                  <TableHead className="w-40">Fecha moldeo</TableHead>
+                  <TableHead className="w-24">Edad (días)</TableHead>
+                  <TableHead className="w-32 text-center">Fecha rotura</TableHead>
+                  <TableHead className="min-w-[260px]">Código Muestra LEM</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {localRows.map((row, index) => (
+                  <TableRow key={row.id} className={index % 2 === 1 ? "bg-slate-50/40 hover:bg-slate-50/60" : "bg-white hover:bg-slate-50/60"}>
+                    <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.codigo_probeta}
+                        onChange={(e) => updateRow(index, { codigo_probeta: e.target.value })}
+                        placeholder="Ej. 456-CO"
+                        className="h-8 text-xs font-semibold"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-slate-600 text-xs">{row.sigla}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.elemento}
+                        onChange={(e) => updateRow(index, { elemento: e.target.value })}
+                        placeholder="Ej. MURO PERIMETRAL"
+                        className="h-8 text-xs font-semibold"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.detalle_elemento}
+                        onChange={(e) => updateRow(index, { detalle_elemento: e.target.value })}
+                        placeholder="Ej. (EJE-D-N @ 09'-10')"
+                        className="h-8 text-xs"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.f_c}
+                        onChange={(e) => updateRow(index, { f_c: e.target.value })}
+                        className="h-8 text-xs text-center"
+                        placeholder="210"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="date"
+                        value={formatDateInput(row.fecha_moldeo)}
+                        onChange={(e) => updateRow(index, { fecha_moldeo: e.target.value })}
+                        className="h-8 text-xs p-1 text-center"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={row.edad}
+                        onChange={(e) => updateRow(index, { edad: Number(e.target.value) })}
+                        className="h-8 text-xs text-center"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                        <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                        {addDays(row.fecha_moldeo, Number(row.edad)) || "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.codigo_muestra_lem}
+                        onChange={(e) => updateRow(index, { codigo_muestra_lem: e.target.value })}
+                        placeholder="Auto-generado..."
+                        className="h-8 text-xs font-mono"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-3 border-t">
+          <Button variant="outline" onClick={() => setOpen(false)} className="h-9 text-xs">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={saving} className="h-9 text-xs gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Guardar cambios
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function HuantaProbetasModule() {
   const [rows, setRows] = useState<HuantaProbetaRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -722,6 +962,12 @@ export function HuantaProbetasModule() {
                   {selectedIds.size > 0 && (
                     <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-1.5">
                       <span className="text-xs font-bold text-indigo-700">{selectedIds.size} seleccionadas</span>
+                      <HuantaBatchEditModal
+                        selectedIds={selectedIds}
+                        rows={rows}
+                        onUpdated={fetchRows}
+                        onClearSelection={() => setSelectedIds(new Set())}
+                      />
                       <Button size="sm" variant="outline" className="h-7 text-xs" disabled={batchUpdating} onClick={() => handleBatchStatusChange("ENSAYADO")}>
                         {batchUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                         Marcar ENSAYADO
