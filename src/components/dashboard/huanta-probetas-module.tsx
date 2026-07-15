@@ -50,7 +50,7 @@ const emptyRow = (item: number): DraftRow => ({
 
 function formatDateInput(value: string) {
   if (!value) return ""
-  return value.slice(0, 10)
+  return value.slice(0, 10).replace(/\//g, "-")
 }
 
 function addDays(dateValue: string, days: number) {
@@ -59,14 +59,15 @@ function addDays(dateValue: string, days: number) {
   const base = new Date(`${raw}T00:00:00`)
   if (Number.isNaN(base.getTime())) return ""
   base.setDate(base.getDate() + (Number(days) || 0))
-  return base.toISOString().slice(0, 10)
+  return base.toISOString().slice(0, 10).replace(/-/g, "/")
 }
 
-function generateLemCode(row: DraftRow) {
-  const sigla = (row.sigla || "HHTA").trim()
-  const fc = (row.f_c || "").trim()
-  const numPart = row.codigo_probeta.replace(/\D/g, "") || "0"
-  const detalle = (row.detalle_elemento || "").trim()
+function generateLemCode(row: any) {
+  const sigla = String(row?.sigla || "HHTA").trim()
+  const fc = String(row?.f_c || "").trim()
+  const rawCode = String(row?.codigo_probeta || "")
+  const numPart = rawCode.replace(/\D/g, "") || "0"
+  const detalle = String(row?.detalle_elemento || "").trim()
   const detallePart = (detalle && detalle !== "-") ? `${detalle}-` : ""
   return `${sigla}-${detallePart}${fc}-${numPart}`
 }
@@ -483,12 +484,26 @@ function HuantaBatchEditModal({
       return
     }
 
+    const payload = localRows.map((row) => ({
+      id: row.id,
+      sigla: row.sigla || "HHTA",
+      codigo_probeta: row.codigo_probeta,
+      elemento: row.elemento || "-",
+      detalle_elemento: row.detalle_elemento || "-",
+      f_c: row.f_c || "-",
+      fecha_moldeo: row.fecha_moldeo ? row.fecha_moldeo.slice(0, 10).replace(/-/g, "/") : "",
+      edad: Number(row.edad) || 0,
+      fecha_rotura: row.fecha_rotura ? row.fecha_rotura.slice(0, 10).replace(/-/g, "/") : "",
+      codigo_muestra_lem: row.codigo_muestra_lem || "",
+      estado: row.estado || "PENDIENTE",
+    }))
+
     setSaving(true)
     try {
       const res = await authFetch(`${API_URL}/api/huanta-probetas/batch-update`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(localRows),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const detail = await res.text()
