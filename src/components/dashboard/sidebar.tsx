@@ -39,7 +39,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
   { id: "huanta_probetas", label: "Laboratorio Huanta", icon: Beaker, adminOnly: true },
-  { id: "densidad_huantar", label: "Densidad Huantar", icon: Beaker, adminOnly: true },
   { id: "humedad", label: "Humedad Suelo", icon: Beaker, adminOnly: true },
   { id: "cont_humedad", label: "Humedad AG", icon: Beaker, adminOnly: true },
   { id: "cbr", label: "CBR", icon: Beaker, adminOnly: true },
@@ -82,11 +81,12 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   const huantaSubmodules = React.useMemo(() => [
     { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
     { id: "huanta_compresion", label: "Compresión Huanta", icon: Beaker },
+    { id: "densidad_huantar", label: "Densidad Huanta", icon: Beaker },
     { id: "huanta_seguimiento", label: "Seguimiento Huanta", icon: Activity },
   ], [])
 
   const isHuantaActive = React.useMemo(() => 
-    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento"].includes(activeModule),
+    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule),
     [activeModule]
   )
 
@@ -267,8 +267,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
             const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions, user.email)
             if (!hasAccess) return null
 
+            const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule)
+
             if (collapsed) {
-              const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento"].includes(activeModule)
               return (
                 <Tooltip key="proyecto_huanta">
                   <TooltipTrigger asChild>
@@ -290,6 +291,12 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                 </Tooltip>
               )
             }
+
+            const filteredSubmodules = huantaSubmodules.filter((sub) => {
+              const isAdmin = isAdminDashboardRole(user.role)
+              if (isAdmin) return true
+              return canAccessDashboardModule(sub.id as any, user.role, user.permissions, user.email)
+            })
 
             return (
               <div key="proyecto_huanta" className="space-y-1">
@@ -314,10 +321,10 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
                 {huantaExpanded && (
                   <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
-                    {huantaSubmodules.map((sub) => {
+                    {filteredSubmodules.map((sub) => {
                       const SubIcon = sub.icon
                       const isSubActive = activeModule === sub.id
-                      const readOnly = isModuleReadOnly("densidad_huantar")
+                      const readOnly = isModuleReadOnly(sub.id as any)
 
                       return (
                         <button
