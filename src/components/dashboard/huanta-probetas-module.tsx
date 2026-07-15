@@ -66,8 +66,11 @@ function generateLemCode(row: DraftRow) {
   const sigla = (row.sigla || "HHTA").trim()
   const fc = (row.f_c || "").trim()
   const numPart = row.codigo_probeta.replace(/\D/g, "") || "0"
-  return `${sigla}-${fc}-${numPart}`
+  const detalle = (row.detalle_elemento || "").trim()
+  const detallePart = (detalle && detalle !== "-") ? `${detalle}-` : ""
+  return `${sigla}-${detallePart}${fc}-${numPart}`
 }
+
 
 
 function InlineEditableText({
@@ -193,6 +196,8 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
       const updated = {
         ...row,
         f_c: row.f_c === "210" ? firstRow.f_c : row.f_c,
+        elemento: row.elemento === "-" ? firstRow.elemento : row.elemento,
+        detalle_elemento: row.detalle_elemento === "-" ? firstRow.detalle_elemento : row.detalle_elemento,
         fecha_moldeo: row.fecha_moldeo || firstRow.fecha_moldeo,
         edad: row.edad === 7 ? defaultEdad : row.edad,
         codigo_probeta: row.codigo_probeta || newCodigo,
@@ -209,13 +214,23 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
     const payload = rows.map((row, idx) => {
       const activeFc = row.f_c?.trim() || "-"
       const activeCodigoProbeta = row.codigo_probeta?.trim() || `${idx + 1}-CO`
+      const activeElemento = row.elemento?.trim() || "-"
+      const activeDetalleElemento = row.detalle_elemento?.trim() || "-"
       
-      const defaultLem = `HHTA-${activeFc}-${activeCodigoProbeta.replace(/\D/g, "")}`
+      const defaultLem = generateLemCode({
+        ...row,
+        f_c: activeFc,
+        codigo_probeta: activeCodigoProbeta,
+        elemento: activeElemento,
+        detalle_elemento: activeDetalleElemento
+      })
       
       return {
         item: idx + 1,
         codigo_probeta: activeCodigoProbeta,
-        sigla: "HHTA",
+        sigla: row.sigla || "HHTA",
+        elemento: activeElemento,
+        detalle_elemento: activeDetalleElemento,
         f_c: activeFc,
         fecha_moldeo: row.fecha_moldeo,
         edad: Number(row.edad) || 0,
@@ -286,12 +301,13 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
                   <TableHead className="w-14 text-center">Item</TableHead>
                   <TableHead className="w-32">Código probeta</TableHead>
                   <TableHead className="w-20 text-center">Sigla</TableHead>
-                  <TableHead className="min-w-[260px]">Código Muestra LEM</TableHead>
+                  <TableHead className="min-w-[180px]">Elemento</TableHead>
+                  <TableHead className="min-w-[200px]">Detalle elemento</TableHead>
                   <TableHead className="w-24">F'c (kg/cm2)</TableHead>
                   <TableHead className="w-40">Fecha moldeo</TableHead>
                   <TableHead className="w-24">Edad (días)</TableHead>
                   <TableHead className="w-32 text-center">Fecha rotura</TableHead>
-                  <TableHead className="min-w-[200px]">Detalle elemento</TableHead>
+                  <TableHead className="min-w-[260px]">Código Muestra LEM</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -309,10 +325,18 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
                     <TableCell className="text-center font-mono font-bold text-slate-600 text-xs">{row.sigla}</TableCell>
                     <TableCell>
                       <Input
-                        value={row.codigo_muestra_lem}
-                        onChange={(e) => updateRow(index, { codigo_muestra_lem: e.target.value })}
-                        placeholder="Auto-generado..."
-                        className="h-8 text-xs font-mono"
+                        value={row.elemento}
+                        onChange={(e) => updateRow(index, { elemento: e.target.value })}
+                        placeholder="Ej. MURO PERIMETRAL"
+                        className="h-8 text-xs font-semibold"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.detalle_elemento}
+                        onChange={(e) => updateRow(index, { detalle_elemento: e.target.value })}
+                        placeholder="Ej. (EJE-D-N @ 09'-10')"
+                        className="h-8 text-xs"
                       />
                     </TableCell>
                     <TableCell>
@@ -347,10 +371,10 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
                     </TableCell>
                     <TableCell>
                       <Input
-                        value={row.detalle_elemento}
-                        onChange={(e) => updateRow(index, { detalle_elemento: e.target.value })}
-                        placeholder="Ej. (EJE-D-N @ 09'-10')"
-                        className="h-8 text-xs"
+                        value={row.codigo_muestra_lem}
+                        onChange={(e) => updateRow(index, { codigo_muestra_lem: e.target.value })}
+                        placeholder="Auto-generado..."
+                        className="h-8 text-xs font-mono"
                       />
                     </TableCell>
                   </TableRow>
@@ -485,7 +509,7 @@ export function HuantaProbetasModule() {
       patch.fecha_rotura = addDays(moldeo, Number(edad || 0))
     }
 
-    if (["sigla", "f_c", "codigo_probeta"].includes(field)) {
+    if (["sigla", "f_c", "codigo_probeta", "detalle_elemento"].includes(field)) {
       const updated = { ...row, ...patch }
       const prevAuto = generateLemCode(row as any)
       if (!row.codigo_muestra_lem || row.codigo_muestra_lem === prevAuto) {
@@ -732,12 +756,13 @@ export function HuantaProbetasModule() {
                         <TableHead className="w-14 text-center font-bold">Item</TableHead>
                         <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
                         <TableHead className="w-20 text-center font-bold">Sigla</TableHead>
-                        <TableHead className="min-w-[240px] text-center font-bold">Código Muestra LEM</TableHead>
+                        <TableHead className="min-w-[180px] text-center font-bold">Elemento</TableHead>
+                        <TableHead className="min-w-[180px] text-center font-bold">Detalle elemento</TableHead>
                         <TableHead className="w-24 text-center font-bold">F'c (kg/cm2)</TableHead>
                         <TableHead className="w-32 text-center font-bold">Moldeo</TableHead>
                         <TableHead className="w-20 text-center font-bold">Edad</TableHead>
                         <TableHead className="w-32 text-center font-bold">Rotura</TableHead>
-                        <TableHead className="min-w-[180px] text-center font-bold">Detalle elemento</TableHead>
+                        <TableHead className="min-w-[240px] text-center font-bold">Código Muestra LEM</TableHead>
                         <TableHead className="w-28 text-center font-bold">Estado</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -750,8 +775,11 @@ export function HuantaProbetasModule() {
                           <TableCell className="font-bold text-center text-slate-500">{(page - 1) * pageSize + idx + 1}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
-                          <TableCell className="font-mono text-[11px] text-slate-500">
-                            <InlineEditableText value={row.codigo_muestra_lem} onCommit={(v) => handleInlineSave(row.id, "codigo_muestra_lem", v)} placeholder="-" />
+                          <TableCell className="text-slate-600 text-xs">
+                            <InlineEditableText value={row.elemento} onCommit={(v) => handleInlineSave(row.id, "elemento", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-slate-600 text-xs">
+                            <InlineEditableText value={row.detalle_elemento} onCommit={(v) => handleInlineSave(row.id, "detalle_elemento", v)} placeholder="-" />
                           </TableCell>
                           <TableCell className="text-center font-semibold text-indigo-600">
                             <InlineEditableText value={row.f_c} onCommit={(v) => handleInlineSave(row.id, "f_c", v)} />
@@ -763,8 +791,8 @@ export function HuantaProbetasModule() {
                             <InlineEditableText value={String(row.edad)} onCommit={(v) => handleInlineSave(row.id, "edad", v)} />
                           </TableCell>
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
-                          <TableCell className="text-slate-600 text-xs">
-                            <InlineEditableText value={row.detalle_elemento} onCommit={(v) => handleInlineSave(row.id, "detalle_elemento", v)} placeholder="-" />
+                          <TableCell className="font-mono text-[11px] text-slate-500">
+                            <InlineEditableText value={row.codigo_muestra_lem} onCommit={(v) => handleInlineSave(row.id, "codigo_muestra_lem", v)} placeholder="-" />
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
