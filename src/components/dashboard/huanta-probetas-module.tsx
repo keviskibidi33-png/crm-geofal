@@ -471,7 +471,10 @@ export function HuantaProbetasModule() {
     const pendientesHoy = rows.filter(
       (r) => r.estado !== "ENSAYADO" && r.fecha_rotura === todayStr
     ).length
-    return { ensayados, curado, pendientesHoy }
+    const ultimos = [...rows]
+      .sort((a, b) => (b.id || 0) - (a.id || 0))
+      .slice(0, 5)
+    return { ensayados, curado, pendientesHoy, ultimos }
   }, [rows])
 
   useEffect(() => {
@@ -526,6 +529,67 @@ export function HuantaProbetasModule() {
               ABRIR TABLA DE CONTROL
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">En Curado</p>
+            <p className="text-3xl font-black mt-1 tabular-nums text-blue-600">{dashboard.curado}</p>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <Clock3 className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pendientes Hoy</p>
+            <p className="text-3xl font-black mt-1 tabular-nums text-amber-600">{dashboard.pendientesHoy}</p>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ensayados</p>
+            <p className="text-3xl font-black mt-1 tabular-nums text-emerald-600">{dashboard.ensayados}</p>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50/30">
+          <h3 className="font-black text-slate-900 uppercase flex items-center gap-2">
+            <Clock3 className="h-4 w-4" />
+            Últimos registros
+          </h3>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1">Últimos 5</span>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {dashboard.ultimos.length === 0 ? (
+            <div className="px-6 py-12 text-center text-slate-400 text-sm">No hay registros para mostrar</div>
+          ) : dashboard.ultimos.map((row) => (
+            <div key={row.id} className="px-6 py-4 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="font-bold text-slate-900 truncate">{row.codigo_probeta} <span className="text-slate-400 font-normal">|</span> {row.codigo_lote_interno || "SIN LOTE"}</div>
+                <div className="text-sm text-slate-500 truncate">
+                  LEM: <span className="font-semibold text-slate-700">{row.codigo_muestra_lem || "-"}</span> · Rotura: <span className="font-semibold text-slate-700">{row.fecha_rotura || "-"}</span>
+                </div>
+              </div>
+              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                row.estado === "ENSAYADO"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border border-amber-200"
+              }`}>
+                {row.estado}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
