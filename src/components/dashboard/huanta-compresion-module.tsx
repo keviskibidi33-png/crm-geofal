@@ -14,6 +14,63 @@ import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
+function InlineEditableText({
+  value,
+  onCommit,
+  className = "",
+  placeholder = "—",
+  type = "text",
+}: {
+  value?: string | number | null
+  onCommit: (next: string) => void
+  className?: string
+  placeholder?: string
+  type?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(value ?? ""))
+
+  useEffect(() => {
+    if (!editing) setDraft(String(value ?? ""))
+  }, [value, editing])
+
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        type={type}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false)
+          onCommit(draft.trim())
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            ;(e.target as HTMLInputElement).blur()
+          }
+          if (e.key === "Escape") {
+            setDraft(String(value ?? ""))
+            setEditing(false)
+          }
+        }}
+        className={`h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white ${className}`}
+      />
+    )
+  }
+
+  return (
+    <div
+      onDoubleClick={() => setEditing(true)}
+      className={`min-h-8 flex items-center justify-center cursor-text select-none rounded-md px-1 ${className}`}
+      title="Doble click para editar"
+    >
+      <span className="block w-full text-center wrap-break-word leading-tight">{String(value ?? "") || placeholder}</span>
+    </div>
+  )
+}
+
 type CompRow = {
   id: number
   probeta_id: number
@@ -151,6 +208,39 @@ export function HuantaCompresionModule() {
       toast.error(err?.message || "Error al guardar")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleInlineSave = async (rowId: number, field: string, newValue: string) => {
+    const row = rows.find((r) => r.id === rowId)
+    if (!row) return
+    const originalValue = String((row as any)[field] || "")
+    if (newValue === originalValue) return
+
+    const patch: Record<string, any> = { [field]: newValue || null }
+
+    if (["diam_1", "diam_2", "long_1", "long_2", "long_3", "carga_maxima", "tipo_fractura"].includes(field)) {
+      patch.estado = "PENDIENTE"
+    }
+
+    if (field === "carga_maxima") {
+      patch[field] = newValue !== "" ? Number(newValue) : null
+    }
+
+    setRows((prev) => prev.map((r) => r.id === rowId ? { ...r, ...patch } : r))
+
+    try {
+      const res = await authFetch(`${API_URL}/api/huanta-compresion/${rowId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      })
+      if (!res.ok) throw new Error("No se pudo guardar")
+      toast.success("Guardado")
+      void fetchRows()
+    } catch {
+      toast.error("Error al guardar, revirtiendo...")
+      void fetchRows()
     }
   }
 
@@ -357,15 +447,29 @@ export function HuantaCompresionModule() {
                       {paginated.map((row) => (
                         <TableRow key={row.id} className={`${getLoteBgClass(row.codigo_lote_interno)} transition-colors`}>
                           <TableCell className="font-mono text-center font-semibold text-slate-900">{row.codigo_probeta}</TableCell>
-                          <TableCell className="font-mono text-xs">{row.codigo_muestra_lem}</TableCell>
+                          <TableCell className="font-mono text-xs text-center">{row.codigo_muestra_lem}</TableCell>
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
-                          <TableCell className="text-center text-xs">{row.diam_1 || "-"}</TableCell>
-                          <TableCell className="text-center text-xs">{row.diam_2 || "-"}</TableCell>
-                          <TableCell className="text-center text-xs">{row.long_1 || "-"}</TableCell>
-                          <TableCell className="text-center text-xs">{row.long_2 || "-"}</TableCell>
-                          <TableCell className="text-center text-xs">{row.long_3 || "-"}</TableCell>
-                          <TableCell className="text-center font-semibold text-xs text-indigo-600">{row.carga_maxima ?? "-"}</TableCell>
-                          <TableCell className="text-center text-xs">{row.tipo_fractura || "-"}</TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.diam_1} onCommit={(v) => handleInlineSave(row.id, "diam_1", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.diam_2} onCommit={(v) => handleInlineSave(row.id, "diam_2", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.long_1} onCommit={(v) => handleInlineSave(row.id, "long_1", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.long_2} onCommit={(v) => handleInlineSave(row.id, "long_2", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.long_3} onCommit={(v) => handleInlineSave(row.id, "long_3", v)} placeholder="-" />
+                          </TableCell>
+                          <TableCell className="text-center font-semibold text-xs text-indigo-600">
+                            <InlineEditableText value={row.carga_maxima} onCommit={(v) => handleInlineSave(row.id, "carga_maxima", v)} placeholder="-" type="number" />
+                          </TableCell>
+                          <TableCell className="text-center text-xs">
+                            <InlineEditableText value={row.tipo_fractura} onCommit={(v) => handleInlineSave(row.id, "tipo_fractura", v)} placeholder="-" />
+                          </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                               row.estado === "ENSAYADO" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-amber-50 text-amber-700 border border-amber-150"
