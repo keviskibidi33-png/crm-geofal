@@ -157,13 +157,11 @@ function getLoteBgClass(lote: string) {
 function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [loteInterno, setLoteInterno] = useState("")
   const [rows, setRows] = useState<DraftRow[]>(Array.from({ length: 6 }, (_, i) => emptyRow(i + 1)))
   const [previewQuery, setPreviewQuery] = useState("")
 
   useEffect(() => {
     if (!open) return
-    setLoteInterno("")
     setRows(Array.from({ length: 6 }, (_, i) => emptyRow(i + 1)))
   }, [open])
 
@@ -224,11 +222,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
   }
 
   const handleSubmit = async () => {
-    if (!loteInterno.trim()) {
-      toast.error("El código del lote interno es requerido.")
-      return
-    }
-
     const payload = rows.map((row, idx) => {
       const activeElemento = row.elemento?.trim() || "MURO PERIMETRAL"
       const activeDetalle = row.detalle_elemento?.trim() || "-"
@@ -248,7 +241,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
         edad: Number(row.edad) || 0,
         fecha_rotura: addDays(row.fecha_moldeo, Number(row.edad) || 0),
         codigo_muestra_lem: row.codigo_muestra_lem?.trim() || defaultLem,
-        codigo_lote_interno: loteInterno.trim(),
       }
     })
 
@@ -298,16 +290,7 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
 
         <div className="flex-1 overflow-auto space-y-4 pr-1">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 border">
-            <div>
-              <Label className="text-xs font-bold text-slate-700">Código Lote Interno *</Label>
-              <Input
-                value={loteInterno}
-                onChange={(e) => setLoteInterno(e.target.value)}
-                placeholder="Ej. HTA-2026-07-001"
-                className="mt-1 h-9 bg-white"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50 border">
             <div>
               <Label className="text-xs font-bold text-slate-700">Buscar elemento sugerido</Label>
               <div className="relative mt-1">
