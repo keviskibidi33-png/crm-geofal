@@ -757,7 +757,7 @@ export function HuantaProbetasModule() {
                             <InlineEditableText value={row.fecha_moldeo} onCommit={(v) => handleInlineSave(row.id, "fecha_moldeo", v)} type="date" />
                           </TableCell>
                           <TableCell className="text-center font-semibold text-xs text-slate-700">
-                            <InlineEditableText value={`${row.edad}d`} onCommit={(v) => handleInlineSave(row.id, "edad", v.replace("d", ""))} />
+                            <InlineEditableText value={String(row.edad)} onCommit={(v) => handleInlineSave(row.id, "edad", v)} />
                           </TableCell>
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
                           <TableCell className="font-mono text-[11px] text-slate-500">
