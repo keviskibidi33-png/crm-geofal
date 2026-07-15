@@ -50,12 +50,12 @@ export function HuantaCompresionModule() {
 
   const getLoteBgClass = useCallback((lote: string) => {
     const colors = [
-      "bg-blue-100/50 hover:bg-blue-100/70",
-      "bg-emerald-100/50 hover:bg-emerald-100/70",
-      "bg-violet-100/50 hover:bg-violet-100/70",
-      "bg-amber-100/50 hover:bg-amber-100/70",
-      "bg-rose-100/50 hover:bg-rose-100/70",
-      "bg-cyan-100/50 hover:bg-cyan-100/70",
+      "bg-blue-50 hover:bg-blue-100",
+      "bg-emerald-50 hover:bg-emerald-100",
+      "bg-violet-50 hover:bg-violet-100",
+      "bg-amber-50 hover:bg-amber-100",
+      "bg-rose-50 hover:bg-rose-100",
+      "bg-cyan-50 hover:bg-cyan-100",
     ]
     const val = lote || "DEFAULT"
     const hash = val.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
@@ -273,7 +273,7 @@ export function HuantaCompresionModule() {
           ) : dashboard.ultimos.map((row) => (
             <div key={row.id} className="px-6 py-4 flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <div className="font-bold text-slate-900 truncate">{row.codigo_probeta} <span className="text-slate-400 font-normal">|</span> {row.codigo_lote_interno || "SIN LOTE"}</div>
+                <div className="font-bold text-slate-900 truncate">{row.codigo_probeta}</div>
                 <div className="text-sm text-slate-500 truncate">
                   LEM: <span className="font-semibold text-slate-700">{row.codigo_muestra_lem || "-"}</span> · Rotura: <span className="font-semibold text-slate-700">{row.fecha_rotura || "-"}</span>
                 </div>
@@ -339,17 +339,17 @@ export function HuantaCompresionModule() {
                   <Table>
                     <TableHeader className="bg-[#f4f4f5] sticky top-0 z-10 shadow-sm">
                       <TableRow>
-                        <TableHead className="font-bold">Probeta</TableHead>
-                        <TableHead className="font-bold">Código Muestra LEM</TableHead>
-                        <TableHead className="font-bold">Rotura</TableHead>
-                        <TableHead className="font-bold">Diám 1</TableHead>
-                        <TableHead className="font-bold">Diám 2</TableHead>
-                        <TableHead className="font-bold">Long 1</TableHead>
-                        <TableHead className="font-bold">Long 2</TableHead>
-                        <TableHead className="font-bold">Long 3</TableHead>
-                        <TableHead className="font-bold">Carga máx.</TableHead>
-                        <TableHead className="font-bold">Fractura</TableHead>
-                        <TableHead className="font-bold">Estado</TableHead>
+                        <TableHead className="font-bold text-center">Probeta</TableHead>
+                        <TableHead className="font-bold text-center">Código Muestra LEM</TableHead>
+                        <TableHead className="font-bold text-center">Rotura</TableHead>
+                        <TableHead className="font-bold text-center">Diám 1</TableHead>
+                        <TableHead className="font-bold text-center">Diám 2</TableHead>
+                        <TableHead className="font-bold text-center">Long 1</TableHead>
+                        <TableHead className="font-bold text-center">Long 2</TableHead>
+                        <TableHead className="font-bold text-center">Long 3</TableHead>
+                        <TableHead className="font-bold text-center">Carga máx.</TableHead>
+                        <TableHead className="font-bold text-center">Fractura</TableHead>
+                        <TableHead className="font-bold text-center">Estado</TableHead>
                         <TableHead className="w-[100px] text-center font-bold">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -403,8 +403,6 @@ export function HuantaCompresionModule() {
 
                 {/* Resumen de Estadísticas */}
                 <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
-                  <span>Lotes: <strong className="text-slate-800">{new Set(rows.map(r => r.codigo_lote_interno).filter(Boolean)).size}</strong></span>
-                  <span className="text-slate-300">|</span>
                   <span>Ensayadas: <strong className="text-emerald-600">{dashboard.ensayados}</strong></span>
                   <span className="text-slate-300">|</span>
                   <span>Pendientes: <strong className="text-amber-600">{dashboard.curado}</strong></span>
