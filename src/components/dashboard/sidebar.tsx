@@ -38,6 +38,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
+  { id: "huanta_probetas", label: "Laboratorio Huanta", icon: Beaker, adminOnly: true },
   { id: "densidad_huantar", label: "Densidad Huantar", icon: Beaker, adminOnly: true },
   { id: "humedad", label: "Humedad Suelo", icon: Beaker, adminOnly: true },
   { id: "cont_humedad", label: "Humedad AG", icon: Beaker, adminOnly: true },
@@ -82,11 +83,10 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
     { id: "huanta_compresion", label: "Compresión Huanta", icon: Beaker },
     { id: "huanta_seguimiento", label: "Seguimiento Huanta", icon: Activity },
-    { id: "densidad_huantar", label: "Densidad Huantar", icon: Beaker },
   ], [])
 
   const isHuantaActive = React.useMemo(() => 
-    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule),
+    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento"].includes(activeModule),
     [activeModule]
   )
 
@@ -263,12 +263,12 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       {/* Navigation */}
       <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
         {filteredModules.map((module) => {
-          if (module.id === "densidad_huantar") {
-            const hasAccess = canAccessDashboardModule("densidad_huantar", user.role, user.permissions)
+          if (module.id === "huanta_probetas") {
+            const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions)
             if (!hasAccess) return null
 
             if (collapsed) {
-              const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule)
+              const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento"].includes(activeModule)
               return (
                 <Tooltip key="proyecto_huanta">
                   <TooltipTrigger asChild>
@@ -281,11 +281,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                       )}
                     >
-                      <FolderKanban className="h-5 w-5 shrink-0 text-primary" />
+                      <Beaker className="h-5 w-5 shrink-0 text-primary" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" sideOffset={8}>
-                    <p>Proyecto Huanta</p>
+                    <p>Laboratorio Huanta</p>
                   </TooltipContent>
                 </Tooltip>
               )
@@ -303,8 +303,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                   )}
                 >
-                  <FolderKanban className="h-5 w-5 shrink-0 text-primary" />
-                  <span className="flex-1 text-left truncate font-semibold">Proyecto Huanta</span>
+                  <Beaker className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="flex-1 text-left truncate font-semibold">Laboratorio Huanta</span>
                   {huantaExpanded ? (
                     <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                   ) : (

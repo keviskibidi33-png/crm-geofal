@@ -16,9 +16,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
 import DensidadHuantarForm from "./densidad-huantar-native/DensidadHuantarForm"
-import { HuantaProbetasModule } from "./huanta-probetas-module"
-import { HuantaCompresionModule } from "./huanta-compresion-module"
-import { HuantaSeguimientoModule } from "./huanta-seguimiento-module"
 
 interface DensidadHuantarEnsayoSummary {
     id: number
@@ -35,7 +32,6 @@ interface DensidadHuantarEnsayoSummary {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 export function DensidadHuantarModule() {
-    const [section, setSection] = useState<"probetas" | "compresion" | "seguimiento" | "densidad">("probetas")
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [ensayos, setEnsayos] = useState<DensidadHuantarEnsayoSummary[]>([])
     const [loading, setLoading] = useState(false)
@@ -170,51 +166,6 @@ export function DensidadHuantarModule() {
 
     return (
         <div className="h-full flex flex-col bg-slate-50/50">
-            <div className="px-6 pt-4 pb-0 bg-white border-b border-slate-100">
-                <div className="inline-flex rounded-xl bg-slate-100 p-1">
-                    <Button
-                        type="button"
-                        variant={section === "probetas" ? "default" : "ghost"}
-                        className={`rounded-lg ${section === "probetas" ? "" : "bg-transparent hover:bg-slate-200"}`}
-                        onClick={() => setSection("probetas")}
-                    >
-                        Control Probetas
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={section === "compresion" ? "default" : "ghost"}
-                        className={`rounded-lg ${section === "compresion" ? "" : "bg-transparent hover:bg-slate-200"}`}
-                        onClick={() => setSection("compresion")}
-                    >
-                        Compresión Huanta
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={section === "seguimiento" ? "default" : "ghost"}
-                        className={`rounded-lg ${section === "seguimiento" ? "" : "bg-transparent hover:bg-slate-200"}`}
-                        onClick={() => setSection("seguimiento")}
-                    >
-                        Seguimiento Huanta
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={section === "densidad" ? "default" : "ghost"}
-                        className={`rounded-lg ${section === "densidad" ? "" : "bg-transparent hover:bg-slate-200"}`}
-                        onClick={() => setSection("densidad")}
-                    >
-                        Densidad Huantar
-                    </Button>
-                </div>
-            </div>
-
-            {section === "probetas" ? (
-                <HuantaProbetasModule />
-            ) : section === "compresion" ? (
-                <HuantaCompresionModule />
-            ) : section === "seguimiento" ? (
-                <HuantaSeguimientoModule />
-            ) : (
-            <>
             {/* Header section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-white border-b border-slate-100">
                 <div>
@@ -406,8 +357,6 @@ export function DensidadHuantarModule() {
                 description="¿Estás seguro de que deseas eliminar este ensayo de Densidad Huantar? Esta acción moverá el archivo Excel a la papelera y cambiará su estado a eliminado."
                 confirmText="Sí, eliminar"
             />
-            </>
-            )}
         </div>
     )
 }
