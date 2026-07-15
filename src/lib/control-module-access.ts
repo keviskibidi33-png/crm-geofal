@@ -97,7 +97,24 @@ export function getPreferredControlModule(role: string | null | undefined, permi
   return null
 }
 
-export function canAccessDashboardModule(module: ModuleType, role: string | null | undefined, permissions?: RolePermissions) {
+export function canAccessDashboardModule(
+  module: ModuleType,
+  role: string | null | undefined,
+  permissions?: RolePermissions,
+  email?: string,
+) {
+  // Restrict specific user 'techuant@geofal.com.pe' to only Huanta modules and configuracion
+  if (email && email.toLowerCase() === "techuant@geofal.com.pe") {
+    const isHuantaModule = 
+      module === "densidad_huantar" || 
+      module === "huanta_probetas" || 
+      module === "huanta_compresion" || 
+      module === "huanta_seguimiento";
+    
+    if (module === "configuracion") return true;
+    return isHuantaModule;
+  }
+
   let activeCheckModule = module;
   if (module === "huanta_probetas" || module === "huanta_compresion" || module === "huanta_seguimiento") {
     activeCheckModule = "densidad_huantar";

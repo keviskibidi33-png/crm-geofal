@@ -115,7 +115,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
     if (isAdmin) return true
     if (module.id === "usuarios" || module.id === "auditoria") return false
-    return canAccessDashboardModule(module.id, user.role, user.permissions)
+    return canAccessDashboardModule(module.id, user.role, user.permissions, user.email)
   })
 
   const isModuleReadOnly = (moduleId: ModuleType): boolean => {
@@ -264,7 +264,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
         {filteredModules.map((module) => {
           if (module.id === "huanta_probetas") {
-            const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions)
+            const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions, user.email)
             if (!hasAccess) return null
 
             if (collapsed) {

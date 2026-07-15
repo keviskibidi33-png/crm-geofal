@@ -204,9 +204,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (loading || !user || initRedirectedRef.current) return
 
-    const controlDefault = isRestrictedTechnicalRole(user.role)
-      ? "tracing"
-      : getPreferredControlModule(user.role, user.permissions)
+    const controlDefault = user.email && user.email.toLowerCase() === "techuant@geofal.com.pe"
+      ? "densidad_huantar"
+      : isRestrictedTechnicalRole(user.role)
+        ? "tracing"
+        : getPreferredControlModule(user.role, user.permissions)
     initRedirectedRef.current = true
     if (controlDefault && activeModule !== controlDefault) {
       setActiveModule(controlDefault)
@@ -241,11 +243,12 @@ export default function DashboardPage() {
     }
 
     // 2. For other roles, check against their granted permissions
-    const hasPermission = !isAdminOnlyModule && canAccessDashboardModule(activeModule, user.role, user.permissions);
+    const hasPermission = !isAdminOnlyModule && canAccessDashboardModule(activeModule, user.role, user.permissions, user.email);
 
     if (!hasPermission) {
       // Choose a smart default based on role
       const getRoleDefault = (): ModuleType => {
+        if (user.email && user.email.toLowerCase() === "techuant@geofal.com.pe") return "densidad_huantar"
         if (isRestrictedTechnicalRole(role)) return 'tracing'
         const preferredControl = getPreferredControlModule(user.role, user.permissions);
         if (preferredControl) return preferredControl;
