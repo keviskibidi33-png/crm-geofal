@@ -79,6 +79,33 @@ export function DensidadHuantarModule() {
         void fetchEnsayos()
     }, [fetchEnsayos])
 
+    // Auto-open if a draft is detected in localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        try {
+            const keys = Object.keys(localStorage)
+            const draftKey = keys.find(k => k.startsWith("densidad_huantar_draft_v1:"))
+            if (draftKey) {
+                const idPart = draftKey.split(":")[1]
+                if (idPart === "new") {
+                    setEditingEnsayoId(null)
+                } else {
+                    const parsedId = Number(idPart)
+                    if (!isNaN(parsedId)) {
+                        setEditingEnsayoId(parsedId)
+                    } else {
+                        setEditingEnsayoId(null)
+                    }
+                }
+                setIsFormOpen(true)
+                toast.info("Se detectaron cambios pendientes de una sesión anterior.")
+            }
+        } catch (e) {
+            console.error("Error reading drafts from localStorage", e)
+        }
+    }, [])
+
+
     const handleManualReload = async () => {
         setRefreshingTable(true)
         const success = await fetchEnsayos()

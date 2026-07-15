@@ -227,6 +227,7 @@ export default function DensidadHuantarForm({
     const [showDraftBanner, setShowDraftBanner] = useState(false)
     const [draftData, setDraftData] = useState<DensidadHuantarFormState | null>(null)
     const [isClearDraftModalOpen, setIsClearDraftModalOpen] = useState(false)
+    const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false)
     const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
     
     // Autocomplete state
@@ -238,6 +239,27 @@ export default function DensidadHuantarForm({
     const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
     const hydratedFromServerRef = useRef<DensidadHuantarFormState | null>(null)
     const draftStorageKey = useMemo(() => getDraftStorageKey(ensayoId), [ensayoId])
+
+    const isDirty = useMemo(() => {
+        const isInitial = JSON.stringify(form) === JSON.stringify(INITIAL_STATE)
+        const sameAsServer = hydratedFromServerRef.current && JSON.stringify(form) === JSON.stringify(hydratedFromServerRef.current)
+        return !isInitial && !sameAsServer
+    }, [form])
+
+    // beforeunload warning effect
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault()
+                e.returnValue = "Tienes cambios pendientes sin guardar. ¿Estás seguro de que deseas salir?"
+                return e.returnValue
+            }
+        }
+        window.addEventListener("beforeunload", handleBeforeUnload)
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [isDirty])
 
     // Load data for edit or draft check
     useEffect(() => {
@@ -252,6 +274,9 @@ export default function DensidadHuantarForm({
                         const parsed = JSON.parse(rawDraft)
                         if (parsed && parsed.form) {
                             setForm(parsed.form)
+                            setDraftData(parsed.form)
+                            setShowDraftBanner(true)
+                            setSearchQuery(parsed.form.muestra || "")
                             toast.success("Se restauró un borrador local no guardado.")
                         }
                     } catch (e) {
@@ -284,16 +309,24 @@ export default function DensidadHuantarForm({
                         try {
                             const parsed = JSON.parse(rawDraft)
                             if (parsed && parsed.form && JSON.stringify(parsed.form) !== JSON.stringify(serverState)) {
+                                setForm(parsed.form)
                                 setDraftData(parsed.form)
                                 setShowDraftBanner(true)
+                                setSearchQuery(parsed.form.muestra || "")
+                                toast.success("Se restauró un borrador local con cambios pendientes.")
+                            } else {
+                                setForm(serverState)
+                                setSearchQuery(serverState.muestra || "")
                             }
                         } catch (e) {
                             localStorage.removeItem(draftStorageKey)
+                            setForm(serverState)
+                            setSearchQuery(serverState.muestra || "")
                         }
+                    } else {
+                        setForm(serverState)
+                        setSearchQuery(serverState.muestra || "")
                     }
-                    
-                    setForm(serverState)
-                    setSearchQuery(serverState.muestra || "")
                 }
             } catch (err: any) {
                 toast.error(err.message || "Error al cargar los datos.")
@@ -596,7 +629,13 @@ export default function DensidadHuantarForm({
                 </div>
                 {onClose && (
                     <button 
-                        onClick={onClose}
+                        onClick={() => {
+                            if (isDirty) {
+                                setIsCloseConfirmOpen(true)
+                            } else {
+                                onClose()
+                            }
+                        }}
                         className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 shadow-sm transition"
                     >
                         <X className="h-5 w-5" />
@@ -610,26 +649,27 @@ export default function DensidadHuantarForm({
                     <div className="flex gap-2.5 text-amber-800 text-sm">
                         <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                         <div>
-                            <p className="font-semibold text-amber-900">Borrador local no guardado detectado</p>
-                            <p className="text-xs text-amber-700">Hay diferencias entre tu borrador guardado en este navegador y el servidor.</p>
+                            <p className="font-semibold text-amber-900">Borrador local con cambios pendientes</p>
+                            <p className="text-xs text-amber-700">Se han recuperado cambios pendientes de una sesión anterior.</p>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <button 
                             onClick={() => {
-                                setForm(draftData)
+                                void handleSave(false)
                                 setShowDraftBanner(false)
-                                toast.success("Borrador recuperado.")
                             }}
-                            className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-3.5 py-1.5 rounded-lg text-xs transition"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3.5 py-1.5 rounded-lg text-xs transition"
                         >
-                            Recuperar Borrador
+                            Guardar Informe
                         </button>
                         <button 
                             onClick={() => {
                                 localStorage.removeItem(draftStorageKey)
                                 setShowDraftBanner(false)
                                 setDraftData(null)
+                                setForm(hydratedFromServerRef.current || INITIAL_STATE)
+                                setSearchQuery(hydratedFromServerRef.current?.muestra || "")
                                 toast.success("Borrador descartado.")
                             }}
                             className="border border-amber-300 bg-white text-amber-800 hover:bg-amber-50 px-3.5 py-1.5 rounded-lg text-xs transition"
@@ -1521,7 +1561,83 @@ export default function DensidadHuantarForm({
                     }}
                 />
             )}
+
+            {/* Close Pending Changes Modal */}
+            <PendingChangesCloseModal
+                isOpen={isCloseConfirmOpen}
+                onClose={() => setIsCloseConfirmOpen(false)}
+                onSave={() => {
+                    setIsCloseConfirmOpen(false)
+                    void handleSave(false)
+                }}
+                onDiscard={() => {
+                    localStorage.removeItem(draftStorageKey)
+                    setIsCloseConfirmOpen(false)
+                    if (onClose) onClose()
+                }}
+            />
         </div>
+    )
+}
+
+// Modal de Cambios Pendientes al Cerrar
+function PendingChangesCloseModal({
+    isOpen,
+    onClose,
+    onSave,
+    onDiscard,
+}: {
+    isOpen: boolean
+    onClose: () => void
+    onSave: () => void
+    onDiscard: () => void
+}) {
+    if (!isOpen) return null
+
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                        <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Tienes cambios pendientes</h3>
+                        <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                            Has realizado modificaciones en el informe de Densidad Huantar. ¿Deseas guardar los cambios antes de salir o descartarlos?
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onDiscard}
+                        className="h-10 px-4 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium transition"
+                    >
+                        Descartar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onSave}
+                        className="h-10 px-4 rounded-lg text-white text-sm font-semibold transition"
+                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+                    >
+                        Guardar informe
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body,
     )
 }
 
