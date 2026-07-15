@@ -47,16 +47,6 @@ export function HuantaCompresionModule() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(100)
 
-  const lotColorClasses = useCallback((lote: string) => {
-    let acc = 0
-    for (const ch of lote || "") acc = (acc + ch.charCodeAt(0)) % 4
-    return [
-      "bg-blue-50 text-blue-800 border-blue-100",
-      "bg-emerald-50 text-emerald-800 border-emerald-100",
-      "bg-amber-50 text-amber-800 border-amber-100",
-      "bg-violet-50 text-violet-800 border-violet-100",
-    ][acc]
-  }, [])
 
   const getLoteBgClass = useCallback((lote: string) => {
     const colors = [
@@ -350,8 +340,7 @@ export function HuantaCompresionModule() {
                     <TableHeader className="bg-[#f4f4f5] sticky top-0 z-10 shadow-sm">
                       <TableRow>
                         <TableHead className="font-bold">Probeta</TableHead>
-                        <TableHead className="font-bold">Lote</TableHead>
-                        <TableHead className="font-bold">LEM</TableHead>
+                        <TableHead className="font-bold">Código Muestra LEM</TableHead>
                         <TableHead className="font-bold">Rotura</TableHead>
                         <TableHead className="font-bold">Diám 1</TableHead>
                         <TableHead className="font-bold">Diám 2</TableHead>
@@ -368,11 +357,6 @@ export function HuantaCompresionModule() {
                       {paginated.map((row) => (
                         <TableRow key={row.id} className={`${getLoteBgClass(row.codigo_lote_interno)} transition-colors`}>
                           <TableCell className="font-mono text-center font-semibold text-slate-900">{row.codigo_probeta}</TableCell>
-                          <TableCell className="font-mono text-xs">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
-                              {row.codigo_lote_interno}
-                            </span>
-                          </TableCell>
                           <TableCell className="font-mono text-xs">{row.codigo_muestra_lem}</TableCell>
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
                           <TableCell className="text-center text-xs">{row.diam_1 || "-"}</TableCell>
