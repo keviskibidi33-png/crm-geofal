@@ -15,17 +15,6 @@ import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
-const DEFAULT_ELEMENTOS = [
-  "MURO PERIMETRAL",
-  "LOSA PAVIMENTACION TRAMO I Y II",
-  "LOSAS",
-  "VIGA",
-  "COLUMNA",
-  "VEREDA",
-  "PISO",
-  "PANEL",
-]
-
 type HuantaProbetaRow = {
   id: number
   item: number
@@ -50,8 +39,8 @@ const emptyRow = (item: number): DraftRow => ({
   item,
   codigo_probeta: "",
   sigla: "HHTA",
-  elemento: DEFAULT_ELEMENTOS[0],
-  detalle_elemento: "",
+  elemento: "-",
+  detalle_elemento: "-",
   f_c: "210",
   fecha_moldeo: "",
   edad: 7,
@@ -75,11 +64,9 @@ function addDays(dateValue: string, days: number) {
 
 function generateLemCode(row: DraftRow) {
   const sigla = (row.sigla || "HHTA").trim()
-  const elem = (row.elemento || "").trim()
-  const det = (row.detalle_elemento || "").trim()
   const fc = (row.f_c || "").trim()
   const numPart = row.codigo_probeta.replace(/\D/g, "") || "0"
-  return `${sigla}-${elem}-${det}-${fc}-${numPart}`
+  return `${sigla}-${fc}-${numPart}`
 }
 
 
@@ -158,7 +145,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [rows, setRows] = useState<DraftRow[]>(Array.from({ length: 6 }, (_, i) => emptyRow(i + 1)))
-  const [previewQuery, setPreviewQuery] = useState("")
 
   useEffect(() => {
     if (!open) return
@@ -206,8 +192,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
 
       const updated = {
         ...row,
-        elemento: row.elemento === emptyRow(idx + 1).elemento ? firstRow.elemento : row.elemento,
-        detalle_elemento: row.detalle_elemento || firstRow.detalle_elemento,
         f_c: row.f_c === "210" ? firstRow.f_c : row.f_c,
         fecha_moldeo: row.fecha_moldeo || firstRow.fecha_moldeo,
         edad: row.edad === 7 ? defaultEdad : row.edad,
@@ -223,19 +207,15 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async () => {
     const payload = rows.map((row, idx) => {
-      const activeElemento = row.elemento?.trim() || "MURO PERIMETRAL"
-      const activeDetalle = row.detalle_elemento?.trim() || "-"
       const activeFc = row.f_c?.trim() || "-"
       const activeCodigoProbeta = row.codigo_probeta?.trim() || `${idx + 1}-CO`
       
-      const defaultLem = `HHTA-${activeElemento}-${activeDetalle}-${activeFc}-${activeCodigoProbeta.replace(/\D/g, "")}`
+      const defaultLem = `HHTA-${activeFc}-${activeCodigoProbeta.replace(/\D/g, "")}`
       
       return {
         item: idx + 1,
         codigo_probeta: activeCodigoProbeta,
         sigla: "HHTA",
-        elemento: activeElemento,
-        detalle_elemento: activeDetalle,
         f_c: activeFc,
         fecha_moldeo: row.fecha_moldeo,
         edad: Number(row.edad) || 0,
@@ -270,11 +250,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
     }
   }
 
-  const filteredElementos = useMemo(() => {
-    const q = previewQuery.trim().toLowerCase()
-    return DEFAULT_ELEMENTOS.filter((x) => x.toLowerCase().includes(q))
-  }, [previewQuery])
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -290,22 +265,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
 
         <div className="flex-1 overflow-auto space-y-4 pr-1">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50 border">
-            <div>
-              <Label className="text-xs font-bold text-slate-700">Buscar elemento sugerido</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input className="pl-9 h-9 bg-white" value={previewQuery} onChange={(e) => setPreviewQuery(e.target.value)} placeholder="Escribe para sugerir..." />
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 flex items-end pb-2 md:col-span-2">
-              <div className="flex flex-col gap-1 w-full">
-                <span className="font-semibold">Sugeridos:</span>
-                <span className="truncate">{filteredElementos.length > 0 ? filteredElementos.slice(0, 5).join(", ") : "Sin sugerencias"}</span>
-              </div>
-            </div>
-          </div>
-
           <div className="flex justify-between items-center px-1">
             <h3 className="text-sm font-semibold text-slate-700">Muestras del lote</h3>
             <Button
@@ -327,8 +286,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
                   <TableHead className="w-14 text-center">Item</TableHead>
                   <TableHead className="w-32">Código probeta</TableHead>
                   <TableHead className="w-20 text-center">Sigla</TableHead>
-                  <TableHead className="min-w-[200px]">Elemento</TableHead>
-                  <TableHead className="min-w-[200px]">Detalle elemento</TableHead>
                   <TableHead className="w-24">F'c (kg/cm2)</TableHead>
                   <TableHead className="w-40">Fecha moldeo</TableHead>
                   <TableHead className="w-24">Edad (días)</TableHead>
@@ -349,22 +306,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
                       />
                     </TableCell>
                     <TableCell className="text-center font-mono font-bold text-slate-600 text-xs">{row.sigla}</TableCell>
-                    <TableCell>
-                      <Input
-                        value={row.elemento}
-                        list="huanta-elementos"
-                        onChange={(e) => updateRow(index, { elemento: e.target.value })}
-                        className="h-8 text-xs"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={row.detalle_elemento}
-                        onChange={(e) => updateRow(index, { detalle_elemento: e.target.value })}
-                        placeholder="Ej. (EJE-D-N @ 09'-10')"
-                        className="h-8 text-xs"
-                      />
-                    </TableCell>
                     <TableCell>
                       <Input
                         value={row.f_c}
@@ -408,10 +349,6 @@ function HuantaBatchModal({ onCreated }: { onCreated: () => void }) {
               </TableBody>
             </Table>
           </div>
-
-          <datalist id="huanta-elementos">
-            {DEFAULT_ELEMENTOS.map((el) => <option key={el} value={el} />)}
-          </datalist>
         </div>
 
         <div className="flex justify-end gap-2 pt-3 border-t">
@@ -483,7 +420,7 @@ export function HuantaProbetasModule() {
     let result = rows
     if (q) {
       result = result.filter((r) =>
-        [r.codigo_probeta, r.elemento, r.detalle_elemento, r.f_c, r.codigo_muestra_lem, r.codigo_lote_interno, String(r.item)]
+        [r.codigo_probeta, r.f_c, r.codigo_muestra_lem, r.codigo_lote_interno, String(r.item)]
           .some((v) => (v || "").toLowerCase().includes(q))
       )
     }
@@ -539,7 +476,7 @@ export function HuantaProbetasModule() {
       patch.fecha_rotura = addDays(moldeo, Number(edad || 0))
     }
 
-    if (["sigla", "elemento", "detalle_elemento", "f_c", "codigo_probeta"].includes(field)) {
+    if (["sigla", "f_c", "codigo_probeta"].includes(field)) {
       const updated = { ...row, ...patch }
       const prevAuto = generateLemCode(row as any)
       if (!row.codigo_muestra_lem || row.codigo_muestra_lem === prevAuto) {
@@ -738,7 +675,7 @@ export function HuantaProbetasModule() {
                 <div className="flex items-center gap-3 flex-1">
                   <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, elemento..." className="pl-9 h-9" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, f'c..." className="pl-9 h-9" />
                   </div>
                   <div className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-slate-400" />
@@ -786,8 +723,6 @@ export function HuantaProbetasModule() {
                         <TableHead className="w-14 text-center font-bold">Item</TableHead>
                         <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
                         <TableHead className="w-20 text-center font-bold">Sigla</TableHead>
-                        <TableHead className="min-w-[180px] text-center font-bold">Elemento</TableHead>
-                        <TableHead className="min-w-[180px] text-center font-bold">Detalle</TableHead>
                         <TableHead className="w-24 text-center font-bold">F'c (kg/cm2)</TableHead>
                         <TableHead className="w-32 text-center font-bold">Moldeo</TableHead>
                         <TableHead className="w-20 text-center font-bold">Edad</TableHead>
@@ -805,12 +740,6 @@ export function HuantaProbetasModule() {
                           <TableCell className="font-bold text-center text-slate-500">{(page - 1) * pageSize + idx + 1}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
-                          <TableCell className="font-medium text-slate-700">
-                            <InlineEditableText value={row.elemento} onCommit={(v) => handleInlineSave(row.id, "elemento", v)} />
-                          </TableCell>
-                          <TableCell className="text-slate-600 text-xs">
-                            <InlineEditableText value={row.detalle_elemento} onCommit={(v) => handleInlineSave(row.id, "detalle_elemento", v)} placeholder="-" />
-                          </TableCell>
                           <TableCell className="text-center font-semibold text-indigo-600">
                             <InlineEditableText value={row.f_c} onCommit={(v) => handleInlineSave(row.id, "f_c", v)} />
                           </TableCell>
