@@ -182,15 +182,18 @@ export function HuantaCompresionModule() {
     if (!editingRow) return
     setSaving(true)
     try {
+      const loadVal = editingRow.carga_maxima !== undefined && editingRow.carga_maxima !== null ? Number(editingRow.carga_maxima) : null
+      const computedEstado = (loadVal !== null && loadVal > 0) ? "ENSAYADO" : (editingRow.estado || "PENDIENTE")
+
       const payload = {
         diam_1: editingRow.diam_1?.trim() || null,
         diam_2: editingRow.diam_2?.trim() || null,
         long_1: editingRow.long_1?.trim() || null,
         long_2: editingRow.long_2?.trim() || null,
         long_3: editingRow.long_3?.trim() || null,
-        carga_maxima: editingRow.carga_maxima !== undefined && editingRow.carga_maxima !== null ? Number(editingRow.carga_maxima) : null,
+        carga_maxima: loadVal,
         tipo_fractura: editingRow.tipo_fractura?.trim() || null,
-        estado: editingRow.estado || "PENDIENTE",
+        estado: computedEstado,
         observaciones: editingRow.observaciones?.trim() || null,
       }
 
@@ -219,12 +222,14 @@ export function HuantaCompresionModule() {
 
     const patch: Record<string, any> = { [field]: newValue || null }
 
-    if (["diam_1", "diam_2", "long_1", "long_2", "long_3", "carga_maxima", "tipo_fractura"].includes(field)) {
+    if (["diam_1", "diam_2", "long_1", "long_2", "long_3", "tipo_fractura"].includes(field)) {
       patch.estado = "PENDIENTE"
     }
 
     if (field === "carga_maxima") {
-      patch[field] = newValue !== "" ? Number(newValue) : null
+      const num = newValue !== "" ? Number(newValue) : null
+      patch[field] = num
+      patch.estado = (num !== null && num > 0) ? "ENSAYADO" : "PENDIENTE"
     }
 
     setRows((prev) => prev.map((r) => r.id === rowId ? { ...r, ...patch } : r))
