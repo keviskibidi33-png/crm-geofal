@@ -140,19 +140,6 @@ function InlineEditableText({
   )
 }
 
-function lotColorClasses(lote: string) {
-  const colors = [
-    "bg-blue-50 text-blue-700 border-blue-200",
-    "bg-emerald-50 text-emerald-700 border-emerald-200",
-    "bg-violet-50 text-violet-700 border-violet-200",
-    "bg-amber-50 text-amber-700 border-amber-200",
-    "bg-rose-50 text-rose-700 border-rose-200",
-    "bg-cyan-50 text-cyan-700 border-cyan-200",
-  ]
-  const idx = Math.abs((lote || "HHTA").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0))
-  return colors[idx % colors.length]
-}
-
 function getLoteBgClass(lote: string) {
   const colors = [
     "bg-blue-50/20 hover:bg-blue-50/40",
@@ -748,7 +735,6 @@ export function HuantaProbetasModule() {
                         <TableHead className="w-20 text-center font-bold">Edad</TableHead>
                         <TableHead className="w-32 text-center font-bold">Rotura</TableHead>
                         <TableHead className="min-w-[240px] font-bold">Código Muestra LEM</TableHead>
-                        <TableHead className="w-36 text-center font-bold">Lote interno</TableHead>
                         <TableHead className="w-28 text-center font-bold">Estado</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -776,11 +762,6 @@ export function HuantaProbetasModule() {
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
                           <TableCell className="font-mono text-[11px] text-slate-500">
                             <InlineEditableText value={row.codigo_muestra_lem} onCommit={(v) => handleInlineSave(row.id, "codigo_muestra_lem", v)} placeholder="-" />
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-center text-slate-600">
-                            <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
-                              {row.codigo_lote_interno || "SIN LOTE"}
-                            </Badge>
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold ${

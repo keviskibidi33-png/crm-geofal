@@ -27,6 +27,8 @@ const DialogFullscreenContent = React.forwardRef<
             }}
             {...props}
         >
+            <DialogPrimitive.Title className="sr-only">Dialogo</DialogPrimitive.Title>
+            <DialogPrimitive.Description className="sr-only">Contenido del dialogo</DialogPrimitive.Description>
             {children}
         </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
