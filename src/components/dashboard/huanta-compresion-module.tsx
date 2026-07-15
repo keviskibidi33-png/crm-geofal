@@ -50,12 +50,12 @@ export function HuantaCompresionModule() {
 
   const getLoteBgClass = useCallback((lote: string) => {
     const colors = [
-      "bg-blue-50/20 hover:bg-blue-50/40",
-      "bg-emerald-50/20 hover:bg-emerald-50/40",
-      "bg-violet-50/20 hover:bg-violet-50/40",
-      "bg-amber-50/20 hover:bg-amber-50/40",
-      "bg-rose-50/20 hover:bg-rose-50/40",
-      "bg-cyan-50/20 hover:bg-cyan-50/40",
+      "bg-blue-100/50 hover:bg-blue-100/70",
+      "bg-emerald-100/50 hover:bg-emerald-100/70",
+      "bg-violet-100/50 hover:bg-violet-100/70",
+      "bg-amber-100/50 hover:bg-amber-100/70",
+      "bg-rose-100/50 hover:bg-rose-100/70",
+      "bg-cyan-100/50 hover:bg-cyan-100/70",
     ]
     const val = lote || "DEFAULT"
     const hash = val.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0)
