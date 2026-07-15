@@ -449,9 +449,12 @@ export function HuantaProbetasModule() {
   const [refreshing, setRefreshing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState("")
+  const [dateFilter, setDateFilter] = useState("")
   const [isOpen, setIsOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(100)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [batchUpdating, setBatchUpdating] = useState(false)
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -494,12 +497,19 @@ export function HuantaProbetasModule() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((r) =>
-      [r.codigo_probeta, r.elemento, r.detalle_elemento, r.f_c, r.codigo_muestra_lem, r.codigo_lote_interno, String(r.item)]
-        .some((v) => (v || "").toLowerCase().includes(q))
-    )
-  }, [rows, search])
+    let result = rows
+    if (q) {
+      result = result.filter((r) =>
+        [r.codigo_probeta, r.elemento, r.detalle_elemento, r.f_c, r.codigo_muestra_lem, r.codigo_lote_interno, String(r.item)]
+          .some((v) => (v || "").toLowerCase().includes(q))
+      )
+    }
+    if (dateFilter) {
+      const filterDate = dateFilter.replace(/-/g, "/")
+      result = result.filter((r) => r.fecha_rotura === filterDate)
+    }
+    return result
+  }, [rows, search, dateFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paginated = useMemo(() => {
@@ -569,6 +579,44 @@ export function HuantaProbetasModule() {
       toast.error("Error al guardar, revirtiendo...")
       void fetchRows()
     }
+  }
+
+  const handleBatchStatusChange = async (newEstado: string) => {
+    if (selectedIds.size === 0) return
+    setBatchUpdating(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/huanta-probetas/batch-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), estado: newEstado }),
+      })
+      if (!res.ok) throw new Error("No se pudo actualizar el estado")
+      const data = await res.json()
+      toast.success(data.message || `${selectedIds.size} probetas actualizadas a ${newEstado}`)
+      setSelectedIds(new Set())
+      void fetchRows()
+    } catch (err: any) {
+      toast.error(err?.message || "Error al actualizar estado")
+    } finally {
+      setBatchUpdating(false)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginated.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginated.map((r) => r.id)))
+    }
+  }
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   return (
@@ -704,11 +752,35 @@ export function HuantaProbetasModule() {
           <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0">
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
               <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3 shrink-0">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, lote, elemento..." className="pl-9 h-9" />
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, elemento..." className="pl-9 h-9" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-slate-400" />
+                    <Input type="date" value={dateFilter} onChange={(e) => { setDateFilter(e.target.value); setPage(1) }} className="h-9 w-40 text-xs" />
+                    {dateFilter && (
+                      <Button variant="ghost" size="sm" onClick={() => setDateFilter("")} className="h-9 px-2 text-xs text-slate-500">Limpiar</Button>
+                    )}
+                  </div>
                 </div>
-                <HuantaBatchModal onCreated={fetchRows} />
+                <div className="flex items-center gap-2">
+                  {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-1.5">
+                      <span className="text-xs font-bold text-indigo-700">{selectedIds.size} seleccionadas</span>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" disabled={batchUpdating} onClick={() => handleBatchStatusChange("ENSAYADO")}>
+                        {batchUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                        Marcar ENSAYADO
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" disabled={batchUpdating} onClick={() => handleBatchStatusChange("PENDIENTE")}>
+                        {batchUpdating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                        Marcar PENDIENTE
+                      </Button>
+                    </div>
+                  )}
+                  <HuantaBatchModal onCreated={fetchRows} />
+                </div>
               </div>
               <div className="overflow-x-auto flex-1 min-h-0">
                 {loading && rows.length === 0 ? (
@@ -725,6 +797,9 @@ export function HuantaProbetasModule() {
                   <Table>
                     <TableHeader className="bg-[#f4f4f5] sticky top-0 z-10 shadow-sm">
                       <TableRow>
+                        <TableHead className="w-10 text-center">
+                          <input type="checkbox" checked={paginated.length > 0 && selectedIds.size === paginated.length} onChange={toggleSelectAll} className="h-4 w-4 rounded border-slate-300" />
+                        </TableHead>
                         <TableHead className="w-14 text-center font-bold">Item</TableHead>
                         <TableHead className="w-32 text-center font-bold">Código probeta</TableHead>
                         <TableHead className="w-20 text-center font-bold">Sigla</TableHead>
@@ -741,6 +816,9 @@ export function HuantaProbetasModule() {
                     <TableBody>
                       {paginated.map((row, idx) => (
                         <TableRow key={row.id} className={`${getLoteBgClass(row.codigo_lote_interno)} transition-colors`}>
+                          <TableCell className="text-center">
+                            <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelectOne(row.id)} className="h-4 w-4 rounded border-slate-300" />
+                          </TableCell>
                           <TableCell className="font-bold text-center text-slate-500">{(page - 1) * pageSize + idx + 1}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
