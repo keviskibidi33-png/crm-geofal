@@ -657,9 +657,9 @@ export function HuantaProbetasModule() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginated.map((row) => (
+                      {paginated.map((row, idx) => (
                         <TableRow key={row.id} className={`${getLoteBgClass(row.codigo_lote_interno)} transition-colors`}>
-                          <TableCell className="font-bold text-center text-slate-500">{row.item}</TableCell>
+                          <TableCell className="font-bold text-center text-slate-500">{(page - 1) * pageSize + idx + 1}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
                           <TableCell className="font-medium text-slate-700">{row.elemento}</TableCell>
