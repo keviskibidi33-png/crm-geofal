@@ -83,6 +83,63 @@ function generateLemCode(row: DraftRow) {
 }
 
 
+function InlineEditableText({
+  value,
+  onCommit,
+  className = "",
+  placeholder = "—",
+  type = "text",
+}: {
+  value?: string | number | null
+  onCommit: (next: string) => void
+  className?: string
+  placeholder?: string
+  type?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(value ?? ""))
+
+  useEffect(() => {
+    if (!editing) setDraft(String(value ?? ""))
+  }, [value, editing])
+
+  if (editing) {
+    return (
+      <Input
+        autoFocus
+        type={type}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false)
+          onCommit(draft.trim())
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            ;(e.target as HTMLInputElement).blur()
+          }
+          if (e.key === "Escape") {
+            setDraft(String(value ?? ""))
+            setEditing(false)
+          }
+        }}
+        className={`h-8 text-center font-mono text-xs rounded-lg border border-slate-300 shadow-sm bg-white ${className}`}
+      />
+    )
+  }
+
+  return (
+    <div
+      onDoubleClick={() => setEditing(true)}
+      className={`min-h-8 flex items-center justify-center cursor-text select-none rounded-md px-1 ${className}`}
+      title="Doble click para editar"
+    >
+      <span className="block w-full text-center wrap-break-word leading-tight">{String(value ?? "") || placeholder}</span>
+    </div>
+  )
+}
+
 function lotColorClasses(lote: string) {
   const colors = [
     "bg-blue-50 text-blue-700 border-blue-200",
@@ -408,8 +465,6 @@ export function HuantaProbetasModule() {
   const [isOpen, setIsOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(100)
-  const [editingCell, setEditingCell] = useState<{ rowId: number; field: string } | null>(null)
-  const [editValue, setEditValue] = useState("")
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -490,25 +545,17 @@ export function HuantaProbetasModule() {
     toast.success("Listado actualizado")
   }
 
-  const handleCellDoubleClick = (rowId: number, field: string, currentValue: string) => {
-    setEditingCell({ rowId, field })
-    setEditValue(currentValue || "")
-  }
-
-  const handleCellBlur = async () => {
-    if (!editingCell) return
-    const { rowId, field } = editingCell
+  const handleInlineSave = async (rowId: number, field: string, newValue: string) => {
     const row = rows.find((r) => r.id === rowId)
-    if (!row) { setEditingCell(null); return }
-
+    if (!row) return
     const originalValue = String((row as any)[field] || "")
-    if (editValue === originalValue) { setEditingCell(null); return }
+    if (newValue === originalValue) return
 
-    const patch: Record<string, any> = { [field]: editValue }
+    const patch: Record<string, any> = { [field]: newValue }
 
     if (field === "fecha_moldeo" || field === "edad") {
-      const moldeo = field === "fecha_moldeo" ? editValue : row.fecha_moldeo
-      const edad = field === "edad" ? Number(editValue) : row.edad
+      const moldeo = field === "fecha_moldeo" ? newValue : row.fecha_moldeo
+      const edad = field === "edad" ? Number(newValue) : row.edad
       patch.fecha_rotura = addDays(moldeo, Number(edad || 0))
     }
 
@@ -521,7 +568,6 @@ export function HuantaProbetasModule() {
     }
 
     setRows((prev) => prev.map((r) => r.id === rowId ? { ...r, ...patch } : r))
-    setEditingCell(null)
 
     try {
       const res = await authFetch(`${API_URL}/api/huanta-probetas/${rowId}`, {
@@ -536,11 +582,6 @@ export function HuantaProbetasModule() {
       toast.error("Error al guardar, revirtiendo...")
       void fetchRows()
     }
-  }
-
-  const handleCellKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") { (e.target as HTMLElement).blur() }
-    if (e.key === "Escape") { setEditingCell(null) }
   }
 
   return (
@@ -717,36 +758,24 @@ export function HuantaProbetasModule() {
                           <TableCell className="font-bold text-center text-slate-500">{(page - 1) * pageSize + idx + 1}</TableCell>
                           <TableCell className="font-mono text-center font-bold text-slate-700">{row.codigo_probeta}</TableCell>
                           <TableCell className="text-center text-xs font-semibold font-mono text-slate-500">{row.sigla}</TableCell>
-                          <TableCell className="font-medium text-slate-700 cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "elemento", row.elemento)}>
-                            {editingCell?.rowId === row.id && editingCell.field === "elemento" ? (
-                              <Input autoFocus list="huanta-elementos" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs" />
-                            ) : row.elemento}
+                          <TableCell className="font-medium text-slate-700">
+                            <InlineEditableText value={row.elemento} onCommit={(v) => handleInlineSave(row.id, "elemento", v)} />
                           </TableCell>
-                          <TableCell className="text-slate-600 text-xs cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "detalle_elemento", row.detalle_elemento)}>
-                            {editingCell?.rowId === row.id && editingCell.field === "detalle_elemento" ? (
-                              <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs" />
-                            ) : row.detalle_elemento || "-"}
+                          <TableCell className="text-slate-600 text-xs">
+                            <InlineEditableText value={row.detalle_elemento} onCommit={(v) => handleInlineSave(row.id, "detalle_elemento", v)} placeholder="-" />
                           </TableCell>
-                          <TableCell className="text-center font-semibold text-indigo-600 cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "f_c", row.f_c)}>
-                            {editingCell?.rowId === row.id && editingCell.field === "f_c" ? (
-                              <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs w-16" />
-                            ) : row.f_c}
+                          <TableCell className="text-center font-semibold text-indigo-600">
+                            <InlineEditableText value={row.f_c} onCommit={(v) => handleInlineSave(row.id, "f_c", v)} />
                           </TableCell>
-                          <TableCell className="text-center text-xs text-slate-600 cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "fecha_moldeo", row.fecha_moldeo)}>
-                            {editingCell?.rowId === row.id && editingCell.field === "fecha_moldeo" ? (
-                              <Input autoFocus type="date" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs" />
-                            ) : row.fecha_moldeo}
+                          <TableCell className="text-center text-xs text-slate-600">
+                            <InlineEditableText value={row.fecha_moldeo} onCommit={(v) => handleInlineSave(row.id, "fecha_moldeo", v)} type="date" />
                           </TableCell>
-                          <TableCell className="text-center font-semibold text-xs text-slate-700 cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "edad", String(row.edad))}>
-                            {editingCell?.rowId === row.id && editingCell.field === "edad" ? (
-                              <Input autoFocus type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs w-14" />
-                            ) : <>{row.edad}d</>}
+                          <TableCell className="text-center font-semibold text-xs text-slate-700">
+                            <InlineEditableText value={`${row.edad}d`} onCommit={(v) => handleInlineSave(row.id, "edad", v.replace("d", ""))} />
                           </TableCell>
                           <TableCell className="text-center text-xs text-slate-600">{row.fecha_rotura}</TableCell>
-                          <TableCell className="font-mono text-[11px] text-slate-500 cursor-pointer hover:bg-white/60 rounded" onDoubleClick={() => handleCellDoubleClick(row.id, "codigo_muestra_lem", row.codigo_muestra_lem)}>
-                            {editingCell?.rowId === row.id && editingCell.field === "codigo_muestra_lem" ? (
-                              <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={handleCellBlur} onKeyDown={handleCellKeyDown} className="h-7 text-xs" />
-                            ) : row.codigo_muestra_lem || "-"}
+                          <TableCell className="font-mono text-[11px] text-slate-500">
+                            <InlineEditableText value={row.codigo_muestra_lem} onCommit={(v) => handleInlineSave(row.id, "codigo_muestra_lem", v)} placeholder="-" />
                           </TableCell>
                           <TableCell className="font-mono text-xs text-center text-slate-600">
                             <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
