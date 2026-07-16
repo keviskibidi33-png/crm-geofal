@@ -533,6 +533,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
           user={dashboardUser}
+          activeModule={activeModule}
           setActiveModule={requestModuleChange}
           onOpenAffectedUser={(userId) => {
             setPendingNotificationUserId(userId)

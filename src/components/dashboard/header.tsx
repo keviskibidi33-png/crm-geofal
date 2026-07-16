@@ -15,6 +15,7 @@ import { LabNotificationDetailDialog } from "@/components/dashboard/lab-notifica
 
 interface HeaderProps {
   user: User
+  activeModule: ModuleType
   setActiveModule: (module: ModuleType) => void
   onOpenAffectedUser?: (userId: string) => void
   onOpenLabNotification?: (target: { module: ModuleType; recordId: number }) => void
@@ -83,7 +84,9 @@ async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promis
   return Array.isArray(payload?.data) ? payload.data : []
 }
 
-export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
+const SEARCH_MODULES: ModuleType[] = ["clientes", "proyectos", "cotizadora", "comercial", "tracing"]
+
+export function DashboardHeader({ user, activeModule, setActiveModule, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -425,6 +428,20 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
     }
   }, [])
 
+  // Clear search state when navigating away from commercial modules
+  useEffect(() => {
+    if (!showSearch) {
+      setSearchQuery("")
+      setSearchResults([])
+      setShowResults(false)
+      setIsSearching(false)
+      searchAbortRef.current?.abort()
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [showSearch])
+
   useEffect(() => {
     notificationsUnavailableRef.current = false
     notificationHistoryUnavailableRef.current = false
@@ -521,10 +538,33 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
     }
   }
 
+  const showSearch = SEARCH_MODULES.includes(activeModule)
+
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6">
-      {/* Search with Autocomplete */}
-      <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-md lg:max-w-lg" ref={searchRef}>
+    <header className="relative h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6 overflow-hidden">
+      {/* Background Image (fades in/out based on module) */}
+      <div
+        className={`absolute inset-0 z-0 transition-opacity duration-500 ease-in-out ${
+          showSearch ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <img
+          src="/login-background.png"
+          alt=""
+          className="w-full h-full object-cover opacity-[0.12]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/60 to-background/80" />
+      </div>
+
+      {/* Search with Autocomplete (fades in/out based on module) */}
+      <div
+        className={`relative flex-1 min-w-0 max-w-xs sm:max-w-md lg:max-w-lg z-10 transition-all duration-500 ease-in-out ${
+          showSearch
+            ? "opacity-100 scale-100"
+            : "opacity-0 scale-[0.97] pointer-events-none"
+        }`}
+        ref={searchRef}
+      >
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         {isSearching && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
@@ -574,7 +614,7 @@ export function DashboardHeader({ user, setActiveModule, onOpenAffectedUser, onO
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0 z-10">
         <Button
           variant="ghost"
           size="icon"
