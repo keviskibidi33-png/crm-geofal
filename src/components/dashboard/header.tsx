@@ -1,10 +1,9 @@
 "use client"
 
-import { startTransition, useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Bell, Search, Sun, Moon, Building2, FolderKanban, FileText, Loader2, AlertTriangle, CheckCircle2, Clock3, UserRoundSearch } from "lucide-react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { Bell, Search, Sun, Moon, FileText, Loader2, CheckCircle2, UserRoundSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
 import { useTheme } from "@/components/theme-provider"
 import { type User, type ModuleType } from "@/hooks/use-auth"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -20,13 +19,6 @@ interface HeaderProps {
   onOpenCommandPalette?: () => void
   onOpenAffectedUser?: (userId: string) => void
   onOpenLabNotification?: (target: { module: ModuleType; recordId: number }) => void
-}
-
-interface SearchResult {
-  id: string
-  type: "cliente" | "proyecto" | "cotizacion"
-  title: string
-  subtitle: string
 }
 
 interface DashboardNotification {
@@ -63,35 +55,8 @@ function getNotificationCreatorAvatar(item: DashboardNotification) {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
-async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promise<SearchResult[]> {
-  const params = new URLSearchParams()
-  if (query.trim()) {
-    params.set("q", query.trim())
-    params.set("limit", "10")
-  } else {
-    params.set("limit", "7")
-  }
-
-  const response = await authFetch(`${API_URL}/dashboard/search?${params.toString()}`, {
-    method: "GET",
-    signal,
-  })
-
-  if (!response.ok) {
-    throw new Error(`Dashboard search failed: ${response.status}`)
-  }
-
-  const payload = await response.json()
-  return Array.isArray(payload?.data) ? payload.data : []
-}
-
 export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCommandPalette, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
-  const showSearch = activeModule === "clientes" || activeModule === "proyectos" || activeModule === "cotizadora" || activeModule === "comercial" || activeModule === "tracing"
   const { theme, setTheme } = useTheme()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [showResults, setShowResults] = useState(false)
   const [notifications, setNotifications] = useState<DashboardNotification[]>([])
   const [historyNotifications, setHistoryNotifications] = useState<DashboardNotification[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
@@ -100,9 +65,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   const [bellPulseNonce, setBellPulseNonce] = useState(0)
   const [notificationsPopoverOpen, setNotificationsPopoverOpen] = useState(false)
   const [labDetailOpen, setLabDetailOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const searchAbortRef = useRef<AbortController | null>(null)
   const notificationsUnavailableRef = useRef(false)
   const notificationHistoryUnavailableRef = useRef(false)
   const notificationIdsRef = useRef<Set<string>>(new Set())
@@ -321,127 +283,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
     onOpenAffectedUser(normalizedUserId)
   }, [onOpenAffectedUser])
 
-  // Load top 3 most recent items when focusing empty search
-  const loadTopSuggestions = useCallback(async () => {
-    if (searchQuery.length > 0 || searchResults.length > 0) return
-
-    setIsSearching(true)
-    searchAbortRef.current?.abort()
-    const controller = new AbortController()
-    searchAbortRef.current = controller
-
-    try {
-      const suggestions = await fetchDashboardSearch("", controller.signal)
-      startTransition(() => {
-        setSearchResults(suggestions)
-        setShowResults(suggestions.length > 0)
-      })
-    } catch (error) {
-      if (controller.signal.aborted) return
-      console.error("Error loading suggestions:", error)
-    } finally {
-      if (searchAbortRef.current === controller) {
-        setIsSearching(false)
-      }
-    }
-  }, [searchQuery, searchResults.length])
-
-  // Debounced search function
-  const performSearch = useCallback(async (query: string) => {
-    if (query.trim().length < 2) {
-      searchAbortRef.current?.abort()
-      setSearchResults([])
-      setShowResults(false)
-      setIsSearching(false)
-      return
-    }
-
-    setIsSearching(true)
-    searchAbortRef.current?.abort()
-    const controller = new AbortController()
-    searchAbortRef.current = controller
-
-    try {
-      const results = await fetchDashboardSearch(query, controller.signal)
-      startTransition(() => {
-        setSearchResults(results)
-        setShowResults(results.length > 0)
-      })
-    } catch (error) {
-      if (controller.signal.aborted) return
-      console.error("Search error:", error)
-    } finally {
-      if (searchAbortRef.current === controller) {
-        setIsSearching(false)
-      }
-    }
-  }, [])
-
-  // Handle search input with debounce
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value
-    setSearchQuery(query)
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-
-    debounceRef.current = setTimeout(() => {
-      performSearch(query)
-    }, 300)
-  }
-
-  // Handle result click
-  const handleResultClick = (result: SearchResult) => {
-    setSearchQuery("")
-    setShowResults(false)
-    setSearchResults([])
-
-    switch (result.type) {
-      case "cliente":
-        setActiveModule("clientes")
-        break
-      case "proyecto":
-        setActiveModule("proyectos")
-        break
-      case "cotizacion":
-        setActiveModule("cotizadora")
-        break
-    }
-  }
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowResults(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
-      searchAbortRef.current?.abort()
-    }
-  }, [])
-
-  // Clear search state when navigating away from commercial modules
-  useEffect(() => {
-    if (!showSearch) {
-      setSearchQuery("")
-      setSearchResults([])
-      setShowResults(false)
-      setIsSearching(false)
-      searchAbortRef.current?.abort()
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
-    }
-  }, [showSearch])
-
   useEffect(() => {
     notificationsUnavailableRef.current = false
     notificationHistoryUnavailableRef.current = false
@@ -516,114 +357,23 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   const labSeenNotifications = acknowledgedNotifications.slice(0, 5)
   const commercialActiveNotifications = activeNotifications.slice(0, 8)
   const commercialSeenNotifications = acknowledgedNotifications.slice(0, 5)
-  const getResultIcon = (type: SearchResult["type"]) => {
-    switch (type) {
-      case "cliente":
-        return <Building2 className="h-4 w-4 text-blue-500" />
-      case "proyecto":
-        return <FolderKanban className="h-4 w-4 text-green-500" />
-      case "cotizacion":
-        return <FileText className="h-4 w-4 text-orange-500" />
-    }
-  }
-
-  const getTypeLabel = (type: SearchResult["type"]) => {
-    switch (type) {
-      case "cliente":
-        return "Cliente"
-      case "proyecto":
-        return "Proyecto"
-      case "cotizacion":
-        return "Cotización"
-    }
-  }
-
   return (
-    <header className="relative h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6 overflow-hidden">
-      {/* Background Image (fades in/out based on module) */}
-      <div
-        className={`absolute inset-0 z-0 transition-opacity duration-500 ease-in-out ${
-          showSearch ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
+    <header className="relative h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6">
+      {/* Compact Search Trigger */}
+      <button
+        type="button"
+        onClick={() => onOpenCommandPalette?.()}
+        className="flex items-center gap-3 h-9 w-64 rounded-lg border border-border bg-secondary/30 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary/60 hover:border-border/80 cursor-pointer"
       >
-        <img
-          src="/login-background.png"
-          alt=""
-          className="w-full h-full object-cover opacity-[0.12]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/60 to-background/80" />
-      </div>
-
-      {/* Search with Autocomplete (fades in/out based on module) */}
-      <div
-        className={`relative flex-1 min-w-0 max-w-xs sm:max-w-md lg:max-w-lg z-10 transition-all duration-500 ease-in-out ${
-          showSearch
-            ? "opacity-100 scale-100"
-            : "opacity-0 scale-[0.97] pointer-events-none"
-        }`}
-        ref={searchRef}
-      >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        {isSearching && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
-        )}
-        <Input
-          placeholder="Buscar clientes, proyectos, cotizaciones..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          onFocus={() => {
-            if (searchResults.length > 0) {
-              setShowResults(true)
-            } else if (searchQuery.length === 0) {
-              loadTopSuggestions()
-            }
-          }}
-          className="pl-10 pr-10 bg-secondary/50 border-border focus:bg-secondary"
-        />
-
-        {/* Search Results Dropdown */}
-        {showResults && searchResults.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-            {searchResults.map((result) => (
-              <button
-                key={`${result.type}-${result.id}`}
-                onClick={() => handleResultClick(result)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent text-left transition-colors border-b border-border last:border-b-0"
-              >
-                {getResultIcon(result.type)}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{result.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{result.subtitle}</div>
-                </div>
-                <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
-                  {getTypeLabel(result.type)}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* No results message */}
-        {showResults && searchResults.length === 0 && searchQuery.length >= 2 && !isSearching && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 p-4">
-            <p className="text-sm text-muted-foreground text-center">No se encontraron resultados</p>
-          </div>
-        )}
-      </div>
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="flex-1 text-left truncate">Buscar</span>
+        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/80">
+          Ctrl K
+        </kbd>
+      </button>
 
       {/* Right Section */}
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onOpenCommandPalette?.()}
-          className="text-muted-foreground hover:text-foreground"
-          title="Buscar módulos (Ctrl+K)"
-        >
-          <Search className="h-5 w-5" />
-          <span className="sr-only">Buscar módulos</span>
-        </Button>
-
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         <Button
           variant="ghost"
           size="icon"
