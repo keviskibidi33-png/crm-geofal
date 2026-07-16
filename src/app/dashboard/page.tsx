@@ -91,6 +91,9 @@ const ImpOrganicasModule = dashboardDynamic(async () => (await import("@/compone
 const SulMagnesioModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).SulMagnesioModule)
 const AngularidadModule = dashboardDynamic(async () => (await import("@/components/dashboard/special-lab-iframe-modules")).AngularidadModule)
 const PermisosModule = dashboardDynamic(async () => (await import("@/components/dashboard/permisos-module")).PermisosModule)
+const LaboratorioStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-stats-module")).LaboratorioStatsModule)
+const ComercialStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-stats-module")).ComercialStatsModule)
+const GerenciaStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/gerencia-stats-module")).GerenciaStatsModule)
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
@@ -507,6 +510,12 @@ export default function DashboardPage() {
         return <SulMagnesioModule />
       case "angularidad":
         return <AngularidadModule />
+      case "estadistica_laboratorio":
+        return <LaboratorioStatsModule user={dashboardUser} />
+      case "estadistica_comercial":
+        return <ComercialStatsModule user={dashboardUser} />
+      case "estadistica_gerencia":
+        return <GerenciaStatsModule user={dashboardUser} />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (

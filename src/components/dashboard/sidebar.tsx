@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -77,6 +77,12 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "configuracion", label: "Configuración", icon: Settings },
 ]
 
+const kpiModules: { id: ModuleType; label: string; icon: React.ElementType }[] = [
+  { id: "estadistica_laboratorio", label: "Estadistica Laboratorio", icon: FlaskConical },
+  { id: "estadistica_comercial", label: "Estadistica Comercial", icon: TrendingUp },
+  { id: "estadistica_gerencia", label: "Estadistica Gerencia", icon: BarChart3 },
+]
+
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
   const huantaSubmodules = React.useMemo(() => [
     { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
@@ -92,11 +98,24 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
   const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive)
 
+  const isKpiActive = React.useMemo(() =>
+    ["estadistica_laboratorio", "estadistica_comercial", "estadistica_gerencia"].includes(activeModule),
+    [activeModule]
+  )
+
+  const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive)
+
   React.useEffect(() => {
     if (isHuantaActive) {
       setHuantaExpanded(true)
     }
   }, [isHuantaActive])
+
+  React.useEffect(() => {
+    if (isKpiActive) {
+      setKpiExpanded(true)
+    }
+  }, [isKpiActive])
 
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)
 
@@ -262,6 +281,78 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
       {/* Navigation */}
       <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
+        {/* KPIs Section - Collapsed */}
+        {collapsed && (
+          <Tooltip key="kpi_collapsed">
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setKpiExpanded(true)}
+                className={cn(
+                  "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
+                  isKpiActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                )}
+              >
+                <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              <p>Estadisticas & KPIs</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* KPIs Section - Expanded */}
+        {!collapsed && (
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setKpiExpanded(prev => !prev)}
+              className={cn(
+                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
+                isKpiActive && !kpiExpanded
+                  ? "bg-sidebar-accent/40 text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
+              <span className="flex-1 text-left truncate font-semibold">Estadisticas & KPIs</span>
+              {kpiExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+            </button>
+
+            {kpiExpanded && (
+              <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
+                {kpiModules.map((sub) => {
+                  const SubIcon = sub.icon
+                  const isSubActive = activeModule === sub.id
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => handleModuleClick(sub.id)}
+                      className={cn(
+                        "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
+                        isSubActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
+                      )}
+                    >
+                      <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 text-left truncate">{sub.label}</span>
+                      {isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {filteredModules.map((module) => {
           if (module.id === "huanta_probetas") {
             const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions, user.email)
