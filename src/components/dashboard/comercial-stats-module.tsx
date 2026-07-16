@@ -1,8 +1,8 @@
 ﻿"use client"
 
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
-import { TrendingUp, FileText, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react"
+import { KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { FileText, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ComercialStatsProps {
@@ -44,12 +44,6 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
-          title="Total Servicios"
-          value={comercial.serviciosPorTipo.total}
-          icon={<TrendingUp className="h-4 w-4 text-primary" />}
-          loading={isLoading}
-        />
-        <KpiCard
           title="Entregados"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "Entregado")?.value ?? 0}
           icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
@@ -62,6 +56,12 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
           loading={isLoading}
         />
         <KpiCard
+          title="Informe Listo"
+          value={comercial.estadoTrabajo.categories.find(c => c.label === "Informe Listo")?.value ?? 0}
+          icon={<AlertTriangle className="h-4 w-4 text-amber-600" />}
+          loading={isLoading}
+        />
+        <KpiCard
           title="Anulados"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "Anulado")?.value ?? 0}
           icon={<AlertTriangle className="h-4 w-4 text-red-600" />}
@@ -71,9 +71,6 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Servicios por Tipo */}
-        <KpiBarChart data={comercial.serviciosPorTipo} loading={isLoading} />
-
         {/* Estado de Trabajo */}
         <KpiPieChart data={comercial.estadoTrabajo} loading={isLoading} />
 
@@ -83,10 +80,6 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
 
       {/* Summary Rows */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium mb-2">Distribucion de Servicios</h3>
-          <KpiSummaryRow categories={comercial.serviciosPorTipo.categories} loading={isLoading} />
-        </div>
         <div>
           <h3 className="text-sm font-medium mb-2">Resumen de Evidencias</h3>
           <KpiSummaryRow categories={comercial.evidenciaEnvio.categories} loading={isLoading} />

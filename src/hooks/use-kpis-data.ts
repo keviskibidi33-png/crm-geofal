@@ -16,6 +16,7 @@ export interface KpiGroup {
 }
 
 export interface LaboratorioKpis {
+  serviciosPorTipo: KpiGroup
   probetasEnsayo: KpiGroup
   estadoTrabajo: KpiGroup
   tiempoEntrega: KpiGroup
@@ -23,7 +24,6 @@ export interface LaboratorioKpis {
 }
 
 export interface ComercialKpis {
-  serviciosPorTipo: KpiGroup
   estadoTrabajo: KpiGroup
   evidenciaEnvio: KpiGroup
 }
@@ -69,6 +69,7 @@ function buildGroup(title: string, data: { label: string; value: number }[]): Kp
 }
 
 const EMPTY_LAB: LaboratorioKpis = {
+  serviciosPorTipo: buildGroup("Servicios por Tipo", []),
   probetasEnsayo: buildGroup("Probetas Ensayo", []),
   estadoTrabajo: buildGroup("Estado Trabajo", []),
   tiempoEntrega: buildGroup("Tiempo Entrega", []),
@@ -76,7 +77,6 @@ const EMPTY_LAB: LaboratorioKpis = {
 }
 
 const EMPTY_COM: ComercialKpis = {
-  serviciosPorTipo: buildGroup("Servicios por Tipo", []),
   estadoTrabajo: buildGroup("Estado Trabajo", []),
   evidenciaEnvio: buildGroup("Evidencia Envio", []),
 }
@@ -186,6 +186,12 @@ export function useKpisData(): KpisData {
       ])
 
       setLaboratorio({
+        serviciosPorTipo: buildGroup("Servicios por Tipo", [
+          { label: "Suelo y Ag", value: Math.max(0, (sTotalRes.count ?? 0) - (sEmsRes.count ?? 0) - (sDenRes.count ?? 0) - (sProbRes.count ?? 0)) },
+          { label: "EMS", value: sEmsRes.count ?? 0 },
+          { label: "Densidad", value: sDenRes.count ?? 0 },
+          { label: "Probetas", value: sProbRes.count ?? 0 },
+        ]),
         probetasEnsayo: buildGroup("Probetas Ensayo", [
           { label: "Falta", value: pfRes.count ?? 0 },
           { label: "Pendiente", value: ppRes.count ?? 0 },
@@ -208,12 +214,6 @@ export function useKpisData(): KpisData {
       })
 
       setComercial({
-        serviciosPorTipo: buildGroup("Servicios por Tipo", [
-          { label: "Suelo y Ag", value: Math.max(0, (sTotalRes.count ?? 0) - (sEmsRes.count ?? 0) - (sDenRes.count ?? 0) - (sProbRes.count ?? 0)) },
-          { label: "EMS", value: sEmsRes.count ?? 0 },
-          { label: "Densidad", value: sDenRes.count ?? 0 },
-          { label: "Probetas", value: sProbRes.count ?? 0 },
-        ]),
         estadoTrabajo: buildGroup("Estado Trabajo", [
           { label: "Entregado", value: eEntRes.count ?? 0 },
           { label: "En Proceso", value: eProRes.count ?? 0 },

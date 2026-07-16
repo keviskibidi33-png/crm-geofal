@@ -71,6 +71,9 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Servicios por Tipo */}
+        <KpiBarChart data={laboratorio.serviciosPorTipo} loading={isLoading} />
+
         {/* Probetas Ensayo */}
         <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
 
@@ -86,6 +89,10 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
       {/* Summary Rows */}
       <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium mb-2">Distribucion de Servicios</h3>
+          <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} loading={isLoading} />
+        </div>
         <div>
           <h3 className="text-sm font-medium mb-2">Resumen Estado de Trabajo</h3>
           <KpiSummaryRow categories={laboratorio.estadoTrabajo.categories} loading={isLoading} />
