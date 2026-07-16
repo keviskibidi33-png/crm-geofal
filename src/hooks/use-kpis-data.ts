@@ -161,7 +161,7 @@ export function useKpisData(): KpisData {
       const today = now.toISOString().split("T")[0]
       const yesterday = new Date(now.getTime() - 86400000).toISOString().split("T")[0]
 
-      const [pfRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tATRes, tCRRes, evRecRes, evInfRes, sSueloRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
+      const [pfRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tATRes, tCRRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).not("ensayo_realizado", "is", null).is("fecha_ensayo", null),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).not("fecha_ensayo", "is", null),
@@ -173,10 +173,10 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).not("entrega_real", "is", null).not("fecha_entrega_estimada", "is", null).gt("entrega_real", "fecha_entrega_estimada").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_informe", "SI").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("descripcion_servico.ilike.%SU%,descripcion_servico.ilike.%AG%,descripcion_servico.ilike.%SUELO%").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).ilike("descripcion_servico", "%EMS%").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).ilike("descripcion_servico", "%DENSIDAD%").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("descripcion_servico.ilike.%PROBETA%,descripcion_servico.ilike.%CO%").gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).ilike("codigo_muestra", "%CO%").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).eq("fecha_recepcion", today),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).eq("fecha_recepcion", yesterday),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).lt("fecha_recepcion", yesterday),
@@ -209,7 +209,7 @@ export function useKpisData(): KpisData {
 
       setComercial({
         serviciosPorTipo: buildGroup("Servicios por Tipo", [
-          { label: "Suelo y Ag", value: sSueloRes.count ?? 0 },
+          { label: "Suelo y Ag", value: Math.max(0, (sTotalRes.count ?? 0) - (sEmsRes.count ?? 0) - (sDenRes.count ?? 0) - (sProbRes.count ?? 0)) },
           { label: "EMS", value: sEmsRes.count ?? 0 },
           { label: "Densidad", value: sDenRes.count ?? 0 },
           { label: "Probetas", value: sProbRes.count ?? 0 },
