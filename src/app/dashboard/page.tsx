@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
+import { CommandPalette } from "@/components/dashboard/command-palette"
 import { RoleGuard } from "@/components/dashboard/role-guard"
 import { SessionTerminatedDialog } from "@/components/dashboard/session-terminated-dialog"
 import { Button } from "@/components/ui/button"
@@ -116,6 +117,7 @@ export default function DashboardPage() {
     return false
   })
   const { user, loading, isSessionTerminated, signOut, bootstrapError, retryBootstrap } = useAuth()
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [securityViolation, setSecurityViolation] = useState(false)
   const [showLoadingScreen, setShowLoadingScreen] = useState(true)
   const router = useRouter()
@@ -160,7 +162,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     localStorage.setItem("crm-active-module", activeModule)
-    // console.log('[CRM] Nuevo valor de activeModule:', activeModule) // Cleaned log
+
+    const freq = JSON.parse(localStorage.getItem("crm-module-frequency") || "{}")
+    freq[activeModule] = (freq[activeModule] || 0) + 1
+    localStorage.setItem("crm-module-frequency", JSON.stringify(freq))
   }, [activeModule])
 
 
@@ -168,6 +173,17 @@ export default function DashboardPage() {
   useEffect(() => {
     localStorage.setItem("crm-sidebar-collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setCommandPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   const requestModuleChange = useCallback((module: ModuleType) => {
     if (module === activeModule) return
@@ -535,6 +551,7 @@ export default function DashboardPage() {
           user={dashboardUser}
           activeModule={activeModule}
           setActiveModule={requestModuleChange}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onOpenAffectedUser={(userId) => {
             setPendingNotificationUserId(userId)
             requestModuleChange("usuarios")
@@ -548,6 +565,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Visual Indicator Removed to avoid Z-index conflict with Dialog */}
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        setActiveModule={requestModuleChange}
+        user={dashboardUser}
+      />
 
       {/* Session Termination Guard */}
       <SessionTerminatedDialog

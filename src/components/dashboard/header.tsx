@@ -17,6 +17,7 @@ interface HeaderProps {
   user: User
   activeModule: ModuleType
   setActiveModule: (module: ModuleType) => void
+  onOpenCommandPalette?: () => void
   onOpenAffectedUser?: (userId: string) => void
   onOpenLabNotification?: (target: { module: ModuleType; recordId: number }) => void
 }
@@ -84,7 +85,7 @@ async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promis
   return Array.isArray(payload?.data) ? payload.data : []
 }
 
-export function DashboardHeader({ user, activeModule, setActiveModule, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
+export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCommandPalette, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
   const showSearch = activeModule === "clientes" || activeModule === "proyectos" || activeModule === "cotizadora" || activeModule === "comercial" || activeModule === "tracing"
   const { theme, setTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
@@ -612,6 +613,17 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenAff
 
       {/* Right Section */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0 z-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onOpenCommandPalette?.()}
+          className="text-muted-foreground hover:text-foreground"
+          title="Buscar módulos (Ctrl+K)"
+        >
+          <Search className="h-5 w-5" />
+          <span className="sr-only">Buscar módulos</span>
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
