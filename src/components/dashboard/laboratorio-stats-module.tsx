@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { FlaskConical, Clock, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -46,61 +46,33 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
         <KpiCard
           title="En Curado"
           value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value ?? 0}
-          icon={<Clock className="h-4 w-4 text-blue-600" />}
+          icon={<Clock className="h-5 w-5 text-blue-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="Pendientes Hoy"
           value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Falta")?.value ?? 0}
-          icon={<AlertTriangle className="h-4 w-4 text-amber-600" />}
+          icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="Ensayadas"
           value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value ?? 0}
-          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="Total Probetas"
           value={laboratorio.probetasEnsayo.total}
-          icon={<FlaskConical className="h-4 w-4 text-primary" />}
+          icon={<FlaskConical className="h-5 w-5 text-blue-600" />}
           loading={isLoading}
         />
       </div>
 
-      {/* Charts Grid */}
+      {/* Tabla + Grafico */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Servicios por Tipo */}
+        <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} loading={isLoading} />
         <KpiBarChart data={laboratorio.serviciosPorTipo} loading={isLoading} />
-
-        {/* Probetas Ensayo */}
-        <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
-
-        {/* Estado de Trabajo */}
-        <KpiBarChart data={laboratorio.estadoTrabajo} loading={isLoading} />
-
-        {/* Tiempo de Entrega */}
-        <KpiPieChart data={laboratorio.tiempoEntrega} loading={isLoading} />
-
-        {/* Evidencia de Envio */}
-        <KpiPieChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
-      </div>
-
-      {/* Summary Rows */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium mb-2">Distribucion de Servicios</h3>
-          <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} loading={isLoading} />
-        </div>
-        <div>
-          <h3 className="text-sm font-medium mb-2">Resumen Estado de Trabajo</h3>
-          <KpiSummaryRow categories={laboratorio.estadoTrabajo.categories} loading={isLoading} />
-        </div>
-        <div>
-          <h3 className="text-sm font-medium mb-2">Resumen Tiempo de Entrega</h3>
-          <KpiSummaryRow categories={laboratorio.tiempoEntrega.categories} loading={isLoading} />
-        </div>
       </div>
     </div>
   )

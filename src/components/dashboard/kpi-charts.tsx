@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { KpiGroup, MonthOption } from "@/hooks/use-kpis-data"
 
-const PIE_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"]
+const PIE_COLORS = ["#2563eb", "#f59e0b", "#f97316", "#ef4444", "#8b5cf6", "#06b6d4"]
 
 interface KpiPieChartProps {
   data: KpiGroup
@@ -121,21 +121,21 @@ export function KpiCard({ title, value, previousValue, icon, loading, className 
   const trend = previousValue !== undefined ? value - previousValue : undefined
 
   return (
-    <Card className={className}>
-      <CardContent className="p-4">
+    <Card className={`border shadow-sm hover:shadow-md transition-shadow ${className ?? ""}`}>
+      <CardContent className="p-5">
         {loading ? (
-          <div className="flex items-center justify-center h-16">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center h-20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            {icon && <div className="p-2 bg-primary/10 rounded-lg">{icon}</div>}
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">{title}</p>
-              <p className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</p>
+          <div className="flex items-center gap-4">
+            {icon && <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 shrink-0">{icon}</div>}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
+              <p className="text-3xl font-bold tabular-nums mt-1">{value.toLocaleString()}</p>
             </div>
             {trend !== undefined && (
-              <div className={`flex items-center gap-1 text-xs font-medium ${trend > 0 ? "text-emerald-600" : trend < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+              <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${trend > 0 ? "text-emerald-700 bg-emerald-50" : trend < 0 ? "text-red-700 bg-red-50" : "text-muted-foreground bg-muted"}`}>
                 {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                 {Math.abs(trend)}
               </div>
@@ -155,23 +155,44 @@ interface KpiSummaryRowProps {
 export function KpiSummaryRow({ categories, loading }: KpiSummaryRowProps) {
   if (loading) {
     return (
-      <div className="flex gap-2">
+      <div className="space-y-1">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 flex-1 bg-muted/50 rounded-lg animate-pulse" />
+          <div key={i} className="h-10 bg-muted/50 rounded animate-pulse" />
         ))}
       </div>
     )
   }
 
+  const total = categories.reduce((s, c) => s + c.value, 0)
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      {categories.map((cat) => (
-        <div key={cat.label} className="bg-muted/30 rounded-lg p-3 text-center">
-          <p className="text-xs text-muted-foreground">{cat.label}</p>
-          <p className="text-lg font-bold tabular-nums">{cat.value}</p>
-          <p className="text-[10px] text-muted-foreground">{cat.percentage}%</p>
-        </div>
-      ))}
+    <div className="border border-l-4 border-l-yellow-400 rounded-lg overflow-hidden">
+      <div className="bg-muted/50 px-4 py-2 border-b">
+        <p className="text-sm font-semibold">ANALISIS CANTIDAD POR TIPO DE SERVICIO</p>
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/30">
+            <th className="text-left px-4 py-2 font-medium">Categoría</th>
+            <th className="text-center px-4 py-2 font-medium">Cant.</th>
+            <th className="text-center px-4 py-2 font-medium">variación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((cat) => (
+            <tr key={cat.label} className="border-b last:border-b-0">
+              <td className="px-4 py-2 font-medium">{cat.label}</td>
+              <td className="text-center px-4 py-2 tabular-nums">{cat.value}</td>
+              <td className="text-center px-4 py-2 tabular-nums">{cat.percentage}%</td>
+            </tr>
+          ))}
+          <tr className="bg-muted/30 font-semibold">
+            <td className="px-4 py-2">TOTAL</td>
+            <td className="text-center px-4 py-2 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-2">100%</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   )
 }
