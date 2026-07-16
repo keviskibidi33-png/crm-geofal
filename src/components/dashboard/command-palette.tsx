@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, startTransition } from "react
 import { Search, Users, FolderKanban, FileText, TestTube, ClipboardList, Beaker, Shield, Activity, Settings, FlaskConical, TrendingUp, BarChart3, Calendar, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { type ModuleType, type User } from "@/hooks/use-auth"
-import { canAccessDashboardModule } from "@/lib/control-module-access"
+import { canAccessDashboardModule, isAdminDashboardRole, isComercialDashboardRole } from "@/lib/control-module-access"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -110,6 +110,8 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchAbortRef = useRef<AbortController | null>(null)
 
+  const canSearchRecords = isAdminDashboardRole(user.role) || isComercialDashboardRole(user.role)
+
   const getAccessibleModules = useCallback(() => {
     const role = user.role?.toLowerCase() || ""
     const isAdmin = role === "admin" || role === "admin_general"
@@ -149,6 +151,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
   }, [getAccessibleModules])
 
   const fetchRecords = useCallback(async (q: string, signal: AbortSignal): Promise<CommandItem[]> => {
+    if (!canSearchRecords) return []
     if (q.trim().length < 2) return []
     try {
       const params = new URLSearchParams({ q: q.trim(), limit: "5" })
@@ -166,7 +169,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
     } catch {
       return []
     }
-  }, [])
+  }, [canSearchRecords])
 
   useEffect(() => {
     if (!open) {
@@ -287,7 +290,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Input
             ref={inputRef}
-            placeholder="Buscar módulos, clientes, proyectos..."
+            placeholder={canSearchRecords ? "Buscar módulos, clientes, proyectos..." : "Buscar módulos..."}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="border-none bg-transparent px-0 py-0 h-auto shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 text-sm"
