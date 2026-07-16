@@ -248,9 +248,10 @@ export function KpiCard({ title, value, previousValue, icon, loading, className 
 interface KpiSummaryRowProps {
   categories: { label: string; value: number; percentage: number }[]
   loading?: boolean
+  title?: string
 }
 
-export function KpiSummaryRow({ categories, loading }: KpiSummaryRowProps) {
+export function KpiSummaryRow({ categories, loading, title }: KpiSummaryRowProps) {
   if (loading) {
     return (
       <div className="space-y-1">
@@ -266,7 +267,7 @@ export function KpiSummaryRow({ categories, loading }: KpiSummaryRowProps) {
   return (
     <div className="border border-l-4 border-l-yellow-400 rounded-lg overflow-hidden">
       <div className="bg-muted/50 px-4 py-2 border-b">
-        <p className="text-sm font-semibold">ANALISIS CANTIDAD POR TIPO DE SERVICIO</p>
+        <p className="text-sm font-semibold">{title ?? "ANALISIS CANTIDAD POR TIPO DE SERVICIO"}</p>
       </div>
       <table className="w-full text-sm">
         <thead>

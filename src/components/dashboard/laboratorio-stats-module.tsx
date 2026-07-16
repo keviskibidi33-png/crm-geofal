@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
-import { KpiChartCard, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiChartCard, KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { FlaskConical, Clock, CheckCircle2, AlertTriangle, RefreshCw, CalendarCheck, CalendarPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -89,10 +89,16 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
         />
       </div>
 
-      {/* Tabla + Grafico */}
+      {/* Tabla + Grafico Servicios por Tipo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} loading={isLoading} />
         <KpiChartCard data={laboratorio.serviciosPorTipo} loading={isLoading} />
+      </div>
+
+      {/* Tabla + PieChart Estado de Trabajo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={laboratorio.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
+        <KpiPieChart data={laboratorio.estadoTrabajo} loading={isLoading} />
       </div>
     </div>
   )
