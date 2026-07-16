@@ -4,7 +4,7 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart"
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Loader2, TrendingUp, TrendingDown, Minus, Calendar, ChevronLeft, ChevronRight } from "lucide-react"
+import { Loader2, TrendingUp, TrendingDown, Minus, Calendar, ChevronLeft, ChevronRight, BarChart3, PieChart as PieChartIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { KpiGroup, MonthOption } from "@/hooks/use-kpis-data"
@@ -98,13 +98,111 @@ export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
             <XAxis type="number" />
             <YAxis dataKey="label" type="category" width={80} tick={{ fontSize: 11 }} />
             <ChartTooltip content={<ChartTooltipContent />} />
-            {chartData.map((entry, idx) => (
-              <Bar key={idx} dataKey="value" fill={entry.fill} radius={[0, 4, 4, 0]} />
-            ))}
+            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              {chartData.map((entry, idx) => (
+                <Cell key={idx} fill={entry.fill} />
+              ))}
+            </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>
     </Card>
+  )
+}
+
+interface KpiChartCardProps {
+  data: KpiGroup
+  loading?: boolean
+  className?: string
+}
+
+export function KpiChartCard({ data, loading, className }: KpiChartCardProps) {
+  const [chartType, setChartType] = React.useState<"bar" | "pie">("bar")
+
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-sm font-medium">{data.title}</CardTitle>
+          <p className="text-xs text-muted-foreground">Total: {data.total}</p>
+        </div>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+          <Button
+            variant={chartType === "bar" ? "default" : "ghost"}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setChartType("bar")}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant={chartType === "pie" ? "default" : "ghost"}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setChartType("pie")}
+          >
+            <PieChartIcon className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : chartType === "bar" ? (
+          <BarChartInner data={data} />
+        ) : (
+          <PieChartInner data={data} />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function BarChartInner({ data }: { data: KpiGroup }) {
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const config: ChartConfig = React.useMemo(
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
+    [data.categories]
+  )
+
+  return (
+    <ChartContainer config={config} className="h-[200px] w-full">
+      <BarChart data={chartData} layout="vertical" margin={{ left: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <XAxis type="number" />
+        <YAxis dataKey="label" type="category" width={80} tick={{ fontSize: 11 }} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+          {chartData.map((entry, idx) => (
+            <Cell key={idx} fill={entry.fill} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  )
+}
+
+function PieChartInner({ data }: { data: KpiGroup }) {
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const config: ChartConfig = React.useMemo(
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
+    [data.categories]
+  )
+
+  return (
+    <ChartContainer config={config} className="h-[200px] w-full">
+      <PieChart>
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Pie data={chartData} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+          {chartData.map((entry, idx) => (
+            <Cell key={idx} fill={entry.fill} />
+          ))}
+        </Pie>
+        <ChartLegend content={<ChartLegendContent payload={[]} />} />
+      </PieChart>
+    </ChartContainer>
   )
 }
 
