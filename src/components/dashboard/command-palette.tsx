@@ -275,8 +275,14 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
       />
       <div
         ref={containerRef}
-        className="relative w-full max-w-lg bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 ease-out"
+        className="relative w-full max-w-2xl bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 ease-out"
       >
+        <style>{`
+          .command-palette-results::-webkit-scrollbar { width: 8px; }
+          .command-palette-results::-webkit-scrollbar-track { background: hsl(var(--muted)); border-radius: 4px; }
+          .command-palette-results::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.4); border-radius: 4px; }
+          .command-palette-results::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.6); }
+        `}</style>
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Input
@@ -294,11 +300,11 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
           </kbd>
         </div>
 
-        <div className="max-h-80 overflow-y-auto">
+        <div className="max-h-[500px] overflow-y-auto command-palette-results">
           {results.length === 0 && query.trim().length >= 2 && !isSearchingRecords && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Search className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <p className="text-sm text-muted-foreground">Sin resultados para "{query}"</p>
+              <p className="text-sm text-muted-foreground">Sin resultados para &quot;{query}&quot;</p>
             </div>
           )}
 
