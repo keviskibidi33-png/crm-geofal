@@ -84,9 +84,8 @@ async function fetchDashboardSearch(query: string, signal?: AbortSignal): Promis
   return Array.isArray(payload?.data) ? payload.data : []
 }
 
-const SEARCH_MODULES: ModuleType[] = ["clientes", "proyectos", "cotizadora", "comercial", "tracing"]
-
 export function DashboardHeader({ user, activeModule, setActiveModule, onOpenAffectedUser, onOpenLabNotification }: HeaderProps) {
+  const showSearch = activeModule === "clientes" || activeModule === "proyectos" || activeModule === "cotizadora" || activeModule === "comercial" || activeModule === "tracing"
   const { theme, setTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -537,8 +536,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenAff
         return "Cotización"
     }
   }
-
-  const showSearch = SEARCH_MODULES.includes(activeModule)
 
   return (
     <header className="relative h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between gap-3 px-3 md:px-6 overflow-hidden">
