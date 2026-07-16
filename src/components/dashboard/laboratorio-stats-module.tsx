@@ -1,8 +1,8 @@
 ﻿"use client"
 
-import { useKpisData } from "@/hooks/use-kpis-data"
+import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
 import { KpiChartCard, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
-import { FlaskConical, Clock, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react"
+import { FlaskConical, Clock, CheckCircle2, AlertTriangle, RefreshCw, CalendarCheck, CalendarPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface LaboratorioStatsProps {
@@ -10,7 +10,7 @@ interface LaboratorioStatsProps {
 }
 
 export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
-  const { laboratorio, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { laboratorio, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter } = useKpisData()
 
   return (
     <div className="space-y-6">
@@ -27,6 +27,26 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
+            <Button
+              variant={dateFilter === "recepcion" ? "default" : "ghost"}
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setDateFilter("recepcion")}
+            >
+              <CalendarCheck className="h-3.5 w-3.5" />
+              Recepción
+            </Button>
+            <Button
+              variant={dateFilter === "creacion" ? "default" : "ghost"}
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setDateFilter("creacion")}
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Creación
+            </Button>
+          </div>
           <MonthSelector
             availableMonths={availableMonths}
             selectedMonth={selectedMonth}

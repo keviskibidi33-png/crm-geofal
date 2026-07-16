@@ -41,6 +41,8 @@ export interface MonthOption {
   month: number
 }
 
+export type DateFilter = "recepcion" | "creacion"
+
 export interface KpisData {
   laboratorio: LaboratorioKpis
   comercial: ComercialKpis
@@ -49,8 +51,10 @@ export interface KpisData {
   lastUpdated: Date | null
   selectedMonth: string
   selectedYear: number
+  dateFilter: DateFilter
   availableMonths: MonthOption[]
   setSelectedMonth: (month: string, year?: number) => void
+  setDateFilter: (filter: DateFilter) => void
   refresh: () => Promise<void>
 }
 
@@ -130,6 +134,7 @@ export function useKpisData(): KpisData {
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [isLoading, setIsLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [dateFilter, setDateFilter] = useState<DateFilter>("recepcion")
   const [availableMonths] = useState<MonthOption[]>(() => generateAvailableMonths())
 
   const setSelectedMonth = useCallback((month: string, year?: number) => {
@@ -161,6 +166,8 @@ export function useKpisData(): KpisData {
       const today = now.toISOString().split("T")[0]
       const yesterday = new Date(now.getTime() - 86400000).toISOString().split("T")[0]
 
+      const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
+
       const [pfRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tATRes, tCRRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).not("ensayo_realizado", "is", null).is("fecha_ensayo", null),
@@ -173,10 +180,10 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).not("entrega_real", "is", null).not("fecha_entrega_estimada", "is", null).gt("entrega_real", "fecha_entrega_estimada").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_informe", "SI").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).ilike("codigo_muestra", "%CO%").gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).ilike("codigo_muestra", "%CO%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).eq("fecha_recepcion", today),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).eq("fecha_recepcion", yesterday),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null).lt("fecha_recepcion", yesterday),
@@ -250,7 +257,7 @@ export function useKpisData(): KpisData {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, dateFilter])
 
   useEffect(() => {
     fetchKpis()
@@ -264,8 +271,10 @@ export function useKpisData(): KpisData {
     lastUpdated,
     selectedMonth,
     selectedYear,
+    dateFilter,
     availableMonths,
     setSelectedMonth,
+    setDateFilter,
     refresh: fetchKpis,
   }
 }
