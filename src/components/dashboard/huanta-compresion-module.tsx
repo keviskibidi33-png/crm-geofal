@@ -547,37 +547,37 @@ export function HuantaCompresionModule() {
               <div className="grid grid-cols-2 gap-3 shrink-0">
                 <div>
                   <Label className="text-xs">Diámetro 1 (mm)</Label>
-                  <Input value={editingRow.diam_1 || ""} onChange={(e) => setEditingRow({ ...editingRow, diam_1: e.target.value, estado: "PENDIENTE" })} placeholder="150.3" />
+                  <Input value={editingRow.diam_1 || ""} onChange={(e) => setEditingRow({ ...editingRow, diam_1: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
                 <div>
                   <Label className="text-xs">Diámetro 2 (mm)</Label>
-                  <Input value={editingRow.diam_2 || ""} onChange={(e) => setEditingRow({ ...editingRow, diam_2: e.target.value, estado: "PENDIENTE" })} placeholder="150.6" />
+                  <Input value={editingRow.diam_2 || ""} onChange={(e) => setEditingRow({ ...editingRow, diam_2: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <Label className="text-xs">Longitud 1 (mm)</Label>
-                  <Input value={editingRow.long_1 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_1: e.target.value, estado: "PENDIENTE" })} placeholder="300.2" />
+                  <Input value={editingRow.long_1 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_1: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
                 <div>
                   <Label className="text-xs">Longitud 2 (mm)</Label>
-                  <Input value={editingRow.long_2 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_2: e.target.value, estado: "PENDIENTE" })} placeholder="300.6" />
+                  <Input value={editingRow.long_2 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_2: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
                 <div>
                   <Label className="text-xs">Longitud 3 (mm)</Label>
-                  <Input value={editingRow.long_3 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_3: e.target.value, estado: "PENDIENTE" })} placeholder="300.2" />
+                  <Input value={editingRow.long_3 || ""} onChange={(e) => setEditingRow({ ...editingRow, long_3: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 shrink-0">
                 <div>
                   <Label className="text-xs">Carga Máxima (kN)</Label>
-                  <Input type="number" step="any" value={editingRow.carga_maxima ?? ""} onChange={(e) => setEditingRow({ ...editingRow, carga_maxima: e.target.value !== "" ? Number(e.target.value) : null, estado: "PENDIENTE" })} placeholder="392.4" />
+                  <Input type="number" step="any" value={editingRow.carga_maxima ?? ""} onChange={(e) => setEditingRow({ ...editingRow, carga_maxima: e.target.value !== "" ? Number(e.target.value) : null, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
                 <div>
                   <Label className="text-xs">Tipo Fractura (1-6)</Label>
-                  <Input value={editingRow.tipo_fractura || ""} onChange={(e) => setEditingRow({ ...editingRow, tipo_fractura: e.target.value, estado: "PENDIENTE" })} placeholder="2" />
+                  <Input value={editingRow.tipo_fractura || ""} onChange={(e) => setEditingRow({ ...editingRow, tipo_fractura: e.target.value, estado: "PENDIENTE" })} placeholder="-" />
                 </div>
               </div>
 
@@ -591,7 +591,7 @@ export function HuantaCompresionModule() {
                 </div>
                 <div>
                   <Label className="text-xs">Observaciones</Label>
-                  <Input value={editingRow.observaciones || ""} onChange={(e) => setEditingRow({ ...editingRow, observaciones: e.target.value })} placeholder="Ninguna" />
+                  <Input value={editingRow.observaciones || ""} onChange={(e) => setEditingRow({ ...editingRow, observaciones: e.target.value })} placeholder="-" />
                 </div>
               </div>
             </div>
