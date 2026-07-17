@@ -411,7 +411,7 @@ export function HuantaCompresionModule() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0">
-            <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+            <div className="bg-white rounded-xl border shadow-sm overflow-clip flex flex-col flex-1 min-h-0">
               <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3 shrink-0">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />

@@ -35,6 +35,7 @@ type ProbetaRow = {
   codigo_muestra_lem: string
   estado: string
   codigo_lote_interno: string
+  carga_maxima: number | null
 }
 
 function lotColorClasses(lote: string) {
@@ -228,6 +229,8 @@ export function HuantaSeguimientoModule() {
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                           row.estado === "ENSAYADO"
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            : row.estado === "DESCARGADO"
+                            ? "bg-sky-50 text-sky-700 border border-sky-100"
                             : row.estado === "PARCIAL"
                             ? "bg-amber-50 text-amber-700 border border-amber-100"
                             : "bg-slate-100 text-slate-600"
@@ -286,40 +289,46 @@ export function HuantaSeguimientoModule() {
                     <TableHeader className="bg-[#f4f4f5]">
                       <TableRow>
                         <TableHead className="w-12 text-center">Seleccionar</TableHead>
-                        <TableHead className="w-16">Item</TableHead>
-                      <TableHead>Código Probeta</TableHead>
-                      <TableHead>Edad</TableHead>
-                      <TableHead>Rotura Programada</TableHead>
-                      <TableHead>Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {probetas.map((p, idx) => {
-                      const isSelected = selectedIds.includes(p.id)
-                      const isMaxReached = selectedIds.length >= 3 && !isSelected
-                      return (
-                        <TableRow key={p.id} className={idx % 2 === 0 ? "bg-slate-50/40" : "bg-white"}>
-                          <TableCell className="text-center">
-                            <Checkbox
-                              checked={isSelected}
-                              disabled={isMaxReached}
-                              onCheckedChange={(checked) => handleCheckboxChange(p.id, !!checked)}
-                            />
-                          </TableCell>
-                          <TableCell className="font-semibold text-center">{p.item}</TableCell>
-                          <TableCell className="font-mono">{p.codigo_probeta}</TableCell>
-                          <TableCell className="text-center">{p.edad}d</TableCell>
-                          <TableCell className="text-center">{p.fecha_rotura}</TableCell>
-                          <TableCell>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              p.estado === "ENSAYADO" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-slate-100 text-slate-600"
-                            }`}>{p.estado}</span>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                        <TableHead className="w-16 text-center">Item</TableHead>
+                        <TableHead>Código Probeta</TableHead>
+                        <TableHead>Código Muestra LEM</TableHead>
+                        <TableHead className="text-center">Fecha Rotura</TableHead>
+                        <TableHead className="text-center">Carga Maxima (Kn)</TableHead>
+                        <TableHead>Estado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {probetas.map((p, idx) => {
+                        const isSelected = selectedIds.includes(p.id)
+                        const isMaxReached = selectedIds.length >= 3 && !isSelected
+                        return (
+                          <TableRow key={p.id} className={idx % 2 === 0 ? "bg-slate-50/40" : "bg-white"}>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={isMaxReached}
+                                onCheckedChange={(checked) => handleCheckboxChange(p.id, !!checked)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-semibold text-center">{p.item}</TableCell>
+                            <TableCell className="font-mono">{p.codigo_probeta}</TableCell>
+                            <TableCell className="text-xs">{p.codigo_muestra_lem || "-"}</TableCell>
+                            <TableCell className="text-center">{p.fecha_rotura}</TableCell>
+                            <TableCell className="text-center font-semibold">
+                              {p.carga_maxima != null ? p.carga_maxima.toFixed(2).replace('.', ',') : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                p.estado === "ENSAYADO" ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                : p.estado === "DESCARGADO" ? "bg-sky-50 text-sky-700 border border-sky-100"
+                                : "bg-slate-100 text-slate-600"
+                              }`}>{p.estado}</span>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
               )}
             </div>
 
