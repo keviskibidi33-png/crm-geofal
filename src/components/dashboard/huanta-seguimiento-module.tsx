@@ -118,6 +118,16 @@ export function HuantaSeguimientoModule() {
     }
   }
 
+  const refreshProbetas = useCallback(async (lote: LoteSummary) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/huanta-probetas?ts=${Date.now()}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : []
+      setProbetas(list.filter((p: ProbetaRow) => p.codigo_lote_interno === lote.codigo_lote_interno))
+    } catch {}
+  }, [])
+
   const handleExportReport = async () => {
     if (selectedIds.length === 0) {
       toast.error("Selección vacía", { description: "Por favor selecciona al menos una probeta." })
@@ -144,6 +154,11 @@ export function HuantaSeguimientoModule() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
+      setSelectedIds([])
+      if (selectedLote) {
+        await refreshProbetas(selectedLote)
+        await fetchLotes()
+      }
       toast.success("Reporte descargado correctamente", { id: toastId })
     } catch (err: any) {
       toast.error(err?.message || "Error al descargar reporte", { id: toastId })
