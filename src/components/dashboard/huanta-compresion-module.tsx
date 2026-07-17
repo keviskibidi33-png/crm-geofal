@@ -95,6 +95,8 @@ export function HuantaCompresionModule() {
   const [refreshing, setRefreshing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState("")
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
   const [isOpen, setIsOpen] = useState(false)
 
   // Edit Modal State
@@ -250,13 +252,22 @@ export function HuantaCompresionModule() {
   }
 
   const filtered = useMemo(() => {
+    let result = rows
     const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((r) =>
-      [r.codigo_probeta, r.codigo_lote_interno, r.codigo_muestra_lem, r.estado]
-        .some((v) => (v || "").toLowerCase().includes(q))
-    )
-  }, [rows, search])
+    if (q) {
+      result = result.filter((r) =>
+        [r.codigo_probeta, r.codigo_lote_interno, r.codigo_muestra_lem, r.estado]
+          .some((v) => (v || "").toLowerCase().includes(q))
+      )
+    }
+    if (fechaInicio) {
+      result = result.filter((r) => r.fecha_rotura >= fechaInicio.replace(/-/g, "/"))
+    }
+    if (fechaFin) {
+      result = result.filter((r) => r.fecha_rotura <= fechaFin.replace(/-/g, "/"))
+    }
+    return result
+  }, [rows, search, fechaInicio, fechaFin])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paginated = useMemo(() => {
@@ -267,7 +278,14 @@ export function HuantaCompresionModule() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, pageSize, isOpen])
+  }, [search, pageSize, isOpen, fechaInicio, fechaFin])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFechaInicio("")
+      setFechaFin("")
+    }
+  }, [isOpen])
 
   const dashboard = useMemo(() => {
     const ensayados = rows.filter((r) => r.estado === "ENSAYADO").length
@@ -412,10 +430,36 @@ export function HuantaCompresionModule() {
 
           <div className="flex-1 overflow-auto p-4 flex flex-col min-h-0">
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-              <div className="p-4 border-b bg-slate-50/30 flex items-center justify-between gap-3 shrink-0">
+              <div className="p-4 border-b bg-slate-50/30 flex flex-wrap items-center gap-3 shrink-0">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <Input className="pl-9 h-9" placeholder="Buscar por probeta, lote o estado..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50 min-w-fit">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Desde:</span>
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                    className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
+                    title="Fecha de rotura desde"
+                  />
+                  {fechaInicio && (
+                    <button onClick={() => setFechaInicio("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl bg-slate-50/50 min-w-fit">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hasta:</span>
+                  <input
+                    type="date"
+                    value={fechaFin}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                    className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
+                    title="Fecha de rotura hasta"
+                  />
+                  {fechaFin && (
+                    <button onClick={() => setFechaFin("")} className="text-[10px] text-slate-400 hover:text-slate-600">✕</button>
+                  )}
                 </div>
               </div>
 
