@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Beaker, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Plus, Beaker, Loader2, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
@@ -19,11 +19,8 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
-
-interface SmartIframeProps {
-  src: string
-  title: string
-}
+import { getModuleConfig } from "./shared/native-ensayo-config"
+import { NativeEnsayoModals, useNativeEnsayoMode } from "./shared/NativeEnsayoModals"
 
 interface EnsayoSummary {
   id: number
@@ -44,105 +41,10 @@ interface EnsayoDetail extends EnsayoSummary {
   } | null
 }
 
-function SmartIframe({ src, title }: SmartIframeProps) {
-  const [key, setKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const handleLoad = () => {
-    setIsLoading(false)
-    setError(null)
-    setRetryCount(0)
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  const handleRetry = useCallback(() => {
-    setIsLoading(true)
-    setError(null)
-    setKey((prev) => prev + 1)
-    setRetryCount((prev) => prev + 1)
-  }, [])
-
-  useEffect(() => {
-    if (!isLoading) return
-
-    const timeoutMs = 12000 + (retryCount * 6000)
-    timeoutRef.current = setTimeout(() => {
-      if (retryCount < 2) {
-        toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
-        setTimeout(() => {
-          toast.dismiss()
-          handleRetry()
-        }, 1500)
-      } else {
-        setError(`El servicio no responde despues de varios intentos (${timeoutMs / 1000}s).`)
-        setIsLoading(false)
-      }
-    }, timeoutMs)
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-    }
-  }, [isLoading, retryCount, handleRetry])
-
-  const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
-    return url.toString()
-  }, [src, retryCount])
-
-  return (
-    <div className="w-full h-full relative bg-gray-50">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">Conectando con el modulo...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center">
-          <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <AlertCircle className="h-10 w-10 text-red-500" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Conexion interrumpida</h3>
-          <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">{error}</p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Recargar pagina
-            </Button>
-            <Button onClick={handleRetry} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reintentar conexion
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <iframe
-        key={key}
-        src={currentSrc}
-        className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
-        title={title}
-        onLoad={handleLoad}
-        onError={() => setError("Error al cargar el iframe.")}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        loading="eager"
-      />
-    </div>
-  )
-}
-
 export function CompresionNoConfinadaModule() {
+  const config = useMemo(() => getModuleConfig("compresion-no-confinada"), [])
+  const { isNative, nativeMode, nativeEnsayoId, openNewEnsayo: nativeNew, openEditEnsayo: nativeEdit, openDetail: nativeDetailN, closeNativeModal } = useNativeEnsayoMode(config)
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [token, setToken] = useState<string | null>(null)
@@ -162,7 +64,7 @@ export function CompresionNoConfinadaModule() {
   const FRONTEND_URL = (
     process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_FRONTEND_URL ||
     process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_URL ||
-    "https://comp.noconfinada.geofal.com.pe"
+    "https://compresion-no-confinada.geofal.com.pe"
   ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -259,7 +161,7 @@ export function CompresionNoConfinadaModule() {
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching Compresion No Confinada ensayos", err)
+      console.error("Error fetching PH ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -308,7 +210,7 @@ export function CompresionNoConfinadaModule() {
     setIsModalOpen(true)
   }
 
-  const openDetail = async (id: number) => {
+  const doOpenDetail = async (id: number) => {
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/compresion-no-confinada/${id}?_ts=${Date.now()}`, { cache: "no-store" })
@@ -330,7 +232,7 @@ export function CompresionNoConfinadaModule() {
     try {
       const ok = await fetchEnsayos()
       toast[ok ? "success" : "error"](
-        ok ? "Tabla de Compresion No Confinada actualizada." : "No se pudo actualizar la tabla de Compresion No Confinada.",
+        ok ? "Tabla de C. No Confinada actualizada." : "No se pudo actualizar la tabla de C. No Confinada.",
       )
     } finally {
       setRefreshingTable(false)
@@ -346,13 +248,13 @@ export function CompresionNoConfinadaModule() {
   const handleDeleteEnsayo = useCallback(
     async () => {
       if (!deletingEnsayoId) return
-
+      
       const id = deletingEnsayoId
       try {
         const res = await authFetch(`${API_URL}/api/compresion-no-confinada/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de Compresion No Confinada enviado a papelera.")
+        toast.success("Ensayo de C. No Confinada enviado a papelera.")
         setIsDeleteConfirmOpen(false)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
@@ -401,7 +303,7 @@ export function CompresionNoConfinadaModule() {
           </div>
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">C. No Confinada</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Registro y exportacion de ensayos.</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Ensayo de compresion no confinada en suelos.</p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -464,7 +366,7 @@ export function CompresionNoConfinadaModule() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
+                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void doOpenDetail(ensayo.id)}>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
@@ -498,57 +400,58 @@ export function CompresionNoConfinadaModule() {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-          <DialogHeader className="hidden">
-            <DialogTitle>Ensayo Compresion No Confinada</DialogTitle>
-            <DialogDescription>Formulario Compresion No Confinada</DialogDescription>
-          </DialogHeader>
-          <SmartIframe src={iframeSrc} title="Compresion No Confinada CRM" />
-        </DialogContent>
-      </Dialog>
+      {isNative ? (
+        <NativeEnsayoModals
+          mode={nativeMode}
+          ensayoId={nativeEnsayoId}
+          config={config}
+          apiUrl={API_URL}
+          iframeSrc={iframeSrc}
+          iframeTitle="C. No Confinada CRM"
+          onClose={closeNativeModal}
+          onSaved={() => { closeNativeModal(); void fetchEnsayos() }}
+        />
+      ) : (
+        <>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+              <DialogHeader className="hidden">
+                <DialogTitle>Ensayo C. No Confinada</DialogTitle>
+                <DialogDescription>Formulario C. No Confinada</DialogDescription>
+              </DialogHeader>
+              <iframe src={iframeSrc} className="w-full h-full border-none" title="C. No Confinada CRM" />
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-            <DialogDescription>Informacion guardada del Ensayo Compresion No Confinada.</DialogDescription>
-          </DialogHeader>
-          {selectedDetail ? (
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}
-              </p>
-              <p>
-                <span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
-          )}
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
+                <DialogDescription>Informacion guardada del Ensayo C. No Confinada.</DialogDescription>
+              </DialogHeader>
+              {selectedDetail ? (
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
+                  <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
+                  <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
+                  <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
+                  <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
+                  <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
+                  <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       <ModernConfirmDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleDeleteEnsayo}
-        title="Eliminar Ensayo de Compresión No Confinada"
+        title="Eliminar Ensayo de C. No Confinada"
         description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
         confirmText="Eliminar"
         showInput={true}

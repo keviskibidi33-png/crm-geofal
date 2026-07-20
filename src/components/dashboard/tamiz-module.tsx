@@ -1,7 +1,8 @@
+
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Scale, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Plus, Scale, Loader2, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
@@ -18,13 +19,10 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
+import { getModuleConfig } from "./shared/native-ensayo-config"
+import { NativeEnsayoModals, useNativeEnsayoMode } from "./shared/NativeEnsayoModals"
 
-interface SmartIframeProps {
-  src: string
-  title: string
-}
-
-interface TamizEnsayoSummary {
+interface EnsayoSummary {
   id: number
   numero_ensayo?: string | null
   numero_ot?: string | null
@@ -32,123 +30,26 @@ interface TamizEnsayoSummary {
   muestra?: string | null
   fecha_documento?: string | null
   estado?: string | null
-  porcentaje_material_fino_pct?: number | null
   fecha_creacion?: string | null
   fecha_actualizacion?: string | null
 }
 
-interface TamizEnsayoDetail extends TamizEnsayoSummary {
+interface EnsayoDetail extends EnsayoSummary {
   payload?: {
     realizado_por?: string
-    procedimiento?: string
     observaciones?: string
   } | null
 }
 
-function SmartIframe({ src, title }: SmartIframeProps) {
-  const [key, setKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const handleLoad = () => {
-    setIsLoading(false)
-    setError(null)
-    setRetryCount(0)
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  const handleRetry = useCallback(() => {
-    setIsLoading(true)
-    setError(null)
-    setKey((prev) => prev + 1)
-    setRetryCount((prev) => prev + 1)
-  }, [])
-
-  useEffect(() => {
-    if (!isLoading) return
-
-    const timeoutMs = 12000 + (retryCount * 6000)
-    timeoutRef.current = setTimeout(() => {
-      if (retryCount < 2) {
-        toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
-        setTimeout(() => {
-          toast.dismiss()
-          handleRetry()
-        }, 1500)
-      } else {
-        setError(`El servicio no responde despues de varios intentos (${timeoutMs / 1000}s).`)
-        setIsLoading(false)
-      }
-    }, timeoutMs)
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-    }
-  }, [isLoading, retryCount, handleRetry])
-
-  const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
-    return url.toString()
-  }, [src, retryCount])
-
-  return (
-    <div className="w-full h-full relative bg-gray-50">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">Conectando con el modulo...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center">
-          <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <AlertCircle className="h-10 w-10 text-red-500" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Conexion interrumpida</h3>
-          <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">{error}</p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Recargar pagina
-            </Button>
-            <Button onClick={handleRetry} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reintentar conexion
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <iframe
-        key={key}
-        src={currentSrc}
-        className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
-        title={title}
-        onLoad={handleLoad}
-        onError={() => setError("Error al cargar el iframe.")}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        loading="eager"
-      />
-    </div>
-  )
-}
-
 export function TamizModule() {
+  const config = useMemo(() => getModuleConfig("tamiz"), [])
+  const { isNative, nativeMode, nativeEnsayoId, openNewEnsayo: nativeNew, openEditEnsayo: nativeEdit, openDetail: nativeDetailN, closeNativeModal } = useNativeEnsayoMode(config)
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [token, setToken] = useState<string | null>(null)
-  const [ensayos, setEnsayos] = useState<TamizEnsayoSummary[]>([])
-  const [selectedDetail, setSelectedDetail] = useState<TamizEnsayoDetail | null>(null)
+  const [ensayos, setEnsayos] = useState<EnsayoSummary[]>([])
+  const [selectedDetail, setSelectedDetail] = useState<EnsayoDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [refreshingTable, setRefreshingTable] = useState(false)
@@ -164,7 +65,7 @@ export function TamizModule() {
     process.env.NEXT_PUBLIC_TAMIZ_FRONTEND_URL ||
     process.env.NEXT_PUBLIC_TAMIZ_URL ||
     "https://tamiz.geofal.com.pe"
-  ).replace(/\/+$/, "")
+  ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
   const syncIframeToken = async (): Promise<string | null> => {
@@ -256,11 +157,11 @@ export function TamizModule() {
         cache: "no-store",
       })
       if (!res.ok) return false
-      const data: TamizEnsayoSummary[] = await res.json()
+      const data: EnsayoSummary[] = await res.json()
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching Tamiz ensayos", err)
+      console.error("Error fetching PH ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -309,12 +210,12 @@ export function TamizModule() {
     setIsModalOpen(true)
   }
 
-  const openDetail = async (id: number) => {
+  const doOpenDetail = async (id: number) => {
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/tamiz/${id}?_ts=${Date.now()}`, { cache: "no-store" })
       if (!res.ok) throw new Error("No se pudo cargar el detalle.")
-      const data: TamizEnsayoDetail = await res.json()
+      const data: EnsayoDetail = await res.json()
       setSelectedDetail(data)
       setIsDetailOpen(true)
     } catch (error) {
@@ -331,7 +232,7 @@ export function TamizModule() {
     try {
       const ok = await fetchEnsayos()
       toast[ok ? "success" : "error"](
-        ok ? "Tabla de Tamiz actualizada." : "No se pudo actualizar la tabla de Tamiz.",
+        ok ? "Tabla de Malla 200 ASTM C117-23 actualizada." : "No se pudo actualizar la tabla de Malla 200 ASTM C117-23.",
       )
     } finally {
       setRefreshingTable(false)
@@ -353,7 +254,7 @@ export function TamizModule() {
         const res = await authFetch(`${API_URL}/api/tamiz/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de Tamiz enviado a papelera.")
+        toast.success("Ensayo de Malla 200 ASTM C117-23 enviado a papelera.")
         setIsDeleteConfirmOpen(false)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
@@ -402,7 +303,7 @@ export function TamizModule() {
           </div>
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Malla 200 ASTM C117-23</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Ensayo de lavado en tamiz No. 200 para agregados.</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Determinacion del porcentaje de material que pasa el tamiz N 200.</p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -428,7 +329,7 @@ export function TamizModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial de Malla 200</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial Malla 200 ASTM C117-23</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table className="min-w-[860px]">
@@ -465,7 +366,7 @@ export function TamizModule() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
+                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void doOpenDetail(ensayo.id)}>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
@@ -483,7 +384,7 @@ export function TamizModule() {
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">Malla 200 - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Malla 200 ASTM C117-23 - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
@@ -499,63 +400,58 @@ export function TamizModule() {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-          <DialogHeader className="hidden">
-            <DialogTitle>Ensayo Tamiz</DialogTitle>
-            <DialogDescription>Formulario Tamiz ASTM C117-23</DialogDescription>
-          </DialogHeader>
-          <SmartIframe src={iframeSrc} title="Tamiz CRM" />
-        </DialogContent>
-      </Dialog>
+      {isNative ? (
+        <NativeEnsayoModals
+          mode={nativeMode}
+          ensayoId={nativeEnsayoId}
+          config={config}
+          apiUrl={API_URL}
+          iframeSrc={iframeSrc}
+          iframeTitle="Malla 200 ASTM C117-23 CRM"
+          onClose={closeNativeModal}
+          onSaved={() => { closeNativeModal(); void fetchEnsayos() }}
+        />
+      ) : (
+        <>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+              <DialogHeader className="hidden">
+                <DialogTitle>Ensayo Malla 200 ASTM C117-23</DialogTitle>
+                <DialogDescription>Formulario Malla 200 ASTM C117-23</DialogDescription>
+              </DialogHeader>
+              <iframe src={iframeSrc} className="w-full h-full border-none" title="Malla 200 ASTM C117-23 CRM" />
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-            <DialogDescription>Informacion guardada del Ensayo Tamiz.</DialogDescription>
-          </DialogHeader>
-          {selectedDetail ? (
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Fecha:</span> {formatDate(selectedDetail.fecha_documento)}
-              </p>
-              <p>
-                <span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">% material fino (N°200):</span> {selectedDetail.porcentaje_material_fino_pct ?? "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Procedimiento:</span> {selectedDetail.payload?.procedimiento || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No hay detalle disponible.</p>
-          )}
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
+                <DialogDescription>Informacion guardada del Ensayo Malla 200 ASTM C117-23.</DialogDescription>
+              </DialogHeader>
+              {selectedDetail ? (
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
+                  <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
+                  <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
+                  <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
+                  <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
+                  <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
+                  <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       <ModernConfirmDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleDeleteEnsayo}
-        title="Eliminar Ensayo de Tamiz"
+        title="Eliminar Ensayo de Malla 200 ASTM C117-23"
         description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
         confirmText="Eliminar"
         showInput={true}
@@ -567,5 +463,3 @@ export function TamizModule() {
     </div>
   )
 }
-
-

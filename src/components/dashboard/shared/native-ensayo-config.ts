@@ -1,4 +1,4 @@
-import { Beaker, FlaskConical, Droplets, Ruler, Weight, Dumbbell, Gauge, Layers } from "lucide-react"
+import { Beaker, FlaskConical, Droplets, Ruler, Weight, Dumbbell, Gauge, Layers, Scale } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export interface EnsayoModuleConfig {
@@ -152,6 +152,70 @@ export const ENSAYO_MODULES: EnsayoModuleConfig[] = [
     historyTitle: "Historial Particulas Planas",
     tableCaption: "Planas - listado con busqueda y acceso rapido.",
     envModeKey: "NEXT_PUBLIC_PLANAS_MODE",
+    detailLabels: {
+      realizado_por: "Realizado por",
+      observaciones: "Observaciones",
+    },
+  },
+  {
+    slug: "tamiz",
+    name: "Tamiz",
+    title: "Malla 200 ASTM C117-23",
+    description: "Determinacion del porcentaje de material que pasa el tamiz N 200.",
+    icon: Scale,
+    envFrontendKey: "NEXT_PUBLIC_TAMIZ_FRONTEND_URL",
+    defaultFrontendUrl: "https://tamiz.geofal.com.pe",
+    historyTitle: "Historial de Malla 200",
+    tableCaption: "Malla 200 - listado con busqueda y acceso rapido.",
+    envModeKey: "NEXT_PUBLIC_TAMIZ_MODE",
+    detailLabels: {
+      realizado_por: "Realizado por",
+      observaciones: "Observaciones",
+    },
+  },
+  {
+    slug: "gran-suelo",
+    name: "GranSuelo",
+    title: "GRANULOMETRIA SUELOS ASTM D6913/D6913M-17",
+    description: "Analisis granulometrico de suelos por tamizado.",
+    icon: FlaskConical,
+    envFrontendKey: "NEXT_PUBLIC_GRAN_SUELO_FRONTEND_URL",
+    defaultFrontendUrl: "https://gran-suelo.geofal.com.pe",
+    historyTitle: "Historial de Gran Suelo",
+    tableCaption: "Gran Suelo - listado con busqueda y acceso rapido.",
+    envModeKey: "NEXT_PUBLIC_GRAN_SUELO_MODE",
+    detailLabels: {
+      realizado_por: "Realizado por",
+      observaciones: "Observaciones",
+    },
+  },
+  {
+    slug: "gran-agregado",
+    name: "GranAgregado",
+    title: "GRANULOMETRIA AGREGADOS ASTM C136/C136M-25",
+    description: "Analisis granulometrico de agregados por tamizado.",
+    icon: FlaskConical,
+    envFrontendKey: "NEXT_PUBLIC_GRAN_AGREGADO_FRONTEND_URL",
+    defaultFrontendUrl: "https://gran-agregado.geofal.com.pe",
+    historyTitle: "Historial de Gran Agregado",
+    tableCaption: "Gran Agregado - listado con busqueda y acceso rapido.",
+    envModeKey: "NEXT_PUBLIC_GRAN_AGREGADO_MODE",
+    detailLabels: {
+      realizado_por: "Realizado por",
+      observaciones: "Observaciones",
+    },
+  },
+  {
+    slug: "compresion-no-confinada",
+    name: "CompresionNoConfinada",
+    title: "C. No Confinada",
+    description: "Ensayo de compresion no confinada en suelos.",
+    icon: Beaker,
+    envFrontendKey: "NEXT_PUBLIC_COMPRESION_NO_CONFINADA_FRONTEND_URL",
+    defaultFrontendUrl: "https://compresion-no-confinada.geofal.com.pe",
+    historyTitle: "Historial C. No Confinada",
+    tableCaption: "C. No Confinada - listado con busqueda y acceso rapido.",
+    envModeKey: "NEXT_PUBLIC_COMPRESION_NO_CONFINADA_MODE",
     detailLabels: {
       realizado_por: "Realizado por",
       observaciones: "Observaciones",
