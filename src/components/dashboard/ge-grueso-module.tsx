@@ -1,7 +1,8 @@
+
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, FlaskConical, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Plus, Weight, Loader2, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
@@ -18,13 +19,10 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
+import { getModuleConfig } from "./shared/native-ensayo-config"
+import { NativeEnsayoModals, useNativeEnsayoMode } from "./shared/NativeEnsayoModals"
 
-interface SmartIframeProps {
-  src: string
-  title: string
-}
-
-interface GeGruesoEnsayoSummary {
+interface EnsayoSummary {
   id: number
   numero_ensayo?: string | null
   numero_ot?: string | null
@@ -32,127 +30,26 @@ interface GeGruesoEnsayoSummary {
   muestra?: string | null
   fecha_documento?: string | null
   estado?: string | null
-  masa_muestra_inicial_total_kg?: number | null
   fecha_creacion?: string | null
   fecha_actualizacion?: string | null
 }
 
-interface GeGruesoEnsayoDetail extends GeGruesoEnsayoSummary {
+interface EnsayoDetail extends EnsayoSummary {
   payload?: {
     realizado_por?: string
-    seco_horno_110_si_no?: string
-    ensayada_en_fracciones_si_no?: string
-    malla_fraccion?: string
-    fr1_masa_total_g?: number
-    fr2_masa_total_g?: number
     observaciones?: string
   } | null
 }
 
-function SmartIframe({ src, title }: SmartIframeProps) {
-  const [key, setKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const handleLoad = () => {
-    setIsLoading(false)
-    setError(null)
-    setRetryCount(0)
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  const handleRetry = useCallback(() => {
-    setIsLoading(true)
-    setError(null)
-    setKey((prev) => prev + 1)
-    setRetryCount((prev) => prev + 1)
-  }, [])
-
-  useEffect(() => {
-    if (!isLoading) return
-
-    const timeoutMs = 12000 + (retryCount * 6000)
-    timeoutRef.current = setTimeout(() => {
-      if (retryCount < 2) {
-        toast.loading(`El servidor tarda en responder. Reintentando... (Intento ${retryCount + 1}/3)`)
-        setTimeout(() => {
-          toast.dismiss()
-          handleRetry()
-        }, 1500)
-      } else {
-        setError(`El servicio no responde despues de varios intentos (${timeoutMs / 1000}s).`)
-        setIsLoading(false)
-      }
-    }, timeoutMs)
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-    }
-  }, [isLoading, retryCount, handleRetry])
-
-  const currentSrc = useMemo(() => {
-    const url = new URL(src)
-    url.searchParams.set("retry", retryCount.toString())
-    url.searchParams.set("t", Date.now().toString())
-    return url.toString()
-  }, [src, retryCount])
-
-  return (
-    <div className="w-full h-full relative bg-gray-50">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 backdrop-blur-sm transition-all duration-300">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse text-center">Conectando con el modulo...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 p-6 text-center">
-          <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <AlertCircle className="h-10 w-10 text-red-500" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Conexion interrumpida</h3>
-          <p className="text-sm text-gray-500 max-w-xs mb-8 leading-relaxed">{error}</p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Recargar pagina
-            </Button>
-            <Button onClick={handleRetry} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reintentar conexion
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <iframe
-        key={key}
-        src={currentSrc}
-        className={`w-full h-full border-none transition-opacity duration-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
-        title={title}
-        onLoad={handleLoad}
-        onError={() => setError("Error al cargar el iframe.")}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        loading="eager"
-      />
-    </div>
-  )
-}
-
 export function GeGruesoModule() {
+  const config = useMemo(() => getModuleConfig("ge-grueso"), [])
+  const { isNative, nativeMode, nativeEnsayoId, openNewEnsayo: nativeNew, openEditEnsayo: nativeEdit, openDetail: nativeDetailN, closeNativeModal } = useNativeEnsayoMode(config)
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [token, setToken] = useState<string | null>(null)
-  const [ensayos, setEnsayos] = useState<GeGruesoEnsayoSummary[]>([])
-  const [selectedDetail, setSelectedDetail] = useState<GeGruesoEnsayoDetail | null>(null)
+  const [ensayos, setEnsayos] = useState<EnsayoSummary[]>([])
+  const [selectedDetail, setSelectedDetail] = useState<EnsayoDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [refreshingTable, setRefreshingTable] = useState(false)
@@ -168,7 +65,7 @@ export function GeGruesoModule() {
     process.env.NEXT_PUBLIC_GE_GRUESO_FRONTEND_URL ||
     process.env.NEXT_PUBLIC_GE_GRUESO_URL ||
     "https://ge-grueso.geofal.com.pe"
-  ).replace(/\/+$/, "")
+  ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
   const syncIframeToken = async (): Promise<string | null> => {
@@ -260,11 +157,11 @@ export function GeGruesoModule() {
         cache: "no-store",
       })
       if (!res.ok) return false
-      const data: GeGruesoEnsayoSummary[] = await res.json()
+      const data: EnsayoSummary[] = await res.json()
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching GE Grueso ensayos", err)
+      console.error("Error fetching PH ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -272,7 +169,7 @@ export function GeGruesoModule() {
   }, [API_URL])
 
   useEffect(() => {
-    fetchEnsayos()
+    void fetchEnsayos()
     void syncIframeToken()
   }, [fetchEnsayos])
 
@@ -280,7 +177,7 @@ export function GeGruesoModule() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
-        fetchEnsayos()
+        void fetchEnsayos()
       }
       if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
         syncIframeToken().then((freshToken) => {
@@ -313,12 +210,12 @@ export function GeGruesoModule() {
     setIsModalOpen(true)
   }
 
-  const openDetail = async (id: number) => {
+  const doOpenDetail = async (id: number) => {
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/ge-grueso/${id}?_ts=${Date.now()}`, { cache: "no-store" })
       if (!res.ok) throw new Error("No se pudo cargar el detalle.")
-      const data: GeGruesoEnsayoDetail = await res.json()
+      const data: EnsayoDetail = await res.json()
       setSelectedDetail(data)
       setIsDetailOpen(true)
     } catch (error) {
@@ -334,7 +231,9 @@ export function GeGruesoModule() {
     setRefreshingTable(true)
     try {
       const ok = await fetchEnsayos()
-      toast[ok ? "success" : "error"](ok ? "Tabla de GE Grueso actualizada." : "No se pudo actualizar la tabla de GE Grueso.")
+      toast[ok ? "success" : "error"](
+        ok ? "Tabla de Gravedad Especifica Grueso actualizada." : "No se pudo actualizar la tabla de Gravedad Especifica Grueso.",
+      )
     } finally {
       setRefreshingTable(false)
     }
@@ -349,13 +248,13 @@ export function GeGruesoModule() {
   const handleDeleteEnsayo = useCallback(
     async () => {
       if (!deletingEnsayoId) return
-
+      
       const id = deletingEnsayoId
       try {
         const res = await authFetch(`${API_URL}/api/ge-grueso/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de GE Grueso enviado a papelera.")
+        toast.success("Ensayo de Gravedad Especifica Grueso enviado a papelera.")
         setIsDeleteConfirmOpen(false)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
@@ -400,11 +299,11 @@ export function GeGruesoModule() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div className="shrink-0 p-2 rounded-lg bg-primary/10">
-            <FlaskConical className="h-6 w-6 text-primary" />
+            <Weight className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">GE GRUESO ASTM C127-25</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Densidad relativa y absorcion de agregado grueso.</p>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Gravedad Especifica Grueso</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Determinacion de la gravedad especifica de agregado grueso.</p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -430,7 +329,7 @@ export function GeGruesoModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial de GE Grueso</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial Gravedad Especifica Grueso</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table className="min-w-[860px]">
@@ -438,7 +337,6 @@ export function GeGruesoModule() {
             <TableRow>
               <TableHead className="w-40">Codigo de Muestra</TableHead>
               <TableHead>N OT</TableHead>
-              <TableHead className="w-44">Masa Inicial (kg)</TableHead>
               <TableHead className="w-32">Estado</TableHead>
               <TableHead className="w-64 text-right">Acciones</TableHead>
             </TableRow>
@@ -446,14 +344,14 @@ export function GeGruesoModule() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
+                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
                   Cargando ensayos...
                 </TableCell>
               </TableRow>
             )}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-sm">
+                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">
                   Sin resultados.
                 </TableCell>
               </TableRow>
@@ -463,13 +361,12 @@ export function GeGruesoModule() {
                 <TableRow key={ensayo.id} className="hover:bg-slate-50">
                   <TableCell className="font-semibold">{ensayo.muestra || ensayo.cliente || "S/N"}</TableCell>
                   <TableCell>{ensayo.numero_ot || "-"}</TableCell>
-                  <TableCell>{ensayo.masa_muestra_inicial_total_kg ?? "-"}</TableCell>
                   <TableCell>
                     <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">{ensayo.estado || "Pendiente"}</span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void openDetail(ensayo.id)}>
+                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void doOpenDetail(ensayo.id)}>
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
@@ -487,7 +384,7 @@ export function GeGruesoModule() {
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">GE Grueso - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Gravedad Especifica Grueso - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
@@ -503,75 +400,58 @@ export function GeGruesoModule() {
         )}
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-          <DialogHeader className="hidden">
-            <DialogTitle>Ensayo GE Grueso</DialogTitle>
-            <DialogDescription>Formulario GE Grueso ASTM C127-25</DialogDescription>
-          </DialogHeader>
-          <SmartIframe src={iframeSrc} title="GE Grueso CRM" />
-        </DialogContent>
-      </Dialog>
+      {isNative ? (
+        <NativeEnsayoModals
+          mode={nativeMode}
+          ensayoId={nativeEnsayoId}
+          config={config}
+          apiUrl={API_URL}
+          iframeSrc={iframeSrc}
+          iframeTitle="Gravedad Especifica Grueso CRM"
+          onClose={closeNativeModal}
+          onSaved={() => { closeNativeModal(); void fetchEnsayos() }}
+        />
+      ) : (
+        <>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
+              <DialogHeader className="hidden">
+                <DialogTitle>Ensayo Gravedad Especifica Grueso</DialogTitle>
+                <DialogDescription>Formulario Gravedad Especifica Grueso</DialogDescription>
+              </DialogHeader>
+              <iframe src={iframeSrc} className="w-full h-full border-none" title="Gravedad Especifica Grueso CRM" />
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-            <DialogDescription>Informacion guardada del Ensayo GE Grueso.</DialogDescription>
-          </DialogHeader>
-          {selectedDetail ? (
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Fecha:</span> {formatDate(selectedDetail.fecha_documento)}
-              </p>
-              <p>
-                <span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Masa Inicial (kg):</span> {selectedDetail.masa_muestra_inicial_total_kg ?? "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Secado en horno:</span> {selectedDetail.payload?.seco_horno_110_si_no || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Ensayada en fracciones:</span> {selectedDetail.payload?.ensayada_en_fracciones_si_no || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Malla de fraccion:</span> {selectedDetail.payload?.malla_fraccion || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Masa total 1° fraccion (g):</span> {selectedDetail.payload?.fr1_masa_total_g ?? "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Masa total 2° fraccion (g):</span> {selectedDetail.payload?.fr2_masa_total_g ?? "-"}
-              </p>
-              <p>
-                <span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No hay detalle disponible.</p>
-          )}
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
+                <DialogDescription>Informacion guardada del Ensayo Gravedad Especifica Grueso.</DialogDescription>
+              </DialogHeader>
+              {selectedDetail ? (
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
+                  <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
+                  <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
+                  <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
+                  <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
+                  <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
+                  <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
+              )}
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       <ModernConfirmDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleDeleteEnsayo}
-        title="Eliminar Ensayo de Gravedad Específica (Grueso)"
+        title="Eliminar Ensayo de Gravedad Especifica Grueso"
         description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
         confirmText="Eliminar"
         showInput={true}
@@ -583,7 +463,3 @@ export function GeGruesoModule() {
     </div>
   )
 }
-
-
-
-
