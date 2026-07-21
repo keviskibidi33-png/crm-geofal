@@ -34,6 +34,24 @@ export interface GerenciaKpis {
   statusProbetasEntregadas: KpiGroup
 }
 
+export interface HistoricalMonthData {
+  mes: string
+  label: string
+  total: number
+  entregado: number
+  proceso: number
+  informeListo: number
+  anulado: number
+  tasaEntrega: number
+  confirmacionEnvios: number
+  cumplimientoTiempo: number
+  serviciosEnProceso: number
+  recepcionesDoc: number
+  tasaAnulacion: number
+}
+
+export type HistoricalKpis = HistoricalMonthData[]
+
 export interface MonthOption {
   value: string
   label: string
@@ -47,7 +65,9 @@ export interface KpisData {
   laboratorio: LaboratorioKpis
   comercial: ComercialKpis
   gerencia: GerenciaKpis
+  historical: HistoricalKpis
   isLoading: boolean
+  isHistoricalLoading: boolean
   lastUpdated: Date | null
   selectedMonth: string
   selectedYear: number
@@ -56,6 +76,7 @@ export interface KpisData {
   setSelectedMonth: (month: string, year?: number) => void
   setDateFilter: (filter: DateFilter) => void
   refresh: () => Promise<void>
+  refreshHistorical: () => Promise<void>
 }
 
 function calcPct(value: number, total: number): number {
@@ -133,9 +154,11 @@ export function useKpisData(): KpisData {
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [isLoading, setIsLoading] = useState(true)
+  const [isHistoricalLoading, setIsHistoricalLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [dateFilter, setDateFilter] = useState<DateFilter>("recepcion")
   const [availableMonths] = useState<MonthOption[]>(() => generateAvailableMonths())
+  const [historical, setHistorical] = useState<HistoricalKpis>([])
 
   const setSelectedMonth = useCallback((month: string, year?: number) => {
     const targetYear = year || selectedYear
@@ -262,6 +285,75 @@ export function useKpisData(): KpisData {
     }
   }, [selectedMonth, selectedYear, dateFilter])
 
+  const fetchHistoricalKpis = useCallback(async () => {
+    try {
+      setIsHistoricalLoading(true)
+
+      const { data: rows, error } = await supabase
+        .from("programacion_lab")
+        .select("fecha_recepcion, estado_trabajo, entrega_real, fecha_entrega_estimada, envio_informes, evidencia_envio_recepcion")
+        .not("fecha_recepcion", "is", null)
+        .gte("fecha_recepcion", "2026-01-01")
+
+      if (error) {
+        console.error("Error fetching historical KPIs:", error)
+        return
+      }
+
+      const grouped: Record<string, typeof rows> = {}
+      for (const row of rows ?? []) {
+        const key = row.fecha_recepcion!.substring(0, 7)
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(row)
+      }
+
+      const result: HistoricalKpis = Object.keys(grouped)
+        .sort()
+        .map((key) => {
+          const monthRows = grouped[key]
+          const total = monthRows.length
+          const entregado = monthRows.filter(r => r.estado_trabajo === "ENTREGADO").length
+          const proceso = monthRows.filter(r => r.estado_trabajo === "PROCESO").length
+          const informeListo = monthRows.filter(r => r.estado_trabajo === "INFORME LISTO").length
+          const anulado = monthRows.filter(r => r.estado_trabajo === "ANULADO").length
+          const conFechaEst = monthRows.filter(r => r.fecha_entrega_estimada)
+          const conEntregaReal = monthRows.filter(r => r.entrega_real)
+          const aTiempo = monthRows.filter(r => r.fecha_entrega_estimada && (!r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada)).length
+          const conRetraso = monthRows.filter(r => r.entrega_real && r.fecha_entrega_estimada && r.entrega_real > r.fecha_entrega_estimada).length
+          const envInfSi = monthRows.filter(r => r.envio_informes === "SI").length
+          const envRecSi = monthRows.filter(r => r.evidencia_envio_recepcion === "SI").length
+          const [y, m] = key.split("-")
+          const monthIdx = parseInt(m) - 1
+
+          return {
+            mes: key,
+            label: `${MONTH_NAMES[monthIdx]} ${y}`,
+            total,
+            entregado,
+            proceso,
+            informeListo,
+            anulado,
+            tasaEntrega: calcPct(entregado, total),
+            confirmacionEnvios: calcPct(envInfSi, total),
+            cumplimientoTiempo: conFechaEst.length > 0 ? calcPct(aTiempo, conFechaEst.length) : 0,
+            serviciosEnProceso: calcPct(proceso, total),
+            recepcionesDoc: calcPct(envRecSi, total),
+            tasaAnulacion: calcPct(anulado, total),
+          }
+        })
+
+      setHistorical(result)
+    } catch (err) {
+      console.error("Error fetching historical KPIs:", err)
+    } finally {
+      setIsHistoricalLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchHistoricalKpis()
+  }, [fetchHistoricalKpis])
+
   useEffect(() => {
     fetchKpis()
   }, [fetchKpis])
@@ -270,7 +362,9 @@ export function useKpisData(): KpisData {
     laboratorio,
     comercial,
     gerencia,
+    historical,
     isLoading,
+    isHistoricalLoading,
     lastUpdated,
     selectedMonth,
     selectedYear,
@@ -279,5 +373,6 @@ export function useKpisData(): KpisData {
     setSelectedMonth,
     setDateFilter,
     refresh: fetchKpis,
+    refreshHistorical: fetchHistoricalKpis,
   }
 }
