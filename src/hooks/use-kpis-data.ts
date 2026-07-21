@@ -58,6 +58,34 @@ export interface HistoricalMonthData {
 
 export type HistoricalKpis = HistoricalMonthData[]
 
+export interface HistoricalComercialMonthData {
+  mes: string
+  label: string
+  total: number
+  entregados: number
+  enProceso: number
+  informeListo: number
+  anulados: number
+  conFactura: number
+  pagados: number
+  pendientes: number
+}
+
+export type HistoricalComercialKpis = HistoricalComercialMonthData[]
+
+export interface HistoricalAdminMonthData {
+  mes: string
+  label: string
+  total: number
+  conFactura: number
+  sinFactura: number
+  pagado: number
+  pendiente: number
+  sinRegistro: number
+}
+
+export type HistoricalAdminKpis = HistoricalAdminMonthData[]
+
 export interface MonthOption {
   value: string
   label: string
@@ -75,6 +103,8 @@ export interface KpisData {
   prevComercial: ComercialKpis | null
   prevGerencia: GerenciaKpis | null
   historical: HistoricalKpis
+  historicalComercial: HistoricalComercialKpis
+  historicalAdmin: HistoricalAdminKpis
   isLoading: boolean
   isHistoricalLoading: boolean
   lastUpdated: Date | null
@@ -177,6 +207,8 @@ export function useKpisData(): KpisData {
   const [dateFilter, setDateFilter] = useState<DateFilter>("recepcion")
   const [availableMonths] = useState<MonthOption[]>(() => generateAvailableMonths())
   const [historical, setHistorical] = useState<HistoricalKpis>([])
+  const [historicalComercial, setHistoricalComercial] = useState<HistoricalComercialKpis>([])
+  const [historicalAdmin, setHistoricalAdmin] = useState<HistoricalAdminKpis>([])
 
   const setSelectedMonth = useCallback((month: string, year?: number) => {
     const targetYear = year || selectedYear
@@ -419,9 +451,96 @@ export function useKpisData(): KpisData {
     }
   }, [])
 
+  const fetchHistoricalComercialKpis = useCallback(async () => {
+    try {
+      setIsHistoricalLoading(true)
+      const { data: rows, error } = await supabase
+        .from("programacion_lab")
+        .select("fecha_recepcion, fecha_contacto, estado_trabajo, costo_servicio")
+        .not("fecha_contacto", "is", null)
+        .gte("fecha_contacto", "2026-01-01")
+      if (error) { console.error("Error fetching comercial historical:", error); return }
+
+      const grouped: Record<string, typeof rows> = {}
+      for (const row of rows ?? []) {
+        const key = row.fecha_contacto!.substring(0, 7)
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(row)
+      }
+
+      const result: HistoricalComercialKpis = Object.keys(grouped).sort().map((key) => {
+        const m = grouped[key]
+        const total = m.length
+        const entregados = m.filter(r => r.estado_trabajo === "ENTREGADO").length
+        const enProceso = m.filter(r => r.estado_trabajo === "PROCESO").length
+        const informeListo = m.filter(r => r.estado_trabajo === "INFORME LISTO").length
+        const anulados = m.filter(r => r.estado_trabajo === "ANULADO").length
+        const [y, mo] = key.split("-")
+        const monthIdx = parseInt(mo) - 1
+        return { mes: key, label: `${MONTH_NAMES[monthIdx]} ${y}`, total, entregados, enProceso, informeListo, anulados, conFactura: 0, pagados: 0, pendientes: 0 }
+      })
+
+      const { data: adminRows } = await supabase
+        .from("programacion_administracion")
+        .select("fecha_contacto, numero_factura, estado_pago")
+        .not("fecha_contacto", "is", null)
+        .gte("fecha_contacto", "2026-01-01")
+      const adminGrouped: Record<string, typeof adminRows> = {}
+      for (const row of adminRows ?? []) {
+        const key = row.fecha_contacto!.substring(0, 7)
+        if (!adminGrouped[key]) adminGrouped[key] = []
+        adminGrouped[key].push(row)
+      }
+      for (const entry of result) {
+        const am = adminGrouped[entry.mes] ?? []
+        entry.conFactura = am.filter(r => r.numero_factura).length
+        entry.pagados = am.filter(r => r.estado_pago === "PAGADO").length
+        entry.pendientes = am.filter(r => r.estado_pago === "PENDIENTE").length
+      }
+
+      setHistoricalComercial(result)
+    } catch (err) { console.error("Error:", err) } finally { setIsHistoricalLoading(false) }
+  }, [])
+
+  const fetchHistoricalAdminKpis = useCallback(async () => {
+    try {
+      setIsHistoricalLoading(true)
+      const { data: rows, error } = await supabase
+        .from("programacion_administracion")
+        .select("fecha_contacto, numero_factura, estado_pago")
+        .not("fecha_contacto", "is", null)
+        .gte("fecha_contacto", "2026-01-01")
+      if (error) { console.error("Error fetching admin historical:", error); return }
+
+      const grouped: Record<string, typeof rows> = {}
+      for (const row of rows ?? []) {
+        const key = row.fecha_contacto!.substring(0, 7)
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(row)
+      }
+
+      const result: HistoricalAdminKpis = Object.keys(grouped).sort().map((key) => {
+        const m = grouped[key]
+        const total = m.length
+        const conFactura = m.filter(r => r.numero_factura).length
+        const sinFactura = total - conFactura
+        const pagado = m.filter(r => r.estado_pago === "PAGADO").length
+        const pendiente = m.filter(r => r.estado_pago === "PENDIENTE").length
+        const sinRegistro = total - pagado - pendiente
+        const [y, mo] = key.split("-")
+        const monthIdx = parseInt(mo) - 1
+        return { mes: key, label: `${MONTH_NAMES[monthIdx]} ${y}`, total, conFactura, sinFactura, pagado, pendiente, sinRegistro }
+      })
+
+      setHistoricalAdmin(result)
+    } catch (err) { console.error("Error:", err) } finally { setIsHistoricalLoading(false) }
+  }, [])
+
   useEffect(() => {
     fetchHistoricalKpis()
-  }, [fetchHistoricalKpis])
+    fetchHistoricalComercialKpis()
+    fetchHistoricalAdminKpis()
+  }, [fetchHistoricalKpis, fetchHistoricalComercialKpis, fetchHistoricalAdminKpis])
 
   useEffect(() => {
     fetchKpis()
@@ -435,6 +554,8 @@ export function useKpisData(): KpisData {
     prevComercial,
     prevGerencia,
     historical,
+    historicalComercial,
+    historicalAdmin,
     isLoading,
     isHistoricalLoading,
     lastUpdated,
