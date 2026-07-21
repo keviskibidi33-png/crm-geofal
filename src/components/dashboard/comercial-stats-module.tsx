@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-comercial-admin"
 import { FileText, CheckCircle2, AlertTriangle, RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -90,40 +90,46 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
             />
           </div>
 
-          {/* Tabla + PieChart Estado de Trabajo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Estado de Trabajo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.estadoTrabajo.categories} previousCategories={prevComercial?.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
             <KpiPieChart data={comercial.estadoTrabajo} loading={isLoading} />
+            <KpiBarChart data={comercial.estadoTrabajo} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Servicios por Tipo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Servicios por Tipo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.serviciosPorTipo.categories} previousCategories={prevComercial?.serviciosPorTipo.categories} loading={isLoading} title="ANALISIS CANTIDAD POR TIPO DE SERVICIO" />
             <KpiPieChart data={comercial.serviciosPorTipo} loading={isLoading} />
+            <KpiBarChart data={comercial.serviciosPorTipo} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Tiempo de Entrega */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Tiempo de Entrega */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.tiempoEntrega.categories} previousCategories={prevComercial?.tiempoEntrega.categories} loading={isLoading} title="ANALISIS TIEMPO DE ENTREGA" />
             <KpiPieChart data={comercial.tiempoEntrega} loading={isLoading} />
+            <KpiBarChart data={comercial.tiempoEntrega} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Dias Atraso Cotizacion */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Dias Atraso Cotizacion */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.diasAtrasoCotizacion.categories} previousCategories={prevComercial?.diasAtrasoCotizacion.categories} loading={isLoading} title="ANALISIS DIAS ATRASO ENVIO COTIZACION" />
             <KpiPieChart data={comercial.diasAtrasoCotizacion} loading={isLoading} />
+            <KpiBarChart data={comercial.diasAtrasoCotizacion} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Cumplimiento Cotizacion */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Cumplimiento Cotizacion */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.cumplimientoCotizacion.categories} previousCategories={prevComercial?.cumplimientoCotizacion.categories} loading={isLoading} title="ANALISIS CUMPLIMIENTO TIEMPO COTIZACION" />
             <KpiPieChart data={comercial.cumplimientoCotizacion} loading={isLoading} />
+            <KpiBarChart data={comercial.cumplimientoCotizacion} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Evidencia Solicitud */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Evidencia Solicitud */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.evidenciaSolicitud.categories} previousCategories={prevComercial?.evidenciaSolicitud.categories} loading={isLoading} title="ANALISIS EVIDENCIA ENVIO SOLICITUD" />
             <KpiPieChart data={comercial.evidenciaSolicitud} loading={isLoading} />
+            <KpiBarChart data={comercial.evidenciaSolicitud} loading={isLoading} />
           </div>
         </>
       ) : (

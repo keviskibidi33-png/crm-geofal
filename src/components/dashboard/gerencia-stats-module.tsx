@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistoricoAdmin } from "@/components/dashboard/kpi-historico-comercial-admin"
 import { BarChart3, FileText, DollarSign, CheckCircle2, RefreshCw, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -90,28 +90,32 @@ export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
             />
           </div>
 
-          {/* Tabla + PieChart Resumen Mensual */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Resumen Mensual */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.resumenMensual.categories} previousCategories={prevGerencia?.resumenMensual.categories} loading={isLoading} title="ANALISIS RESUMEN MENSUAL" />
             <KpiPieChart data={gerencia.resumenMensual} loading={isLoading} />
+            <KpiBarChart data={gerencia.resumenMensual} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Facturacion */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Facturacion */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.facturacion.categories} previousCategories={prevGerencia?.facturacion.categories} loading={isLoading} title="ANALISIS FACTURACION" />
             <KpiPieChart data={gerencia.facturacion} loading={isLoading} />
+            <KpiBarChart data={gerencia.facturacion} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Estado de Pago */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Estado de Pago */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.estadoPago.categories} previousCategories={prevGerencia?.estadoPago.categories} loading={isLoading} title="ANALISIS ESTADO DE PAGO" />
             <KpiPieChart data={gerencia.estadoPago} loading={isLoading} />
+            <KpiBarChart data={gerencia.estadoPago} loading={isLoading} />
           </div>
 
-          {/* Tabla + PieChart Status Probetas Entregadas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tabla + Pie + Bar: Status Probetas Entregadas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} previousCategories={prevGerencia?.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS PROBETAS ENTREGADAS" />
             <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
+            <KpiBarChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
           </div>
         </>
       ) : (
