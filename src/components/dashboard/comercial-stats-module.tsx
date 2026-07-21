@@ -1,8 +1,8 @@
 ﻿"use client"
 
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
-import { FileText, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react"
+import { KpiChartCard, KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { FileText, CheckCircle2, AlertTriangle, RefreshCw, Clock, TrendingUp, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ComercialStatsProps {
@@ -10,11 +10,11 @@ interface ComercialStatsProps {
 }
 
 export function ComercialStatsModule({ user }: ComercialStatsProps) {
-  const { comercial, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { comercial, prevComercial, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold">Estadistica Comercial</h2>
           <p className="text-sm text-muted-foreground">
@@ -46,44 +46,67 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
         <KpiCard
           title="Entregados"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "Entregado")?.value ?? 0}
-          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+          previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Entregado")?.value}
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="En Proceso"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "En Proceso")?.value ?? 0}
-          icon={<FileText className="h-4 w-4 text-blue-600" />}
+          previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "En Proceso")?.value}
+          icon={<FileText className="h-5 w-5 text-blue-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="Informe Listo"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "Informe Listo")?.value ?? 0}
-          icon={<AlertTriangle className="h-4 w-4 text-amber-600" />}
+          previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Informe Listo")?.value}
+          icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
           loading={isLoading}
         />
         <KpiCard
           title="Anulados"
           value={comercial.estadoTrabajo.categories.find(c => c.label === "Anulado")?.value ?? 0}
-          icon={<AlertTriangle className="h-4 w-4 text-red-600" />}
+          previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Anulado")?.value}
+          icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
           loading={isLoading}
         />
       </div>
 
-      {/* Charts Grid */}
+      {/* Tabla + PieChart Estado de Trabajo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Estado de Trabajo */}
+        <KpiSummaryRow categories={comercial.estadoTrabajo.categories} previousCategories={prevComercial?.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
         <KpiPieChart data={comercial.estadoTrabajo} loading={isLoading} />
-
-        {/* Evidencia de Envio */}
-        <KpiPieChart data={comercial.evidenciaEnvio} loading={isLoading} />
       </div>
 
-      {/* Summary Rows */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium mb-2">Resumen de Evidencias</h3>
-          <KpiSummaryRow categories={comercial.evidenciaEnvio.categories} loading={isLoading} />
-        </div>
+      {/* Tabla + BarChart Servicios por Tipo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={comercial.serviciosPorTipo.categories} previousCategories={prevComercial?.serviciosPorTipo.categories} loading={isLoading} title="ANALISIS CANTIDAD POR TIPO DE SERVICIO" />
+        <KpiChartCard data={comercial.serviciosPorTipo} loading={isLoading} />
+      </div>
+
+      {/* Tabla + BarChart Tiempo de Entrega */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={comercial.tiempoEntrega.categories} previousCategories={prevComercial?.tiempoEntrega.categories} loading={isLoading} title="ANALISIS TIEMPO DE ENTREGA" />
+        <KpiChartCard data={comercial.tiempoEntrega} loading={isLoading} />
+      </div>
+
+      {/* Tabla + BarChart Dias Atraso Cotizacion */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={comercial.diasAtrasoCotizacion.categories} previousCategories={prevComercial?.diasAtrasoCotizacion.categories} loading={isLoading} title="ANALISIS DIAS ATRASO ENVIO COTIZACION" />
+        <KpiChartCard data={comercial.diasAtrasoCotizacion} loading={isLoading} />
+      </div>
+
+      {/* Tabla + PieChart Cumplimiento Cotizacion */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={comercial.cumplimientoCotizacion.categories} previousCategories={prevComercial?.cumplimientoCotizacion.categories} loading={isLoading} title="ANALISIS CUMPLIMIENTO TIEMPO COTIZACION" />
+        <KpiPieChart data={comercial.cumplimientoCotizacion} loading={isLoading} />
+      </div>
+
+      {/* Tabla + BarChart Evidencia Solicitud */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={comercial.evidenciaSolicitud.categories} previousCategories={prevComercial?.evidenciaSolicitud.categories} loading={isLoading} title="ANALISIS EVIDENCIA ENVIO SOLICITUD" />
+        <KpiChartCard data={comercial.evidenciaSolicitud} loading={isLoading} />
       </div>
     </div>
   )

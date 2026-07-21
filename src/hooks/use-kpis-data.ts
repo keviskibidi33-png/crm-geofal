@@ -25,12 +25,18 @@ export interface LaboratorioKpis {
 
 export interface ComercialKpis {
   estadoTrabajo: KpiGroup
-  evidenciaEnvio: KpiGroup
+  serviciosPorTipo: KpiGroup
+  tiempoEntrega: KpiGroup
+  evidenciaSolicitud: KpiGroup
+  diasAtrasoCotizacion: KpiGroup
+  cumplimientoCotizacion: KpiGroup
 }
 
 export interface GerenciaKpis {
   resumenMensual: KpiGroup
   probetasFaltantes: KpiGroup
+  facturacion: KpiGroup
+  estadoPago: KpiGroup
   statusProbetasEntregadas: KpiGroup
 }
 
@@ -66,6 +72,7 @@ export interface KpisData {
   comercial: ComercialKpis
   gerencia: GerenciaKpis
   prevLaboratorio: LaboratorioKpis | null
+  prevComercial: ComercialKpis | null
   prevGerencia: GerenciaKpis | null
   historical: HistoricalKpis
   isLoading: boolean
@@ -105,12 +112,18 @@ const EMPTY_LAB: LaboratorioKpis = {
 
 const EMPTY_COM: ComercialKpis = {
   estadoTrabajo: buildGroup("Estado Trabajo", []),
-  evidenciaEnvio: buildGroup("Evidencia Envio", []),
+  serviciosPorTipo: buildGroup("Servicios por Tipo", []),
+  tiempoEntrega: buildGroup("Tiempo Entrega", []),
+  evidenciaSolicitud: buildGroup("Evidencia Solicitud", []),
+  diasAtrasoCotizacion: buildGroup("Dias Atraso Cotizacion", []),
+  cumplimientoCotizacion: buildGroup("Cumplimiento Cotizacion", []),
 }
 
 const EMPTY_GER: GerenciaKpis = {
   resumenMensual: buildGroup("Resumen Mensual", []),
   probetasFaltantes: buildGroup("Probetas Faltantes", []),
+  facturacion: buildGroup("Facturacion", []),
+  estadoPago: buildGroup("Estado Pago", []),
   statusProbetasEntregadas: buildGroup("Status Probetas Entregadas", []),
 }
 
@@ -156,6 +169,7 @@ export function useKpisData(): KpisData {
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [prevLaboratorio, setPrevLaboratorio] = useState<LaboratorioKpis | null>(null)
+  const [prevComercial, setPrevComercial] = useState<ComercialKpis | null>(null)
   const [prevGerencia, setPrevGerencia] = useState<GerenciaKpis | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isHistoricalLoading, setIsHistoricalLoading] = useState(false)
@@ -195,7 +209,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
+      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes, comEvSolRes, comDiasATRes, comDias1a3Res, comDias4a7Res, comDias8Res, comATRes, comCRRes, adminFactRes, adminSinFactRes, adminPagRes, adminPendRes] = await Promise.all([
         supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE"),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO"),
@@ -216,6 +230,18 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.eq.SI,evidencia_envio_recepcion.eq.OK").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("envio_informes.eq.SI,envio_informes.eq.OK").not("evidencia_envio_recepcion", "in", "(SI,OK)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("envio_informes", null).is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).or("evidencia_solicitud_envio.eq.SI,evidencia_solicitud_envio.eq.OK"),
+        supabase.from("programacion_comercial").select("id,dias_atraso_envio_coti", { count: "exact" }).not("dias_atraso_envio_coti", "is", null),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 0).lte("dias_atraso_envio_coti", 3),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 3).lte("dias_atraso_envio_coti", 7),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 7),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 0),
+        supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).not("numero_factura", "is", null),
+        supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).is("numero_factura", null),
+        supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PAGADO"),
+        supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PENDIENTE"),
       ])
 
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
@@ -228,6 +254,7 @@ export function useKpisData(): KpisData {
 
       if (lastUpdated) {
         setPrevLaboratorio({ ...laboratorio })
+        setPrevComercial({ ...comercial })
         setPrevGerencia({ ...gerencia })
       }
 
@@ -266,9 +293,29 @@ export function useKpisData(): KpisData {
           { label: "Informe Listo", value: eInfRes.count ?? 0 },
           { label: "Anulado", value: eAnuRes.count ?? 0 },
         ]),
-        evidenciaEnvio: buildGroup("Evidencia Envio", [
-          { label: "Recepcion", value: evRecRes.count ?? 0 },
-          { label: "Informe", value: evInfRes.count ?? 0 },
+        serviciosPorTipo: buildGroup("Servicios por Tipo", [
+          { label: "Suelo y Ag", value: Math.max(0, (sTotalRes.count ?? 0) - (sEmsRes.count ?? 0) - (sDenRes.count ?? 0) - (sProbRes.count ?? 0)) },
+          { label: "EMS", value: sEmsRes.count ?? 0 },
+          { label: "Densidad", value: sDenRes.count ?? 0 },
+          { label: "Probetas", value: sProbRes.count ?? 0 },
+        ]),
+        tiempoEntrega: buildGroup("Tiempo Entrega", [
+          { label: "A Tiempo", value: tATCount },
+          { label: "Con Retraso", value: tCRCount },
+        ]),
+        evidenciaSolicitud: buildGroup("Evidencia Solicitud Cotizacion", [
+          { label: "Con Evidencia", value: comEvSolRes.count ?? 0 },
+          { label: "Sin Evidencia", value: Math.max(0, (sTotalRes.count ?? 0) - (comEvSolRes.count ?? 0)) },
+        ]),
+        diasAtrasoCotizacion: buildGroup("Dias Atraso Envio Cotizacion", [
+          { label: "A Tiempo (0)", value: comDiasATRes.count ?? 0 },
+          { label: "1-3 dias", value: comDias1a3Res.count ?? 0 },
+          { label: "4-7 dias", value: comDias4a7Res.count ?? 0 },
+          { label: "8+ dias", value: comDias8Res.count ?? 0 },
+        ]),
+        cumplimientoCotizacion: buildGroup("Cumplimiento Tiempo Cotizacion", [
+          { label: "A Tiempo", value: comATRes.count ?? 0 },
+          { label: "Con Retraso", value: comCRRes.count ?? 0 },
         ]),
       })
 
@@ -282,6 +329,15 @@ export function useKpisData(): KpisData {
           { label: "Hoy", value: pfHoyRes.count ?? 0 },
           { label: "Ayer", value: pfAyerRes.count ?? 0 },
           { label: "Anteriores", value: pfRestoRes.count ?? 0 },
+        ]),
+        facturacion: buildGroup("Facturacion", [
+          { label: "Con Factura", value: adminFactRes.count ?? 0 },
+          { label: "Sin Factura", value: adminSinFactRes.count ?? 0 },
+        ]),
+        estadoPago: buildGroup("Estado Pago", [
+          { label: "Pagado", value: adminPagRes.count ?? 0 },
+          { label: "Pendiente", value: adminPendRes.count ?? 0 },
+          { label: "Sin Registro", value: Math.max(0, 1410 - (adminPagRes.count ?? 0) - (adminPendRes.count ?? 0)) },
         ]),
         statusProbetasEntregadas: buildGroup("Status Probetas Entregadas", [
           { label: "Entregado", value: stEntRes.count ?? 0 },
@@ -376,6 +432,7 @@ export function useKpisData(): KpisData {
     comercial,
     gerencia,
     prevLaboratorio,
+    prevComercial,
     prevGerencia,
     historical,
     isLoading,

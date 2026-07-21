@@ -1,8 +1,8 @@
 ﻿"use client"
 
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
-import { BarChart3, Clock, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react"
+import { KpiChartCard, KpiPieChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { BarChart3, FileText, DollarSign, CreditCard, CheckCircle2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface GerenciaStatsProps {
@@ -10,11 +10,11 @@ interface GerenciaStatsProps {
 }
 
 export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
-  const { gerencia, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { gerencia, prevGerencia, isLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold">Estadistica Administracion</h2>
           <p className="text-sm text-muted-foreground">
@@ -44,57 +44,57 @@ export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
-          title="Resumen Mensual"
-          value={gerencia.resumenMensual.total}
-          icon={<BarChart3 className="h-4 w-4 text-primary" />}
+          title="Entregados"
+          value={gerencia.resumenMensual.categories.find(c => c.label === "Entregados")?.value ?? 0}
+          previousValue={prevGerencia?.resumenMensual.categories.find(c => c.label === "Entregados")?.value}
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
           loading={isLoading}
         />
         <KpiCard
-          title="Probetas Faltantes"
-          value={gerencia.probetasFaltantes.total}
-          icon={<AlertTriangle className="h-4 w-4 text-amber-600" />}
+          title="En Proceso"
+          value={gerencia.resumenMensual.categories.find(c => c.label === "En Proceso")?.value ?? 0}
+          previousValue={prevGerencia?.resumenMensual.categories.find(c => c.label === "En Proceso")?.value}
+          icon={<BarChart3 className="h-5 w-5 text-blue-600" />}
           loading={isLoading}
         />
         <KpiCard
-          title="Status Entregadas"
-          value={gerencia.statusProbetasEntregadas.total}
-          icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+          title="Con Factura"
+          value={gerencia.facturacion.categories.find(c => c.label === "Con Factura")?.value ?? 0}
+          previousValue={prevGerencia?.facturacion.categories.find(c => c.label === "Con Factura")?.value}
+          icon={<FileText className="h-5 w-5 text-amber-600" />}
           loading={isLoading}
         />
         <KpiCard
-          title="Pendientes Urgentes"
-          value={gerencia.probetasFaltantes.categories.find(c => c.label === "Hoy")?.value ?? 0}
-          icon={<Clock className="h-4 w-4 text-red-600" />}
+          title="Pagados"
+          value={gerencia.estadoPago.categories.find(c => c.label === "Pagado")?.value ?? 0}
+          previousValue={prevGerencia?.estadoPago.categories.find(c => c.label === "Pagado")?.value}
+          icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
           loading={isLoading}
         />
       </div>
 
-      {/* Charts Grid */}
+      {/* Tabla + PieChart Resumen Mensual */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Resumen Mensual */}
+        <KpiSummaryRow categories={gerencia.resumenMensual.categories} previousCategories={prevGerencia?.resumenMensual.categories} loading={isLoading} title="ANALISIS RESUMEN MENSUAL" />
         <KpiPieChart data={gerencia.resumenMensual} loading={isLoading} />
-
-        {/* Probetas Faltantes */}
-        <KpiBarChart data={gerencia.probetasFaltantes} loading={isLoading} />
-
-        {/* Status Probetas Entregadas */}
-        <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
       </div>
 
-      {/* Summary Rows */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium mb-2">Resumen Ejecutivo del Mes</h3>
-          <KpiSummaryRow categories={gerencia.resumenMensual.categories} loading={isLoading} />
-        </div>
-        <div>
-          <h3 className="text-sm font-medium mb-2">Urgencia de Probetas Faltantes</h3>
-          <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} loading={isLoading} />
-        </div>
-        <div>
-          <h3 className="text-sm font-medium mb-2">Status de Entrega al Cliente</h3>
-          <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} loading={isLoading} />
-        </div>
+      {/* Tabla + PieChart Facturacion */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={gerencia.facturacion.categories} previousCategories={prevGerencia?.facturacion.categories} loading={isLoading} title="ANALISIS FACTURACION" />
+        <KpiPieChart data={gerencia.facturacion} loading={isLoading} />
+      </div>
+
+      {/* Tabla + BarChart Estado de Pago */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={gerencia.estadoPago.categories} previousCategories={prevGerencia?.estadoPago.categories} loading={isLoading} title="ANALISIS ESTADO DE PAGO" />
+        <KpiChartCard data={gerencia.estadoPago} loading={isLoading} />
+      </div>
+
+      {/* Tabla + PieChart Status Probetas Entregadas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} previousCategories={prevGerencia?.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS PROBETAS ENTREGADAS" />
+        <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
       </div>
     </div>
   )
