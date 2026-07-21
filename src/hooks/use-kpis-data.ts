@@ -226,8 +226,10 @@ export function useKpisData(): KpisData {
       const todayNorm = now.toISOString().split("T")[0].replace(/-/g, "/")
       const pfFaltaCount = pfRawRows.filter(r => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && r.fecha_rotura && r.fecha_rotura < todayNorm)).length
 
-      setPrevLaboratorio({ ...laboratorio })
-      setPrevGerencia({ ...gerencia })
+      if (lastUpdated) {
+        setPrevLaboratorio({ ...laboratorio })
+        setPrevGerencia({ ...gerencia })
+      }
 
       setLaboratorio({
         serviciosPorTipo: buildGroup("Servicios por Tipo", [

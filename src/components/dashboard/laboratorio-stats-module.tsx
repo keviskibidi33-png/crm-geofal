@@ -95,21 +95,21 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard
-              title="En Curado"
+              title="Probetas en Curado"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value ?? 0}
               previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value}
               icon={<Clock className="h-5 w-5 text-blue-600" />}
               loading={isLoading}
             />
             <KpiCard
-              title="Pendientes Hoy"
+              title="Pendientes por Ensayar"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Falta")?.value ?? 0}
               previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Falta")?.value}
               icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
               loading={isLoading}
             />
             <KpiCard
-              title="Ensayadas"
+              title="Cumplidas"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value ?? 0}
               previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value}
               icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
