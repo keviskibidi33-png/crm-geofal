@@ -284,19 +284,17 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title }
             const delta = prev ? cat.value - prev.value : undefined
             const hasDelta = delta !== undefined && delta !== 0
             return (
-              <tr key={cat.label} className={`border-b last:border-b-0 ${hasDelta && delta! > 0 ? "bg-emerald-50/60" : hasDelta && delta! < 0 ? "bg-red-50/60" : ""}`}>
+              <tr key={cat.label} className="border-b last:border-b-0">
                 <td className="px-4 py-2 font-medium">{cat.label}</td>
-                <td className="text-center px-4 py-2 tabular-nums">{cat.value}</td>
                 <td className="text-center px-4 py-2 tabular-nums">
-                  {hasDelta ? (
-                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${delta! > 0 ? "text-emerald-700 bg-emerald-100" : "text-red-700 bg-red-100"}`}>
-                      {delta! > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {delta! > 0 ? "+" : ""}{delta}
+                  {cat.value}
+                  {hasDelta && (
+                    <span className={`ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-bold ${delta! > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      ({delta! > 0 ? "+" : ""}{delta})
                     </span>
-                  ) : (
-                    <span className="text-muted-foreground">{cat.percentage}%</span>
                   )}
                 </td>
+                <td className="text-center px-4 py-2 tabular-nums">{cat.percentage}%</td>
               </tr>
             )
           })}

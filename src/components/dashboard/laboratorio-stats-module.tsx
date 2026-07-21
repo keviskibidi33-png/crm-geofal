@@ -116,7 +116,7 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
               loading={isLoading}
             />
             <KpiCard
-              title="Total Probetas"
+              title="Total Ensayos"
               value={laboratorio.probetasEnsayo.total}
               previousValue={prevLaboratorio?.probetasEnsayo.total}
               icon={<FlaskConical className="h-5 w-5 text-blue-600" />}
