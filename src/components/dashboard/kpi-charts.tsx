@@ -216,7 +216,7 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ title, value, previousValue, icon, loading, className }: KpiCardProps) {
-  const trend = previousValue !== undefined ? value - previousValue : undefined
+  const delta = previousValue !== undefined ? value - previousValue : undefined
 
   return (
     <Card className={`border shadow-sm hover:shadow-md transition-shadow ${className ?? ""}`}>
@@ -232,10 +232,10 @@ export function KpiCard({ title, value, previousValue, icon, loading, className 
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
               <p className="text-3xl font-bold tabular-nums mt-1">{value.toLocaleString()}</p>
             </div>
-            {trend !== undefined && (
-              <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${trend > 0 ? "text-emerald-700 bg-emerald-50" : trend < 0 ? "text-red-700 bg-red-50" : "text-muted-foreground bg-muted"}`}>
-                {trend > 0 ? <TrendingUp className="h-3 w-3" /> : trend < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                {Math.abs(trend)}
+            {delta !== undefined && delta !== 0 && (
+              <div className={`flex items-center gap-1 text-sm font-bold px-2.5 py-1 rounded-full ${delta > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}>
+                {delta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                {delta > 0 ? "+" : ""}{delta}
               </div>
             )}
           </div>
@@ -247,11 +247,12 @@ export function KpiCard({ title, value, previousValue, icon, loading, className 
 
 interface KpiSummaryRowProps {
   categories: { label: string; value: number; percentage: number }[]
+  previousCategories?: { label: string; value: number; percentage: number }[]
   loading?: boolean
   title?: string
 }
 
-export function KpiSummaryRow({ categories, loading, title }: KpiSummaryRowProps) {
+export function KpiSummaryRow({ categories, previousCategories, loading, title }: KpiSummaryRowProps) {
   if (loading) {
     return (
       <div className="space-y-1">
@@ -278,13 +279,27 @@ export function KpiSummaryRow({ categories, loading, title }: KpiSummaryRowProps
           </tr>
         </thead>
         <tbody>
-          {categories.map((cat) => (
-            <tr key={cat.label} className="border-b last:border-b-0">
-              <td className="px-4 py-2 font-medium">{cat.label}</td>
-              <td className="text-center px-4 py-2 tabular-nums">{cat.value}</td>
-              <td className="text-center px-4 py-2 tabular-nums">{cat.percentage}%</td>
-            </tr>
-          ))}
+          {categories.map((cat) => {
+            const prev = previousCategories?.find(p => p.label === cat.label)
+            const delta = prev ? cat.value - prev.value : undefined
+            const hasDelta = delta !== undefined && delta !== 0
+            return (
+              <tr key={cat.label} className={`border-b last:border-b-0 ${hasDelta && delta! > 0 ? "bg-emerald-50/60" : hasDelta && delta! < 0 ? "bg-red-50/60" : ""}`}>
+                <td className="px-4 py-2 font-medium">{cat.label}</td>
+                <td className="text-center px-4 py-2 tabular-nums">{cat.value}</td>
+                <td className="text-center px-4 py-2 tabular-nums">
+                  {hasDelta ? (
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${delta! > 0 ? "text-emerald-700 bg-emerald-100" : "text-red-700 bg-red-100"}`}>
+                      {delta! > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {delta! > 0 ? "+" : ""}{delta}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">{cat.percentage}%</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
           <tr className="bg-muted/30 font-semibold">
             <td className="px-4 py-2">TOTAL</td>
             <td className="text-center px-4 py-2 tabular-nums">{total}</td>

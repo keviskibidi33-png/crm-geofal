@@ -14,7 +14,7 @@ interface LaboratorioStatsProps {
 type TabView = "mes" | "historico"
 
 export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
-  const { laboratorio, gerencia, isLoading, isHistoricalLoading, lastUpdated, refresh, refreshHistorical, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter, historical } = useKpisData()
+  const { laboratorio, gerencia, prevLaboratorio, prevGerencia, isLoading, isHistoricalLoading, lastUpdated, refresh, refreshHistorical, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter, historical } = useKpisData()
   const [tabView, setTabView] = useState<TabView>("mes")
 
   return (
@@ -97,24 +97,28 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
             <KpiCard
               title="En Curado"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value ?? 0}
+              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value}
               icon={<Clock className="h-5 w-5 text-blue-600" />}
               loading={isLoading}
             />
             <KpiCard
               title="Pendientes Hoy"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Falta")?.value ?? 0}
+              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Falta")?.value}
               icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
               loading={isLoading}
             />
             <KpiCard
               title="Ensayadas"
               value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value ?? 0}
+              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value}
               icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
               loading={isLoading}
             />
             <KpiCard
               title="Total Probetas"
               value={laboratorio.probetasEnsayo.total}
+              previousValue={prevLaboratorio?.probetasEnsayo.total}
               icon={<FlaskConical className="h-5 w-5 text-blue-600" />}
               loading={isLoading}
             />
@@ -122,37 +126,37 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
           {/* Tabla + Grafico Servicios por Tipo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} loading={isLoading} />
+            <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} previousCategories={prevLaboratorio?.serviciosPorTipo.categories} loading={isLoading} title="ANALISIS CANTIDAD POR TIPO DE SERVICIO" />
             <KpiChartCard data={laboratorio.serviciosPorTipo} loading={isLoading} />
           </div>
 
           {/* Tabla + PieChart Estado de Trabajo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={laboratorio.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
+            <KpiSummaryRow categories={laboratorio.estadoTrabajo.categories} previousCategories={prevLaboratorio?.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
             <KpiPieChart data={laboratorio.estadoTrabajo} loading={isLoading} />
           </div>
 
           {/* Tabla + Grafico Analisis Entrega de Trabajo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={laboratorio.tiempoEntrega.categories} loading={isLoading} title="ANALISIS ENTREGA DE TRABAJO" />
+            <KpiSummaryRow categories={laboratorio.tiempoEntrega.categories} previousCategories={prevLaboratorio?.tiempoEntrega.categories} loading={isLoading} title="ANALISIS ENTREGA DE TRABAJO" />
             <KpiChartCard data={laboratorio.tiempoEntrega} loading={isLoading} />
           </div>
 
           {/* Tabla + Grafico Analisis Probetas Ensayada y Por Ensayar */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={laboratorio.probetasEnsayo.categories} loading={isLoading} title="ANALISIS PROBETAS ENSAYADA Y POR ENSAYAR" />
+            <KpiSummaryRow categories={laboratorio.probetasEnsayo.categories} previousCategories={prevLaboratorio?.probetasEnsayo.categories} loading={isLoading} title="ANALISIS PROBETAS ENSAYADA Y POR ENSAYAR" />
             <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
           </div>
 
           {/* Tabla + Grafico Analisis Probetas Falta Ensayar */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
+            <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} previousCategories={prevGerencia?.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
             <KpiChartCard data={gerencia.probetasFaltantes} loading={isLoading} />
           </div>
 
           {/* Tabla + Grafico Status Probetas Entregadas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS POR CADA PROBETA ENTREGADO AL CLIENTE" />
+            <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} previousCategories={prevGerencia?.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS POR CADA PROBETA ENTREGADO AL CLIENTE" />
             <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
           </div>
         </>

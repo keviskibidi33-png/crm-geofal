@@ -65,6 +65,8 @@ export interface KpisData {
   laboratorio: LaboratorioKpis
   comercial: ComercialKpis
   gerencia: GerenciaKpis
+  prevLaboratorio: LaboratorioKpis | null
+  prevGerencia: GerenciaKpis | null
   historical: HistoricalKpis
   isLoading: boolean
   isHistoricalLoading: boolean
@@ -153,6 +155,8 @@ export function useKpisData(): KpisData {
   const [laboratorio, setLaboratorio] = useState<LaboratorioKpis>(EMPTY_LAB)
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
+  const [prevLaboratorio, setPrevLaboratorio] = useState<LaboratorioKpis | null>(null)
+  const [prevGerencia, setPrevGerencia] = useState<GerenciaKpis | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isHistoricalLoading, setIsHistoricalLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -221,6 +225,9 @@ export function useKpisData(): KpisData {
       const pfRawRows = (pfRawRes.data ?? []) as { id: string; status_ensayo: string; fecha_rotura: string | null }[]
       const todayNorm = now.toISOString().split("T")[0].replace(/-/g, "/")
       const pfFaltaCount = pfRawRows.filter(r => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && r.fecha_rotura && r.fecha_rotura < todayNorm)).length
+
+      setPrevLaboratorio({ ...laboratorio })
+      setPrevGerencia({ ...gerencia })
 
       setLaboratorio({
         serviciosPorTipo: buildGroup("Servicios por Tipo", [
@@ -366,6 +373,8 @@ export function useKpisData(): KpisData {
     laboratorio,
     comercial,
     gerencia,
+    prevLaboratorio,
+    prevGerencia,
     historical,
     isLoading,
     isHistoricalLoading,
