@@ -14,7 +14,7 @@ interface LaboratorioStatsProps {
 type TabView = "mes" | "historico"
 
 export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
-  const { laboratorio, isLoading, isHistoricalLoading, lastUpdated, refresh, refreshHistorical, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter, historical } = useKpisData()
+  const { laboratorio, gerencia, isLoading, isHistoricalLoading, lastUpdated, refresh, refreshHistorical, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter, historical } = useKpisData()
   const [tabView, setTabView] = useState<TabView>("mes")
 
   return (
@@ -142,6 +142,12 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <KpiSummaryRow categories={laboratorio.probetasEnsayo.categories} loading={isLoading} title="ANALISIS PROBETAS ENSAYADA Y POR ENSAYAR" />
             <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
+          </div>
+
+          {/* Tabla + Grafico Analisis Probetas Falta Ensayar */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
+            <KpiChartCard data={gerencia.probetasFaltantes} loading={isLoading} />
           </div>
         </>
       ) : (

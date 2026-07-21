@@ -80,7 +80,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 const kpiModules: { id: ModuleType; label: string; icon: React.ElementType }[] = [
   { id: "estadistica_laboratorio", label: "Estadistica Laboratorio", icon: FlaskConical },
   { id: "estadistica_comercial", label: "Estadistica Comercial", icon: TrendingUp },
-  { id: "estadistica_gerencia", label: "Estadistica Gerencia", icon: BarChart3 },
+  { id: "estadistica_gerencia", label: "Estadistica Administracion", icon: BarChart3 },
 ]
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {

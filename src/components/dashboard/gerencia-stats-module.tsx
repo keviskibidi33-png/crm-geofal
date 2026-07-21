@@ -16,9 +16,9 @@ export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Estadistica Gerencia</h2>
+          <h2 className="text-2xl font-bold">Estadistica Administracion</h2>
           <p className="text-sm text-muted-foreground">
-            Resumen ejecutivo y KPIs gerenciales
+            Resumen ejecutivo y KPIs de administracion
             {lastUpdated && (
               <span className="ml-2">
                 Actualizado: {lastUpdated.toLocaleTimeString("es-PE")}
