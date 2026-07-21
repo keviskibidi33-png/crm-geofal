@@ -200,8 +200,8 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "INFORME LISTO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ANULADO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id,entrega_real,fecha_entrega_estimada", { count: "exact" }).not("fecha_entrega_estimada", "is", null).gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_informe", "SI").gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("evidencia_envio_recepcion.eq.SI,evidencia_envio_recepcion.eq.OK").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("envio_informes.eq.SI,envio_informes.eq.OK").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -209,9 +209,9 @@ export function useKpisData(): KpisData {
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", today.replace(/-/g, "/")),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday.replace(/-/g, "/")),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday.replace(/-/g, "/")),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_informe", "SI").eq("estado_trabajo", "ENTREGADO").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").eq("estado_trabajo", "ENTREGADO").gte("created_at", startDate).lt("created_at", endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("envio_informe", null).is("envio_recepcion", null).gte("created_at", startDate).lt("created_at", endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.eq.SI,evidencia_envio_recepcion.eq.OK").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("envio_informes.eq.SI,envio_informes.eq.OK").not("evidencia_envio_recepcion", "in", "(SI,OK)").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("envio_informes", null).is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
       ])
 
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]

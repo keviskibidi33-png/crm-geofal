@@ -149,6 +149,12 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
             <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
             <KpiChartCard data={gerencia.probetasFaltantes} loading={isLoading} />
           </div>
+
+          {/* Tabla + Grafico Status Probetas Entregadas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS POR CADA PROBETA ENTREGADO AL CLIENTE" />
+            <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
+          </div>
         </>
       ) : (
         <KpiHistorico data={historical} loading={isHistoricalLoading} />
