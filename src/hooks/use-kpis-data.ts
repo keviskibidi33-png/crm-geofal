@@ -168,7 +168,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tATRes, tCRRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
+      const [pfRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stInfRes, stNoIndRes] = await Promise.all([
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).is("ensayo_realizado", null),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).not("ensayo_realizado", "is", null).is("fecha_ensayo", null),
         supabase.from("control_probetas").select("id", { count: "exact", head: true }).not("fecha_ensayo", "is", null),
@@ -176,8 +176,7 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "INFORME LISTO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ANULADO").gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).not("entrega_real", "is", null).not("fecha_entrega_estimada", "is", null).lte("entrega_real", "fecha_entrega_estimada").gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).not("entrega_real", "is", null).not("fecha_entrega_estimada", "is", null).gt("entrega_real", "fecha_entrega_estimada").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id,entrega_real,fecha_entrega_estimada", { count: "exact" }).not("fecha_entrega_estimada", "is", null).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_informe", "SI").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
@@ -191,6 +190,10 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("envio_recepcion", "SI").eq("estado_trabajo", "ENTREGADO").gte("created_at", startDate).lt("created_at", endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("envio_informe", null).is("envio_recepcion", null).gte("created_at", startDate).lt("created_at", endDate),
       ])
+
+      const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
+      const tATCount = tEntregaRows.filter(r => !r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada).length
+      const tCRCount = tEntregaRows.filter(r => r.entrega_real && r.entrega_real > r.fecha_entrega_estimada).length
 
       setLaboratorio({
         serviciosPorTipo: buildGroup("Servicios por Tipo", [
@@ -211,8 +214,8 @@ export function useKpisData(): KpisData {
           { label: "Anulado", value: eAnuRes.count ?? 0 },
         ]),
         tiempoEntrega: buildGroup("Tiempo Entrega", [
-          { label: "A Tiempo", value: tATRes.count ?? 0 },
-          { label: "Con Retraso", value: tCRRes.count ?? 0 },
+          { label: "A Tiempo", value: tATCount },
+          { label: "Con Retraso", value: tCRCount },
         ]),
         evidenciaEnvio: buildGroup("Evidencia Envio", [
           { label: "Recepcion", value: evRecRes.count ?? 0 },
