@@ -241,7 +241,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR] = await Promise.all([
+      const [pfRawRes, , peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR] = await Promise.all([
         supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE"),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO"),
@@ -274,6 +274,10 @@ export function useKpisData(): KpisData {
         .from("programacion_lab").select("id")
         .gte(dateCol, startDate).lt(dateCol, endDate)
       const labIdSet = (monthLabIds ?? []).map((r: any) => r.id)
+
+      const ppRes = labIdSet.length > 0
+        ? await supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE").in("recepcion_id", labIdSet)
+        : { count: 0 }
 
       const BATCH = 100
       let evSiCount = 0, evTotalCount = 0
