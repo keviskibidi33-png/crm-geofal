@@ -275,10 +275,11 @@ export function useKpisData(): KpisData {
         .gte(dateCol, startDate).lt(dateCol, endDate)
       const labIdSet = (monthLabIds ?? []).map((r: any) => r.id)
 
-      const BATCH = 50
+      const BATCH = 100
+      const BATCH_PP = 25
       let ppCount = 0
-      for (let i = 0; i < labIdSet.length; i += BATCH) {
-        const chunk = labIdSet.slice(i, i + BATCH)
+      for (let i = 0; i < labIdSet.length; i += BATCH_PP) {
+        const chunk = labIdSet.slice(i, i + BATCH_PP)
         const { count } = await supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE").in("recepcion_id", chunk)
         ppCount += count ?? 0
       }
