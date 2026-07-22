@@ -277,12 +277,22 @@ export function useKpisData(): KpisData {
       const { data: monthLabIds } = await supabase
         .from("programacion_lab").select("id")
         .gte(dateCol, startDate).lt(dateCol, endDate)
-      const labIdSet = new Set((monthLabIds ?? []).map((r: any) => r.id))
+      const labIdSet = (monthLabIds ?? []).map((r: any) => r.id)
 
-      const [comEvSolRes, comSinEvRes] = await Promise.all([
-        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").in("programacion_id", [...labIdSet]),
-        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).or("evidencia_solicitud_envio.is.null,evidencia_solicitud_envio=eq.,evidencia_solicitud_envio.eq.NO").not("evidencia_solicitud_envio", "eq", "SIG").not("evidencia_solicitud_envio", "eq", "ANULADO").in("programacion_id", [...labIdSet]),
-      ])
+      const BATCH = 100
+      let evSiCount = 0
+      let evTotalCount = 0
+      for (let i = 0; i < labIdSet.length; i += BATCH) {
+        const chunk = labIdSet.slice(i, i + BATCH)
+        const [siRes, totalRes] = await Promise.all([
+          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").in("programacion_id", chunk),
+          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).in("programacion_id", chunk),
+        ])
+        evSiCount += siRes.count ?? 0
+        evTotalCount += totalRes.count ?? 0
+      }
+      const comEvSolRes = { count: evSiCount }
+      const comSinEvRes = { count: Math.max(0, evTotalCount - evSiCount) }
 
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
       const tATCount = tEntregaRows.filter(r => !r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada).length
