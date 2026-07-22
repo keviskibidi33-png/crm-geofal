@@ -14,8 +14,11 @@ import { authFetch } from "@/lib/api-auth"
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
 type LoteSummary = {
+  codigo_probeta: string
   codigo_lote_interno: string
   fecha_moldeo: string
+  fecha_rotura_inicial: string
+  fecha_rotura_final: string
   elemento: string
   detalle_elemento: string
   cantidad_probetas: number
@@ -171,7 +174,7 @@ export function HuantaSeguimientoModule() {
     const q = search.trim().toLowerCase()
     if (!q) return lotes
     return lotes.filter((l) =>
-      [l.codigo_lote_interno, l.elemento, l.detalle_elemento, l.estado]
+      [l.codigo_probeta, l.codigo_lote_interno, l.elemento, l.detalle_elemento, l.estado, l.fecha_rotura_inicial, l.fecha_rotura_final]
         .some((v) => (v || "").toLowerCase().includes(q))
     )
   }, [lotes, search])
@@ -215,13 +218,14 @@ export function HuantaSeguimientoModule() {
               <Table>
                 <TableHeader className="bg-[#f4f4f5] border-b border-slate-100">
                   <TableRow>
-                    <TableHead>Lote Interno</TableHead>
+                    <TableHead>Codigo probeta</TableHead>
                     <TableHead>Fecha Moldeo</TableHead>
+                    <TableHead>Fecha de rotura inicial</TableHead>
+                    <TableHead>Fecha de rotura final</TableHead>
                     <TableHead>Elemento</TableHead>
-                    <TableHead>Detalle</TableHead>
                     <TableHead className="text-center">Probetas</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead className="w-[100px] text-center">Detalle</TableHead>
+                    <TableHead className="w-[60px] text-center">Detalle</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -231,14 +235,15 @@ export function HuantaSeguimientoModule() {
                       className="hover:bg-slate-50/30 cursor-pointer"
                       onClick={() => void handleRowClick(row)}
                     >
-                      <TableCell className="font-semibold text-slate-900">
+                      <TableCell className="font-bold text-slate-900">
                         <Badge className={`px-2 py-0.5 text-[10px] font-semibold border ${lotColorClasses(row.codigo_lote_interno)}`}>
-                          {row.codigo_lote_interno}
+                          {row.codigo_probeta}
                         </Badge>
                       </TableCell>
                       <TableCell>{row.fecha_moldeo}</TableCell>
+                      <TableCell>{row.fecha_rotura_inicial}</TableCell>
+                      <TableCell>{row.fecha_rotura_final}</TableCell>
                       <TableCell>{row.elemento}</TableCell>
-                      <TableCell>{row.detalle_elemento}</TableCell>
                       <TableCell className="text-center font-semibold">{row.cantidad_probetas}</TableCell>
                       <TableCell>
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
