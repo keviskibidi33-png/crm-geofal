@@ -241,7 +241,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, comEvSolRes, comSinEvRes, comDiasATRes, comDias1a3Res, comDias4a7Res, comDias8Res, comATRes, comCRRes, adminFactRes, adminSinFactRes, adminPagRes, adminPendRes] = await Promise.all([
+      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, comDiasATRes, comDias1a3Res, comDias4a7Res, comDias8Res, comATRes, comCRRes, adminFactRes, adminSinFactRes, adminPagRes, adminPendRes] = await Promise.all([
         supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE"),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO"),
@@ -262,9 +262,6 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").eq("evidencia_envio_recepcion", "").gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").lte("programacion_lab.fecha_recepcion", endDate).gt("programacion_lab.fecha_recepcion", startDate),
-        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).or("evidencia_solicitud_envio.is.null,evidencia_solicitud_envio=eq.,evidencia_solicitud_envio.eq.NO").not("evidencia_solicitud_envio", "eq", "SIG").not("evidencia_solicitud_envio", "eq", "ANULADO").lte("programacion_lab.fecha_recepcion", endDate).gt("programacion_lab.fecha_recepcion", startDate),
-        supabase.from("programacion_comercial").select("id,dias_atraso_envio_coti", { count: "exact" }).not("dias_atraso_envio_coti", "is", null),
         supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0),
         supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 0).lte("dias_atraso_envio_coti", 3),
         supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 3).lte("dias_atraso_envio_coti", 7),
@@ -275,6 +272,16 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).is("numero_factura", null),
         supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PAGADO"),
         supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PENDIENTE"),
+      ])
+
+      const { data: monthLabIds } = await supabase
+        .from("programacion_lab").select("id")
+        .gte(dateCol, startDate).lt(dateCol, endDate)
+      const labIdSet = new Set((monthLabIds ?? []).map((r: any) => r.id))
+
+      const [comEvSolRes, comSinEvRes] = await Promise.all([
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").in("programacion_id", [...labIdSet]),
+        supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).or("evidencia_solicitud_envio.is.null,evidencia_solicitud_envio=eq.,evidencia_solicitud_envio.eq.NO").not("evidencia_solicitud_envio", "eq", "SIG").not("evidencia_solicitud_envio", "eq", "ANULADO").in("programacion_id", [...labIdSet]),
       ])
 
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
