@@ -405,7 +405,7 @@ export function useKpisData(): KpisData {
         estadoPago: buildGroup("Estado Pago", [
           { label: "Pagado", value: adminPagRes.count ?? 0 },
           { label: "Pendiente", value: adminPendRes.count ?? 0 },
-          { label: "Sin Registro", value: Math.max(0, 1410 - (adminPagRes.count ?? 0) - (adminPendRes.count ?? 0)) },
+          { label: "Sin Registro", value: Math.max(0, ((adminFactRes.count ?? 0) + (adminSinFactRes.count ?? 0)) - (adminPagRes.count ?? 0) - (adminPendRes.count ?? 0)) },
         ]),
         statusProbetasEntregadas: buildGroup("Status Probetas Entregadas", [
           { label: "Enviado", value: stEntRes.count ?? 0 },
