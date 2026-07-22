@@ -273,22 +273,21 @@ export function useKpisData(): KpisData {
       const { data: monthLabIds } = await supabase
         .from("programacion_lab").select("id")
         .gte(dateCol, startDate).lt(dateCol, endDate)
-      const labIdSet = (monthLabIds ?? []).map((r: any) => r.id)
+      const labIdArr = (monthLabIds ?? []).map((r: any) => r.id)
+      const labIdSet = new Set(labIdArr)
+      const { data: allPpRows } = await supabase
+        .from("muestras_concreto").select("recepcion_id", { count: "exact", head: false })
+        .eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE")
+        .not("recepcion_id", "is", null)
+      const ppCount = (allPpRows ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length
+      const ppRes = { count: ppCount }
 
       const BATCH = 100
-      const BATCH_PP = 25
-      let ppCount = 0
-      for (let i = 0; i < labIdSet.length; i += BATCH_PP) {
-        const chunk = labIdSet.slice(i, i + BATCH_PP)
-        const { count } = await supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE").in("recepcion_id", chunk)
-        ppCount += count ?? 0
-      }
-      const ppRes = { count: ppCount }
 
       let evSiCount = 0, evTotalCount = 0
       let adFact = 0, adSinFact = 0, adPag = 0, adPend = 0
-      for (let i = 0; i < labIdSet.length; i += BATCH) {
-        const chunk = labIdSet.slice(i, i + BATCH)
+      for (let i = 0; i < labIdArr.length; i += BATCH) {
+        const chunk = labIdArr.slice(i, i + BATCH)
         const [siRes, totalRes, aF, aSF, aP, aPe] = await Promise.all([
           supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").in("programacion_id", chunk),
           supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).in("programacion_id", chunk),
