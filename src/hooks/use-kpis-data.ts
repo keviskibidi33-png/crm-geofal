@@ -241,7 +241,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes] = await Promise.all([
+      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR] = await Promise.all([
         supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE"),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO"),
@@ -262,6 +262,12 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").eq("evidencia_envio_recepcion", "").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).lte("dias_atraso_lab", 3).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 3).lte("dias_atraso_lab", 7).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 7).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
       ])
 
       const { data: monthLabIds } = await supabase
@@ -271,38 +277,28 @@ export function useKpisData(): KpisData {
 
       const BATCH = 100
       let evSiCount = 0, evTotalCount = 0
-      let diasAT = 0, dias1a3 = 0, dias4a7 = 0, dias8 = 0
-      let cumAT = 0, cumCR = 0
       let adFact = 0, adSinFact = 0, adPag = 0, adPend = 0
       for (let i = 0; i < labIdSet.length; i += BATCH) {
         const chunk = labIdSet.slice(i, i + BATCH)
-        const [siRes, totalRes, dAT, d1a3, d4a7, d8, cAT, cCR, aF, aSF, aP, aPe] = await Promise.all([
+        const [siRes, totalRes, aF, aSF, aP, aPe] = await Promise.all([
           supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("evidencia_solicitud_envio", "SI").in("programacion_id", chunk),
           supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 0).lte("dias_atraso_envio_coti", 3).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 3).lte("dias_atraso_envio_coti", 7).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 7).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0).in("programacion_id", chunk),
-          supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).gt("dias_atraso_envio_coti", 0).in("programacion_id", chunk),
           supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).not("numero_factura", "is", null).in("programacion_id", chunk),
           supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).is("numero_factura", null).in("programacion_id", chunk),
           supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PAGADO").in("programacion_id", chunk),
           supabase.from("programacion_administracion").select("id", { count: "exact", head: true }).eq("estado_pago", "PENDIENTE").in("programacion_id", chunk),
         ])
         evSiCount += siRes.count ?? 0; evTotalCount += totalRes.count ?? 0
-        diasAT += dAT.count ?? 0; dias1a3 += d1a3.count ?? 0; dias4a7 += d4a7.count ?? 0; dias8 += d8.count ?? 0
-        cumAT += cAT.count ?? 0; cumCR += cCR.count ?? 0
         adFact += aF.count ?? 0; adSinFact += aSF.count ?? 0; adPag += aP.count ?? 0; adPend += aPe.count ?? 0
       }
       const comEvSolRes = { count: evSiCount }
       const comSinEvRes = { count: Math.max(0, evTotalCount - evSiCount) }
-      const comDiasATRes = { count: diasAT }
-      const comDias1a3Res = { count: dias1a3 }
-      const comDias4a7Res = { count: dias4a7 }
-      const comDias8Res = { count: dias8 }
-      const comATRes = { count: cumAT }
-      const comCRRes = { count: cumCR }
+      const comDiasATRes = { count: dAtrasoAT.count ?? 0 }
+      const comDias1a3Res = { count: dAtraso1a3.count ?? 0 }
+      const comDias4a7Res = { count: dAtraso4a7.count ?? 0 }
+      const comDias8Res = { count: dAtraso8.count ?? 0 }
+      const comATRes = { count: cumTiempoAT.count ?? 0 }
+      const comCRRes = { count: cumTiempoCR.count ?? 0 }
       const adminFactRes = { count: adFact }
       const adminSinFactRes = { count: adSinFact }
       const adminPagRes = { count: adPag }
