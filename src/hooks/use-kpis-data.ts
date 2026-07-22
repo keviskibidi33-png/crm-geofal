@@ -275,7 +275,7 @@ export function useKpisData(): KpisData {
         .gte(dateCol, startDate).lt(dateCol, endDate)
       const labIdSet = (monthLabIds ?? []).map((r: any) => r.id)
 
-      const BATCH = 100
+      const BATCH = 50
       let ppCount = 0
       for (let i = 0; i < labIdSet.length; i += BATCH) {
         const chunk = labIdSet.slice(i, i + BATCH)
