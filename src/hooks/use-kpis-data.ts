@@ -455,7 +455,7 @@ export function useKpisData(): KpisData {
       setIsHistoricalLoading(true)
       const { data: rows, error } = await supabase
         .from("programacion_lab")
-        .select("fecha_recepcion, estado_trabajo, costo_servicio")
+        .select("fecha_recepcion, estado_trabajo")
         .not("fecha_recepcion", "is", null)
         .gte("fecha_recepcion", "2026-01-01")
       if (error) { console.error("Error fetching comercial historical:", error); return }
@@ -482,13 +482,17 @@ export function useKpisData(): KpisData {
       const { data: adminRows } = await supabase
         .from("programacion_administracion")
         .select("programacion_id, numero_factura, estado_pago")
-      const progIds = (adminRows ?? []).map(r => r.programacion_id).filter(Boolean)
-      const { data: labRows } = await supabase
-        .from("programacion_lab")
-        .select("id, fecha_recepcion")
-        .in("id", progIds)
+      const progIds = [...new Set((adminRows ?? []).map(r => r.programacion_id).filter(Boolean))]
       const labDateMap: Record<string, string> = {}
-      for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
+      const BATCH = 100
+      for (let i = 0; i < progIds.length; i += BATCH) {
+        const chunk = progIds.slice(i, i + BATCH)
+        const { data: labRows } = await supabase
+          .from("programacion_lab")
+          .select("id, fecha_recepcion")
+          .in("id", chunk)
+        for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
+      }
       const adminGrouped: Record<string, typeof adminRows> = {}
       for (const row of adminRows ?? []) {
         const fecha = labDateMap[row.programacion_id]
@@ -516,15 +520,19 @@ export function useKpisData(): KpisData {
         .select("programacion_id, numero_factura, estado_pago")
       if (error) { console.error("Error fetching admin historical:", error); return }
 
-      const progIds = (rows ?? []).map(r => r.programacion_id).filter(Boolean)
-      const { data: labRows } = await supabase
-        .from("programacion_lab")
-        .select("id, fecha_recepcion")
-        .in("id", progIds)
-        .not("fecha_recepcion", "is", null)
-        .gte("fecha_recepcion", "2026-01-01")
+      const progIds = [...new Set((rows ?? []).map(r => r.programacion_id).filter(Boolean))]
       const labDateMap: Record<string, string> = {}
-      for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
+      const BATCH = 100
+      for (let i = 0; i < progIds.length; i += BATCH) {
+        const chunk = progIds.slice(i, i + BATCH)
+        const { data: labRows } = await supabase
+          .from("programacion_lab")
+          .select("id, fecha_recepcion")
+          .in("id", chunk)
+          .not("fecha_recepcion", "is", null)
+          .gte("fecha_recepcion", "2026-01-01")
+        for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
+      }
 
       const grouped: Record<string, typeof rows> = {}
       for (const row of rows ?? []) {
