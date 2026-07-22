@@ -241,7 +241,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndRes, comEvSolRes, comDiasATRes, comDias1a3Res, comDias4a7Res, comDias8Res, comATRes, comCRRes, adminFactRes, adminSinFactRes, adminPagRes, adminPendRes] = await Promise.all([
+      const [pfRawRes, ppRes, peRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, sTotalRes, sEmsRes, sDenRes, sProbRes, pfHoyRes, pfAyerRes, pfRestoRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, comEvSolRes, comDiasATRes, comDias1a3Res, comDias4a7Res, comDias8Res, comATRes, comCRRes, adminFactRes, adminSinFactRes, adminPagRes, adminPendRes] = await Promise.all([
         supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE"),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO"),
@@ -260,7 +260,8 @@ export function useKpisData(): KpisData {
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday.replace(/-/g, "/")),
         supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday.replace(/-/g, "/")),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.is.null,evidencia_envio_recepcion=eq.").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").eq("evidencia_envio_recepcion", "").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).or("evidencia_solicitud_envio.ilike.%si%,evidencia_solicitud_envio.ilike.%ok%"),
         supabase.from("programacion_comercial").select("id,dias_atraso_envio_coti", { count: "exact" }).not("dias_atraso_envio_coti", "is", null),
         supabase.from("programacion_comercial").select("id", { count: "exact", head: true }).eq("dias_atraso_envio_coti", 0),
@@ -372,7 +373,7 @@ export function useKpisData(): KpisData {
         ]),
         statusProbetasEntregadas: buildGroup("Status Probetas Entregadas", [
           { label: "Enviado", value: stEntRes.count ?? 0 },
-          { label: "No Enviado", value: stNoIndRes.count ?? 0 },
+          { label: "No Enviado", value: (stNoIndNullRes.count ?? 0) + (stNoIndEmptyRes.count ?? 0) },
         ]),
       })
 
@@ -454,14 +455,14 @@ export function useKpisData(): KpisData {
       setIsHistoricalLoading(true)
       const { data: rows, error } = await supabase
         .from("programacion_lab")
-        .select("fecha_recepcion, fecha_contacto, estado_trabajo, costo_servicio")
-        .not("fecha_contacto", "is", null)
-        .gte("fecha_contacto", "2026-01-01")
+        .select("fecha_recepcion, estado_trabajo, costo_servicio")
+        .not("fecha_recepcion", "is", null)
+        .gte("fecha_recepcion", "2026-01-01")
       if (error) { console.error("Error fetching comercial historical:", error); return }
 
       const grouped: Record<string, typeof rows> = {}
       for (const row of rows ?? []) {
-        const key = row.fecha_contacto!.substring(0, 7)
+        const key = row.fecha_recepcion!.substring(0, 7)
         if (!grouped[key]) grouped[key] = []
         grouped[key].push(row)
       }
@@ -480,12 +481,19 @@ export function useKpisData(): KpisData {
 
       const { data: adminRows } = await supabase
         .from("programacion_administracion")
-        .select("fecha_contacto, numero_factura, estado_pago")
-        .not("fecha_contacto", "is", null)
-        .gte("fecha_contacto", "2026-01-01")
+        .select("programacion_id, numero_factura, estado_pago")
+      const progIds = (adminRows ?? []).map(r => r.programacion_id).filter(Boolean)
+      const { data: labRows } = await supabase
+        .from("programacion_lab")
+        .select("id, fecha_recepcion")
+        .in("id", progIds)
+      const labDateMap: Record<string, string> = {}
+      for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
       const adminGrouped: Record<string, typeof adminRows> = {}
       for (const row of adminRows ?? []) {
-        const key = row.fecha_contacto!.substring(0, 7)
+        const fecha = labDateMap[row.programacion_id]
+        if (!fecha) continue
+        const key = fecha.substring(0, 7)
         if (!adminGrouped[key]) adminGrouped[key] = []
         adminGrouped[key].push(row)
       }
@@ -505,14 +513,24 @@ export function useKpisData(): KpisData {
       setIsHistoricalLoading(true)
       const { data: rows, error } = await supabase
         .from("programacion_administracion")
-        .select("fecha_contacto, numero_factura, estado_pago")
-        .not("fecha_contacto", "is", null)
-        .gte("fecha_contacto", "2026-01-01")
+        .select("programacion_id, numero_factura, estado_pago")
       if (error) { console.error("Error fetching admin historical:", error); return }
+
+      const progIds = (rows ?? []).map(r => r.programacion_id).filter(Boolean)
+      const { data: labRows } = await supabase
+        .from("programacion_lab")
+        .select("id, fecha_recepcion")
+        .in("id", progIds)
+        .not("fecha_recepcion", "is", null)
+        .gte("fecha_recepcion", "2026-01-01")
+      const labDateMap: Record<string, string> = {}
+      for (const lr of labRows ?? []) { if (lr.fecha_recepcion) labDateMap[lr.id] = lr.fecha_recepcion }
 
       const grouped: Record<string, typeof rows> = {}
       for (const row of rows ?? []) {
-        const key = row.fecha_contacto!.substring(0, 7)
+        const fecha = labDateMap[row.programacion_id]
+        if (!fecha) continue
+        const key = fecha.substring(0, 7)
         if (!grouped[key]) grouped[key] = []
         grouped[key].push(row)
       }
