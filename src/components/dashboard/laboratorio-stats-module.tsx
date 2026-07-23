@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
-import { KpiChartCard, KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiChartCard, KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistorico } from "@/components/dashboard/kpi-historico"
-import { FlaskConical, Clock, CheckCircle2, AlertTriangle, RefreshCw, CalendarCheck, CalendarPlus, BarChart3, History } from "lucide-react"
+import { RefreshCw, CalendarCheck, CalendarPlus, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface LaboratorioStatsProps {
@@ -92,38 +92,6 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
       {tabView === "mes" ? (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard
-              title="Probetas en Curado"
-              value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value ?? 0}
-              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Pendiente")?.value}
-              icon={<Clock className="h-5 w-5 text-blue-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Pendientes por Ensayar"
-              value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Falta")?.value ?? 0}
-              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Falta")?.value}
-              icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Cumplidas"
-              value={laboratorio.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value ?? 0}
-              previousValue={prevLaboratorio?.probetasEnsayo.categories.find(c => c.label === "Ensayada")?.value}
-              icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Total Ensayos"
-              value={laboratorio.probetasEnsayo.total}
-              previousValue={prevLaboratorio?.probetasEnsayo.total}
-              icon={<FlaskConical className="h-5 w-5 text-blue-600" />}
-              loading={isLoading}
-            />
-          </div>
-
           {/* Tabla + Pie + Bar: Servicios por Tipo */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={laboratorio.serviciosPorTipo.categories} previousCategories={prevLaboratorio?.serviciosPorTipo.categories} loading={isLoading} title="ANALISIS CANTIDAD POR TIPO DE SERVICIO" />

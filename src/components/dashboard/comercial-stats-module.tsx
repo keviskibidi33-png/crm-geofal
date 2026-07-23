@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-comercial-admin"
-import { FileText, CheckCircle2, AlertTriangle, RefreshCw, BarChart3, History } from "lucide-react"
+import { RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ComercialStatsProps {
@@ -58,38 +58,6 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
 
       {tabView === "mes" ? (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard
-              title="Entregados"
-              value={comercial.estadoTrabajo.categories.find(c => c.label === "Entregado")?.value ?? 0}
-              previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Entregado")?.value}
-              icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="En Proceso"
-              value={comercial.estadoTrabajo.categories.find(c => c.label === "En Proceso")?.value ?? 0}
-              previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "En Proceso")?.value}
-              icon={<FileText className="h-5 w-5 text-blue-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Informe Listo"
-              value={comercial.estadoTrabajo.categories.find(c => c.label === "Informe Listo")?.value ?? 0}
-              previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Informe Listo")?.value}
-              icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Anulados"
-              value={comercial.estadoTrabajo.categories.find(c => c.label === "Anulado")?.value ?? 0}
-              previousValue={prevComercial?.estadoTrabajo.categories.find(c => c.label === "Anulado")?.value}
-              icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
-              loading={isLoading}
-            />
-          </div>
-
           {/* Tabla + Pie + Bar: Estado de Trabajo */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={comercial.estadoTrabajo.categories} previousCategories={prevComercial?.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />

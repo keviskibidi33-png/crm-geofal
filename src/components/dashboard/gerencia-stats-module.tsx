@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiCard, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistoricoAdmin } from "@/components/dashboard/kpi-historico-comercial-admin"
-import { BarChart3, FileText, DollarSign, CheckCircle2, RefreshCw, History } from "lucide-react"
+import { BarChart3, RefreshCw, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface GerenciaStatsProps {
@@ -58,38 +58,6 @@ export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
 
       {tabView === "mes" ? (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard
-              title="Entregados"
-              value={gerencia.resumenMensual.categories.find(c => c.label === "Entregados")?.value ?? 0}
-              previousValue={prevGerencia?.resumenMensual.categories.find(c => c.label === "Entregados")?.value}
-              icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="En Proceso"
-              value={gerencia.resumenMensual.categories.find(c => c.label === "En Proceso")?.value ?? 0}
-              previousValue={prevGerencia?.resumenMensual.categories.find(c => c.label === "En Proceso")?.value}
-              icon={<BarChart3 className="h-5 w-5 text-blue-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Con Factura"
-              value={gerencia.facturacion.categories.find(c => c.label === "Con Factura")?.value ?? 0}
-              previousValue={prevGerencia?.facturacion.categories.find(c => c.label === "Con Factura")?.value}
-              icon={<FileText className="h-5 w-5 text-amber-600" />}
-              loading={isLoading}
-            />
-            <KpiCard
-              title="Pagados"
-              value={gerencia.estadoPago.categories.find(c => c.label === "Pagado")?.value ?? 0}
-              previousValue={prevGerencia?.estadoPago.categories.find(c => c.label === "Pagado")?.value}
-              icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
-              loading={isLoading}
-            />
-          </div>
-
           {/* Tabla + Pie + Bar: Resumen Mensual */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.resumenMensual.categories} previousCategories={prevGerencia?.resumenMensual.categories} loading={isLoading} title="ANALISIS RESUMEN MENSUAL" />
