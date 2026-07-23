@@ -276,13 +276,21 @@ export function useKpisData(): KpisData {
       const ppCount = (allPpRows ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length
       const ppRes = { count: ppCount }
 
-      const [pfRawRes, peRes, pfHoyRes, pfAyerRes, pfRestoRes] = await Promise.all([
-        supabase.from("muestras_concreto").select("id,status_ensayo,fecha_rotura", { count: "exact" }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]).in("recepcion_id", labIdArr),
-        supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO").in("recepcion_id", labIdArr),
-        supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", today.replace(/-/g, "/")).in("recepcion_id", labIdArr),
-        supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday.replace(/-/g, "/")).in("recepcion_id", labIdArr),
-        supabase.from("muestras_concreto").select("id", { count: "exact", head: true }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday.replace(/-/g, "/")).in("recepcion_id", labIdArr),
+      const todayNorm = now.toISOString().split("T")[0].replace(/-/g, "/")
+      const [faltaResp, ensayadoResp, hoyResp, ayerResp, restoResp] = await Promise.all([
+        supabase.from("muestras_concreto").select("recepcion_id,status_ensayo,fecha_rotura", { count: "exact", head: false }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO").not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", today.replace(/-/g, "/")).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday.replace(/-/g, "/")).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday.replace(/-/g, "/")).not("recepcion_id", "is", null),
       ])
+      const pfRawRows = (faltaResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id))
+      const pfFaltaCount = pfRawRows.filter((r: any) => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && r.fecha_rotura && r.fecha_rotura < todayNorm)).length
+      const pfRawRes = { count: pfFaltaCount, data: pfRawRows }
+      const peRes = { count: (ensayadoResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
+      const pfHoyRes = { count: (hoyResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
+      const pfAyerRes = { count: (ayerResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
+      const pfRestoRes = { count: (restoResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
 
       const BATCH = 100
 
@@ -317,10 +325,6 @@ export function useKpisData(): KpisData {
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
       const tATCount = tEntregaRows.filter(r => !r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada).length
       const tCRCount = tEntregaRows.filter(r => r.entrega_real && r.entrega_real > r.fecha_entrega_estimada).length
-
-      const pfRawRows = (pfRawRes.data ?? []) as { id: string; status_ensayo: string; fecha_rotura: string | null }[]
-      const todayNorm = now.toISOString().split("T")[0].replace(/-/g, "/")
-      const pfFaltaCount = pfRawRows.filter(r => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && r.fecha_rotura && r.fecha_rotura < todayNorm)).length
 
       if (lastUpdated) {
         setPrevLaboratorio({ ...laboratorio })
