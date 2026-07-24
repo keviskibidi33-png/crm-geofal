@@ -129,7 +129,7 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
           {/* Tabla + Pie + Bar: Control Lab Correcto General */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={laboratorio.controlLabGeneral.categories} previousCategories={prevLaboratorio?.controlLabGeneral.categories} loading={isLoading} title="CONTROL LAB CORRECTO GENERAL" />
+            <KpiSummaryRow categories={laboratorio.controlLabGeneral.categories} previousCategories={prevLaboratorio?.controlLabGeneral.categories} loading={isLoading} title="PENDIENTES DE ENTREGA DE INFORME" />
             <KpiPieChart data={laboratorio.controlLabGeneral} loading={isLoading} />
             <KpiBarChart data={laboratorio.controlLabGeneral} loading={isLoading} />
           </div>

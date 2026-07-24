@@ -264,9 +264,9 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 7).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").eq("fecha_recepcion", today).gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").eq("fecha_recepcion", yesterday).gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").lt("fecha_recepcion", yesterday).gte("fecha_recepcion", startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("autorizacion_lab", "ENTREGADO").eq("fecha_entrega_estimada", today).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("autorizacion_lab", "ENTREGADO").eq("fecha_entrega_estimada", yesterday).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("autorizacion_lab", "ENTREGADO").lt("fecha_entrega_estimada", yesterday).gte("fecha_entrega_estimada", startDate).lt(dateCol, endDate),
       ])
 
       const { data: monthLabIds } = await supabase
