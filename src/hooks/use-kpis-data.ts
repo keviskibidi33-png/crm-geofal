@@ -238,8 +238,9 @@ export function useKpisData(): KpisData {
       const endMonth = targetMonth === 12 ? 1 : targetMonth + 1
       const endYear = targetMonth === 12 ? selectedYear + 1 : selectedYear
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`
-      const today = now.toISOString().split("T")[0]
-      const yesterday = new Date(now.getTime() - 86400000).toISOString().split("T")[0]
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+      const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayDate.getDate()).padStart(2, "0")}`
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
