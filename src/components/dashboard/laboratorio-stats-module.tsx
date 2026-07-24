@@ -127,6 +127,13 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
             <KpiBarChart data={gerencia.probetasFaltantes} loading={isLoading} />
           </div>
 
+          {/* Tabla + Pie + Bar: Control Lab Correcto General */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <KpiSummaryRow categories={laboratorio.controlLabGeneral.categories} previousCategories={prevLaboratorio?.controlLabGeneral.categories} loading={isLoading} title="CONTROL LAB CORRECTO GENERAL" />
+            <KpiPieChart data={laboratorio.controlLabGeneral} loading={isLoading} />
+            <KpiBarChart data={laboratorio.controlLabGeneral} loading={isLoading} />
+          </div>
+
           {/* Tabla + Pie + Bar: Status Probetas Entregadas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} previousCategories={prevGerencia?.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS POR CADA PROBETA ENTREGADO AL CLIENTE" />

@@ -21,6 +21,7 @@ export interface LaboratorioKpis {
   estadoTrabajo: KpiGroup
   tiempoEntrega: KpiGroup
   evidenciaEnvio: KpiGroup
+  controlLabGeneral: KpiGroup
 }
 
 export interface ComercialKpis {
@@ -138,6 +139,7 @@ const EMPTY_LAB: LaboratorioKpis = {
   estadoTrabajo: buildGroup("Estado Trabajo", []),
   tiempoEntrega: buildGroup("Tiempo Entrega", []),
   evidenciaEnvio: buildGroup("Evidencia Envio", []),
+  controlLabGeneral: buildGroup("Control Lab General", []),
 }
 
 const EMPTY_COM: ComercialKpis = {
@@ -241,7 +243,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR] = await Promise.all([
+      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clAnterioresRes] = await Promise.all([
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -262,6 +264,9 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 7).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").eq("fecha_recepcion", today).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").eq("fecha_recepcion", yesterday).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).neq("estado_trabajo", "ENTREGADO").lt("fecha_recepcion", yesterday).gte("fecha_recepcion", startDate).lt(dateCol, endDate),
       ])
 
       const { data: monthLabIds } = await supabase
@@ -357,6 +362,11 @@ export function useKpisData(): KpisData {
         evidenciaEnvio: buildGroup("Evidencia Envio", [
           { label: "Recepcion", value: evRecRes.count ?? 0 },
           { label: "Informe", value: evInfRes.count ?? 0 },
+        ]),
+        controlLabGeneral: buildGroup("Control Lab General", [
+          { label: "Hoy", value: clHoyRes.count ?? 0 },
+          { label: "Ayer", value: clAyerRes.count ?? 0 },
+          { label: "Anteriores", value: clAnterioresRes.count ?? 0 },
         ]),
       })
 
