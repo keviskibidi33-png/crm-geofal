@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -250,9 +250,10 @@ interface KpiSummaryRowProps {
   previousCategories?: { label: string; value: number; percentage: number }[]
   loading?: boolean
   title?: string
+  totalOverride?: number
 }
 
-export function KpiSummaryRow({ categories, previousCategories, loading, title }: KpiSummaryRowProps) {
+export function KpiSummaryRow({ categories, previousCategories, loading, title, totalOverride }: KpiSummaryRowProps) {
   if (loading) {
     return (
       <div className="space-y-1">
@@ -263,7 +264,7 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title }
     )
   }
 
-  const total = categories.reduce((s, c) => s + c.value, 0)
+  const total = totalOverride !== undefined ? totalOverride : categories.reduce((s, c) => s + c.value, 0)
 
   return (
     <div className="border border-l-4 border-l-yellow-400 rounded-lg overflow-hidden">

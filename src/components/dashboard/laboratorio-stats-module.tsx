@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
@@ -136,7 +136,7 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
           {/* Tabla + Pie + Bar: Evidencias de Recepción e Informe */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={laboratorio.evidenciaEnvio.categories} previousCategories={prevLaboratorio?.evidenciaEnvio.categories} loading={isLoading} title="DASHBOARD EVIDENCIAS DE RECEPCION E INFORME" />
+            <KpiSummaryRow categories={laboratorio.evidenciaEnvio.categories} previousCategories={prevLaboratorio?.evidenciaEnvio.categories} loading={isLoading} title="DASHBOARD EVIDENCIAS DE RECEPCION E INFORME" totalOverride={laboratorio.evidenciaEnvio.total} />
             <KpiPieChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
             <KpiBarChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
           </div>

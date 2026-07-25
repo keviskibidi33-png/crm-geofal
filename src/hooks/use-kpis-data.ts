@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabaseClient"
@@ -124,8 +124,8 @@ function calcPct(value: number, total: number): number {
   return Math.round((value / total) * 100 * 100) / 100
 }
 
-function buildGroup(title: string, data: { label: string; value: number }[]): KpiGroup {
-  const total = data.reduce((s, i) => s + i.value, 0)
+function buildGroup(title: string, data: { label: string; value: number }[], baseTotal?: number): KpiGroup {
+  const total = baseTotal !== undefined ? baseTotal : data.reduce((s, i) => s + i.value, 0)
   return {
     title,
     categories: data.map(i => ({ label: i.label, value: i.value, percentage: calcPct(i.value, total) })),
@@ -361,9 +361,11 @@ export function useKpisData(): KpisData {
           { label: "Con Retraso", value: tCRCount },
         ]),
         evidenciaEnvio: buildGroup("Evidencia Envio", [
-          { label: "Recepcion", value: evRecRes.count ?? 0 },
-          { label: "Informe", value: evInfRes.count ?? 0 },
-        ]),
+          { label: "Recepción (SI)", value: evRecRes.count ?? 0 },
+          { label: "Recepción (Faltante)", value: Math.max(0, (sTotalRes.count ?? 0) - (evRecRes.count ?? 0)) },
+          { label: "Informe (SI)", value: evInfRes.count ?? 0 },
+          { label: "Informe (Faltante)", value: Math.max(0, (sTotalRes.count ?? 0) - (evInfRes.count ?? 0)) },
+        ], sTotalRes.count ?? 0),
         controlLabGeneral: buildGroup("Control Lab General", [
           { label: "Hoy", value: clHoyRes.count ?? 0 },
           { label: "Ayer", value: clAyerRes.count ?? 0 },
