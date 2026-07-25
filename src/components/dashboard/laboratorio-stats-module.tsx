@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
-import { KpiChartCard, KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { KpiChartCard, KpiPieChart, KpiBarChart, KpiSummaryRow, KpiEvidenciasSummaryRow, KpiEvidenciasProgressCard, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistorico } from "@/components/dashboard/kpi-historico"
 import { RefreshCw, CalendarCheck, CalendarPlus, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -136,8 +136,8 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
 
           {/* Tabla + Pie + Bar: Evidencias de Recepción e Informe */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={laboratorio.evidenciaEnvio.categories} previousCategories={prevLaboratorio?.evidenciaEnvio.categories} loading={isLoading} title="DASHBOARD EVIDENCIAS DE RECEPCION E INFORME" totalOverride={laboratorio.evidenciaEnvio.total} />
-            <KpiPieChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
+            <KpiEvidenciasSummaryRow categories={laboratorio.evidenciaEnvio.categories} previousCategories={prevLaboratorio?.evidenciaEnvio.categories} loading={isLoading} title="DASHBOARD EVIDENCIAS DE RECEPCION E INFORME" total={laboratorio.evidenciaEnvio.total} />
+            <KpiEvidenciasProgressCard data={laboratorio.evidenciaEnvio} loading={isLoading} />
             <KpiBarChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
           </div>
 

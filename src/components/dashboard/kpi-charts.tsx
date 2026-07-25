@@ -310,6 +310,181 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title, 
   )
 }
 
+interface KpiEvidenciasSummaryRowProps {
+  categories: { label: string; value: number; percentage: number }[]
+  previousCategories?: { label: string; value: number; percentage: number }[]
+  loading?: boolean
+  title?: string
+  total: number
+}
+
+export function KpiEvidenciasSummaryRow({ categories, previousCategories, loading, title, total }: KpiEvidenciasSummaryRowProps) {
+  if (loading) {
+    return (
+      <div className="space-y-1">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-10 bg-muted/50 rounded animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  const recSi = categories.find(c => c.label.includes("Recepción (SI)")) ?? { label: "Recepción (SI)", value: 0, percentage: 0 }
+  const recFaltante = categories.find(c => c.label.includes("Recepción (Faltante)")) ?? { label: "Recepción (Faltante)", value: 0, percentage: 0 }
+  const infSi = categories.find(c => c.label.includes("Informe (SI)")) ?? { label: "Informe (SI)", value: 0, percentage: 0 }
+  const infFaltante = categories.find(c => c.label.includes("Informe (Faltante)")) ?? { label: "Informe (Faltante)", value: 0, percentage: 0 }
+
+  const getDeltaSpan = (catLabel: string, currentVal: number) => {
+    const prev = previousCategories?.find(p => p.label === catLabel)
+    const delta = prev ? currentVal - prev.value : undefined
+    if (delta === undefined || delta === 0) return null
+    return (
+      <span className={`ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-bold ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+        ({delta > 0 ? "+" : ""}{delta})
+      </span>
+    )
+  }
+
+  return (
+    <div className="border border-l-4 border-l-yellow-400 rounded-lg overflow-hidden bg-background">
+      <div className="bg-muted/50 px-4 py-2 border-b">
+        <p className="text-sm font-semibold">{title ?? "DASHBOARD EVIDENCIAS DE RECEPCION E INFORME"}</p>
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-muted/30">
+            <th className="text-left px-4 py-1.5 font-medium text-xs">Categoría</th>
+            <th className="text-center px-4 py-1.5 font-medium text-xs">Cant.</th>
+            <th className="text-center px-4 py-1.5 font-medium text-xs">% del Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Subseccion Recepcion */}
+          <tr className="bg-blue-50/70 border-b">
+            <td colSpan={3} className="px-4 py-1 text-xs font-bold text-blue-900 uppercase tracking-wider">
+              1. Evidencia de Recepción
+            </td>
+          </tr>
+          <tr className="border-b hover:bg-muted/10">
+            <td className="px-4 py-1.5 font-medium pl-6 text-xs">{recSi.label}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs font-semibold text-emerald-700">
+              {recSi.value}{getDeltaSpan(recSi.label, recSi.value)}
+            </td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs">{recSi.percentage}%</td>
+          </tr>
+          <tr className="border-b hover:bg-muted/10">
+            <td className="px-4 py-1.5 font-medium pl-6 text-xs text-muted-foreground">{recFaltante.label}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs font-semibold text-amber-600">
+              {recFaltante.value}{getDeltaSpan(recFaltante.label, recFaltante.value)}
+            </td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs">{recFaltante.percentage}%</td>
+          </tr>
+          <tr className="border-b bg-muted/20 font-semibold text-xs">
+            <td className="px-4 py-1.5 pl-6">Total Recepciones</td>
+            <td className="text-center px-4 py-1.5 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-1.5">100%</td>
+          </tr>
+
+          {/* Subseccion Informe */}
+          <tr className="bg-orange-50/70 border-b">
+            <td colSpan={3} className="px-4 py-1 text-xs font-bold text-orange-900 uppercase tracking-wider">
+              2. Evidencia de Envío Informe
+            </td>
+          </tr>
+          <tr className="border-b hover:bg-muted/10">
+            <td className="px-4 py-1.5 font-medium pl-6 text-xs">{infSi.label}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs font-semibold text-emerald-700">
+              {infSi.value}{getDeltaSpan(infSi.label, infSi.value)}
+            </td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs">{infSi.percentage}%</td>
+          </tr>
+          <tr className="border-b hover:bg-muted/10">
+            <td className="px-4 py-1.5 font-medium pl-6 text-xs text-muted-foreground">{infFaltante.label}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs font-semibold text-red-600">
+              {infFaltante.value}{getDeltaSpan(infFaltante.label, infFaltante.value)}
+            </td>
+            <td className="text-center px-4 py-1.5 tabular-nums text-xs">{infFaltante.percentage}%</td>
+          </tr>
+          <tr className="bg-muted/30 font-semibold text-xs">
+            <td className="px-4 py-1.5 pl-6">Total Informes</td>
+            <td className="text-center px-4 py-1.5 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-1.5">100%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function KpiEvidenciasProgressCard({ data, loading, className }: KpiPieChartProps) {
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardContent className="flex items-center justify-center h-[250px]">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const recSi = data.categories.find(c => c.label.includes("Recepción (SI)"))?.value ?? 0
+  const recFalt = data.categories.find(c => c.label.includes("Recepción (Faltante)"))?.value ?? 0
+  const infSi = data.categories.find(c => c.label.includes("Informe (SI)"))?.value ?? 0
+  const infFalt = data.categories.find(c => c.label.includes("Informe (Faltante)"))?.value ?? 0
+  const total = data.total || (recSi + recFalt) || 1
+
+  const recPct = Math.round((recSi / total) * 100 * 10) / 10
+  const infPct = Math.round((infSi / total) * 100 * 10) / 10
+
+  return (
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Cumplimiento Evidencias</CardTitle>
+        <p className="text-xs text-muted-foreground">Total Muestras: {total}</p>
+      </CardHeader>
+      <CardContent className="space-y-6 pt-4">
+        {/* Progress Recepcion */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs font-semibold">
+            <span className="text-blue-900 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+              Evidencia Recepción
+            </span>
+            <span className="text-blue-700">{recSi} / {total} ({recPct}%)</span>
+          </div>
+          <div className="w-full h-3.5 bg-amber-100 rounded-full overflow-hidden flex">
+            <div className="h-full bg-blue-600 transition-all rounded-l-full" style={{ width: `${recPct}%` }} />
+            <div className="h-full bg-amber-400 transition-all rounded-r-full" style={{ width: `${Math.max(0, 100 - recPct)}%` }} />
+          </div>
+          <div className="flex justify-between text-[11px] text-muted-foreground">
+            <span>SI: <strong className="text-emerald-700">{recSi}</strong></span>
+            <span>Faltante: <strong className="text-amber-700">{recFalt}</strong></span>
+          </div>
+        </div>
+
+        {/* Progress Informe */}
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex justify-between text-xs font-semibold">
+            <span className="text-orange-900 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+              Evidencia Envío Informe
+            </span>
+            <span className="text-orange-700">{infSi} / {total} ({infPct}%)</span>
+          </div>
+          <div className="w-full h-3.5 bg-red-100 rounded-full overflow-hidden flex">
+            <div className="h-full bg-orange-500 transition-all rounded-l-full" style={{ width: `${infPct}%` }} />
+            <div className="h-full bg-red-400 transition-all rounded-r-full" style={{ width: `${Math.max(0, 100 - infPct)}%` }} />
+          </div>
+          <div className="flex justify-between text-[11px] text-muted-foreground">
+            <span>SI: <strong className="text-emerald-700">{infSi}</strong></span>
+            <span>Faltante: <strong className="text-red-700">{infFalt}</strong></span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 interface MonthSelectorProps {
   availableMonths: MonthOption[]
   selectedMonth: string
