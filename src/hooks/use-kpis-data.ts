@@ -332,7 +332,6 @@ export function useKpisData(): KpisData {
       }
 
       const normalizeState = (value: unknown) => String(value ?? "").trim().toUpperCase()
-      const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
       const seguimientoParams = new URLSearchParams({ limit: "10000", offset: "0" })
       const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
       const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
