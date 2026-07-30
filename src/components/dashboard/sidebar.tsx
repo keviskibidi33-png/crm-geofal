@@ -84,6 +84,12 @@ const kpiModules: { id: ModuleType; label: string; icon: React.ElementType }[] =
 ]
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
+  const brandRef = React.useRef<HTMLButtonElement | null>(null)
+  const brandBubbleRef = React.useRef<HTMLDivElement | null>(null)
+  const [brandBubbleOpen, setBrandBubbleOpen] = React.useState(false)
+  const [brandBubblePos, setBrandBubblePos] = React.useState({ x: 0, y: 0 })
+  const [viewport, setViewport] = React.useState({ width: 1280, height: 720 })
+
   const huantaSubmodules = React.useMemo(() => [
     { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
     { id: "huanta_compresion", label: "Compresión Huanta", icon: Beaker },
@@ -127,6 +133,13 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     return () => mediaQuery.removeEventListener("change", updateTabletLayout)
   }, [])
 
+  React.useEffect(() => {
+    const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+    return () => window.removeEventListener("resize", updateViewport)
+  }, [])
+
   // Use granular permissions for filtering
   // Admin maintains full access fallback, but ideally should have all permissions true in DB
   const filteredModules = modules.filter((module) => {
@@ -160,6 +173,55 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     const savedModule = localStorage.getItem("crm-active-module") as ModuleType | null
     setActiveModule(savedModule || activeModule)
   }
+
+  const handleBrandContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const rect = brandRef.current?.getBoundingClientRect()
+    setBrandBubblePos({
+      x: event.clientX || (rect ? rect.left + rect.width / 2 : 0),
+      y: event.clientY || (rect ? rect.bottom + 8 : 0),
+    })
+    setBrandBubbleOpen(true)
+  }
+
+  const closeBrandBubble = React.useCallback(() => setBrandBubbleOpen(false), [])
+
+  const openCrmInNewTab = React.useCallback(() => {
+    if (typeof window === "undefined") return
+    window.open(window.location.href, "_blank", "noopener,noreferrer")
+    closeBrandBubble()
+  }, [closeBrandBubble])
+
+  const reloadWithoutCache = React.useCallback(() => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    url.searchParams.set("__crm_reload", String(Date.now()))
+    window.location.replace(url.toString())
+  }, [])
+
+  React.useEffect(() => {
+    if (!brandBubbleOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+      if (brandBubbleRef.current?.contains(target)) return
+      if (brandRef.current?.contains(target)) return
+      closeBrandBubble()
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeBrandBubble()
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [brandBubbleOpen, closeBrandBubble])
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -259,8 +321,10 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       {/* Logo + Collapse Toggle */}
       <div className="border-b border-sidebar-border shrink-0">
         <button
+          ref={brandRef}
           type="button"
           onClick={handleBrandClick}
+          onContextMenu={handleBrandContextMenu}
           className={cn(
             "group w-full flex items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             collapsed ? "p-3 justify-center" : "p-6 gap-3 text-left",
@@ -292,6 +356,46 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
+
+        {brandBubbleOpen && (
+          <div
+            ref={brandBubbleRef}
+            className="fixed z-[80] min-w-[220px] rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+            style={{
+              left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 240)),
+              top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 180)),
+            }}
+          >
+            <div className="px-4 py-3 border-b border-sidebar-border bg-gradient-to-r from-primary/10 to-transparent">
+              <div className="flex items-center gap-3">
+                <Image src="/logo-geofal.svg" alt="Geofal CRM" width={36} height={36} className="h-9 w-9" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-foreground truncate">Geofal CRM</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Acciones rápidas</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-2 space-y-1">
+              <button
+                type="button"
+                onClick={openCrmInNewTab}
+                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">+</span>
+                <span>Abrir otra pestaña del CRM</span>
+              </button>
+              <button
+                type="button"
+                onClick={reloadWithoutCache}
+                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">↻</span>
+                <span>Recargar sin caché</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* User Profile (Top on Tablet) */}
