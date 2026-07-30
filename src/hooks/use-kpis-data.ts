@@ -330,19 +330,19 @@ export function useKpisData(): KpisData {
       const pfHoyRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate.getTime() === todayDate.getTime() && getControlProbetaState(r.status_ensayo) === "pendiente"
+          return !!roturaDate && roturaDate.getTime() === todayDate.getTime()
         }).length,
       }
       const pfAyerRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate.getTime() === yesterdayDate.getTime() && getControlProbetaState(r.status_ensayo) !== "ensayada"
+          return !!roturaDate && roturaDate.getTime() === yesterdayDate.getTime()
         }).length,
       }
       const pfRestoRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate < yesterdayDate && getControlProbetaState(r.status_ensayo) !== "ensayada"
+          return !!roturaDate && roturaDate < yesterdayDate
         }).length,
       }
 
@@ -462,9 +462,9 @@ export function useKpisData(): KpisData {
           { label: "Pendientes", value: ppRes.count ?? 0 },
         ]),
         probetasFaltantes: buildGroup("Probetas Faltantes", [
-          { label: "Pendiente hoy", value: pfHoyRes.count ?? 0 },
+          { label: "Hoy", value: pfHoyRes.count ?? 0 },
           { label: "Ayer", value: pfAyerRes.count ?? 0 },
-          { label: "Vencidas", value: pfRestoRes.count ?? 0 },
+          { label: "Anteriores", value: pfRestoRes.count ?? 0 },
         ]),
         facturacion: buildGroup("Facturacion", [
           { label: "Con Factura", value: adminFactRes.count ?? 0 },
