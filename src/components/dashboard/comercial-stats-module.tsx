@@ -7,10 +7,19 @@ import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-come
 import { RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function ComercialStatsModule() {
   const { comercialUnico, comercialUnicoDetalle, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
   const [tabView, setTabView] = useState<"mes" | "historico">("mes")
+  const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
+  const filteredDetalle = estadoFilter === "todos" ? comercialUnicoDetalle : comercialUnicoDetalle.filter((row) => row.label === estadoFilter)
+  const montoCategories = estadoFilter === "todos"
+    ? comercialUnico.montoAcumuladoMes.categories
+    : comercialUnico.montoAcumuladoMes.categories.filter((cat) => cat.label === estadoFilter)
+  const clientesCategories = estadoFilter === "todos"
+    ? comercialUnico.numeroClientes.categories
+    : comercialUnico.numeroClientes.categories.filter((cat) => estadoFilter === "todos" || (estadoFilter === "Cotización Enviada" ? cat.label === "Leads" || cat.label === "Cliente Nuevos" : true))
 
   return (
     <div className="space-y-6">
@@ -34,6 +43,17 @@ export function ComercialStatsModule() {
             onMonthChange={setSelectedMonth}
             loading={isLoading}
           />
+          <Select value={estadoFilter} onValueChange={(value) => setEstadoFilter(value as typeof estadoFilter)}>
+            <SelectTrigger className="w-[240px]">
+              <SelectValue placeholder="Todos los estados" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              <SelectItem value="Cotización Enviada">Cotización Enviada</SelectItem>
+              <SelectItem value="Venta">Venta</SelectItem>
+              <SelectItem value="Negociación">Negociación</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => refresh()} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
             Actualizar
@@ -62,12 +82,12 @@ export function ComercialStatsModule() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <KpiSummaryRow
-                categories={comercialUnico.montoAcumuladoMes.categories}
+                categories={montoCategories}
                 loading={isLoading}
                 title="MONTO ACUMULADO MES (S/.)"
               />
-              <KpiPieChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
-              <KpiBarChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
+              <KpiPieChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
+              <KpiBarChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
             </div>
             <div className="rounded-lg border overflow-hidden">
               <Table>
@@ -78,7 +98,7 @@ export function ComercialStatsModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {comercialUnicoDetalle.slice(0, 3).map((row) => (
+                  {filteredDetalle.filter((row) => ["Cotización Enviada", "Venta", "Negociación"].includes(row.label)).map((row) => (
                     <TableRow key={row.label}>
                       <TableCell className="font-medium">{row.label}</TableCell>
                       <TableCell className="text-right">{row.monto.toLocaleString("es-PE")}</TableCell>
@@ -102,12 +122,12 @@ export function ComercialStatsModule() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <KpiSummaryRow
-                categories={comercialUnico.numeroClientes.categories}
+                categories={clientesCategories}
                 loading={isLoading}
                 title="NUMERO CLIENTES"
               />
-              <KpiPieChart data={comercialUnico.numeroClientes} loading={isLoading} />
-              <KpiBarChart data={comercialUnico.numeroClientes} loading={isLoading} />
+              <KpiPieChart data={{ ...comercialUnico.numeroClientes, categories: clientesCategories }} loading={isLoading} />
+              <KpiBarChart data={{ ...comercialUnico.numeroClientes, categories: clientesCategories }} loading={isLoading} />
             </div>
             <div className="rounded-lg border overflow-hidden">
               <Table>
@@ -118,7 +138,7 @@ export function ComercialStatsModule() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {comercialUnicoDetalle.slice(3).map((row) => (
+                  {filteredDetalle.filter((row) => ["Leads", "Cliente Nuevos"].includes(row.label)).map((row) => (
                     <TableRow key={row.label}>
                       <TableCell className="font-medium">{row.label}</TableCell>
                       <TableCell className="text-right">{row.count}</TableCell>
