@@ -41,6 +41,12 @@ export interface ComercialKpiUnico {
   meta: number
 }
 
+export interface ComercialKpiDetalleItem {
+  label: string
+  count: number
+  monto: number
+}
+
 export interface GerenciaKpis {
   resumenMensual: KpiGroup
   probetasFaltantes: KpiGroup
@@ -108,6 +114,7 @@ export interface KpisData {
   laboratorio: LaboratorioKpis
   comercial: ComercialKpis
   comercialUnico: ComercialKpiUnico
+  comercialUnicoDetalle: ComercialKpiDetalleItem[]
   gerencia: GerenciaKpis
   prevLaboratorio: LaboratorioKpis | null
   prevComercial: ComercialKpis | null
@@ -240,6 +247,7 @@ export function useKpisData(): KpisData {
   const [laboratorio, setLaboratorio] = useState<LaboratorioKpis>(EMPTY_LAB)
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
   const [comercialUnico, setComercialUnico] = useState<ComercialKpiUnico>(EMPTY_COM_UNICO)
+  const [comercialUnicoDetalle, setComercialUnicoDetalle] = useState<ComercialKpiDetalleItem[]>([])
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [prevLaboratorio, setPrevLaboratorio] = useState<LaboratorioKpis | null>(null)
   const [prevComercial, setPrevComercial] = useState<ComercialKpis | null>(null)
@@ -364,6 +372,13 @@ export function useKpisData(): KpisData {
         tasaConversion,
         meta,
       })
+      setComercialUnicoDetalle([
+        { label: "Cotización Enviada", count: montoEnviada.length, monto: cotizacionMonto },
+        { label: "Venta", count: montoVenta.length, monto: ventaMonto },
+        { label: "Negociación", count: montoNegociacion.length, monto: negociacionMonto },
+        { label: "Leads", count: leads.length, monto: 0 },
+        { label: "Cliente Nuevos", count: nuevos.length, monto: 0 },
+      ])
 
       const selectedMonthNum = parseInt(selectedMonth)
       const monthControlRows = controlRows.filter((r: any) => {
@@ -747,6 +762,7 @@ export function useKpisData(): KpisData {
     setSelectedMonth,
     setDateFilter,
     comercialUnico,
+    comercialUnicoDetalle,
     refresh: fetchKpis,
     refreshHistorical: fetchHistoricalKpis,
   }

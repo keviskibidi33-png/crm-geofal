@@ -6,9 +6,10 @@ import { KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/compon
 import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-comercial-admin"
 import { RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export function ComercialStatsModule() {
-  const { comercialUnico, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { comercialUnico, comercialUnicoDetalle, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
   const [tabView, setTabView] = useState<"mes" | "historico">("mes")
 
   return (
@@ -68,6 +69,30 @@ export function ComercialStatsModule() {
               <KpiPieChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
               <KpiBarChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
             </div>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead className="text-right">Monto S/.</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {comercialUnicoDetalle.slice(0, 3).map((row) => (
+                    <TableRow key={row.label}>
+                      <TableCell className="font-medium">{row.label}</TableCell>
+                      <TableCell className="text-right">{row.monto.toLocaleString("es-PE")}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className="font-bold">TOTAL</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {comercialUnico.montoAcumuladoMes.total.toLocaleString("es-PE")}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
@@ -83,6 +108,24 @@ export function ComercialStatsModule() {
               />
               <KpiPieChart data={comercialUnico.numeroClientes} loading={isLoading} />
               <KpiBarChart data={comercialUnico.numeroClientes} loading={isLoading} />
+            </div>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {comercialUnicoDetalle.slice(3).map((row) => (
+                    <TableRow key={row.label}>
+                      <TableCell className="font-medium">{row.label}</TableCell>
+                      <TableCell className="text-right">{row.count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
 
