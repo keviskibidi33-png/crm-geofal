@@ -151,6 +151,16 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     setActiveModule(id)
   }
 
+  const handleBrandClick = () => {
+    if (typeof window === "undefined") {
+      setActiveModule(activeModule)
+      return
+    }
+
+    const savedModule = localStorage.getItem("crm-active-module") as ModuleType | null
+    setActiveModule(savedModule || activeModule)
+  }
+
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
   }
@@ -248,22 +258,34 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     )}>
       {/* Logo + Collapse Toggle */}
       <div className="border-b border-sidebar-border shrink-0">
-        <div className={cn("flex items-center", collapsed ? "p-3 justify-center" : "p-6 gap-3")}>
+        <button
+          type="button"
+          onClick={handleBrandClick}
+          className={cn(
+            "group w-full flex items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            collapsed ? "p-3 justify-center" : "p-6 gap-3 text-left",
+          )}
+          aria-label="Volver al último módulo abierto"
+          title="Ir al último módulo abierto"
+        >
           <Image
             src="/logo-geofal.svg"
             alt="Geofal CRM"
             width={160}
             height={40}
-            className={cn("shrink-0 transition-all duration-300", collapsed ? "h-8 w-auto" : "h-10 w-auto")}
+            className={cn(
+              "shrink-0 transition-transform duration-200 ease-out group-hover:scale-105",
+              collapsed ? "h-8 w-auto" : "h-10 w-auto",
+            )}
             priority
           />
           {!collapsed && (
-            <div className="min-w-0">
+            <div className="min-w-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
               <h1 className="font-semibold text-sidebar-foreground truncate">Geofal CRM</h1>
               <p className="text-xs text-muted-foreground truncate">Panel Administrativo</p>
             </div>
           )}
-        </div>
+        </button>
         <button
           onClick={onToggleCollapse}
           className="w-full flex items-center justify-center py-1.5 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors border-t border-sidebar-border"

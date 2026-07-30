@@ -318,7 +318,10 @@ export function useKpisData(): KpisData {
 
       const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-      const currentPendingRows = controlRows.filter((r: any) => isControlProbetaNoEnsayada(r.status_ensayo))
+      const currentPendingRows = controlRows.filter((r: any) => {
+        if (isControlProbetaEnsayada(r.status_ensayo)) return false
+        return !!parseNormalizedDate(r.fecha_rotura)
+      })
       const pfHoyRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
