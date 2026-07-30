@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 
 const SHOW_SECURITY_CONSOLE_BANNER = process.env.NEXT_PUBLIC_SHOW_SECURITY_CONSOLE_BANNER === 'true'
 
@@ -24,8 +25,13 @@ const SECURITY_MSG = () => {
 }
 
 export function SecurityShield() {
+    const pathname = usePathname()
+
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return
+
+        const isLoginPage = pathname === "/login"
+        if (!isLoginPage) return
 
         if (SHOW_SECURITY_CONSOLE_BANNER) {
             SECURITY_MSG()
@@ -73,7 +79,7 @@ export function SecurityShield() {
             document.removeEventListener('keydown', handleKeyDown)
             clearInterval(sizeInterval)
         }
-    }, [])
+    }, [pathname])
 
     return null
 }

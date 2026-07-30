@@ -160,6 +160,14 @@ function isControlProbetaNoEnsayada(status: string | null | undefined): boolean 
   return !isControlProbetaEnsayada(status)
 }
 
+function getControlProbetaState(status: string | null | undefined): "ensayada" | "pendiente" | "falta" | "otras" {
+  const normalized = String(status || "").trim().toUpperCase()
+  if (normalized === "ENSAYADO") return "ensayada"
+  if (normalized === "PENDIENTE") return "pendiente"
+  if (normalized === "FALTA" || normalized === "-") return "falta"
+  return "otras"
+}
+
 const EMPTY_LAB: LaboratorioKpis = {
   serviciosPorTipo: buildGroup("Servicios por Tipo", []),
   probetasEnsayo: buildGroup("Probetas Ensayo", []),
@@ -318,26 +326,23 @@ export function useKpisData(): KpisData {
 
       const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-      const currentPendingRows = controlRows.filter((r: any) => {
-        if (isControlProbetaEnsayada(r.status_ensayo)) return false
-        return !!parseNormalizedDate(r.fecha_rotura)
-      })
+      const currentPendingRows = controlRows.filter((r: any) => getControlProbetaState(r.status_ensayo) !== "ensayada")
       const pfHoyRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate.getTime() === todayDate.getTime()
+          return !!roturaDate && roturaDate.getTime() === todayDate.getTime() && getControlProbetaState(r.status_ensayo) === "pendiente"
         }).length,
       }
       const pfAyerRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate.getTime() === yesterdayDate.getTime()
+          return !!roturaDate && roturaDate.getTime() === yesterdayDate.getTime() && getControlProbetaState(r.status_ensayo) !== "ensayada"
         }).length,
       }
       const pfRestoRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
-          return !!roturaDate && roturaDate < yesterdayDate
+          return !!roturaDate && roturaDate < yesterdayDate && getControlProbetaState(r.status_ensayo) !== "ensayada"
         }).length,
       }
 
