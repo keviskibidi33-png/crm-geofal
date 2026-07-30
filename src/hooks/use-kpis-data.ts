@@ -462,9 +462,9 @@ export function useKpisData(): KpisData {
           { label: "Pendientes", value: ppRes.count ?? 0 },
         ]),
         probetasFaltantes: buildGroup("Probetas Faltantes", [
-          { label: "Hoy", value: pfHoyRes.count ?? 0 },
+          { label: "Pendiente hoy", value: pfHoyRes.count ?? 0 },
           { label: "Ayer", value: pfAyerRes.count ?? 0 },
-          { label: "Anteriores", value: pfRestoRes.count ?? 0 },
+          { label: "Vencidas", value: pfRestoRes.count ?? 0 },
         ]),
         facturacion: buildGroup("Facturacion", [
           { label: "Con Factura", value: adminFactRes.count ?? 0 },
