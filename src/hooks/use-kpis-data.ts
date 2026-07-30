@@ -335,10 +335,25 @@ export function useKpisData(): KpisData {
       const seguimientoParams = new URLSearchParams({ limit: "10000", offset: "0" })
       const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
       const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
-      const seguimientos = (seguimientoData.items ?? []).filter((r: any) => {
+      const seguimientosMes = (seguimientoData.items ?? []).filter((r: any) => {
         const createdDate = parseNormalizedDate(r.fecha_creacion)
         return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
       })
+      const uniqueByClient = new Map<string, any>()
+      for (const row of seguimientosMes as any[]) {
+        const key = String(row.ruc || row.razon_social || row.persona_contacto || row.numero_celular || row.id || "").trim()
+        const current = uniqueByClient.get(key)
+        if (!current) {
+          uniqueByClient.set(key, row)
+          continue
+        }
+        const currentDate = parseNormalizedDate(current.fecha_actualizacion || current.fecha_creacion)
+        const nextDate = parseNormalizedDate(row.fecha_actualizacion || row.fecha_creacion)
+        if (!currentDate || (nextDate && nextDate > currentDate)) {
+          uniqueByClient.set(key, row)
+        }
+      }
+      const seguimientos = Array.from(uniqueByClient.values())
       const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
       const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
       const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
