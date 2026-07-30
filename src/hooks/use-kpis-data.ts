@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 
 export interface KpiCategory {
   label: string
@@ -147,25 +148,14 @@ function parseNormalizedDate(value: string | null | undefined): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt
 }
 
-function isControlProbetaEnsayada(status: string | null | undefined): boolean {
-  return String(status || "").trim().toUpperCase() === "ENSAYADO"
-}
-
-function isControlProbetaPendiente(status: string | null | undefined): boolean {
-  const normalized = String(status || "").trim().toUpperCase()
-  return normalized === "PENDIENTE" || normalized === "FALTA" || normalized === "-"
-}
-
-function isControlProbetaNoEnsayada(status: string | null | undefined): boolean {
-  return !isControlProbetaEnsayada(status)
-}
-
-function getControlProbetaState(status: string | null | undefined): "ensayada" | "pendiente" | "falta" | "otras" {
-  const normalized = String(status || "").trim().toUpperCase()
-  if (normalized === "ENSAYADO") return "ensayada"
-  if (normalized === "PENDIENTE") return "pendiente"
-  if (normalized === "FALTA" || normalized === "-") return "falta"
-  return "otras"
+function normalizeEstadoProbeta(value: string | null | undefined): "curado" | "pendiente" | "vencido" | "ensayado" | "anulado" | "otro" {
+  const normalized = String(value || "").trim().toLowerCase()
+  if (normalized === "curado") return "curado"
+  if (normalized === "pendiente") return "pendiente"
+  if (normalized === "vencido") return "vencido"
+  if (normalized === "ensayado") return "ensayado"
+  if (normalized === "anulado") return "anulado"
+  return "otro"
 }
 
 const EMPTY_LAB: LaboratorioKpis = {
@@ -305,13 +295,11 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("autorizacion_lab", "ENTREGADO").gte("fecha_entrega_estimada", startDate).lt("fecha_entrega_estimada", yesterday),
       ])
 
-      const { data: allControlRows } = await supabase
-        .from("muestras_concreto")
-        .select("recepcion_id,status_ensayo,fecha_rotura,es_control_probetas", { count: "exact", head: false })
-        .eq("es_control_probetas", true)
-        .not("recepcion_id", "is", null)
-
-      const controlRows = (allControlRows ?? []).filter((r: any) => r.recepcion_id != null)
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
+      const params = new URLSearchParams({ page: "1", page_size: "4000" })
+      const controlResp = await authFetch(`${API_URL}/api/control-probetas/?${params}`)
+      const controlData = controlResp.ok ? await controlResp.json() : { items: [] }
+      const controlRows = (controlData.items ?? []).filter((r: any) => r.recepcion_id != null)
 
       const selectedMonthNum = parseInt(selectedMonth)
       const monthControlRows = controlRows.filter((r: any) => {
@@ -319,14 +307,17 @@ export function useKpisData(): KpisData {
         if (!roturaDate) return false
         return roturaDate.getFullYear() === selectedYear && (roturaDate.getMonth() + 1) === selectedMonthNum
       })
-      const monthFaltaCount = monthControlRows.filter((r: any) => String(r.status_ensayo || "").trim().toUpperCase() === "FALTA" || String(r.status_ensayo || "").trim() === "-").length
-      const monthPendienteCount = monthControlRows.filter((r: any) => String(r.status_ensayo || "").trim().toUpperCase() === "PENDIENTE").length
-      const ensayadasCount = monthControlRows.filter((r: any) => isControlProbetaEnsayada(r.status_ensayo)).length
+      const monthPendienteCount = monthControlRows.filter((r: any) => normalizeEstadoProbeta(r.estado_probeta) === "pendiente").length
+      const monthFaltaCount = monthControlRows.filter((r: any) => normalizeEstadoProbeta(r.estado_probeta) === "vencido").length
+      const ensayadasCount = monthControlRows.filter((r: any) => normalizeEstadoProbeta(r.estado_probeta) === "ensayado").length
       const ppRes = { count: monthPendienteCount }
 
       const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-      const currentPendingRows = monthControlRows.filter((r: any) => getControlProbetaState(r.status_ensayo) !== "ensayada")
+      const currentPendingRows = monthControlRows.filter((r: any) => {
+        const estado = normalizeEstadoProbeta(r.estado_probeta)
+        return estado === "pendiente" || estado === "vencido"
+      })
       const pfHoyRes = {
         count: currentPendingRows.filter((r: any) => {
           const roturaDate = parseNormalizedDate(r.fecha_rotura)
