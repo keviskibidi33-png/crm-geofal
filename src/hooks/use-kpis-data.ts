@@ -133,6 +133,20 @@ function buildGroup(title: string, data: { label: string; value: number }[], bas
   }
 }
 
+function normalizeDateValue(value: string | null | undefined): string {
+  if (!value) return ""
+  return String(value).trim().split("T")[0].replace(/-/g, "/")
+}
+
+function isControlProbetaEnsayada(status: string | null | undefined): boolean {
+  return String(status || "").trim().toUpperCase() === "ENSAYADO"
+}
+
+function isControlProbetaPendiente(status: string | null | undefined): boolean {
+  const normalized = String(status || "").trim().toUpperCase()
+  return normalized === "PENDIENTE" || normalized === "FALTA" || normalized === "-"
+}
+
 const EMPTY_LAB: LaboratorioKpis = {
   serviciosPorTipo: buildGroup("Servicios por Tipo", []),
   probetasEnsayo: buildGroup("Probetas Ensayo", []),
@@ -270,38 +284,40 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("autorizacion_lab", "ENTREGADO").gte("fecha_entrega_estimada", startDate).lt("fecha_entrega_estimada", yesterday),
       ])
 
-      const { data: monthLabIds } = await supabase
-        .from("programacion_lab").select("id")
-        .gte(dateCol, startDate).lt(dateCol, endDate)
-      const labIdArr = (monthLabIds ?? []).map((r: any) => r.id)
-      const labIdSet = new Set(labIdArr)
-      const { data: allPpRows } = await supabase
-        .from("muestras_concreto").select("recepcion_id", { count: "exact", head: false })
-        .eq("es_control_probetas", true).eq("status_ensayo", "PENDIENTE")
+      const { data: allControlRows } = await supabase
+        .from("muestras_concreto")
+        .select("recepcion_id,status_ensayo,fecha_rotura,es_control_probetas", { count: "exact", head: false })
+        .eq("es_control_probetas", true)
         .not("recepcion_id", "is", null)
-      const ppCount = (allPpRows ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length
-      const ppRes = { count: ppCount }
 
-      const todayNorm = now.toISOString().split("T")[0].replace(/-/g, "/")
+      const controlRows = (allControlRows ?? []).filter((r: any) => r.recepcion_id != null)
+      const ensayadasCount = controlRows.filter((r: any) => isControlProbetaEnsayada(r.status_ensayo)).length
+      const pendientesCount = controlRows.filter((r: any) => isControlProbetaPendiente(r.status_ensayo)).length
+      const ppRes = { count: pendientesCount }
+
+      const todayNorm = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}`
       const [faltaResp, ensayadoResp, hoyResp, ayerResp, restoResp] = await Promise.all([
         supabase.from("muestras_concreto").select("recepcion_id,status_ensayo,fecha_rotura", { count: "exact", head: false }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]).not("recepcion_id", "is", null),
         supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO").not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", today.replace(/-/g, "/")).not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday.replace(/-/g, "/")).not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday.replace(/-/g, "/")).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", todayNorm).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday).not("recepcion_id", "is", null),
+        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday).not("recepcion_id", "is", null),
       ])
-      const pfRawRows = (faltaResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id))
-      const pfFaltaCount = pfRawRows.filter((r: any) => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && r.fecha_rotura && r.fecha_rotura < todayNorm)).length
-      const pfRawRes = { count: pfFaltaCount, data: pfRawRows }
-      const peRes = { count: (ensayadoResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
-      const pfHoyRes = { count: (hoyResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
-      const pfAyerRes = { count: (ayerResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
-      const pfRestoRes = { count: (restoResp.data ?? []).filter((r: any) => labIdSet.has(r.recepcion_id)).length }
+      const pfRawRows = (faltaResp.data ?? []).filter((r: any) => r.recepcion_id != null)
+      const pfFaltaCount = pfRawRows.filter((r: any) => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && normalizeDateValue(r.fecha_rotura) < todayNorm)).length
+      const peRes = { count: ensayadasCount }
+      const pfHoyRes = { count: (hoyResp.data ?? []).filter((r: any) => normalizeDateValue(r.fecha_rotura) === todayNorm).length }
+      const pfAyerRes = { count: (ayerResp.data ?? []).filter((r: any) => normalizeDateValue(r.fecha_rotura) === yesterday).length }
+      const pfRestoRes = { count: (restoResp.data ?? []).filter((r: any) => {
+        const rotura = normalizeDateValue(r.fecha_rotura)
+        return !!rotura && rotura < yesterday
+      }).length }
 
       const BATCH = 100
 
       let evSiCount = 0, evTotalCount = 0
       let adFact = 0, adSinFact = 0, adPag = 0, adPend = 0
+      const labIdArr = controlRows.map((r: any) => r.recepcion_id).filter((id: any) => id != null)
       for (let i = 0; i < labIdArr.length; i += BATCH) {
         const chunk = labIdArr.slice(i, i + BATCH)
         const [siRes, totalRes, aF, aSF, aP, aPe] = await Promise.all([
