@@ -325,18 +325,6 @@ export function useKpisData(): KpisData {
       const controlData = controlResp.ok ? await controlResp.json() : { items: [] }
       const controlRows = (controlData.items ?? []).filter((r: any) => r.recepcion_id != null)
 
-      const seguimientoQuery = supabase
-        .from("seguimiento_cliente_comercial")
-        .select("fecha_contacto,estado_cliente,estado_seguimiento,costo_cotiz_sin_igv,razon_social")
-        .not("fecha_contacto", "is", null)
-        .gte("fecha_contacto", startDate)
-        .lt("fecha_contacto", endDate)
-
-      const { data: seguimientoRows, error: seguimientoError } = await seguimientoQuery
-      if (seguimientoError) {
-        console.error("Error fetching comercial KPI rows:", seguimientoError)
-      }
-
       const parseMoney = (value: unknown) => {
         const raw = String(value ?? "").replace(/[^0-9.,-]/g, "").replace(/\./g, "").replace(/,/g, ".")
         const num = Number.parseFloat(raw)
@@ -344,7 +332,14 @@ export function useKpisData(): KpisData {
       }
 
       const normalizeState = (value: unknown) => String(value ?? "").trim().toUpperCase()
-      const seguimientos = seguimientoRows ?? []
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
+      const seguimientoParams = new URLSearchParams({ limit: "10000", offset: "0" })
+      const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
+      const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
+      const seguimientos = (seguimientoData.items ?? []).filter((r: any) => {
+        const createdDate = parseNormalizedDate(r.fecha_creacion)
+        return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
+      })
       const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
       const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
       const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
