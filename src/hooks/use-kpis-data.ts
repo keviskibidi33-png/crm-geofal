@@ -34,6 +34,13 @@ export interface ComercialKpis {
   cumplimientoCotizacion: KpiGroup
 }
 
+export interface ComercialKpiUnico {
+  montoAcumuladoMes: KpiGroup
+  numeroClientes: KpiGroup
+  tasaConversion: number
+  meta: number
+}
+
 export interface GerenciaKpis {
   resumenMensual: KpiGroup
   probetasFaltantes: KpiGroup
@@ -100,6 +107,7 @@ export type DateFilter = "recepcion" | "creacion"
 export interface KpisData {
   laboratorio: LaboratorioKpis
   comercial: ComercialKpis
+  comercialUnico: ComercialKpiUnico
   gerencia: GerenciaKpis
   prevLaboratorio: LaboratorioKpis | null
   prevComercial: ComercialKpis | null
@@ -176,6 +184,13 @@ const EMPTY_COM: ComercialKpis = {
   cumplimientoCotizacion: buildGroup("Cumplimiento Cotizacion", []),
 }
 
+const EMPTY_COM_UNICO: ComercialKpiUnico = {
+  montoAcumuladoMes: buildGroup("Monto Acumulado Mes", []),
+  numeroClientes: buildGroup("Numero Clientes", []),
+  tasaConversion: 0,
+  meta: 25,
+}
+
 const EMPTY_GER: GerenciaKpis = {
   resumenMensual: buildGroup("Resumen Mensual", []),
   probetasFaltantes: buildGroup("Probetas Faltantes", []),
@@ -224,6 +239,7 @@ export function useKpisData(): KpisData {
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear())
   const [laboratorio, setLaboratorio] = useState<LaboratorioKpis>(EMPTY_LAB)
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
+  const [comercialUnico, setComercialUnico] = useState<ComercialKpiUnico>(EMPTY_COM_UNICO)
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [prevLaboratorio, setPrevLaboratorio] = useState<LaboratorioKpis | null>(null)
   const [prevComercial, setPrevComercial] = useState<ComercialKpis | null>(null)
@@ -247,7 +263,7 @@ export function useKpisData(): KpisData {
     if (year !== undefined) {
       setSelectedYear(year)
     }
-  }, [])
+  }, [selectedYear])
 
   const fetchKpis = useCallback(async () => {
     try {
@@ -300,6 +316,54 @@ export function useKpisData(): KpisData {
       const controlResp = await authFetch(`${API_URL}/api/control-probetas/?${params}`)
       const controlData = controlResp.ok ? await controlResp.json() : { items: [] }
       const controlRows = (controlData.items ?? []).filter((r: any) => r.recepcion_id != null)
+
+      const seguimientoQuery = supabase
+        .from("seguimiento_cliente_comercial")
+        .select("fecha_contacto,estado_cliente,estado_seguimiento,costo_cotiz_sin_igv,razon_social")
+        .not("fecha_contacto", "is", null)
+        .gte("fecha_contacto", startDate)
+        .lt("fecha_contacto", endDate)
+
+      const { data: seguimientoRows, error: seguimientoError } = await seguimientoQuery
+      if (seguimientoError) {
+        console.error("Error fetching comercial KPI rows:", seguimientoError)
+      }
+
+      const parseMoney = (value: unknown) => {
+        const raw = String(value ?? "").replace(/[^0-9.,-]/g, "").replace(/\./g, "").replace(/,/g, ".")
+        const num = Number.parseFloat(raw)
+        return Number.isFinite(num) ? num : 0
+      }
+
+      const normalizeState = (value: unknown) => String(value ?? "").trim().toUpperCase()
+      const seguimientos = seguimientoRows ?? []
+      const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
+      const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
+      const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
+      const leads = seguimientos.filter((r: any) => normalizeState(r.estado_seguimiento) === "LEADS")
+      const nuevos = seguimientos.filter((r: any) => normalizeState(r.estado_seguimiento) === "CLIENTE NUEVOS")
+
+      const totalMonto = seguimientos.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const ventaMonto = montoVenta.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const negociacionMonto = montoNegociacion.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const cotizacionMonto = montoEnviada.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const totalClientes = leads.length + nuevos.length
+      const tasaConversion = leads.length > 0 ? Math.round((nuevos.length / leads.length) * 100) : 0
+      const meta = 25
+
+      setComercialUnico({
+        montoAcumuladoMes: buildGroup("Monto Acumulado Mes", [
+          { label: "Cotización Enviada", value: cotizacionMonto },
+          { label: "Venta", value: ventaMonto },
+          { label: "Negociación", value: negociacionMonto },
+        ], totalMonto),
+        numeroClientes: buildGroup("Numero Clientes", [
+          { label: "Leads", value: leads.length },
+          { label: "Cliente Nuevos", value: nuevos.length },
+        ], totalClientes || 1),
+        tasaConversion,
+        meta,
+      })
 
       const selectedMonthNum = parseInt(selectedMonth)
       const monthControlRows = controlRows.filter((r: any) => {
@@ -512,11 +576,9 @@ export function useKpisData(): KpisData {
           const informeListo = monthRows.filter(r => r.estado_trabajo === "INFORME LISTO").length
           const anulado = monthRows.filter(r => r.estado_trabajo === "ANULADO").length
           const conFechaEst = monthRows.filter(r => r.fecha_entrega_estimada)
-          const conEntregaReal = monthRows.filter(r => r.entrega_real)
-          const aTiempo = monthRows.filter(r => r.fecha_entrega_estimada && (!r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada)).length
-          const conRetraso = monthRows.filter(r => r.entrega_real && r.fecha_entrega_estimada && r.entrega_real > r.fecha_entrega_estimada).length
-          const envInfSi = monthRows.filter(r => r.envio_informes === "SI").length
-          const envRecSi = monthRows.filter(r => r.evidencia_envio_recepcion === "SI").length
+      const aTiempo = monthRows.filter(r => r.fecha_entrega_estimada && (!r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada)).length
+      const envInfSi = monthRows.filter(r => r.envio_informes === "SI").length
+      const envRecSi = monthRows.filter(r => r.evidencia_envio_recepcion === "SI").length
           const [y, m] = key.split("-")
           const monthIdx = parseInt(m) - 1
 
@@ -684,6 +746,7 @@ export function useKpisData(): KpisData {
     availableMonths,
     setSelectedMonth,
     setDateFilter,
+    comercialUnico,
     refresh: fetchKpis,
     refreshHistorical: fetchHistoricalKpis,
   }

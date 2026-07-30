@@ -7,12 +7,8 @@ import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-come
 import { RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-interface ComercialStatsProps {
-  user?: any
-}
-
-export function ComercialStatsModule({ user }: ComercialStatsProps) {
-  const { comercial, prevComercial, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+export function ComercialStatsModule() {
+  const { comercialUnico, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
   const [tabView, setTabView] = useState<"mes" | "historico">("mes")
 
   return (
@@ -57,49 +53,52 @@ export function ComercialStatsModule({ user }: ComercialStatsProps) {
       </div>
 
       {tabView === "mes" ? (
-        <>
-          {/* Tabla + Pie + Bar: Estado de Trabajo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.estadoTrabajo.categories} previousCategories={prevComercial?.estadoTrabajo.categories} loading={isLoading} title="ANALISIS ESTADO DE TRABAJO" />
-            <KpiPieChart data={comercial.estadoTrabajo} loading={isLoading} />
-            <KpiBarChart data={comercial.estadoTrabajo} loading={isLoading} />
+        <div className="space-y-6">
+          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
+            <div>
+              <h3 className="text-lg font-bold">MONTO ACUMULADO MES (S/.)</h3>
+              <p className="text-sm text-muted-foreground">Fuente: seguimiento_cliente_comercial filtrado por fecha_contacto del mes seleccionado.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <KpiSummaryRow
+                categories={comercialUnico.montoAcumuladoMes.categories}
+                loading={isLoading}
+                title="MONTO ACUMULADO MES (S/.)"
+              />
+              <KpiPieChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
+              <KpiBarChart data={comercialUnico.montoAcumuladoMes} loading={isLoading} />
+            </div>
           </div>
 
-          {/* Tabla + Pie + Bar: Servicios por Tipo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.serviciosPorTipo.categories} previousCategories={prevComercial?.serviciosPorTipo.categories} loading={isLoading} title="ANALISIS CANTIDAD POR TIPO DE SERVICIO" />
-            <KpiPieChart data={comercial.serviciosPorTipo} loading={isLoading} />
-            <KpiBarChart data={comercial.serviciosPorTipo} loading={isLoading} />
+          <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
+            <div>
+              <h3 className="text-lg font-bold">NUMERO CLIENTES</h3>
+              <p className="text-sm text-muted-foreground">Leads y cliente nuevos del mismo mes seleccionado.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <KpiSummaryRow
+                categories={comercialUnico.numeroClientes.categories}
+                loading={isLoading}
+                title="NUMERO CLIENTES"
+              />
+              <KpiPieChart data={comercialUnico.numeroClientes} loading={isLoading} />
+              <KpiBarChart data={comercialUnico.numeroClientes} loading={isLoading} />
+            </div>
           </div>
 
-          {/* Tabla + Pie + Bar: Tiempo de Entrega */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.tiempoEntrega.categories} previousCategories={prevComercial?.tiempoEntrega.categories} loading={isLoading} title="ANALISIS TIEMPO DE ENTREGA" />
-            <KpiPieChart data={comercial.tiempoEntrega} loading={isLoading} />
-            <KpiBarChart data={comercial.tiempoEntrega} loading={isLoading} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">TASA CONVERSION %</p>
+              <p className="text-4xl font-black mt-3">{comercialUnico.tasaConversion}%</p>
+              <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
+            </div>
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">META</p>
+              <p className="text-4xl font-black mt-3">{comercialUnico.meta}%</p>
+              <p className="text-sm text-muted-foreground mt-2">Objetivo mensual comercial</p>
+            </div>
           </div>
-
-          {/* Tabla + Pie + Bar: Dias Atraso Cotizacion */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.diasAtrasoCotizacion.categories} previousCategories={prevComercial?.diasAtrasoCotizacion.categories} loading={isLoading} title="ANALISIS DIAS ATRASO ENVIO COTIZACION" />
-            <KpiPieChart data={comercial.diasAtrasoCotizacion} loading={isLoading} />
-            <KpiBarChart data={comercial.diasAtrasoCotizacion} loading={isLoading} />
-          </div>
-
-          {/* Tabla + Pie + Bar: Cumplimiento Cotizacion */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.cumplimientoCotizacion.categories} previousCategories={prevComercial?.cumplimientoCotizacion.categories} loading={isLoading} title="ANALISIS CUMPLIMIENTO TIEMPO COTIZACION" />
-            <KpiPieChart data={comercial.cumplimientoCotizacion} loading={isLoading} />
-            <KpiBarChart data={comercial.cumplimientoCotizacion} loading={isLoading} />
-          </div>
-
-          {/* Tabla + Pie + Bar: Evidencia Solicitud */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={comercial.evidenciaSolicitud.categories} previousCategories={prevComercial?.evidenciaSolicitud.categories} loading={isLoading} title="ANALISIS EVIDENCIA ENVIO SOLICITUD" />
-            <KpiPieChart data={comercial.evidenciaSolicitud} loading={isLoading} />
-            <KpiBarChart data={comercial.evidenciaSolicitud} loading={isLoading} />
-          </div>
-        </>
+        </div>
       ) : (
         <KpiHistoricoComercial data={historicalComercial} loading={isHistoricalLoading} />
       )}
