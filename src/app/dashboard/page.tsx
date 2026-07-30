@@ -176,6 +176,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCommandPaletteOpen(false)
+        setShowLeaveConfigDialog(false)
+        setShowLoadingScreen((prev) => prev && false)
+
+        const iframes = Array.from(document.querySelectorAll("iframe"))
+        for (const iframe of iframes) {
+          try {
+            iframe.contentWindow?.postMessage(
+              { type: "CLOSE_MODAL", reason: "escape" },
+              "*",
+            )
+          } catch {
+            // Ignore cross-origin / detached iframe failures.
+          }
+        }
+
+        window.dispatchEvent(new CustomEvent("crm:global-escape"))
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault()
         setCommandPaletteOpen((prev) => !prev)
