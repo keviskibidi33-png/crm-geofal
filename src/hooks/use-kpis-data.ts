@@ -138,6 +138,15 @@ function normalizeDateValue(value: string | null | undefined): string {
   return String(value).trim().split("T")[0].replace(/-/g, "/")
 }
 
+function parseNormalizedDate(value: string | null | undefined): Date | null {
+  const normalized = normalizeDateValue(value)
+  if (!normalized) return null
+  const [y, m, d] = normalized.split("/")
+  if (!y || !m || !d) return null
+  const dt = new Date(Number(y), Number(m) - 1, Number(d))
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+
 function isControlProbetaEnsayada(status: string | null | undefined): boolean {
   return String(status || "").trim().toUpperCase() === "ENSAYADO"
 }
@@ -145,6 +154,10 @@ function isControlProbetaEnsayada(status: string | null | undefined): boolean {
 function isControlProbetaPendiente(status: string | null | undefined): boolean {
   const normalized = String(status || "").trim().toUpperCase()
   return normalized === "PENDIENTE" || normalized === "FALTA" || normalized === "-"
+}
+
+function isControlProbetaNoEnsayada(status: string | null | undefined): boolean {
+  return !isControlProbetaEnsayada(status)
 }
 
 const EMPTY_LAB: LaboratorioKpis = {
@@ -253,8 +266,8 @@ export function useKpisData(): KpisData {
       const endYear = targetMonth === 12 ? selectedYear + 1 : selectedYear
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-      const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-      const yesterday = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayDate.getDate()).padStart(2, "0")}`
+      const yesterdayLabDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+      const yesterday = `${yesterdayLabDate.getFullYear()}-${String(yesterdayLabDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayLabDate.getDate()).padStart(2, "0")}`
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
@@ -291,27 +304,39 @@ export function useKpisData(): KpisData {
         .not("recepcion_id", "is", null)
 
       const controlRows = (allControlRows ?? []).filter((r: any) => r.recepcion_id != null)
-      const ensayadasCount = controlRows.filter((r: any) => isControlProbetaEnsayada(r.status_ensayo)).length
-      const pendientesCount = controlRows.filter((r: any) => isControlProbetaPendiente(r.status_ensayo)).length
-      const ppRes = { count: pendientesCount }
 
-      const todayNorm = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}`
-      const [faltaResp, ensayadoResp, hoyResp, ayerResp, restoResp] = await Promise.all([
-        supabase.from("muestras_concreto").select("recepcion_id,status_ensayo,fecha_rotura", { count: "exact", head: false }).eq("es_control_probetas", true).in("status_ensayo", ["FALTA", "-"]).not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).eq("status_ensayo", "ENSAYADO").not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", todayNorm).not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").eq("fecha_rotura", yesterday).not("recepcion_id", "is", null),
-        supabase.from("muestras_concreto").select("recepcion_id", { count: "exact", head: false }).eq("es_control_probetas", true).neq("status_ensayo", "ENSAYADO").lt("fecha_rotura", yesterday).not("recepcion_id", "is", null),
-      ])
-      const pfRawRows = (faltaResp.data ?? []).filter((r: any) => r.recepcion_id != null)
-      const pfFaltaCount = pfRawRows.filter((r: any) => r.status_ensayo === "FALTA" || (r.status_ensayo === "-" && normalizeDateValue(r.fecha_rotura) < todayNorm)).length
-      const peRes = { count: ensayadasCount }
-      const pfHoyRes = { count: (hoyResp.data ?? []).filter((r: any) => normalizeDateValue(r.fecha_rotura) === todayNorm).length }
-      const pfAyerRes = { count: (ayerResp.data ?? []).filter((r: any) => normalizeDateValue(r.fecha_rotura) === yesterday).length }
-      const pfRestoRes = { count: (restoResp.data ?? []).filter((r: any) => {
-        const rotura = normalizeDateValue(r.fecha_rotura)
-        return !!rotura && rotura < yesterday
-      }).length }
+      const selectedMonthNum = parseInt(selectedMonth)
+      const monthControlRows = controlRows.filter((r: any) => {
+        const roturaDate = parseNormalizedDate(r.fecha_rotura)
+        if (!roturaDate) return false
+        return roturaDate.getFullYear() === selectedYear && (roturaDate.getMonth() + 1) === selectedMonthNum
+      })
+      const monthFaltaCount = monthControlRows.filter((r: any) => String(r.status_ensayo || "").trim().toUpperCase() === "FALTA" || String(r.status_ensayo || "").trim() === "-").length
+      const monthPendienteCount = monthControlRows.filter((r: any) => String(r.status_ensayo || "").trim().toUpperCase() === "PENDIENTE").length
+      const ensayadasCount = monthControlRows.filter((r: any) => isControlProbetaEnsayada(r.status_ensayo)).length
+      const ppRes = { count: monthPendienteCount }
+
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+      const currentPendingRows = controlRows.filter((r: any) => isControlProbetaNoEnsayada(r.status_ensayo))
+      const pfHoyRes = {
+        count: currentPendingRows.filter((r: any) => {
+          const roturaDate = parseNormalizedDate(r.fecha_rotura)
+          return !!roturaDate && roturaDate.getTime() === todayDate.getTime()
+        }).length,
+      }
+      const pfAyerRes = {
+        count: currentPendingRows.filter((r: any) => {
+          const roturaDate = parseNormalizedDate(r.fecha_rotura)
+          return !!roturaDate && roturaDate.getTime() === yesterdayDate.getTime()
+        }).length,
+      }
+      const pfRestoRes = {
+        count: currentPendingRows.filter((r: any) => {
+          const roturaDate = parseNormalizedDate(r.fecha_rotura)
+          return !!roturaDate && roturaDate < yesterdayDate
+        }).length,
+      }
 
       const BATCH = 100
 
@@ -362,9 +387,9 @@ export function useKpisData(): KpisData {
           { label: "Probetas", value: sProbRes.count ?? 0 },
         ]),
         probetasEnsayo: buildGroup("Probetas Ensayo", [
-          { label: "Falta", value: pfFaltaCount },
+          { label: "Falta", value: monthFaltaCount },
           { label: "Pendiente", value: ppRes.count ?? 0 },
-          { label: "Ensayada", value: peRes.count ?? 0 },
+          { label: "Ensayada", value: ensayadasCount },
         ]),
         estadoTrabajo: buildGroup("Estado Trabajo", [
           { label: "Entregado", value: eEntRes.count ?? 0 },
