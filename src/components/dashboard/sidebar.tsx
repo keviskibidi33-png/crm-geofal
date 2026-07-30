@@ -360,18 +360,18 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         {brandBubbleOpen && (
           <div
             ref={brandBubbleRef}
-            className="fixed z-[80] min-w-[220px] rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+            className="fixed z-[80] min-w-[208px] rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
             style={{
-              left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 240)),
-              top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 180)),
+              left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 220)),
+              top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 152)),
             }}
           >
-            <div className="px-4 py-3 border-b border-sidebar-border bg-gradient-to-r from-primary/10 to-transparent">
-              <div className="flex items-center gap-3">
-                <Image src="/logo-geofal.svg" alt="Geofal CRM" width={36} height={36} className="h-9 w-9" />
+            <div className="px-3 py-2 border-b border-sidebar-border bg-gradient-to-r from-primary/10 to-transparent">
+              <div className="flex items-center gap-2.5">
+                <Image src="/logo-geofal.svg" alt="Geofal CRM" width={30} height={30} className="h-7.5 w-7.5" />
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate">Geofal CRM</p>
-                  <p className="text-[11px] text-muted-foreground truncate">Acciones rápidas</p>
+                  <p className="text-[13px] font-bold text-foreground truncate leading-tight">Geofal CRM</p>
+                  <p className="text-[10px] text-muted-foreground truncate leading-tight">Acciones rápidas</p>
                 </div>
               </div>
             </div>
@@ -380,17 +380,17 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
               <button
                 type="button"
                 onClick={openCrmInNewTab}
-                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">+</span>
+                <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-primary/10 text-primary text-xs">+</span>
                 <span>Abrir otra pestaña del CRM</span>
               </button>
               <button
                 type="button"
                 onClick={reloadWithoutCache}
-                className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">↻</span>
+                <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 text-xs">↻</span>
                 <span>Recargar sin caché</span>
               </button>
             </div>
