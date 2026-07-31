@@ -335,8 +335,28 @@ export function useKpisData(): KpisData {
       const controlRows = (controlData.items ?? []).filter((r: any) => r.recepcion_id != null)
 
       const parseMoney = (value: unknown) => {
-        const raw = String(value ?? "").replace(/[^0-9.,-]/g, "").replace(/\./g, "").replace(/,/g, ".")
-        const num = Number.parseFloat(raw)
+        const raw = String(value ?? "").trim().replace(/[^0-9.,-]/g, "")
+        if (!raw) return 0
+
+        const sign = raw.startsWith("-") ? -1 : 1
+        const unsigned = raw.replace(/-/g, "")
+        let normalized = unsigned
+
+        if (/^\d{1,3}(?:\.\d{3})+\.\d{1,2}$/.test(unsigned)) {
+          normalized = String(Number(unsigned.replace(/\./g, "")) / 100)
+        } else if (/^\d{1,3}(?:,\d{3})+,\d{1,2}$/.test(unsigned)) {
+          normalized = String(Number(unsigned.replace(/,/g, "")) / 100)
+        } else if (/^\d{1,3}(?:,\d{3})+\.\d{1,2}$/.test(unsigned)) {
+          normalized = unsigned.replace(/,/g, "")
+        } else if (/^\d{1,3}(?:\.\d{3})+,\d{1,2}$/.test(unsigned)) {
+          normalized = unsigned.replace(/\./g, "").replace(",", ".")
+        } else if (/^\d+[.,]\d{1,2}$/.test(unsigned)) {
+          normalized = unsigned.replace(",", ".")
+        } else if (/^\d{1,3}(?:[.,]\d{3})+$/.test(unsigned)) {
+          normalized = unsigned.replace(/[.,]/g, "")
+        }
+
+        const num = Number.parseFloat(normalized) * sign
         return Number.isFinite(num) ? num : 0
       }
 
