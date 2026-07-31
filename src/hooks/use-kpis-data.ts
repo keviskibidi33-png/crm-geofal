@@ -47,6 +47,15 @@ export interface ComercialKpiDetalleItem {
   monto: number
 }
 
+export interface ComercialKpiSemana {
+  semana: string
+  cotizacionEnviada: number
+  venta: number
+  negociacion: number
+  leads: number
+  clienteNuevos: number
+}
+
 export interface GerenciaKpis {
   resumenMensual: KpiGroup
   probetasFaltantes: KpiGroup
@@ -115,6 +124,7 @@ export interface KpisData {
   comercial: ComercialKpis
   comercialUnico: ComercialKpiUnico
   comercialUnicoDetalle: ComercialKpiDetalleItem[]
+  comercialSemanas: ComercialKpiSemana[]
   gerencia: GerenciaKpis
   prevLaboratorio: LaboratorioKpis | null
   prevComercial: ComercialKpis | null
@@ -248,6 +258,7 @@ export function useKpisData(): KpisData {
   const [comercial, setComercial] = useState<ComercialKpis>(EMPTY_COM)
   const [comercialUnico, setComercialUnico] = useState<ComercialKpiUnico>(EMPTY_COM_UNICO)
   const [comercialUnicoDetalle, setComercialUnicoDetalle] = useState<ComercialKpiDetalleItem[]>([])
+  const [comercialSemanas, setComercialSemanas] = useState<ComercialKpiSemana[]>([])
   const [gerencia, setGerencia] = useState<GerenciaKpis>(EMPTY_GER)
   const [prevLaboratorio, setPrevLaboratorio] = useState<LaboratorioKpis | null>(null)
   const [prevComercial, setPrevComercial] = useState<ComercialKpis | null>(null)
@@ -357,8 +368,31 @@ export function useKpisData(): KpisData {
       const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
       const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
       const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
-      const leads = seguimientos.filter((r: any) => normalizeState(r.estado_seguimiento) === "LEADS")
-      const nuevos = seguimientos.filter((r: any) => normalizeState(r.estado_seguimiento) === "CLIENTE NUEVOS")
+
+      const leadStates = new Set(["LEADS", "CONTACTADO"])
+      const advancedStates = new Set([
+        "COTIZACIÓN ENVIADA",
+        "COTIZACIÓN REALIZADA",
+        "NEGOCIACIÓN",
+        "VENTA",
+        "SE GENERO UNA VERSIÓN",
+        "SE GENERÓ UNA VERSIÓN",
+        "COTIZACION ENVIADA",
+        "COTIZACION REALIZADA",
+      ])
+
+      const leads = seguimientos.filter((r: any) => {
+        const createdDate = parseNormalizedDate(r.fecha_creacion)
+        const state = normalizeState(r.estado_seguimiento)
+        return !!createdDate && leadStates.has(state)
+      })
+
+      const nuevos = seguimientos.filter((r: any) => {
+        const contactDate = parseNormalizedDate(r.fecha_ultimo_contacto || r.fecha_actualizacion || r.fecha_creacion)
+        const stateCliente = normalizeState(r.estado_cliente)
+        const stateSeguimiento = normalizeState(r.estado_seguimiento)
+        return !!contactDate && (advancedStates.has(stateCliente) || advancedStates.has(stateSeguimiento))
+      })
 
       const totalMonto = seguimientos.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
       const ventaMonto = montoVenta.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
@@ -367,6 +401,40 @@ export function useKpisData(): KpisData {
       const totalClientes = leads.length + nuevos.length
       const tasaConversion = leads.length > 0 ? Math.round((nuevos.length / leads.length) * 100) : 0
       const meta = 25
+
+      const monthNumber = parseInt(selectedMonth)
+      const daysInMonth = new Date(selectedYear, monthNumber, 0).getDate()
+      const weekBuckets = Array.from({ length: 4 }, (_, idx) => {
+        const start = idx * 7 + 1
+        const end = idx === 3 ? daysInMonth : Math.min((idx + 1) * 7, daysInMonth)
+        return {
+          semana: `Semana ${idx + 1}`,
+          start,
+          end,
+          cotizacionEnviada: 0,
+          venta: 0,
+          negociacion: 0,
+          leads: 0,
+          clienteNuevos: 0,
+        }
+      }).filter((week) => week.start <= daysInMonth)
+
+      for (const row of seguimientos) {
+        const baseDate = parseNormalizedDate(row.fecha_creacion)
+        if (!baseDate || baseDate.getFullYear() !== selectedYear || (baseDate.getMonth() + 1) !== monthNumber) continue
+        const weekIndex = Math.min(3, Math.floor((baseDate.getDate() - 1) / 7))
+        const week = weekBuckets[weekIndex]
+        if (!week) continue
+
+        const estadoCliente = normalizeState(row.estado_cliente)
+        const estadoSeguimiento = normalizeState(row.estado_seguimiento)
+        const monto = parseMoney(row.costo_cotiz_sin_igv)
+        if (estadoCliente === "COTIZACIÓN ENVIADA") week.cotizacionEnviada += monto
+        if (estadoCliente === "VENTA") week.venta += monto
+        if (estadoCliente === "NEGOCIACIÓN") week.negociacion += monto
+        if (leadStates.has(estadoSeguimiento)) week.leads += 1
+        if (advancedStates.has(estadoCliente) || advancedStates.has(estadoSeguimiento)) week.clienteNuevos += 1
+      }
 
       setComercialUnico({
         montoAcumuladoMes: buildGroup("Monto Acumulado Mes", [
@@ -388,6 +456,14 @@ export function useKpisData(): KpisData {
         { label: "Leads", count: leads.length, monto: 0 },
         { label: "Cliente Nuevos", count: nuevos.length, monto: 0 },
       ])
+      setComercialSemanas(weekBuckets.map(({ semana, cotizacionEnviada, venta, negociacion, leads, clienteNuevos }) => ({
+        semana,
+        cotizacionEnviada,
+        venta,
+        negociacion,
+        leads,
+        clienteNuevos,
+      })))
 
       const selectedMonthNum = parseInt(selectedMonth)
       const monthControlRows = controlRows.filter((r: any) => {
@@ -772,6 +848,7 @@ export function useKpisData(): KpisData {
     setDateFilter,
     comercialUnico,
     comercialUnicoDetalle,
+    comercialSemanas,
     refresh: fetchKpis,
     refreshHistorical: fetchHistoricalKpis,
   }

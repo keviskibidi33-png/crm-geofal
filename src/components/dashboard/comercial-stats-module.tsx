@@ -10,16 +10,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function ComercialStatsModule() {
-  const { comercialUnico, comercialUnicoDetalle, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { comercialUnico, comercialUnicoDetalle, comercialSemanas, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
   const [tabView, setTabView] = useState<"mes" | "historico">("mes")
   const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
-  const filteredDetalle = estadoFilter === "todos" ? comercialUnicoDetalle : comercialUnicoDetalle.filter((row) => row.label === estadoFilter)
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
     : comercialUnico.montoAcumuladoMes.categories.filter((cat) => cat.label === estadoFilter)
   const clientesCategories = estadoFilter === "todos"
     ? comercialUnico.numeroClientes.categories
     : comercialUnico.numeroClientes.categories.filter((cat) => estadoFilter === "todos" || (estadoFilter === "Cotización Enviada" ? cat.label === "Leads" || cat.label === "Cliente Nuevos" : true))
+  const weekLabels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
+  const getWeekValue = (label: string, key: keyof (typeof comercialSemanas)[number]) => comercialSemanas.find((week) => week.semana === label)?.[key] ?? 0
+  const formatMoney = (value: number) => value.toLocaleString("es-PE")
 
   return (
     <div className="space-y-6">
@@ -93,23 +95,25 @@ export function ComercialStatsModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Monto S/.</TableHead>
+                    <TableHead className="w-[260px]">DESCRIPCION</TableHead>
+                    {weekLabels.map((week) => (
+                      <TableHead key={week} className="text-right">{week}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDetalle.filter((row) => ["Cotización Enviada", "Venta", "Negociación"].includes(row.label)).map((row) => (
+                  {[
+                    { label: "COTIZACION ENVIADA", key: "cotizacionEnviada" as const },
+                    { label: "VENTA", key: "venta" as const },
+                    { label: "NEGOCIACION", key: "negociacion" as const },
+                  ].map((row) => (
                     <TableRow key={row.label}>
                       <TableCell className="font-medium">{row.label}</TableCell>
-                      <TableCell className="text-right">{row.monto.toLocaleString("es-PE")}</TableCell>
+                      {weekLabels.map((week) => (
+                        <TableCell key={week} className="text-right">{formatMoney(getWeekValue(week, row.key))}</TableCell>
+                      ))}
                     </TableRow>
                   ))}
-                  <TableRow>
-                    <TableCell className="font-bold">TOTAL</TableCell>
-                    <TableCell className="text-right font-bold">
-                      {comercialUnico.montoAcumuladoMes.total.toLocaleString("es-PE")}
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </Table>
             </div>
@@ -133,15 +137,22 @@ export function ComercialStatsModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Cantidad</TableHead>
+                    <TableHead className="w-[260px]">DESCRIPCION</TableHead>
+                    {weekLabels.map((week) => (
+                      <TableHead key={week} className="text-right">{week}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDetalle.filter((row) => ["Leads", "Cliente Nuevos"].includes(row.label)).map((row) => (
+                  {[
+                    { label: "LEADS", key: "leads" as const },
+                    { label: "CLIENTE NUEVOS", key: "clienteNuevos" as const },
+                  ].map((row) => (
                     <TableRow key={row.label}>
                       <TableCell className="font-medium">{row.label}</TableCell>
-                      <TableCell className="text-right">{row.count}</TableCell>
+                      {weekLabels.map((week) => (
+                        <TableCell key={week} className="text-right">{getWeekValue(week, row.key)}</TableCell>
+                      ))}
                     </TableRow>
                   ))}
                 </TableBody>
