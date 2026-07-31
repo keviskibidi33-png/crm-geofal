@@ -38,7 +38,6 @@ export interface ComercialKpiUnico {
   montoAcumuladoMes: KpiGroup
   numeroClientes: KpiGroup
   tasaConversion: number
-  meta: number
 }
 
 export interface ComercialKpiDetalleItem {
@@ -205,7 +204,6 @@ const EMPTY_COM_UNICO: ComercialKpiUnico = {
   montoAcumuladoMes: buildGroup("Monto Acumulado Mes", []),
   numeroClientes: buildGroup("Numero Clientes", []),
   tasaConversion: 0,
-  meta: 25,
 }
 
 const EMPTY_GER: GerenciaKpis = {
@@ -401,7 +399,6 @@ export function useKpisData(): KpisData {
       const negociacionCount = Math.max(0, montoEnviada.length - montoVenta.length)
       const totalClientes = leads.length + nuevos.length
       const tasaConversion = leads.length > 0 ? Math.round((nuevos.length / leads.length) * 100) : 0
-      const meta = 25
 
       const monthNumber = parseInt(selectedMonth)
       const daysInMonth = new Date(selectedYear, monthNumber, 0).getDate()
@@ -453,7 +450,6 @@ export function useKpisData(): KpisData {
           { label: "Cliente Nuevos", value: nuevos.length },
         ], totalClientes || 1),
         tasaConversion,
-        meta,
       })
       setComercialUnicoDetalle([
         { label: "Cotización Enviada", count: montoEnviada.length, monto: cotizacionMonto },

@@ -214,17 +214,10 @@ export function ComercialStatsModule() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">TASA CONVERSION %</p>
-              <p className="text-4xl font-black mt-3">{comercialUnico.tasaConversion}%</p>
-              <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
-            </div>
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">META</p>
-              <p className="text-4xl font-black mt-3">{comercialUnico.meta}%</p>
-              <p className="text-sm text-muted-foreground mt-2">Objetivo mensual comercial</p>
-            </div>
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">TASA CONVERSION %</p>
+            <p className="text-4xl font-black mt-3">{comercialUnico.tasaConversion}%</p>
+            <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
           </div>
         </div>
       ) : (
