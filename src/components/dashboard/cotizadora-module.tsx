@@ -1342,7 +1342,17 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       <Dialog open={duplicateDraftOpen} onOpenChange={(open) => {
         setDuplicateDraftOpen(open)
-        if (!open) setDuplicateDraft(null)
+        if (!open) {
+          setDuplicateDraft(null)
+          setDuplicateClienteQuery("")
+          setDuplicateProyectoQuery("")
+          setDuplicateClientes([])
+          setDuplicateProyectos([])
+          setDuplicateSelectedCliente(null)
+          setDuplicateSelectedProyecto(null)
+          setDuplicateSelectedCondiciones([])
+          setDuplicateConditionTexts([])
+        }
       }}>
         <DialogContent className="max-w-[96vw] w-[96vw] max-h-[92vh] overflow-hidden p-0 flex flex-col">
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -1375,19 +1385,88 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                         onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, year: Number(e.target.value) }))}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Cliente</Label>
+                    <div className="space-y-2 relative">
+                      <Label className="flex items-center gap-2"><Building2 className="h-4 w-4" /> Cliente / Empresa</Label>
                       <Input
-                        value={duplicateDraft?.cliente || ""}
-                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, cliente: e.target.value }))}
+                        value={duplicateClienteQuery}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateClienteQuery(value)
+                          setDuplicateDraft((prev: any) => ({ ...prev, cliente: value }))
+                          setDuplicateSelectedCliente(null)
+                        }}
+                        placeholder="Buscar cliente..."
+                        autoComplete="off"
                       />
+                      {duplicateClienteQuery.trim().length >= 2 && duplicateClientes.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                          {duplicateClientes.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                              onClick={() => {
+                                setDuplicateSelectedCliente(c)
+                                setDuplicateClienteQuery(c.nombre || "")
+                                setDuplicateDraft((prev: any) => ({
+                                  ...prev,
+                                  cliente: c.nombre || "",
+                                  clienteRuc: c.ruc || "",
+                                  clienteContacto: c.contacto || "",
+                                  clienteEmail: c.email || "",
+                                  clienteTelefono: c.telefono || "",
+                                }))
+                                setDuplicateSelectedProyecto(null)
+                                setDuplicateProyectoQuery("")
+                                setDuplicateProyectos([])
+                              }}
+                            >
+                              <div className="font-medium">{c.nombre}</div>
+                              {c.ruc ? <div className="text-xs text-muted-foreground">RUC: {c.ruc}</div> : null}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label>Proyecto</Label>
+                    <div className="space-y-2 relative">
+                      <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Proyecto</Label>
                       <Input
-                        value={duplicateDraft?.proyectoNombre || ""}
-                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, proyectoNombre: e.target.value }))}
+                        value={duplicateProyectoQuery}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateProyectoQuery(value)
+                          setDuplicateDraft((prev: any) => ({ ...prev, proyectoNombre: value }))
+                          setDuplicateSelectedProyecto(null)
+                        }}
+                        placeholder={duplicateSelectedCliente ? "Buscar proyecto..." : "Busca proyecto o selecciona cliente"}
+                        autoComplete="off"
                       />
+                      {duplicateProyectoQuery.trim().length >= 2 && duplicateProyectos.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                          {duplicateProyectos.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                              onClick={() => {
+                                setDuplicateSelectedProyecto(p)
+                                setDuplicateProyectoQuery(p.nombre || "")
+                                setDuplicateDraft((prev: any) => ({
+                                  ...prev,
+                                  proyectoNombre: p.nombre || "",
+                                  ubicacion: p.ubicacion || p.direccion || "",
+                                }))
+                              }}
+                            >
+                              <div className="font-medium">{p.nombre}</div>
+                              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                <span>{p.ubicacion || p.direccion || ""}</span>
+                                {p.cliente_nombre ? <span>{p.cliente_nombre}</span> : null}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>RUC</Label>
@@ -1402,6 +1481,32 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                         value={duplicateDraft?.clienteContacto || ""}
                         onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, clienteContacto: e.target.value }))}
                       />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Condiciones específicas</Label>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2 bg-background">
+                      {duplicateCondiciones.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">Cargando condiciones...</p>
+                      ) : (
+                        duplicateCondiciones.map((cond) => (
+                          <label key={cond.id} className="flex items-start gap-2 cursor-pointer hover:bg-muted p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={duplicateSelectedCondiciones.includes(cond.id)}
+                              onChange={(e) => {
+                                setDuplicateSelectedCondiciones((prev) =>
+                                  e.target.checked ? [...prev, cond.id] : prev.filter((id) => id !== cond.id)
+                                )
+                              }}
+                              className="mt-0.5"
+                            />
+                            <span className="text-xs">{cond.texto}</span>
+                          </label>
+                        ))
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -1427,21 +1532,86 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   </div>
                   <div className="space-y-2">
                     {(duplicateDraft?.itemsJson || []).map((item: any, idx: number) => (
-                      <div key={`${idx}-${item.codigo || "item"}`} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[120px_1fr_140px_120px_120px_auto]">
-                        <Input value={item.codigo || ""} onChange={(e) => {
-                          const value = e.target.value
-                          setDuplicateDraft((prev: any) => ({
-                            ...prev,
-                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, codigo: value } : it),
-                          }))
-                        }} placeholder="Código" />
-                        <Input value={item.descripcion || ""} onChange={(e) => {
-                          const value = e.target.value
-                          setDuplicateDraft((prev: any) => ({
-                            ...prev,
-                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, descripcion: value } : it),
-                          }))
-                        }} placeholder="Descripción" />
+                      <div key={`${idx}-${item.codigo || "item"}`} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[40px_120px_1fr_140px_120px_120px_auto] items-start">
+                        <div className="flex items-center justify-center pt-2">{dragHandle}</div>
+                        <AutocompleteInput
+                          value={item.codigo || ""}
+                          onChange={(value) => {
+                            setDuplicateDraft((prev: any) => ({
+                              ...prev,
+                              itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, codigo: value } : it),
+                            }))
+                          }}
+                          onSelect={(ensayo: EnsayoItem) => {
+                            const related = searchEnsayos(ensayo.codigo)
+                            setDuplicateDraft((prev: any) => {
+                              const next = [...prev.itemsJson]
+                              next[idx] = {
+                                codigo: ensayo.codigo,
+                                descripcion: ensayo.descripcion,
+                                norma: ensayo.norma,
+                                acreditado: ensayo.acreditado,
+                                costo_unitario: Number(ensayo.precio || 0),
+                                cantidad: 1,
+                              }
+                              related.forEach((rel) => {
+                                if (rel.codigo === ensayo.codigo) return
+                                next.push({
+                                  codigo: rel.codigo,
+                                  descripcion: rel.descripcion,
+                                  norma: rel.norma,
+                                  acreditado: rel.acreditado,
+                                  costo_unitario: Number(rel.precio || 0),
+                                  cantidad: 1,
+                                })
+                              })
+                              return { ...prev, itemsJson: next }
+                            })
+                          }}
+                          suggestions={ensayosData}
+                          placeholder="Código"
+                          displayField="descripcion"
+                          codeField="codigo"
+                        />
+                        <AutocompleteInput
+                          value={item.descripcion || ""}
+                          onChange={(value) => {
+                            setDuplicateDraft((prev: any) => ({
+                              ...prev,
+                              itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, descripcion: value } : it),
+                            }))
+                          }}
+                          onSelect={(ensayo: EnsayoItem) => {
+                            const related = searchEnsayos(ensayo.codigo)
+                            setDuplicateDraft((prev: any) => {
+                              const next = [...prev.itemsJson]
+                              next[idx] = {
+                                codigo: ensayo.codigo,
+                                descripcion: ensayo.descripcion,
+                                norma: ensayo.norma,
+                                acreditado: ensayo.acreditado,
+                                costo_unitario: Number(ensayo.precio || 0),
+                                cantidad: 1,
+                              }
+                              related.forEach((rel) => {
+                                if (rel.codigo === ensayo.codigo) return
+                                next.push({
+                                  codigo: rel.codigo,
+                                  descripcion: rel.descripcion,
+                                  norma: rel.norma,
+                                  acreditado: rel.acreditado,
+                                  costo_unitario: Number(rel.precio || 0),
+                                  cantidad: 1,
+                                })
+                              })
+                              return { ...prev, itemsJson: next }
+                            })
+                          }}
+                          suggestions={ensayosData}
+                          placeholder="Descripción"
+                          displayField="descripcion"
+                          codeField="codigo"
+                        />
                         <Input value={item.norma || ""} onChange={(e) => {
                           const value = e.target.value
                           setDuplicateDraft((prev: any) => ({
