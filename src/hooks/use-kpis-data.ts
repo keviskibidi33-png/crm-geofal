@@ -363,8 +363,8 @@ export function useKpisData(): KpisData {
       const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
       const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
       const seguimientosMes = (seguimientoData.items ?? []).filter((r: any) => {
-        const createdDate = parseNormalizedDate(r.fecha_creacion)
-        return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
+        const contactDate = parseNormalizedDate(r.fecha_contacto || r.fecha_creacion)
+        return !!contactDate && contactDate.getFullYear() === selectedYear && (contactDate.getMonth() + 1) === parseInt(selectedMonth)
       })
       const seguimientos = seguimientosMes
       const montoEnviada = seguimientos.filter((r: any) => {
@@ -374,10 +374,6 @@ export function useKpisData(): KpisData {
       const montoVenta = seguimientos.filter((r: any) => {
         const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
         return estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
-      })
-      const montoNegociacion = seguimientos.filter((r: any) => {
-        const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
-        return estadoSeguimiento === "NEGOCIACION" || estadoSeguimiento.includes("NEGOCIACION")
       })
 
       const leads = seguimientos.filter((r: any) => {
@@ -390,9 +386,9 @@ export function useKpisData(): KpisData {
         return !!createdDate
       })
 
-      const totalMonto = seguimientos.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const totalMonto = montoEnviada.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
       const ventaMonto = montoVenta.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
-      const negociacionMonto = montoNegociacion.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const negociacionMonto = Math.max(0, totalMonto - ventaMonto)
       const cotizacionMonto = montoEnviada.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
       const totalClientes = leads.length + nuevos.length
       const tasaConversion = leads.length > 0 ? Math.round((nuevos.length / leads.length) * 100) : 0
@@ -416,7 +412,7 @@ export function useKpisData(): KpisData {
       }).filter((week) => week.start <= daysInMonth)
 
       for (const row of seguimientos) {
-        const baseDate = parseNormalizedDate(row.fecha_creacion)
+        const baseDate = parseNormalizedDate(row.fecha_contacto || row.fecha_creacion)
         if (!baseDate || baseDate.getFullYear() !== selectedYear || (baseDate.getMonth() + 1) !== monthNumber) continue
         const weekIndex = Math.min(3, Math.floor((baseDate.getDate() - 1) / 7))
         const week = weekBuckets[weekIndex]
@@ -427,7 +423,10 @@ export function useKpisData(): KpisData {
         const monto = parseMoney(row.costo_cotiz_sin_igv)
         if (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")) week.cotizacionEnviada += monto
         if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) week.venta += monto
-        if (estadoSeguimiento === "NEGOCIACION" || estadoSeguimiento.includes("NEGOCIACION")) week.negociacion += monto
+        if (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")) week.negociacion += monto
+        if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) {
+          week.negociacion = Math.max(0, week.negociacion - monto)
+        }
         if (estadoSeguimiento === "LEADS") week.leads += 1
         if (baseDate) week.clienteNuevos += 1
       }
@@ -437,7 +436,7 @@ export function useKpisData(): KpisData {
           { label: "Cotización Enviada", value: cotizacionMonto },
           { label: "Venta", value: ventaMonto },
           { label: "Negociación", value: negociacionMonto },
-        ], totalMonto),
+        ], cotizacionMonto),
         numeroClientes: buildGroup("Numero Clientes", [
           { label: "Leads", value: leads.length },
           { label: "Cliente Nuevos", value: nuevos.length },
@@ -448,7 +447,7 @@ export function useKpisData(): KpisData {
       setComercialUnicoDetalle([
         { label: "Cotización Enviada", count: montoEnviada.length, monto: cotizacionMonto },
         { label: "Venta", count: montoVenta.length, monto: ventaMonto },
-        { label: "Negociación", count: montoNegociacion.length, monto: negociacionMonto },
+        { label: "Negociación", count: 0, monto: negociacionMonto },
         { label: "Leads", count: leads.length, monto: 0 },
         { label: "Cliente Nuevos", count: nuevos.length, monto: 0 },
       ])
