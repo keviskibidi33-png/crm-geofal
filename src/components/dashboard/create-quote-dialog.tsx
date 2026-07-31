@@ -121,6 +121,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
   const [showCondicionesModal, setShowCondicionesModal] = useState(false)
   const [hasHydratedSource, setHasHydratedSource] = useState(false)
+  const [pendingConditionTexts, setPendingConditionTexts] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const draftKey = useMemo(() => makeDraftKey(user?.id, quoteId), [quoteId, user?.id])
 
@@ -159,6 +160,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       cantidad: Number(it.cantidad || 1),
     })) : [emptyItem()])
     setSelectedCondiciones(Array.isArray(data.condicionesIds) ? data.condicionesIds.map(String) : [])
+    setPendingConditionTexts(Array.isArray(data.condicionesTextos) ? data.condicionesTextos.map(String) : [])
 
     if (isDuplicate || !keepClientProject) {
       setSelectedCliente(null)
@@ -309,6 +311,17 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       setHasHydratedSource(true)
     }
   }, [duplicateSourceQuote, hasHydratedSource, hydrateQuote, loadCondiciones, loadQuote, open, quoteId, restoreDraft])
+
+  useEffect(() => {
+    if (condiciones.length === 0 || pendingConditionTexts.length === 0 || selectedCondiciones.length > 0) return
+    const normalized = (value: string) => value.trim().toLowerCase()
+    const mapped = condiciones
+      .filter((cond) => pendingConditionTexts.some((text) => normalized(text) === normalized(cond.texto)))
+      .map((cond) => cond.id)
+    if (mapped.length > 0) {
+      setSelectedCondiciones(mapped)
+    }
+  }, [condiciones, pendingConditionTexts, selectedCondiciones.length])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -516,6 +529,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
 
       toast.success("Cotización procesada correctamente")
       clearDraft()
+      setPendingConditionTexts([])
       onSuccess?.()
       onOpenChange(false)
     } catch (error: any) {
@@ -538,6 +552,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       toast.success("Excel importado")
       onSuccess?.()
       clearDraft()
+      setPendingConditionTexts([])
       setImportOpen(false)
     } catch (error: any) {
       toast.error("No se pudo importar el Excel", { description: error?.message || "Error desconocido" })

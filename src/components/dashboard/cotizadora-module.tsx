@@ -161,6 +161,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [duplicateSourceQuote, setDuplicateSourceQuote] = useState<Quote | null>(null)
+  const [duplicateDraftOpen, setDuplicateDraftOpen] = useState(false)
+  const [duplicateDraftLoading, setDuplicateDraftLoading] = useState(false)
+  const [duplicateDraft, setDuplicateDraft] = useState<any>(null)
   const [previewQuote, setPreviewQuote] = useState<Quote | null>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
@@ -295,11 +298,68 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       })
   }, [loadQuoteDetails])
 
-  const openDuplicateDialog = useCallback((quote: Quote) => {
-    setDuplicateSourceQuote(quote)
-    setSelectedQuote(null)
-    setIsDialogOpen(true)
+  const openDuplicateDialog = useCallback(async (quote: Quote) => {
+    setDuplicateDraftLoading(true)
+    try {
+      const detailed = await loadQuoteDetails(quote.id)
+      const source = {
+        id: detailed.id,
+        numero: detailed.numero,
+        year: detailed.year,
+        cliente: detailed.cliente,
+        clienteRuc: detailed.clienteRuc,
+        clienteContacto: detailed.clienteContacto,
+        clienteEmail: detailed.clienteEmail,
+        clienteTelefono: detailed.clienteTelefono,
+        proyectoNombre: detailed.proyectoNombre,
+        itemsJson: detailed.itemsJson || [],
+        condicionesTextos: detailed.condicionesTextos || [],
+        plazoDias: detailed.plazoDias,
+        condicionPago: detailed.condicionPago,
+        correoVendedor: detailed.correoVendedor,
+        telefonoComercial: detailed.telefonoComercial,
+        clienteId: detailed.ownerId || undefined,
+        proyectoId: undefined,
+        ubicacion: undefined,
+      }
+      setDuplicateDraft(source)
+      setDuplicateDraftOpen(true)
+    } catch (err: any) {
+      toast.error("No se pudo preparar la duplicación", {
+        description: err?.message || "Intenta nuevamente",
+      })
+    } finally {
+      setDuplicateDraftLoading(false)
+    }
+  }, [loadQuoteDetails])
+
+  const randomQuoteCode = useCallback(() => {
+    const year = new Date().getFullYear()
+    const code = String(Math.floor(100 + Math.random() * 900))
+    return { numero: code, year }
   }, [])
+
+  const confirmDuplicateDraft = useCallback(() => {
+    if (!duplicateDraft) return
+    const suggested = randomQuoteCode()
+    setDuplicateSourceQuote({
+      ...duplicateDraft,
+      numero: suggested.numero,
+      year: suggested.year,
+      cliente: "",
+      clienteRuc: "",
+      clienteContacto: "",
+      clienteEmail: "",
+      clienteTelefono: "",
+      proyectoNombre: "",
+      clienteId: "",
+      proyectoId: "",
+      ubicacion: "",
+    })
+    setSelectedQuote(null)
+    setDuplicateDraftOpen(false)
+    setIsDialogOpen(true)
+  }, [duplicateDraft, randomQuoteCode])
 
   useEffect(() => {
     fetchQuotes()
@@ -1185,7 +1245,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             onEdit={(quote) => { setSelectedQuote(quote); setIsDialogOpen(true) }}
             onDuplicate={openDuplicateDialog}
             onUpload={handleUploadClick}
-            isUpdating={updatingStatus || uploadingFile || loadingQuoteDetailsId === previewQuote?.id}
+            isUpdating={updatingStatus || uploadingFile || loadingQuoteDetailsId === previewQuote?.id || duplicateDraftLoading}
           />
         </SheetContent>
       </Sheet>
@@ -1204,6 +1264,152 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         quoteId={selectedQuote?.id}
         duplicateSourceQuote={duplicateSourceQuote}
       />
+
+      <Dialog open={duplicateDraftOpen} onOpenChange={(open) => {
+        setDuplicateDraftOpen(open)
+        if (!open) setDuplicateDraft(null)
+      }}>
+        <DialogContent className="max-w-[96vw] w-[96vw] max-h-[92vh] overflow-hidden p-0 flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Duplicar cotización
+            </DialogTitle>
+            <DialogDescription>
+              Ajusta los datos generales y los ítems antes de crear la nueva cotización.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-6">
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Número sugerido</Label>
+                      <Input
+                        value={duplicateDraft?.numero || ""}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, numero: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Año</Label>
+                      <Input
+                        type="number"
+                        value={duplicateDraft?.year || new Date().getFullYear()}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, year: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cliente</Label>
+                      <Input
+                        value={duplicateDraft?.cliente || ""}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, cliente: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Proyecto</Label>
+                      <Input
+                        value={duplicateDraft?.proyectoNombre || ""}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, proyectoNombre: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>RUC</Label>
+                      <Input
+                        value={duplicateDraft?.clienteRuc || ""}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, clienteRuc: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Contacto</Label>
+                      <Input
+                        value={duplicateDraft?.clienteContacto || ""}
+                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, clienteContacto: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <h3 className="text-base font-semibold">Ítems a duplicar</h3>
+                      <p className="text-sm text-muted-foreground">Revisa y ajusta el contenido antes de crear la nueva cotización.</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDuplicateDraft((prev: any) => ({
+                        ...prev,
+                        itemsJson: [...(prev?.itemsJson || []), { codigo: "", descripcion: "", norma: "", acreditado: "SI", costo_unitario: 0, cantidad: 1 }],
+                      }))}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Agregar ítem
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {(duplicateDraft?.itemsJson || []).map((item: any, idx: number) => (
+                      <div key={`${idx}-${item.codigo || "item"}`} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[120px_1fr_140px_120px_120px_auto]">
+                        <Input value={item.codigo || ""} onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, codigo: value } : it),
+                          }))
+                        }} placeholder="Código" />
+                        <Input value={item.descripcion || ""} onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, descripcion: value } : it),
+                          }))
+                        }} placeholder="Descripción" />
+                        <Input value={item.norma || ""} onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, norma: value } : it),
+                          }))
+                        }} placeholder="Norma" />
+                        <Input value={item.acreditado || "SI"} onChange={(e) => {
+                          const value = e.target.value
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, acreditado: value } : it),
+                          }))
+                        }} placeholder="Acreditado" />
+                        <Input type="number" value={item.costo_unitario ?? 0} onChange={(e) => {
+                          const value = Number(e.target.value)
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            itemsJson: prev.itemsJson.map((it: any, i: number) => i === idx ? { ...it, costo_unitario: value } : it),
+                          }))
+                        }} placeholder="Costo" />
+                        <Button variant="ghost" size="icon" onClick={() => setDuplicateDraft((prev: any) => ({
+                          ...prev,
+                          itemsJson: prev.itemsJson.filter((_: any, i: number) => i !== idx),
+                        }))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="border-t p-4">
+            <Button variant="outline" onClick={() => setDuplicateDraftOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmDuplicateDraft}>
+              Duplicar y abrir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Full View Dialog (for complete details) */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
