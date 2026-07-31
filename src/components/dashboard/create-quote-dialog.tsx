@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AlertCircle, ArrowUpDown, ExternalLink, FileUp, Loader2, Plus, Trash2, X } from "lucide-react"
+import { AlertCircle, ExternalLink, FileUp, Loader2, Plus, Search, Trash2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
+import { AutocompleteInput } from "@/components/ui/autocomplete-input"
+import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -23,7 +25,10 @@ type QuoteItem = {
   acreditado: string
   costo_unitario: number
   cantidad: number
+  ensayoData?: EnsayoItem
 }
+
+type Condicion = { id: string; texto: string; categoria?: string; orden?: number }
 
 interface CreateQuoteDialogProps {
   open: boolean
@@ -72,6 +77,17 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [ubicacion, setUbicacion] = useState("")
   const [numero, setNumero] = useState("")
   const [year, setYear] = useState(new Date().getFullYear())
+  const [clienteSearch, setClienteSearch] = useState("")
+  const [proyectoSearch, setProyectoSearch] = useState("")
+  const [clientes, setClientes] = useState<any[]>([])
+  const [proyectos, setProyectos] = useState<any[]>([])
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false)
+  const [showProyectoDropdown, setShowProyectoDropdown] = useState(false)
+  const [selectedCliente, setSelectedCliente] = useState<any | null>(null)
+  const [selectedProyecto, setSelectedProyecto] = useState<any | null>(null)
+  const [condiciones, setCondiciones] = useState<Condicion[]>([])
+  const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
+  const [showCondicionesModal, setShowCondicionesModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.costo_unitario || 0) * Number(item.cantidad || 0), 0), [items])
@@ -95,6 +111,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       setCorreo(data.email || "")
       setProyecto(data.proyecto || "")
       setUbicacion(data.ubicacion || "")
+      setClienteSearch(data.cliente || "")
+      setProyectoSearch(data.proyecto || "")
       setItems(Array.isArray(data.items_json) && data.items_json.length > 0 ? data.items_json.map((it: any) => ({
         codigo: String(it.codigo || ""),
         descripcion: String(it.descripcion || ""),
@@ -103,6 +121,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         costo_unitario: Number(it.costo_unitario || 0),
         cantidad: Number(it.cantidad || 1),
       })) : [emptyItem()])
+      setSelectedCondiciones(Array.isArray(data.condiciones_ids) ? data.condiciones_ids.map(String) : [])
     } catch (error: any) {
       toast.error("No se pudo cargar la cotización", { description: error?.message || "Error desconocido" })
     } finally {
@@ -110,13 +129,134 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     }
   }, [quoteId])
 
+  const searchClientes = useCallback(async (search: string) => {
+    if (search.trim().length < 2) {
+      setClientes([])
+      setShowClienteDropdown(false)
+      return
+    }
+    try {
+      const resp = await authFetch(`${API_URL}/clientes?search=${encodeURIComponent(search)}`)
+      const payload = await resp.json().catch(() => ({}))
+      setClientes(Array.isArray(payload?.data) ? payload.data : [])
+      setShowClienteDropdown(true)
+    } catch {
+      setClientes([])
+    }
+  }, [])
+
+  const searchProyectos = useCallback(async (clienteId?: string, search?: string) => {
+    const normalized = (search ?? proyectoSearch).trim()
+    if (normalized.length < 2 && !clienteId) {
+      setProyectos([])
+      setShowProyectoDropdown(false)
+      return
+    }
+    try {
+      const params = new URLSearchParams()
+      if (clienteId) params.set("cliente_id", clienteId)
+      if (normalized) params.set("search", normalized)
+      const resp = await authFetch(`${API_URL}/proyectos?${params.toString()}`)
+      const payload = await resp.json().catch(() => ({}))
+      setProyectos(Array.isArray(payload?.data) ? payload.data : [])
+      setShowProyectoDropdown(true)
+    } catch {
+      setProyectos([])
+    }
+  }, [proyectoSearch])
+
+  const loadCondiciones = useCallback(async () => {
+    try {
+      const resp = await authFetch(`${API_URL}/condiciones`)
+      const payload = await resp.json().catch(() => ({}))
+      setCondiciones(Array.isArray(payload?.data) ? payload.data : [])
+    } catch {
+      setCondiciones([])
+    }
+  }, [])
+
   useEffect(() => {
     if (!open) return
     void loadQuote()
+    void loadCondiciones()
   }, [open, loadQuote])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void searchClientes(clienteSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [clienteSearch, searchClientes])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (proyectoSearch.trim().length >= 2 || selectedCliente) {
+        void searchProyectos(selectedCliente?.id, proyectoSearch)
+      } else {
+        setProyectos([])
+        setShowProyectoDropdown(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [proyectoSearch, searchProyectos, selectedCliente])
 
   const updateItem = (index: number, patch: Partial<QuoteItem>) => {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  const addEnsayoWithRelated = (index: number, ensayo: EnsayoItem) => {
+    const related = searchEnsayos(ensayo.codigo)
+    const mainItem: QuoteItem = {
+      codigo: ensayo.codigo,
+      descripcion: ensayo.descripcion,
+      norma: ensayo.norma,
+      acreditado: ensayo.acreditado,
+      costo_unitario: Number(ensayo.precio || 0),
+      cantidad: 1,
+      ensayoData: ensayo,
+    }
+    setItems((prev) => {
+      const next = [...prev]
+      next[index] = mainItem
+      related.forEach((rel) => {
+        if (rel.codigo === ensayo.codigo) return
+        next.push({
+          codigo: rel.codigo,
+          descripcion: rel.descripcion,
+          norma: rel.norma,
+          acreditado: rel.acreditado,
+          costo_unitario: Number(rel.precio || 0),
+          cantidad: 1,
+          ensayoData: rel,
+        })
+      })
+      return next
+    })
+  }
+
+  const selectCliente = (clienteData: any) => {
+    setSelectedCliente(clienteData)
+    setCliente(clienteData?.nombre || "")
+    setClienteSearch(clienteData?.nombre || "")
+    setRuc(clienteData?.ruc || "")
+    setContacto(clienteData?.contacto || "")
+    setTelefono(clienteData?.telefono || "")
+    setCorreo(clienteData?.email || "")
+    setProyecto("")
+    setProyectoSearch("")
+    setUbicacion("")
+    setSelectedProyecto(null)
+    setShowClienteDropdown(false)
+    setProyectos([])
+    void searchProyectos(clienteData?.id, "")
+  }
+
+  const selectProyecto = (proyectoData: any) => {
+    setSelectedProyecto(proyectoData)
+    setProyecto(proyectoData?.nombre || "")
+    setProyectoSearch(proyectoData?.nombre || "")
+    setUbicacion(proyectoData?.ubicacion || proyectoData?.direccion || "")
+    setShowProyectoDropdown(false)
   }
 
   const moveItem = (from: number, to: number) => {
@@ -171,9 +311,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         proyecto: proyecto || undefined,
         ubicacion: ubicacion || undefined,
         user_id: user?.id,
-        proyecto_id: proyectoId,
-        cliente_id: clienteId,
+        proyecto_id: selectedProyecto?.id || proyectoId,
+        cliente_id: selectedCliente?.id || clienteId,
         include_igv: true,
+        condiciones_ids: selectedCondiciones,
         items: items.map((item) => ({
           codigo: item.codigo || "",
           descripcion: item.descripcion,
@@ -248,7 +389,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[96vw] w-full h-[92vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none">
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -270,8 +411,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
             </div>
           </DialogHeader>
 
-          <div className="grid h-full grid-cols-1 lg:grid-cols-[1.4fr_0.8fr] gap-0">
-            <div className="p-6 overflow-y-auto space-y-6">
+          <div className="h-full overflow-y-auto">
+            <div className="p-6 space-y-6 max-w-7xl mx-auto">
               <Card>
                 <CardContent className="p-4 space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -283,9 +424,53 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <Label>Año</Label>
                       <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value || new Date().getFullYear()))} />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Cliente</Label>
-                      <Input value={cliente} onChange={(e) => setCliente(e.target.value)} />
+                    <div className="space-y-2 relative">
+                      <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Cliente / Empresa</Label>
+                      <Input
+                        value={clienteSearch}
+                        onChange={(e) => {
+                          setClienteSearch(e.target.value)
+                          setCliente(e.target.value)
+                          setShowClienteDropdown(true)
+                        }}
+                        onFocus={() => setShowClienteDropdown(true)}
+                        placeholder="Buscar cliente..."
+                        autoComplete="off"
+                      />
+                      {showClienteDropdown && clientes.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                          {clientes.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                              onClick={() => selectCliente(c)}
+                            >
+                              <div className="font-medium">{c.nombre}</div>
+                              {c.ruc ? <div className="text-xs text-muted-foreground">RUC: {c.ruc}</div> : null}
+                            </button>
+                          ))}
+                          <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+                            Selecciona un cliente para sugerir proyectos.
+                          </div>
+                        </div>
+                      )}
+                      {showClienteDropdown && clienteSearch.trim().length >= 2 && clientes.length === 0 && (
+                        <div className="absolute z-20 mt-1 w-full rounded-md border bg-background p-3 shadow-lg text-sm">
+                          <button
+                            type="button"
+                            className="text-primary"
+                            onClick={() => {
+                              setSelectedCliente(null)
+                              setCliente(clienteSearch)
+                              setShowClienteDropdown(false)
+                            }}
+                          >
+                            <Plus className="inline h-3 w-3 mr-1" />
+                            Crear "{clienteSearch}"
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>RUC</Label>
@@ -303,21 +488,93 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <Label>Correo</Label>
                       <Input value={correo} onChange={(e) => setCorreo(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Proyecto</Label>
-                      <Input value={proyecto} onChange={(e) => setProyecto(e.target.value)} />
+                    <div className="space-y-2 relative">
+                      <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Proyecto</Label>
+                      <Input
+                        value={proyectoSearch}
+                        onChange={(e) => {
+                          setProyectoSearch(e.target.value)
+                          setProyecto(e.target.value)
+                          setShowProyectoDropdown(true)
+                        }}
+                        onFocus={() => setShowProyectoDropdown(true)}
+                        placeholder={selectedCliente ? "Buscar proyecto..." : "Busca proyecto o selecciona cliente"}
+                        autoComplete="off"
+                      />
+                      {showProyectoDropdown && proyectos.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                          {proyectos.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                              onClick={() => selectProyecto(p)}
+                            >
+                              <div className="font-medium">{p.nombre}</div>
+                              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                <span>{p.ubicacion || p.direccion || ""}</span>
+                                {p.cliente_nombre ? <span>{p.cliente_nombre}</span> : null}
+                              </div>
+                            </button>
+                          ))}
+                          {selectedCliente ? (
+                            <button
+                              type="button"
+                              className="w-full border-t px-3 py-2 text-left text-xs text-primary hover:bg-muted"
+                              onClick={() => setShowProyectoDropdown(false)}
+                            >
+                              <Plus className="inline h-3 w-3 mr-1" />
+                              Crear nuevo proyecto para {selectedCliente.nombre}
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Ubicación</Label>
                     <Textarea value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} rows={2} />
                   </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label>Condiciones específicas</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setShowCondicionesModal(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Gestionar
+                      </Button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto rounded-md border bg-background p-3 space-y-2">
+                      {condiciones.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">Cargando condiciones...</p>
+                      ) : (
+                        condiciones.map((cond) => (
+                          <label key={cond.id} className="flex items-start gap-2 rounded p-2 hover:bg-muted cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={selectedCondiciones.includes(cond.id)}
+                              onChange={(e) => {
+                                setSelectedCondiciones((prev) =>
+                                  e.target.checked ? [...prev, cond.id] : prev.filter((id) => id !== cond.id)
+                                )
+                              }}
+                            />
+                            <span className="text-xs text-foreground">{cond.texto}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    {selectedCondiciones.length > 0 && (
+                      <p className="text-xs text-primary">{selectedCondiciones.length} condición(es) seleccionada(s)</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <h3 className="text-base font-semibold">Ítems</h3>
                       <p className="text-sm text-muted-foreground">Arrastra con el handle de 3 puntitos para reordenar.</p>
@@ -352,8 +609,28 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             onDrop={() => dragIndex !== null && dragIndex !== index && moveItem(dragIndex, index)}
                           >
                             <TableCell className="align-top">{dragHandle}</TableCell>
-                            <TableCell className="align-top"><Input value={item.codigo} onChange={(e) => updateItem(index, { codigo: e.target.value })} /></TableCell>
-                            <TableCell className="align-top"><Input value={item.descripcion} onChange={(e) => updateItem(index, { descripcion: e.target.value })} /></TableCell>
+                            <TableCell className="align-top">
+                              <AutocompleteInput
+                                value={item.codigo}
+                                onChange={(value) => updateItem(index, { codigo: value })}
+                                onSelect={(ensayo: EnsayoItem) => addEnsayoWithRelated(index, ensayo)}
+                                suggestions={ensayosData}
+                                placeholder="Código"
+                                displayField="descripcion"
+                                codeField="codigo"
+                              />
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <AutocompleteInput
+                                value={item.descripcion}
+                                onChange={(value) => updateItem(index, { descripcion: value })}
+                                onSelect={(ensayo: EnsayoItem) => addEnsayoWithRelated(index, ensayo)}
+                                suggestions={ensayosData}
+                                placeholder="Descripción"
+                                displayField="descripcion"
+                                codeField="codigo"
+                              />
+                            </TableCell>
                             <TableCell className="align-top"><Input value={item.norma} onChange={(e) => updateItem(index, { norma: e.target.value })} /></TableCell>
                             <TableCell className="align-top"><Input value={item.acreditado} onChange={(e) => updateItem(index, { acreditado: e.target.value })} /></TableCell>
                             <TableCell className="align-top"><Input type="number" value={item.costo_unitario} onChange={(e) => updateItem(index, { costo_unitario: Number(e.target.value) })} className="text-right" /></TableCell>
@@ -371,9 +648,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            <div className="border-l bg-muted/20 p-6 space-y-6">
               <Card>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -393,6 +668,35 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
               </Card>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCondicionesModal} onOpenChange={setShowCondicionesModal}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Condiciones específicas</DialogTitle>
+            <DialogDescription>Selecciona las condiciones que formarán parte de la cotización.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2">
+            {condiciones.map((cond) => (
+              <label key={cond.id} className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={selectedCondiciones.includes(cond.id)}
+                  onChange={(e) => {
+                    setSelectedCondiciones((prev) =>
+                      e.target.checked ? [...prev, cond.id] : prev.filter((id) => id !== cond.id)
+                    )
+                  }}
+                />
+                <span className="text-sm">{cond.texto}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowCondicionesModal(false)}>Cerrar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
