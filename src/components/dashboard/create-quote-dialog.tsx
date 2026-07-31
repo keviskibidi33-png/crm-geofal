@@ -136,7 +136,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [telefonoComercial, setTelefonoComercial] = useState(user?.phone || "")
   const [correoVendedor, setCorreoVendedor] = useState(user?.email || "")
   const [plazoDias, setPlazoDias] = useState(0)
-  const [condicionPago, setCondicionPago] = useState(PAYMENT_OPTIONS[0])
+  const [condicionPago, setCondicionPago] = useState("")
   const [includeIgv, setIncludeIgv] = useState(true)
   const [clienteSearch, setClienteSearch] = useState("")
   const [proyectoSearch, setProyectoSearch] = useState("")
@@ -327,7 +327,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         setTelefonoComercial(payload.telefonoComercial || user?.phone || "")
         setCorreoVendedor(payload.correoVendedor || user?.email || "")
         setPlazoDias(Number(payload.plazoDias || 0))
-        setCondicionPago(payload.condicionPago || PAYMENT_OPTIONS[0])
+        setCondicionPago(payload.condicionPago || "")
         setIncludeIgv(typeof payload.includeIgv === "boolean" ? payload.includeIgv : true)
         return true
       }
@@ -547,6 +547,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         fecha_emision: fechaEmision || undefined,
         plazo_dias: plazoDias || undefined,
         condicion_pago: condicionPago || undefined,
+        correo_vendedor: correoVendedor || user?.email || undefined,
         user_id: user?.id,
         proyecto_id: selectedProyecto?.id || proyectoId,
         cliente_id: selectedCliente?.id || clienteId,
@@ -809,6 +810,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         onChange={(e) => setCondicionPago(e.target.value)}
                         className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
+                        <option value="" disabled>
+                          Seleccionar...
+                        </option>
                         {PAYMENT_OPTIONS.map((option) => (
                           <option key={option} value={option}>
                             {option}
