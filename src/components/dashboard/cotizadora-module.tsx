@@ -35,6 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { isToday, isThisWeek, isThisMonth, parseISO } from "date-fns"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { authFetch } from "@/lib/api-auth"
+import { AutocompleteInput } from "@/components/ui/autocomplete-input"
+import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -164,6 +166,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [duplicateDraftOpen, setDuplicateDraftOpen] = useState(false)
   const [duplicateDraftLoading, setDuplicateDraftLoading] = useState(false)
   const [duplicateDraft, setDuplicateDraft] = useState<any>(null)
+  const [duplicateClienteQuery, setDuplicateClienteQuery] = useState("")
+  const [duplicateProyectoQuery, setDuplicateProyectoQuery] = useState("")
+  const [duplicateClientes, setDuplicateClientes] = useState<any[]>([])
+  const [duplicateProyectos, setDuplicateProyectos] = useState<any[]>([])
+  const [duplicateSelectedCliente, setDuplicateSelectedCliente] = useState<any | null>(null)
+  const [duplicateSelectedProyecto, setDuplicateSelectedProyecto] = useState<any | null>(null)
+  const [duplicateCondiciones, setDuplicateCondiciones] = useState<any[]>([])
+  const [duplicateSelectedCondiciones, setDuplicateSelectedCondiciones] = useState<string[]>([])
+  const [duplicateConditionTexts, setDuplicateConditionTexts] = useState<string[]>([])
   const [previewQuote, setPreviewQuote] = useState<Quote | null>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
@@ -364,6 +375,70 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   useEffect(() => {
     fetchQuotes()
   }, [fetchQuotes])
+
+  useEffect(() => {
+    if (!duplicateDraftOpen) return
+    const load = async () => {
+      try {
+        const resp = await authFetch(`${API_URL}/condiciones`)
+        const json = await resp.json().catch(() => ({}))
+        setDuplicateCondiciones(Array.isArray(json?.data) ? json.data : [])
+      } catch {
+        setDuplicateCondiciones([])
+      }
+    }
+    void load()
+  }, [duplicateDraftOpen])
+
+  useEffect(() => {
+    if (duplicateCondiciones.length === 0 || duplicateConditionTexts.length === 0 || duplicateSelectedCondiciones.length > 0) return
+    const norm = (v: string) => v.trim().toLowerCase()
+    const mapped = duplicateCondiciones
+      .filter((cond) => duplicateConditionTexts.some((text) => norm(text) === norm(cond.texto)))
+      .map((cond) => cond.id)
+    if (mapped.length > 0) setDuplicateSelectedCondiciones(mapped)
+  }, [duplicateCondiciones, duplicateConditionTexts, duplicateSelectedCondiciones.length])
+
+  useEffect(() => {
+    if (!duplicateDraftOpen) return
+    const timer = setTimeout(async () => {
+      const q = duplicateClienteQuery.trim()
+      if (q.length < 2) {
+        setDuplicateClientes([])
+        return
+      }
+      try {
+        const resp = await authFetch(`${API_URL}/clientes?search=${encodeURIComponent(q)}`)
+        const json = await resp.json().catch(() => ({}))
+        setDuplicateClientes(Array.isArray(json?.data) ? json.data : [])
+      } catch {
+        setDuplicateClientes([])
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [duplicateClienteQuery, duplicateDraftOpen])
+
+  useEffect(() => {
+    if (!duplicateDraftOpen) return
+    const timer = setTimeout(async () => {
+      const q = duplicateProyectoQuery.trim()
+      if (q.length < 2 && !duplicateSelectedCliente) {
+        setDuplicateProyectos([])
+        return
+      }
+      try {
+        const params = new URLSearchParams()
+        if (duplicateSelectedCliente?.id) params.set("cliente_id", duplicateSelectedCliente.id)
+        if (q) params.set("search", q)
+        const resp = await authFetch(`${API_URL}/proyectos?${params.toString()}`)
+        const json = await resp.json().catch(() => ({}))
+        setDuplicateProyectos(Array.isArray(json?.data) ? json.data : [])
+      } catch {
+        setDuplicateProyectos([])
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [duplicateDraftOpen, duplicateProyectoQuery, duplicateSelectedCliente])
 
   // Derived data for filters
   const uniqueClientes = useMemo(() =>
