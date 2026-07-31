@@ -165,13 +165,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   }
 
   const handleBrandClick = () => {
-    if (typeof window === "undefined") {
-      setActiveModule(activeModule)
-      return
-    }
-
-    const savedModule = localStorage.getItem("crm-active-module") as ModuleType | null
-    setActiveModule(savedModule || activeModule)
+    setActiveModule("home")
   }
 
   const handleBrandContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {

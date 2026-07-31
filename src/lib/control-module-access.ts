@@ -103,6 +103,10 @@ export function canAccessDashboardModule(
   permissions?: RolePermissions,
   email?: string,
 ) {
+  if (module === "home") {
+    return true
+  }
+
   // Restrict specific user 'techuant@geofal.com.pe' to only Huanta modules and configuracion
   if (email && email.toLowerCase() === "techuant@geofal.com.pe") {
     const isHuantaModule = 

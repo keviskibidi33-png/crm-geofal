@@ -1,4 +1,5 @@
 export const PERMISSION_MODULE_CATALOG = [
+  { id: "home", label: "Inicio" },
   { id: "tracing", label: "Seguimiento" },
   { id: "ingenieria_archivos", label: "Control Informes" },
   { id: "clientes", label: "Clientes" },

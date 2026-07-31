@@ -95,15 +95,16 @@ const PermisosModule = dashboardDynamic(async () => (await import("@/components/
 const LaboratorioStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-stats-module")).LaboratorioStatsModule)
 const ComercialStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-stats-module")).ComercialStatsModule)
 const GerenciaStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/gerencia-stats-module")).GerenciaStatsModule)
+const DashboardHomeModule = dashboardDynamic(async () => (await import("@/components/dashboard/dashboard-home-module")).DashboardHomeModule)
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
   const [activeModule, setActiveModule] = useState<ModuleType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("crm-active-module") as ModuleType
-      return saved || "clientes"
+      return saved || "home"
     }
-    return "clientes"
+    return "home"
   })
   const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
   const [pendingLabNotification, setPendingLabNotification] = useState<{ module: ModuleType; recordId: number } | null>(null)
@@ -249,9 +250,9 @@ export default function DashboardPage() {
         ? "tracing"
         : getPreferredControlModule(user.role, user.permissions)
     initRedirectedRef.current = true
-    if (controlDefault && activeModule !== controlDefault) {
-      setActiveModule(controlDefault)
-    }
+      if (controlDefault && activeModule !== controlDefault) {
+        setActiveModule(controlDefault)
+      }
   }, [loading, user, activeModule])
 
   useEffect(() => {
@@ -401,6 +402,8 @@ export default function DashboardPage() {
     switch (activeModule) {
       case "clientes":
         return <ClientesModule user={dashboardUser} />
+      case "home":
+        return <DashboardHomeModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "proyectos":
         return <ProyectosModule user={dashboardUser} />
       case "cotizadora":
