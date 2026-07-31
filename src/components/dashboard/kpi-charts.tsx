@@ -251,9 +251,11 @@ interface KpiSummaryRowProps {
   loading?: boolean
   title?: string
   totalOverride?: number
+  valueHeader?: string
+  formatValue?: (value: number) => string
 }
 
-export function KpiSummaryRow({ categories, previousCategories, loading, title, totalOverride }: KpiSummaryRowProps) {
+export function KpiSummaryRow({ categories, previousCategories, loading, title, totalOverride, valueHeader = "Cant.", formatValue = String }: KpiSummaryRowProps) {
   if (loading) {
     return (
       <div className="space-y-1">
@@ -275,7 +277,7 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title, 
         <thead>
           <tr className="border-b bg-muted/30">
             <th className="text-left px-4 py-2 font-medium">Categoría</th>
-            <th className="text-center px-4 py-2 font-medium">Cant.</th>
+            <th className="text-center px-4 py-2 font-medium">{valueHeader}</th>
             <th className="text-center px-4 py-2 font-medium">variación</th>
           </tr>
         </thead>
@@ -288,7 +290,7 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title, 
               <tr key={cat.label} className="border-b last:border-b-0">
                 <td className="px-4 py-2 font-medium">{cat.label}</td>
                 <td className="text-center px-4 py-2 tabular-nums">
-                  {cat.value}
+                  {formatValue(cat.value)}
                   {hasDelta && (
                     <span className={`ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-bold ${delta! > 0 ? "text-emerald-600" : "text-red-600"}`}>
                       ({delta! > 0 ? "+" : ""}{delta})
@@ -301,7 +303,7 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title, 
           })}
           <tr className="bg-muted/30 font-semibold">
             <td className="px-4 py-2">TOTAL</td>
-            <td className="text-center px-4 py-2 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-2 tabular-nums">{formatValue(total)}</td>
             <td className="text-center px-4 py-2">100%</td>
           </tr>
         </tbody>

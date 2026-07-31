@@ -829,6 +829,19 @@ export function useKpisData(): KpisData {
     fetchKpis()
   }, [fetchKpis])
 
+  useEffect(() => {
+    const refreshVisibleDashboard = () => {
+      if (document.visibilityState === "visible") void fetchKpis()
+    }
+    const intervalId = window.setInterval(refreshVisibleDashboard, 30_000)
+    window.addEventListener("focus", refreshVisibleDashboard)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", refreshVisibleDashboard)
+    }
+  }, [fetchKpis])
+
   return {
     laboratorio,
     comercial,

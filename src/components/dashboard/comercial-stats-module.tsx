@@ -10,24 +10,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function ComercialStatsModule() {
-  const { comercialUnico, comercialUnicoDetalle, comercialSemanas, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const { comercialUnico, comercialSemanas, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
   const [tabView, setTabView] = useState<"mes" | "historico">("mes")
   const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
     : comercialUnico.montoAcumuladoMes.categories.filter((cat) => cat.label === estadoFilter)
-  const cotizacionCount = comercialUnicoDetalle.find((item) => item.label === "Cotización Enviada")?.count ?? 0
-  const montoCountCategories = comercialUnicoDetalle
-    .filter((item) => ["Cotización Enviada", "Venta", "Negociación"].includes(item.label))
-    .filter((item) => estadoFilter === "todos" || item.label === estadoFilter)
-    .map((item) => ({
-      label: item.label,
-      value: item.count,
-      percentage: cotizacionCount > 0 ? Math.round((item.count / cotizacionCount) * 10000) / 100 : 0,
-    }))
-  const montoCountTotal = estadoFilter === "todos"
-    ? cotizacionCount
-    : (montoCountCategories[0]?.value ?? 0)
+  const montoTotal = estadoFilter === "todos"
+    ? comercialUnico.montoAcumuladoMes.total
+    : (montoCategories[0]?.value ?? 0)
   const clientesCategories = comercialUnico.numeroClientes.categories
   const weekLabels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
   type WeekMetric = Exclude<keyof (typeof comercialSemanas)[number], "semana">
@@ -100,10 +91,12 @@ export function ComercialStatsModule() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <KpiSummaryRow
-                categories={montoCountCategories}
+                categories={montoCategories}
                 loading={isLoading}
                 title="MONTO ACUMULADO MES (S/.)"
-                totalOverride={montoCountTotal}
+                totalOverride={montoTotal}
+                valueHeader="Monto S/."
+                formatValue={formatMoney}
               />
               <KpiPieChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
               <KpiBarChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
