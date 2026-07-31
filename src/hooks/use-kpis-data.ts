@@ -363,33 +363,42 @@ export function useKpisData(): KpisData {
       const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
       const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
       const seguimientosMes = (seguimientoData.items ?? []).filter((r: any) => {
-        const contactDate = parseNormalizedDate(r.fecha_contacto || r.fecha_creacion)
+        const contactDate = parseNormalizedDate(r.fecha_contacto)
         return !!contactDate && contactDate.getFullYear() === selectedYear && (contactDate.getMonth() + 1) === parseInt(selectedMonth)
       })
       const seguimientos = seguimientosMes
+      const hasQuoteNumber = (value: unknown) => {
+        const quoteNumber = String(value ?? "").trim()
+        return quoteNumber !== "" && quoteNumber !== "-"
+      }
       const montoEnviada = seguimientos.filter((r: any) => {
         const estadoCliente = normalizeState(r.estado_cliente)
-        return estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")
+        const isSent = estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")
+        return isSent && hasQuoteNumber(r.numero_cotizacion) && parseMoney(r.costo_cotiz_sin_igv) > 0
       })
       const montoVenta = seguimientos.filter((r: any) => {
         const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
-        return estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+        const isSale = estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+        return isSale && parseMoney(r.costo_cotiz_sin_igv) > 0
       })
 
       const leads = seguimientos.filter((r: any) => {
-        const state = normalizeState(r.estado_seguimiento)
-        return state === "LEADS"
+        const contactDate = parseNormalizedDate(r.fecha_contacto)
+        return !!contactDate && hasQuoteNumber(r.numero_cotizacion)
       })
 
       const nuevos = seguimientos.filter((r: any) => {
-        const createdDate = parseNormalizedDate(r.fecha_creacion)
-        return !!createdDate
+        const contactDate = parseNormalizedDate(r.fecha_contacto)
+        const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
+        const isSale = estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+        return !!contactDate && isSale
       })
 
       const totalMonto = montoEnviada.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
       const ventaMonto = montoVenta.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
       const negociacionMonto = Math.max(0, totalMonto - ventaMonto)
       const cotizacionMonto = montoEnviada.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
+      const negociacionCount = Math.max(0, montoEnviada.length - montoVenta.length)
       const totalClientes = leads.length + nuevos.length
       const tasaConversion = leads.length > 0 ? Math.round((nuevos.length / leads.length) * 100) : 0
       const meta = 25
@@ -412,7 +421,7 @@ export function useKpisData(): KpisData {
       }).filter((week) => week.start <= daysInMonth)
 
       for (const row of seguimientos) {
-        const baseDate = parseNormalizedDate(row.fecha_contacto || row.fecha_creacion)
+        const baseDate = parseNormalizedDate(row.fecha_contacto)
         if (!baseDate || baseDate.getFullYear() !== selectedYear || (baseDate.getMonth() + 1) !== monthNumber) continue
         const weekIndex = Math.min(3, Math.floor((baseDate.getDate() - 1) / 7))
         const week = weekBuckets[weekIndex]
@@ -421,14 +430,16 @@ export function useKpisData(): KpisData {
         const estadoCliente = normalizeState(row.estado_cliente)
         const estadoSeguimiento = resolveSeguimientoState(row.estado_seguimiento)
         const monto = parseMoney(row.costo_cotiz_sin_igv)
-        if (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")) week.cotizacionEnviada += monto
-        if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) week.venta += monto
-        if (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")) week.negociacion += monto
-        if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) {
-          week.negociacion = Math.max(0, week.negociacion - monto)
-        }
-        if (estadoSeguimiento === "LEADS") week.leads += 1
-        if (baseDate) week.clienteNuevos += 1
+        const isSentQuote = (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA"))
+          && hasQuoteNumber(row.numero_cotizacion)
+          && monto > 0
+        if (isSentQuote) week.cotizacionEnviada += monto
+        if ((estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) && monto > 0) week.venta += monto
+        if (hasQuoteNumber(row.numero_cotizacion)) week.leads += 1
+        if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) week.clienteNuevos += 1
+      }
+      for (const week of weekBuckets) {
+        week.negociacion = Math.max(0, week.cotizacionEnviada - week.venta)
       }
 
       setComercialUnico({
@@ -447,7 +458,7 @@ export function useKpisData(): KpisData {
       setComercialUnicoDetalle([
         { label: "Cotización Enviada", count: montoEnviada.length, monto: cotizacionMonto },
         { label: "Venta", count: montoVenta.length, monto: ventaMonto },
-        { label: "Negociación", count: 0, monto: negociacionMonto },
+        { label: "Negociación", count: negociacionCount, monto: negociacionMonto },
         { label: "Leads", count: leads.length, monto: 0 },
         { label: "Cliente Nuevos", count: nuevos.length, monto: 0 },
       ])

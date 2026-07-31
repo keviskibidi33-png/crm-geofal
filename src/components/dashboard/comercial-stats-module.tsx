@@ -16,12 +16,28 @@ export function ComercialStatsModule() {
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
     : comercialUnico.montoAcumuladoMes.categories.filter((cat) => cat.label === estadoFilter)
-  const clientesCategories = estadoFilter === "todos"
-    ? comercialUnico.numeroClientes.categories
-    : comercialUnico.numeroClientes.categories.filter((cat) => estadoFilter === "todos" || (estadoFilter === "Cotización Enviada" ? cat.label === "Leads" || cat.label === "Cliente Nuevos" : true))
+  const cotizacionCount = comercialUnicoDetalle.find((item) => item.label === "Cotización Enviada")?.count ?? 0
+  const montoCountCategories = comercialUnicoDetalle
+    .filter((item) => ["Cotización Enviada", "Venta", "Negociación"].includes(item.label))
+    .filter((item) => estadoFilter === "todos" || item.label === estadoFilter)
+    .map((item) => ({
+      label: item.label,
+      value: item.count,
+      percentage: cotizacionCount > 0 ? Math.round((item.count / cotizacionCount) * 10000) / 100 : 0,
+    }))
+  const montoCountTotal = estadoFilter === "todos"
+    ? cotizacionCount
+    : (montoCountCategories[0]?.value ?? 0)
+  const clientesCategories = comercialUnico.numeroClientes.categories
   const weekLabels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
-  const getWeekValue = (label: string, key: keyof (typeof comercialSemanas)[number]) => comercialSemanas.find((week) => week.semana === label)?.[key] ?? 0
+  type WeekMetric = Exclude<keyof (typeof comercialSemanas)[number], "semana">
+  const getWeekValue = (label: string, key: WeekMetric): number => Number(comercialSemanas.find((week) => week.semana === label)?.[key] ?? 0)
   const formatMoney = (value: number) => value.toLocaleString("es-PE")
+  const getWeekConversion = (week: string) => {
+    const leads = getWeekValue(week, "leads")
+    const nuevos = getWeekValue(week, "clienteNuevos")
+    return leads > 0 ? Math.round((nuevos / leads) * 10000) / 100 : 0
+  }
 
   return (
     <div className="space-y-6">
@@ -84,9 +100,10 @@ export function ComercialStatsModule() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <KpiSummaryRow
-                categories={montoCategories}
+                categories={montoCountCategories}
                 loading={isLoading}
                 title="MONTO ACUMULADO MES (S/.)"
+                totalOverride={montoCountTotal}
               />
               <KpiPieChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
               <KpiBarChart data={{ ...comercialUnico.montoAcumuladoMes, categories: montoCategories }} loading={isLoading} />
@@ -99,6 +116,7 @@ export function ComercialStatsModule() {
                     {weekLabels.map((week) => (
                       <TableHead key={week} className="text-right">{week}</TableHead>
                     ))}
+                    <TableHead className="text-right font-bold">TOTAL MES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -112,8 +130,22 @@ export function ComercialStatsModule() {
                       {weekLabels.map((week) => (
                         <TableCell key={week} className="text-right">{formatMoney(getWeekValue(week, row.key))}</TableCell>
                       ))}
+                      <TableCell className="text-right font-semibold">
+                        {formatMoney(weekLabels.reduce((sum, week) => sum + Number(getWeekValue(week, row.key)), 0))}
+                      </TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="bg-muted/30 font-bold">
+                    <TableCell>TOTAL MONTO</TableCell>
+                    {weekLabels.map((week) => (
+                      <TableCell key={week} className="text-right">
+                        {formatMoney(Number(getWeekValue(week, "cotizacionEnviada")))}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right">
+                      {formatMoney(comercialUnico.montoAcumuladoMes.total)}
+                    </TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
@@ -141,6 +173,7 @@ export function ComercialStatsModule() {
                     {weekLabels.map((week) => (
                       <TableHead key={week} className="text-right">{week}</TableHead>
                     ))}
+                    <TableHead className="text-right font-bold">TOTAL MES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -153,8 +186,29 @@ export function ComercialStatsModule() {
                       {weekLabels.map((week) => (
                         <TableCell key={week} className="text-right">{getWeekValue(week, row.key)}</TableCell>
                       ))}
+                      <TableCell className="text-right font-semibold">
+                        {weekLabels.reduce((sum, week) => sum + getWeekValue(week, row.key), 0)}
+                      </TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="bg-muted/30 font-bold">
+                    <TableCell>TOTAL CLIENTES</TableCell>
+                    {weekLabels.map((week) => (
+                      <TableCell key={week} className="text-right">
+                        {getWeekValue(week, "leads") + getWeekValue(week, "clienteNuevos")}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right">
+                      {comercialUnico.numeroClientes.total}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">TASA CONVERSIÓN %</TableCell>
+                    {weekLabels.map((week) => (
+                      <TableCell key={week} className="text-right">{getWeekConversion(week)}%</TableCell>
+                    ))}
+                    <TableCell className="text-right font-semibold">{comercialUnico.tasaConversion}%</TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
