@@ -149,58 +149,62 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-      <section className="grid gap-8 lg:grid-cols-[1.35fr_0.85fr]">
+      <section className="grid gap-8">
         <Card className="border-border/70 bg-white shadow-sm">
           <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge className="rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em]">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              Centro de inicio
-            </Badge>
-            <Badge variant="outline" className="rounded-full px-4 py-1.5 text-[11px] font-medium bg-white">
-              {user.roleLabel || user.role}
-            </Badge>
-          </div>
+            <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr]">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge className="rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em]">
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                    Centro de inicio
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full px-4 py-1.5 text-[11px] font-medium bg-white">
+                    {user.roleLabel || user.role}
+                  </Badge>
+                </div>
 
-          <div className="space-y-3">
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              {greeting}, {user.name}
-            </h1>
-            <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-              Este es tu punto de partida en Geofal CRM: accede rápido a lo que usas más, revisa tu rol y entra al flujo de trabajo sin perder tiempo.
-            </p>
-          </div>
+                <div className="space-y-3">
+                  <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl leading-[1.05]">
+                    {greeting}, {user.name}
+                  </h1>
+                  <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
+                    Este es tu punto de partida en Geofal CRM: accede rápido a lo que usas más, revisa tu rol y entra al flujo de trabajo sin perder tiempo.
+                  </p>
+                </div>
 
-          <div className="flex flex-wrap gap-3">
-            {shortcuts.map((shortcut) => (
-              <Button key={shortcut.module} onClick={() => onNavigateModule(shortcut.module)} className="rounded-full px-5">
-                {shortcut.label}
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-              </Button>
-            ))}
-          </div>
+                <div className="flex flex-wrap gap-3">
+                  {shortcuts.map((shortcut) => (
+                    <Button key={shortcut.module} onClick={() => onNavigateModule(shortcut.module)} className="rounded-full px-5">
+                      {shortcut.label}
+                      <ArrowUpRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-muted/10 p-6">
+                <h2 className="text-lg font-semibold text-foreground">Acceso rápido</h2>
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between rounded-full bg-background px-5 py-4 shadow-sm">
+                    <span className="text-sm text-muted-foreground">Usuario</span>
+                    <span className="max-w-[55%] truncate text-sm font-semibold text-foreground">{user.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-full bg-background px-5 py-4 shadow-sm">
+                    <span className="text-sm text-muted-foreground">Rol</span>
+                    <span className="max-w-[55%] truncate text-sm font-semibold text-foreground">{user.roleLabel || "Sin definir"}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-full bg-background px-5 py-4 shadow-sm">
+                    <span className="text-sm text-muted-foreground">Última entrada</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-
-        <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground">Acceso rápido</h2>
-          <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
-              <span className="text-sm text-muted-foreground">Usuario</span>
-              <span className="text-sm font-semibold text-foreground">{user.email}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
-              <span className="text-sm text-muted-foreground">Rol</span>
-              <span className="text-sm font-semibold text-foreground">{user.roleLabel || "Sin definir"}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
-              <span className="text-sm text-muted-foreground">Última entrada</span>
-              <span className="text-sm font-semibold text-foreground">
-                {new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
-              </span>
-            </div>
-          </div>
-        </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
