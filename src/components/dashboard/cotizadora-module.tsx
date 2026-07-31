@@ -41,6 +41,16 @@ import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
+function DragHandle() {
+  return (
+    <div className="grid h-4 w-3 shrink-0 grid-cols-2 gap-0.5 opacity-70" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <span key={index} className="h-1 w-1 rounded-full bg-muted-foreground/80" />
+      ))}
+    </div>
+  )
+}
+
 export interface Quote {
   id: string
   numero: string
@@ -64,6 +74,14 @@ export interface Quote {
   plazoDias?: number
   condicionPago?: string
   condicionesTextos?: string[]
+  condicionesIds?: string[]
+  clienteId?: string
+  proyectoId?: string
+  ubicacion?: string
+  fechaSolicitud?: string
+  fechaEmision?: string
+  personalComercial?: string
+  includeIgv?: boolean
   detailsLoaded?: boolean
 }
 
@@ -98,6 +116,14 @@ interface DbQuoteDetailRow {
   plazo_dias: number | null
   condicion_pago: string | null
   condiciones_textos: string[] | null
+  condiciones_ids: string[] | null
+  cliente_id: string | null
+  proyecto_id: string | null
+  ubicacion: string | null
+  fecha_solicitud: string | null
+  fecha_emision: string | null
+  personal_comercial: string | null
+  include_igv: boolean | null
 }
 
 const mapDbQuoteToUi = (row: DbQuoteListRow): Quote => ({
@@ -132,6 +158,14 @@ const mergeQuoteDetails = (quote: Quote, row: DbQuoteDetailRow): Quote => ({
   plazoDias: row.plazo_dias ?? undefined,
   condicionPago: row.condicion_pago || "",
   condicionesTextos: row.condiciones_textos || [],
+  condicionesIds: row.condiciones_ids || [],
+  clienteId: row.cliente_id || undefined,
+  proyectoId: row.proyecto_id || undefined,
+  ubicacion: row.ubicacion || "",
+  fechaSolicitud: row.fecha_solicitud || undefined,
+  fechaEmision: row.fecha_emision || undefined,
+  personalComercial: row.personal_comercial || undefined,
+  includeIgv: typeof row.include_igv === "boolean" ? row.include_igv : true,
   detailsLoaded: true,
 })
 
@@ -158,6 +192,11 @@ interface CotizadoraModuleProps {
 }
 
 const DEFAULT_QUOTES_PER_PAGE = 20
+
+const createSuggestedQuoteCode = () => ({
+  numero: String(Math.floor(100 + Math.random() * 900)),
+  year: new Date().getFullYear(),
+})
 
 export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -212,8 +251,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [checkingNumero, setCheckingNumero] = useState(false)
   const [importSelectedCondiciones, setImportSelectedCondiciones] = useState<string[]>([])
   const [importCondicionSearch, setImportCondicionSearch] = useState("")
-  // const { toast } = useToast() // Replaced by Sonner
-  const cotizadorUrl = process.env.NEXT_PUBLIC_COTIZADOR_URL ?? undefined
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const quotesRef = useRef<Quote[]>([])
   const detailRequestsRef = useRef<Map<string, Promise<Quote>>>(new Map())
@@ -314,27 +351,37 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setDuplicateDraftLoading(true)
     try {
       const detailed = await loadQuoteDetails(quote.id)
+      const suggested = createSuggestedQuoteCode()
       const source = {
         id: detailed.id,
-        numero: detailed.numero,
-        year: detailed.year,
-        cliente: detailed.cliente,
-        clienteRuc: detailed.clienteRuc,
-        clienteContacto: detailed.clienteContacto,
-        clienteEmail: detailed.clienteEmail,
-        clienteTelefono: detailed.clienteTelefono,
-        proyectoNombre: detailed.proyectoNombre,
+        numero: suggested.numero,
+        year: suggested.year,
+        cliente: "",
+        clienteRuc: "",
+        clienteContacto: "",
+        clienteEmail: "",
+        clienteTelefono: "",
+        proyectoNombre: "",
         itemsJson: detailed.itemsJson || [],
         condicionesTextos: detailed.condicionesTextos || [],
+        condicionesIds: detailed.condicionesIds || [],
         plazoDias: detailed.plazoDias,
         condicionPago: detailed.condicionPago,
         correoVendedor: detailed.correoVendedor,
         telefonoComercial: detailed.telefonoComercial,
-        clienteId: detailed.ownerId || undefined,
+        clienteId: undefined,
         proyectoId: undefined,
-        ubicacion: undefined,
+        ubicacion: "",
       }
       setDuplicateDraft(source)
+      setDuplicateClienteQuery("")
+      setDuplicateProyectoQuery("")
+      setDuplicateClientes([])
+      setDuplicateProyectos([])
+      setDuplicateSelectedCliente(null)
+      setDuplicateSelectedProyecto(null)
+      setDuplicateSelectedCondiciones(source.condicionesIds)
+      setDuplicateConditionTexts(source.condicionesTextos)
       setDuplicateDraftOpen(true)
     } catch (err: any) {
       toast.error("No se pudo preparar la duplicación", {
@@ -345,33 +392,18 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     }
   }, [loadQuoteDetails])
 
-  const randomQuoteCode = useCallback(() => {
-    const year = new Date().getFullYear()
-    const code = String(Math.floor(100 + Math.random() * 900))
-    return { numero: code, year }
-  }, [])
-
   const confirmDuplicateDraft = useCallback(() => {
     if (!duplicateDraft) return
-    const suggested = randomQuoteCode()
     setDuplicateSourceQuote({
       ...duplicateDraft,
-      numero: suggested.numero,
-      year: suggested.year,
-      cliente: "",
-      clienteRuc: "",
-      clienteContacto: "",
-      clienteEmail: "",
-      clienteTelefono: "",
-      proyectoNombre: "",
-      clienteId: "",
-      proyectoId: "",
-      ubicacion: "",
+      clienteId: duplicateSelectedCliente?.id || duplicateDraft.clienteId || "",
+      proyectoId: duplicateSelectedProyecto?.id || duplicateDraft.proyectoId || "",
+      condicionesIds: duplicateSelectedCondiciones,
     })
     setSelectedQuote(null)
     setDuplicateDraftOpen(false)
     setIsDialogOpen(true)
-  }, [duplicateDraft, randomQuoteCode])
+  }, [duplicateDraft, duplicateSelectedCliente?.id, duplicateSelectedCondiciones, duplicateSelectedProyecto?.id])
 
   useEffect(() => {
     fetchQuotes()
@@ -1022,7 +1054,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           </div>
 
           {/* Date Filter */}
-          <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+          <Select value={dateFilter || "all"} onValueChange={(v: any) => setDateFilter(v)}>
             <SelectTrigger className="w-[130px] h-9 text-xs">
               <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
@@ -1036,7 +1068,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           </Select>
 
           {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || "all"} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[120px] h-9 text-xs">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -1049,7 +1081,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           </Select>
 
           {/* Cliente Filter */}
-          <Select value={clienteFilter} onValueChange={setClienteFilter}>
+          <Select value={clienteFilter || "all"} onValueChange={setClienteFilter}>
             <SelectTrigger className="w-[160px] h-9 text-xs">
               <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="Cliente" />
@@ -1078,7 +1110,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
           {/* Vendedor Filter (Admin only) */}
           {user.role === "admin" && (
-            <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+            <Select value={vendedorFilter || "all"} onValueChange={setVendedorFilter}>
               <SelectTrigger className="w-[140px] h-9 text-xs">
                 <User2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue placeholder="Vendedor" />
@@ -1355,7 +1387,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           setDuplicateConditionTexts([])
         }
       }}>
-        <DialogContent className="max-w-[96vw] w-[96vw] max-h-[92vh] overflow-hidden p-0 flex flex-col">
+        <DialogContent
+          className="max-w-[96vw] w-[96vw] max-h-[92vh] overflow-hidden p-0 flex flex-col"
+          onPointerDownOutside={(event) => {
+            const target = event.detail.originalEvent.target
+            if (target instanceof Element && target.closest('[data-autocomplete-dropdown="true"]')) {
+              event.preventDefault()
+            }
+          }}
+        >
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -1393,8 +1433,17 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                         onChange={(e) => {
                           const value = e.target.value
                           setDuplicateClienteQuery(value)
-                          setDuplicateDraft((prev: any) => ({ ...prev, cliente: value }))
+                          setDuplicateDraft((prev: any) => ({
+                            ...prev,
+                            cliente: value,
+                            clienteId: "",
+                            proyectoId: "",
+                            proyectoNombre: "",
+                            ubicacion: "",
+                          }))
                           setDuplicateSelectedCliente(null)
+                          setDuplicateSelectedProyecto(null)
+                          setDuplicateProyectoQuery("")
                         }}
                         placeholder="Buscar cliente..."
                         autoComplete="off"
@@ -1416,6 +1465,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                                   clienteContacto: c.contacto || "",
                                   clienteEmail: c.email || "",
                                   clienteTelefono: c.telefono || "",
+                                  clienteId: c.id,
+                                  proyectoId: "",
+                                  proyectoNombre: "",
+                                  ubicacion: "",
                                 }))
                                 setDuplicateSelectedProyecto(null)
                                 setDuplicateProyectoQuery("")
@@ -1436,7 +1489,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                         onChange={(e) => {
                           const value = e.target.value
                           setDuplicateProyectoQuery(value)
-                          setDuplicateDraft((prev: any) => ({ ...prev, proyectoNombre: value }))
+                          setDuplicateDraft((prev: any) => ({ ...prev, proyectoNombre: value, proyectoId: "" }))
                           setDuplicateSelectedProyecto(null)
                         }}
                         placeholder={duplicateSelectedCliente ? "Buscar proyecto..." : "Busca proyecto o selecciona cliente"}
@@ -1456,6 +1509,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                                   ...prev,
                                   proyectoNombre: p.nombre || "",
                                   ubicacion: p.ubicacion || p.direccion || "",
+                                  proyectoId: p.id,
                                 }))
                               }}
                             >
@@ -1534,7 +1588,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   <div className="space-y-2">
                     {(duplicateDraft?.itemsJson || []).map((item: any, idx: number) => (
                       <div key={`${idx}-${item.codigo || "item"}`} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[40px_120px_1fr_140px_120px_120px_auto] items-start">
-                        <div className="flex items-center justify-center pt-2">{dragHandle}</div>
+                        <div className="flex items-center justify-center pt-2"><DragHandle /></div>
                         <AutocompleteInput
                           value={item.codigo || ""}
                           onChange={(value) => {

@@ -40,9 +40,9 @@ export function AutocompleteInput({
   const filteredSuggestions = normalizedValue.length >= minChars 
     ? suggestions
         .filter(item => {
-          const code = (item[codeField] || '').toLowerCase();
-          const desc = (item[displayField] || '').toLowerCase();
-          const norma = (item.norma || '').toLowerCase();
+          const code = String(item[codeField] || '').toLowerCase();
+          const desc = String(item[displayField] || '').toLowerCase();
+          const norma = String(item.norma || '').toLowerCase();
           
           return code.includes(normalizedValue) ||
             desc.includes(normalizedValue) ||
@@ -85,21 +85,25 @@ export function AutocompleteInput({
       if (containerRef.current?.contains(target)) {
         return;
       }
-      // Check if clicking on dropdown (which is in a portal)
-      const dropdown = document.querySelector('[data-autocomplete-dropdown="true"]');
-      if (dropdown?.contains(target)) {
+      // Each table row renders two autocompletes. Check this instance's portal
+      // instead of the first dropdown in the document.
+      if (dropdownRef.current?.contains(target)) {
         return;
       }
       setIsOpen(false);
     };
     
+    let listenerTimer: ReturnType<typeof setTimeout> | undefined;
     if (isOpen) {
       // Use setTimeout to ensure the event listener is added after the current event cycle
-      setTimeout(() => {
+      listenerTimer = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 0);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      if (listenerTimer) clearTimeout(listenerTimer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,8 +155,9 @@ export function AutocompleteInput({
     <div
       ref={dropdownRef}
       data-autocomplete-dropdown="true"
-      onMouseDown={(e) => e.preventDefault()} // Prevent blur on input
-      onWheel={(event) => {
+      role="listbox"
+      onPointerDown={(event) => event.stopPropagation()}
+      onWheelCapture={(event) => {
         // Radix locks scrolling outside the active DialogContent. Because this
         // list is portaled to body, consume the wheel here and scroll the list
         // explicitly so the quote dialog/page never moves behind it.
@@ -174,7 +179,10 @@ export function AutocompleteInput({
         boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
         maxHeight: '320px',
         overflowY: 'auto',
-        overscrollBehavior: 'contain'
+        overscrollBehavior: 'contain',
+        pointerEvents: 'auto',
+        touchAction: 'pan-y',
+        WebkitOverflowScrolling: 'touch'
       }}
     >
       <div style={{ 
@@ -191,8 +199,14 @@ export function AutocompleteInput({
       </div>
       {filteredSuggestions.map((item, index) => (
         <div
-          key={item[codeField]}
-          onClick={() => handleSelect(item)}
+          key={`${String(item[codeField] || 'item')}-${index}`}
+          role="option"
+          aria-selected={highlightedIndex === index}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleSelect(item);
+          }}
           onMouseEnter={() => setHighlightedIndex(index)}
           style={{
             padding: '12px',

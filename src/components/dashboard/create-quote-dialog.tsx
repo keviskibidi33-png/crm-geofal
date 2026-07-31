@@ -51,6 +51,10 @@ type QuoteSource = {
   clienteId?: string
   proyectoId?: string
   ubicacion?: string
+  fechaSolicitud?: string
+  fechaEmision?: string
+  personalComercial?: string
+  includeIgv?: boolean
 }
 
 interface CreateQuoteDialogProps {
@@ -73,13 +77,15 @@ const emptyItem = (): QuoteItem => ({
   cantidad: 1,
 })
 
-const dragHandle = (
+function DragHandle() {
+  return (
   <div className="grid grid-cols-2 gap-0.5 h-4 w-3 shrink-0 opacity-70">
     {Array.from({ length: 6 }).map((_, i) => (
       <span key={i} className="h-1 w-1 rounded-full bg-muted-foreground/80" />
     ))}
   </div>
-)
+  )
+}
 
 const DRAFT_VERSION = 2
 
@@ -100,6 +106,11 @@ const extractQuoteSequence = (value: string, currentYear: number) => {
 const formatQuoteNumber = (value: string, currentYear: number) => {
   const digits = extractQuoteSequence(value, currentYear)
   return digits ? `OT-${digits}-${String(currentYear).slice(-2)}` : ""
+}
+
+const toApiQuoteDate = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : value
 }
 
 const getTodayPeru = () => {
@@ -196,17 +207,17 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     const derivedNumero = extractQuoteSequence(String(data.numero || ""), Number(data.year || new Date().getFullYear()))
     const fallbackNumero = `${randomNumericCode(3)}`
 
-    setNumero(isDuplicate ? fallbackNumero : derivedNumero)
+    setNumero(isDuplicate ? (derivedNumero || fallbackNumero) : derivedNumero)
     setYear(Number(data.year || new Date().getFullYear()))
-    setCliente(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
-    setRuc(keepClientProject ? (data.clienteRuc || "") : (isDuplicate ? "" : (data.clienteRuc || "")))
-    setContacto(keepClientProject ? (data.clienteContacto || "") : (isDuplicate ? "" : (data.clienteContacto || "")))
-    setTelefono(keepClientProject ? (data.clienteTelefono || "") : (isDuplicate ? "" : (data.clienteTelefono || "")))
-    setCorreo(keepClientProject ? (data.clienteEmail || "") : (isDuplicate ? "" : (data.clienteEmail || "")))
-    setProyecto(keepClientProject ? (data.proyectoNombre || "") : (isDuplicate ? "" : (data.proyectoNombre || "")))
-    setUbicacion(keepClientProject ? (data.ubicacion || "") : (isDuplicate ? "" : (data.ubicacion || "")))
-    setClienteSearch(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
-    setProyectoSearch(keepClientProject ? (data.proyectoNombre || "") : (isDuplicate ? "" : (data.proyectoNombre || "")))
+    setCliente(keepClientProject ? (data.cliente || "") : "")
+    setRuc(keepClientProject ? (data.clienteRuc || "") : "")
+    setContacto(keepClientProject ? (data.clienteContacto || "") : "")
+    setTelefono(keepClientProject ? (data.clienteTelefono || "") : "")
+    setCorreo(keepClientProject ? (data.clienteEmail || "") : "")
+    setProyecto(keepClientProject ? (data.proyectoNombre || "") : "")
+    setUbicacion(keepClientProject ? (data.ubicacion || "") : "")
+    setClienteSearch(keepClientProject ? (data.cliente || "") : "")
+    setProyectoSearch(keepClientProject ? (data.proyectoNombre || "") : "")
     setItems(Array.isArray(data.itemsJson) && data.itemsJson.length > 0 ? data.itemsJson.map((it: any) => ({
       codigo: String(it.codigo || ""),
       descripcion: String(it.descripcion || ""),
@@ -217,21 +228,29 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     })) : [emptyItem()])
     setSelectedCondiciones(Array.isArray(data.condicionesIds) ? data.condicionesIds.map(String) : [])
     setPendingConditionTexts(Array.isArray(data.condicionesTextos) ? data.condicionesTextos.map(String) : [])
+    setPlazoDias(Number(data.plazoDias || 0))
+    setCondicionPago(data.condicionPago || "")
+    setCorreoVendedor(data.correoVendedor || user?.email || "")
+    setTelefonoComercial(data.telefonoComercial || user?.phone || "")
+    setPersonalComercial(data.personalComercial || user?.name || "")
+    setFechaSolicitud(data.fechaSolicitud || getTodayPeru())
+    setFechaEmision(data.fechaEmision || getTodayPeru())
+    setIncludeIgv(typeof data.includeIgv === "boolean" ? data.includeIgv : true)
 
-    if (isDuplicate || !keepClientProject) {
-      setSelectedCliente(null)
-      setSelectedProyecto(null)
-      setCliente("")
-      setRuc("")
-      setContacto("")
-      setTelefono("")
-      setCorreo("")
-      setProyecto("")
-      setUbicacion("")
-      setClienteSearch("")
-      setProyectoSearch("")
-    }
-  }, [])
+    setSelectedCliente(keepClientProject && data.clienteId ? {
+      id: data.clienteId,
+      nombre: data.cliente || "",
+      ruc: data.clienteRuc || "",
+      contacto: data.clienteContacto || "",
+      telefono: data.clienteTelefono || "",
+      email: data.clienteEmail || "",
+    } : null)
+    setSelectedProyecto(keepClientProject && data.proyectoId ? {
+      id: data.proyectoId,
+      nombre: data.proyectoNombre || "",
+      ubicacion: data.ubicacion || "",
+    } : null)
+  }, [user?.email, user?.name, user?.phone])
 
   const loadQuote = useCallback(async () => {
     if (!quoteId) return
@@ -260,6 +279,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         telefonoComercial: data.telefono_comercial,
         clienteId: data.cliente_id,
         proyectoId: data.proyecto_id,
+        fechaSolicitud: data.fecha_solicitud,
+        fechaEmision: data.fecha_emision,
+        personalComercial: data.personal_comercial,
+        includeIgv: data.include_igv,
       }, { keepClientProject: true })
     } catch (error: any) {
       toast.error("No se pudo cargar la cotización", { description: error?.message || "Error desconocido" })
@@ -369,10 +392,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       restoreDraft()
     }
     if (duplicateSourceQuote && !hasHydratedSource) {
-      hydrateQuote({
-        ...duplicateSourceQuote,
-        numero: `${randomNumericCode(3)}`,
-      }, { duplicate: true })
+      hydrateQuote(duplicateSourceQuote, { duplicate: true, keepClientProject: true })
       setHasHydratedSource(true)
     }
   }, [duplicateSourceQuote, hasHydratedSource, hydrateQuote, loadCondiciones, loadQuote, open, quoteId, restoreDraft])
@@ -583,8 +603,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     setSaving(true)
     try {
       const body = {
-        cotizacion_numero: numero ? formatQuoteNumber(numero, year) : undefined,
-        fecha_emision: undefined,
+        // The backend stores only the sequence and adds the year in the Excel.
+        // Sending the visual OT-... value duplicated prefixes/suffixes downstream.
+        cotizacion_numero: numero || undefined,
         cliente: cliente || undefined,
         ruc: ruc || undefined,
         contacto: contacto || undefined,
@@ -592,10 +613,12 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         correo: correo || undefined,
         proyecto: proyecto || undefined,
         ubicacion: ubicacion || undefined,
-        fecha_solicitud: fechaSolicitud || undefined,
-        fecha_emision: fechaEmision || undefined,
+        fecha_solicitud: fechaSolicitud ? toApiQuoteDate(fechaSolicitud) : undefined,
+        fecha_emision: fechaEmision ? toApiQuoteDate(fechaEmision) : undefined,
         plazo_dias: plazoDias || undefined,
         condicion_pago: condicionPago || undefined,
+        personal_comercial: personalComercial || user?.name || undefined,
+        telefono_comercial: telefonoComercial || user?.phone || undefined,
         correo_vendedor: correoVendedor || user?.email || undefined,
         user_id: user?.id,
         proyecto_id: selectedProyecto?.id || proyectoId,
@@ -680,7 +703,15 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none">
+        <DialogContent
+          className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none"
+          onPointerDownOutside={(event) => {
+            const target = event.detail.originalEvent.target
+            if (target instanceof Element && target.closest('[data-autocomplete-dropdown="true"]')) {
+              event.preventDefault()
+            }
+          }}
+        >
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -980,7 +1011,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => dragIndex !== null && dragIndex !== index && moveItem(dragIndex, index)}
                           >
-                            <TableCell className="align-top">{dragHandle}</TableCell>
+                            <TableCell className="align-top"><DragHandle /></TableCell>
                             <TableCell className="align-top">
                               <AutocompleteInput
                                 value={item.codigo}
