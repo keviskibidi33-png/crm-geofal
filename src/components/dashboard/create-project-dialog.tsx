@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
-import { Loader2, Building, MapPin, DollarSign, Briefcase, Calendar, User as UserIcon } from "lucide-react"
+import { Loader2, Building, MapPin, Briefcase, User as UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -29,7 +29,7 @@ const CLIENT_PREVIEW_LIMIT = 50
 interface CreateProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  onSuccess?: (project?: { id?: string; nombre?: string; ubicacion?: string; clienteId?: string }) => void
   user: User
   initialCliente?: {
     id: string
@@ -43,9 +43,6 @@ interface ProjectFormData {
   clienteId: string
   contactoId: string
   ubicacion?: string
-  fechaInicio: string
-  fechaFin: string
-  presupuesto?: number
 }
 
 interface Cliente {
@@ -129,9 +126,6 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
         clienteId: initialCliente?.id || '',
         contactoId: '',
         ubicacion: '',
-        fechaInicio: '',
-        fechaFin: '',
-        presupuesto: undefined,
       })
     }
   }, [fetchClientes, initialCliente?.id, initialCliente?.nombre, open, reset])
@@ -158,12 +152,9 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
         contacto_principal_id: selectedContacto,
         vendedor_id: user.id,
         ubicacion: data.ubicacion,
-        fecha_inicio: data.fechaInicio,
-        fecha_fin: data.fechaFin,
         estado: "prospecto",
         etapa: "pipeline",
         progreso: 0,
-        presupuesto: data.presupuesto || 0,
       })
 
       if (error) throw error
@@ -185,7 +176,11 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
       setSelectedCliente(null)
       setSelectedContacto(null)
       onOpenChange(false)
-      onSuccess?.()
+      onSuccess?.({
+        nombre: data.nombre,
+        ubicacion: data.ubicacion,
+        clienteId: selectedCliente,
+      })
     } catch (err) {
       toast.error("Error", {
         description: err instanceof Error ? err.message : "No se pudo crear el proyecto.",
@@ -350,14 +345,14 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                 </div>
               </div>
 
-              {/* Bloque 3: Logística y Tiempos */}
+              {/* Bloque 3: Ubicación y contacto */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-1.5 border-b border-[#0089b3]/10">
                   <div className="h-5 w-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
                     <MapPin className="h-3 w-3 text-emerald-500" />
                   </div>
                   <h4 className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-600">
-                    Planificación y Logística
+                    Ubicación y contacto
                   </h4>
                 </div>
 
@@ -371,44 +366,6 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                       {...register("ubicacion")}
                       placeholder="Ej: Planta Industrial, Callao"
                       className="h-10 text-xs bg-white rounded-xl border-slate-200 focus:border-emerald-400 shadow-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="fechaInicio" className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
-                        <Calendar className="h-2.5 w-2.5 inline mr-1" /> Inicio Estimado
-                      </Label>
-                      <Input
-                        id="fechaInicio"
-                        {...register("fechaInicio", { required: "Requerido" })}
-                        type="date"
-                        className="h-10 text-xs bg-white rounded-xl border-slate-200 focus:border-emerald-400 shadow-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="fechaFin" className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
-                        <Calendar className="h-2.5 w-2.5 inline mr-1" /> Cierre Objetivo
-                      </Label>
-                      <Input
-                        id="fechaFin"
-                        {...register("fechaFin", { required: "Requerido" })}
-                        type="date"
-                        className="h-10 text-xs bg-white rounded-xl border-slate-200 focus:border-emerald-400 shadow-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="presupuesto" className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 flex items-center gap-1">
-                      <DollarSign className="h-2.5 w-2.5" /> Presupuesto Estimado
-                    </Label>
-                    <Input
-                      id="presupuesto"
-                      {...register("presupuesto", { valueAsNumber: true })}
-                      type="number"
-                      placeholder="0.00"
-                      className="h-10 text-xs font-bold bg-white rounded-xl border-slate-200 focus:border-emerald-400 shadow-none"
                     />
                   </div>
                 </div>

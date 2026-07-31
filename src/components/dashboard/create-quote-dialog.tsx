@@ -977,8 +977,15 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         onOpenChange={setShowCreateProjectDialog}
         user={user as any}
         initialCliente={selectedCliente ? { id: selectedCliente.id, nombre: selectedCliente.nombre, ruc: selectedCliente.ruc } : null}
-        onSuccess={() => {
-          void searchProyectos(selectedCliente?.id, proyectoSearch)
+        onSuccess={(project) => {
+          if (project?.nombre) {
+            setProyecto(project.nombre)
+            setProyectoSearch(project.nombre)
+          }
+          if (project?.ubicacion) {
+            setUbicacion(project.ubicacion)
+          }
+          void searchProyectos(selectedCliente?.id, project?.nombre || proyectoSearch)
         }}
       />
 
