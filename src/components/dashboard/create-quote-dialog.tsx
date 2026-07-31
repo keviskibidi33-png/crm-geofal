@@ -90,6 +90,18 @@ const randomNumericCode = (length = 3) => {
   return String(Math.floor(Math.random() * max)).padStart(length, "0")
 }
 
+const extractQuoteSequence = (value: string, currentYear: number) => {
+  const suffix = String(currentYear).slice(-2)
+  const withoutPrefix = value.trim().replace(/^(?:COT|OT)-?/i, "")
+  const withoutYear = withoutPrefix.replace(new RegExp(`-${suffix}$`), "")
+  return withoutYear.replace(/\D/g, "")
+}
+
+const formatQuoteNumber = (value: string, currentYear: number) => {
+  const digits = extractQuoteSequence(value, currentYear)
+  return digits ? `OT-${digits}-${String(currentYear).slice(-2)}` : ""
+}
+
 const getTodayPeru = () => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -178,20 +190,13 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     localStorage.removeItem(draftKey)
   }, [draftKey])
 
-  const formatQuoteNumber = useCallback((value: string, currentYear = year) => {
-    const digits = value.replace(/\D/g, "")
-    if (!digits) return ""
-    const suffix = String(currentYear).slice(-2)
-    return `COT-${digits}-${suffix}`
-  }, [year])
-
   const hydrateQuote = useCallback((data: QuoteSource, opts?: { keepClientProject?: boolean; duplicate?: boolean }) => {
     const keepClientProject = opts?.keepClientProject ?? false
     const isDuplicate = opts?.duplicate ?? false
-    const derivedNumero = String(data.numero || "").replace(/\D/g, "")
+    const derivedNumero = extractQuoteSequence(String(data.numero || ""), Number(data.year || new Date().getFullYear()))
     const fallbackNumero = `${randomNumericCode(3)}`
 
-    setNumero(isDuplicate ? formatQuoteNumber(fallbackNumero, Number(data.year || new Date().getFullYear())) : (derivedNumero ? formatQuoteNumber(derivedNumero, Number(data.year || new Date().getFullYear())) : ""))
+    setNumero(isDuplicate ? fallbackNumero : derivedNumero)
     setYear(Number(data.year || new Date().getFullYear()))
     setCliente(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
     setRuc(keepClientProject ? (data.clienteRuc || "") : (isDuplicate ? "" : (data.clienteRuc || "")))
@@ -320,8 +325,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         const shouldRestore = window.confirm("Se encontró un borrador guardado. ¿Deseas restaurarlo?")
         if (!shouldRestore) return false
         const payload = parsed.payload
-        setNumero(payload.numero || "")
-        setYear(Number(payload.year || new Date().getFullYear()))
+        const draftYear = Number(payload.year || new Date().getFullYear())
+        setNumero(extractQuoteSequence(String(payload.numero || ""), draftYear))
+        setYear(draftYear)
         setCliente(payload.cliente || "")
         setRuc(payload.ruc || "")
         setContacto(payload.contacto || "")
@@ -510,12 +516,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   }
 
   const handleNumeroChange = (value: string) => {
-    const digits = value.replace(/\D/g, "")
-    if (!digits) {
-      setNumero("")
-      return
-    }
-    setNumero(formatQuoteNumber(digits))
+    setNumero(value.replace(/\D/g, ""))
   }
 
   const handleImportFile = async (file: File) => {
@@ -580,7 +581,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     setSaving(true)
     try {
       const body = {
-        cotizacion_numero: numero || undefined,
+        cotizacion_numero: numero ? formatQuoteNumber(numero, year) : undefined,
         fecha_emision: undefined,
         cliente: cliente || undefined,
         ruc: ruc || undefined,
@@ -624,7 +625,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `COT-${year}-${numero || "nuevo"}.xlsx`
+      a.download = `${numero ? formatQuoteNumber(numero, year) : `OT-nuevo-${String(year).slice(-2)}`}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -636,7 +637,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
           user_name: user.name,
           action: quoteId ? "Actualizó cotización nativa" : "Creó cotización nativa",
           module: "COTIZACIONES",
-          details: { numero, year, items: items.length, total },
+          details: { numero: numero ? formatQuoteNumber(numero, year) : null, year, items: items.length, total },
         })
       }
 
@@ -706,12 +707,33 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Número de cotización</Label>
-                      <Input value={numero} onChange={(e) => handleNumeroChange(e.target.value)} placeholder={`COT-23232-${String(year).slice(-2)}`} />
+                      <div className="flex h-10 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                        <span className="pl-3 text-sm text-muted-foreground">OT-</span>
+                        <Input
+                          value={numero}
+                          onChange={(e) => handleNumeroChange(e.target.value)}
+                          placeholder="23232"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          className="h-9 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                        <span className="pr-3 text-sm text-muted-foreground">-{String(year).slice(-2)}</span>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Año</Label>
-                      <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value || new Date().getFullYear()))} />
+                      <Input
+                        type="number"
+                        value={year}
+                        onChange={(e) => {
+                          const nextYear = Number(e.target.value || new Date().getFullYear())
+                          setYear(nextYear)
+                        }}
+                      />
                     </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2 relative">
                       <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Cliente / Empresa</Label>
                       <Input
@@ -780,11 +802,11 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <Label>Fecha de solicitud</Label>
                       <Input type="date" value={fechaSolicitud} onChange={(e) => setFechaSolicitud(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 md:order-[9]">
                       <Label>Fecha de emisión</Label>
                       <Input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
                     </div>
-                    <div className="space-y-2 relative md:col-span-2">
+                    <div className="space-y-2 relative md:order-[7]">
                       <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Proyecto</Label>
                       <Input
                         value={proyectoSearch}
@@ -826,10 +848,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         </div>
                       )}
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ubicación</Label>
-                    <Textarea value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} rows={2} />
+                    <div className="space-y-2 md:order-[8]">
+                      <Label>Ubicación</Label>
+                      <Input value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} />
+                    </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-3">
