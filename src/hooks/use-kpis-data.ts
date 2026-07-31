@@ -342,7 +342,23 @@ export function useKpisData(): KpisData {
         return Number.isFinite(num) ? num : 0
       }
 
-      const normalizeState = (value: unknown) => String(value ?? "").trim().toUpperCase()
+      const normalizeState = (value: unknown) =>
+        String(value ?? "")
+          .trim()
+          .toUpperCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ")
+      const stateAliases: Record<string, string> = {
+        "COTIZACION ENVIADA": "COTIZACION ENVIADA",
+        "COTIZACION REALIZADA": "COTIZACION ENVIADA",
+        "VENTA": "VENTA",
+        "NEGOCIACION": "NEGOCIACION",
+      }
+      const resolveSeguimientoState = (value: unknown) => {
+        const normalized = normalizeState(value)
+        return stateAliases[normalized] || normalized
+      }
       const seguimientoParams = new URLSearchParams({ limit: "10000", offset: "0" })
       const seguimientoResp = await authFetch(`${API_URL}/api/seguimiento-comercial?${seguimientoParams}`)
       const seguimientoData = seguimientoResp.ok ? await seguimientoResp.json() : { items: [] }
@@ -351,9 +367,9 @@ export function useKpisData(): KpisData {
         return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
       })
       const seguimientos = seguimientosMes
-      const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
-      const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
-      const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
+      const montoEnviada = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "COTIZACION ENVIADA")
+      const montoVenta = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "VENTA")
+      const montoNegociacion = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "NEGOCIACION")
 
       const leads = seguimientos.filter((r: any) => {
         const state = normalizeState(r.estado_seguimiento)
@@ -397,12 +413,11 @@ export function useKpisData(): KpisData {
         const week = weekBuckets[weekIndex]
         if (!week) continue
 
-        const estadoCliente = normalizeState(row.estado_cliente)
-        const estadoSeguimiento = normalizeState(row.estado_seguimiento)
+        const estadoSeguimiento = resolveSeguimientoState(row.estado_seguimiento)
         const monto = parseMoney(row.costo_cotiz_sin_igv)
-        if (estadoCliente === "COTIZACIÓN ENVIADA") week.cotizacionEnviada += monto
-        if (estadoCliente === "VENTA") week.venta += monto
-        if (estadoCliente === "NEGOCIACIÓN") week.negociacion += monto
+        if (estadoSeguimiento === "COTIZACION ENVIADA") week.cotizacionEnviada += monto
+        if (estadoSeguimiento === "VENTA") week.venta += monto
+        if (estadoSeguimiento === "NEGOCIACION") week.negociacion += monto
         if (estadoSeguimiento === "LEADS") week.leads += 1
         if (baseDate) week.clienteNuevos += 1
       }
