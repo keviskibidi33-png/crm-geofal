@@ -90,16 +90,23 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches"
   const roleKey = String(user.role || "").toLowerCase()
-  const shortcuts = quickAccessByRole[roleKey] || (canAccess("laboratorio") ? quickAccessByRole.laboratorio : quickAccessByRole.administrativo)
-  const favoriteDefaults = favoriteDefaultsByRole[roleKey] || shortcuts
-  const favoriteStorageKey = `crm-home-favorites-${roleKey || "default"}`
-  const [favorites, setFavorites] = useState<ModuleType[]>(() => favoriteDefaults.map((item) => item.module))
   const moduleLabelMap = useMemo(() => {
     return new Map(PERMISSION_MODULE_CATALOG.map((item) => [item.id, item.label]))
   }, [])
   const canAccess = useCallback((module: ModuleType) => {
     return canAccessDashboardModule(module, user.role, user.permissions, user.email)
   }, [user.email, user.permissions, user.role])
+  const shortcuts = useMemo(() => {
+    const roleShortcuts = quickAccessByRole[roleKey] || []
+    const fallbackShortcuts = canAccess("laboratorio") ? quickAccessByRole.laboratorio : quickAccessByRole.administrativo
+    return (roleShortcuts.length > 0 ? roleShortcuts : fallbackShortcuts).filter((shortcut) => canAccess(shortcut.module))
+  }, [canAccess, roleKey])
+  const favoriteDefaults = useMemo(() => {
+    const roleFavorites = favoriteDefaultsByRole[roleKey] || shortcuts
+    return roleFavorites.filter((item) => canAccess(item.module))
+  }, [canAccess, roleKey, shortcuts])
+  const favoriteStorageKey = `crm-home-favorites-${roleKey || "default"}`
+  const [favorites, setFavorites] = useState<ModuleType[]>(() => favoriteDefaults.map((item) => item.module))
 
   useEffect(() => {
     try {
@@ -135,7 +142,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
     }
   }, [canAccess])
 
-  const favoriteChoices = favoriteDefaults.filter((item) => favorites.includes(item.module) && canAccess(item.module))
+  const favoriteChoices = favoriteDefaults.filter((item) => favorites.includes(item.module))
 
   const toggleFavorite = (module: ModuleType) => {
     setFavorites((current) => {
@@ -148,61 +155,72 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 xl:gap-8">
-      <section className="grid gap-6 rounded-3xl border border-border bg-gradient-to-br from-white via-white to-slate-50 p-6 shadow-sm lg:grid-cols-[1.2fr_0.8fr] lg:p-8">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+      <section className="grid gap-8 lg:grid-cols-[1.35fr_0.85fr]">
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em]">
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
               Centro de inicio
             </Badge>
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] font-medium">
+            <Badge variant="outline" className="rounded-full px-4 py-1.5 text-[11px] font-medium bg-white">
               {user.roleLabel || user.role}
             </Badge>
           </div>
 
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <div className="space-y-3">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
               {greeting}, {user.name}
             </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
               Este es tu punto de partida en Geofal CRM: accede rápido a lo que usas más, revisa tu rol y entra al flujo de trabajo sin perder tiempo.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {shortcuts.filter((shortcut) => canAccess(shortcut.module)).map((shortcut) => (
-              <Button key={shortcut.module} onClick={() => onNavigateModule(shortcut.module)} className="rounded-full">
+            {shortcuts.map((shortcut) => (
+              <Button key={shortcut.module} onClick={() => onNavigateModule(shortcut.module)} className="rounded-full px-5">
                 {shortcut.label}
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
             ))}
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full border-dashed bg-white px-5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              onClick={() => {
+                const next = favoriteDefaults.map((item) => item.module).find((module) => !favorites.includes(module))
+                if (next) toggleFavorite(next)
+              }}
+            >
+              Agregar módulo personalizado (+)
+            </Button>
           </div>
         </div>
 
-        <Card className="border-border/70 bg-white/70 shadow-none">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Acceso rápido</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3">
-              <span className="text-muted-foreground">Usuario</span>
-              <span className="font-medium text-foreground">{user.email}</span>
+        <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground">Acceso rápido</h2>
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
+              <span className="text-sm text-muted-foreground">Usuario</span>
+              <span className="text-sm font-semibold text-foreground">{user.email}</span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3">
-              <span className="text-muted-foreground">Rol</span>
-              <span className="font-medium text-foreground">{user.roleLabel || "Sin definir"}</span>
+            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
+              <span className="text-sm text-muted-foreground">Rol</span>
+              <span className="text-sm font-semibold text-foreground">{user.roleLabel || "Sin definir"}</span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3">
-              <span className="text-muted-foreground">Última entrada</span>
-              <span className="font-medium text-foreground">{new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}</span>
+            <div className="flex items-center justify-between rounded-full bg-muted/30 px-5 py-4">
+              <span className="text-sm text-muted-foreground">Última entrada</span>
+              <span className="text-sm font-semibold text-foreground">
+                {new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/70">
+        <Card className="border-border/70 bg-white shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <LayoutGrid className="h-4 w-4 text-primary" />
@@ -228,7 +246,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="border-border/70 bg-white shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Clock3 className="h-4 w-4 text-primary" />
@@ -253,7 +271,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
         </Card>
       </section>
 
-      <section className="rounded-3xl border border-border bg-white p-5 shadow-sm">
+      <section className="rounded-3xl border border-border bg-white px-5 py-6 shadow-sm">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-foreground">Tus módulos favoritos</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -262,7 +280,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {favoriteDefaults.filter((item) => canAccess(item.module)).map((item) => {
+          {favoriteDefaults.map((item) => {
             const active = favorites.includes(item.module)
             return (
               <Button
@@ -270,7 +288,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
                 type="button"
                 variant={active ? "default" : "outline"}
                 className={[
-                  "rounded-full border-dashed bg-white",
+                  "rounded-full border-dashed bg-white px-5",
                   active ? "" : "text-foreground hover:bg-muted/40",
                 ].join(" ")}
                 onClick={() => toggleFavorite(item.module)}
@@ -280,18 +298,6 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
               </Button>
             )
           })}
-
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full border-dashed bg-white text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-            onClick={() => {
-            const next = favoriteDefaults.filter((item) => canAccess(item.module)).map((item) => item.module).find((module) => !favorites.includes(module))
-              if (next) toggleFavorite(next)
-            }}
-          >
-            Agregar módulo personalizado (+)
-          </Button>
         </div>
 
         {favoriteChoices.length > 0 && (
@@ -301,7 +307,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
             </p>
             <div className="flex flex-wrap gap-3">
               {favoriteChoices.map((item) => (
-                <Button key={item.module} onClick={() => onNavigateModule(item.module)} className="rounded-full">
+                <Button key={item.module} onClick={() => onNavigateModule(item.module)} className="rounded-full px-5">
                   {item.label}
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
