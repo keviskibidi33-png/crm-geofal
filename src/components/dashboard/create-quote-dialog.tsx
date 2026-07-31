@@ -110,6 +110,8 @@ const PAYMENT_OPTIONS = [
   "Crédito a 30 días",
 ]
 
+type ConditionItem = { id: string; texto: string; categoria?: string; orden?: number }
+
 export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId, duplicateSourceQuote }: CreateQuoteDialogProps) {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -149,6 +151,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [condiciones, setCondiciones] = useState<Condicion[]>([])
   const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
   const [showCondicionesModal, setShowCondicionesModal] = useState(false)
+  const [showCreateConditionModal, setShowCreateConditionModal] = useState(false)
+  const [conditionSearch, setConditionSearch] = useState("")
+  const [newConditionText, setNewConditionText] = useState("")
+  const [newConditionCategory, setNewConditionCategory] = useState("")
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
   const [hasHydratedSource, setHasHydratedSource] = useState(false)
   const [pendingConditionTexts, setPendingConditionTexts] = useState<string[]>([])
@@ -158,6 +164,14 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.costo_unitario || 0) * Number(item.cantidad || 0), 0), [items])
   const igv = includeIgv ? subtotal * 0.18 : 0
   const total = subtotal + igv
+
+  const filteredConditions = useMemo(() => {
+    const query = conditionSearch.trim().toLowerCase()
+    if (!query) return condiciones
+    return condiciones.filter((cond) =>
+      `${cond.texto} ${cond.categoria || ""}`.toLowerCase().includes(query)
+    )
+  }, [conditionSearch, condiciones])
 
   const clearDraft = useCallback(() => {
     if (typeof window === "undefined") return
@@ -523,6 +537,38 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       setImportOpen(false)
     } finally {
       setLoadingPreview(false)
+    }
+  }
+
+  const createCondition = async () => {
+    const texto = newConditionText.trim()
+    if (!texto) {
+      toast.error("Escribe el texto de la condición")
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from("condiciones")
+        .insert({
+          texto,
+          categoria: newConditionCategory.trim() || null,
+        })
+        .select("id, texto, categoria, orden")
+        .single()
+
+      if (error) throw error
+
+      const created = data as ConditionItem
+      setCondiciones((prev) => [...prev, created])
+      setSelectedCondiciones((prev) => [...prev, created.id])
+      setNewConditionText("")
+      setNewConditionCategory("")
+      setShowCreateConditionModal(false)
+      toast.success("Condición creada y seleccionada")
+    } catch (err: any) {
+      toast.error("No se pudo crear la condición", {
+        description: err?.message || "Error desconocido",
+      })
     }
   }
 
@@ -995,25 +1041,74 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
             <DialogTitle>Condiciones específicas</DialogTitle>
             <DialogDescription>Selecciona las condiciones que formarán parte de la cotización.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto space-y-2">
-            {condiciones.map((cond) => (
-              <label key={cond.id} className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={selectedCondiciones.includes(cond.id)}
-                  onChange={(e) => {
-                    setSelectedCondiciones((prev) =>
-                      e.target.checked ? [...prev, cond.id] : prev.filter((id) => id !== cond.id)
-                    )
-                  }}
-                />
-                <span className="text-sm">{cond.texto}</span>
-              </label>
-            ))}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Input
+                value={conditionSearch}
+                onChange={(e) => setConditionSearch(e.target.value)}
+                placeholder="Buscar condiciones..."
+                autoComplete="off"
+              />
+              <Button type="button" variant="outline" onClick={() => setShowCreateConditionModal(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nueva
+              </Button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+              {filteredConditions.map((cond) => (
+                <label key={cond.id} className="flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={selectedCondiciones.includes(cond.id)}
+                    onChange={(e) => {
+                      setSelectedCondiciones((prev) =>
+                        e.target.checked ? [...prev, cond.id] : prev.filter((id) => id !== cond.id)
+                      )
+                    }}
+                  />
+                  <span className="text-sm">{cond.texto}</span>
+                </label>
+              ))}
+              {filteredConditions.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">No se encontraron condiciones.</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setShowCondicionesModal(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreateConditionModal} onOpenChange={setShowCreateConditionModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nueva Condición</DialogTitle>
+            <DialogDescription>Crea una condición rápida para reutilizarla en cotizaciones.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Texto de la condición</Label>
+              <Textarea
+                value={newConditionText}
+                onChange={(e) => setNewConditionText(e.target.value)}
+                placeholder="Ej: El cliente deberá..."
+                rows={4}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoría (opcional)</Label>
+              <Input
+                value={newConditionCategory}
+                onChange={(e) => setNewConditionCategory(e.target.value)}
+                placeholder="Ej: Ensayos, Logística, Pagos, etc."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateConditionModal(false)}>Cancelar</Button>
+            <Button onClick={createCondition}>Crear Condición</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

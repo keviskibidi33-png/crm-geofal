@@ -1739,13 +1739,9 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                       <User2 className="h-4 w-4" />
-                      Información Comercial
+                      Resumen comercial
                     </div>
                     <div className="space-y-2 bg-secondary/20 p-4 rounded-lg">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Vendedor</p>
-                        <p className="text-sm font-semibold">{selectedQuote.owner}</p>
-                      </div>
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Monto Total</p>
                         <p className="text-xl font-bold text-primary">S/. {selectedQuote.monto.toLocaleString("es-PE", { minimumFractionDigits: 2 })}</p>
