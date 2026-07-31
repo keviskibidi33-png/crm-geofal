@@ -30,6 +30,28 @@ type QuoteItem = {
 
 type Condicion = { id: string; texto: string; categoria?: string; orden?: number }
 
+type QuoteSource = {
+  id?: string
+  numero?: string | number
+  year?: number
+  cliente?: string
+  clienteRuc?: string
+  clienteContacto?: string
+  clienteEmail?: string
+  clienteTelefono?: string
+  proyectoNombre?: string
+  itemsJson?: any[]
+  condicionesTextos?: string[]
+  condicionesIds?: string[]
+  plazoDias?: number
+  condicionPago?: string
+  correoVendedor?: string
+  telefonoComercial?: string
+  clienteId?: string
+  proyectoId?: string
+  ubicacion?: string
+}
+
 interface CreateQuoteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,6 +60,7 @@ interface CreateQuoteDialogProps {
   proyectoId?: string
   clienteId?: string
   quoteId?: string
+  duplicateSourceQuote?: QuoteSource | null
 }
 
 const emptyItem = (): QuoteItem => ({
@@ -57,7 +80,16 @@ const dragHandle = (
   </div>
 )
 
-export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId }: CreateQuoteDialogProps) {
+const DRAFT_VERSION = 2
+
+const makeDraftKey = (userId?: string, quoteId?: string) => `crm-geofal-cotizacion-draft:v${DRAFT_VERSION}:${userId || "anon"}:${quoteId || "new"}`
+
+const randomNumericCode = (length = 3) => {
+  const max = 10 ** length
+  return String(Math.floor(Math.random() * max)).padStart(length, "0")
+}
+
+export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId, duplicateSourceQuote }: CreateQuoteDialogProps) {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
@@ -88,11 +120,60 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [condiciones, setCondiciones] = useState<Condicion[]>([])
   const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
   const [showCondicionesModal, setShowCondicionesModal] = useState(false)
+  const [hasHydratedSource, setHasHydratedSource] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const draftKey = useMemo(() => makeDraftKey(user?.id, quoteId), [quoteId, user?.id])
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.costo_unitario || 0) * Number(item.cantidad || 0), 0), [items])
   const igv = subtotal * 0.18
   const total = subtotal + igv
+
+  const clearDraft = useCallback(() => {
+    if (typeof window === "undefined") return
+    localStorage.removeItem(draftKey)
+  }, [draftKey])
+
+  const hydrateQuote = useCallback((data: QuoteSource, opts?: { keepClientProject?: boolean; duplicate?: boolean }) => {
+    const keepClientProject = opts?.keepClientProject ?? false
+    const isDuplicate = opts?.duplicate ?? false
+    const derivedNumero = String(data.numero || "").replace(/\D/g, "")
+    const fallbackNumero = `${randomNumericCode(3)}`
+
+    setNumero(isDuplicate ? fallbackNumero : derivedNumero || "")
+    setYear(Number(data.year || new Date().getFullYear()))
+    setCliente(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
+    setRuc(keepClientProject ? (data.clienteRuc || "") : (isDuplicate ? "" : (data.clienteRuc || "")))
+    setContacto(keepClientProject ? (data.clienteContacto || "") : (isDuplicate ? "" : (data.clienteContacto || "")))
+    setTelefono(keepClientProject ? (data.clienteTelefono || "") : (isDuplicate ? "" : (data.clienteTelefono || "")))
+    setCorreo(keepClientProject ? (data.clienteEmail || "") : (isDuplicate ? "" : (data.clienteEmail || "")))
+    setProyecto(keepClientProject ? (data.proyectoNombre || "") : (isDuplicate ? "" : (data.proyectoNombre || "")))
+    setUbicacion(keepClientProject ? (data.ubicacion || "") : (isDuplicate ? "" : (data.ubicacion || "")))
+    setClienteSearch(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
+    setProyectoSearch(keepClientProject ? (data.proyectoNombre || "") : (isDuplicate ? "" : (data.proyectoNombre || "")))
+    setItems(Array.isArray(data.itemsJson) && data.itemsJson.length > 0 ? data.itemsJson.map((it: any) => ({
+      codigo: String(it.codigo || ""),
+      descripcion: String(it.descripcion || ""),
+      norma: String(it.norma || ""),
+      acreditado: String(it.acreditado || "SI"),
+      costo_unitario: Number(it.costo_unitario || 0),
+      cantidad: Number(it.cantidad || 1),
+    })) : [emptyItem()])
+    setSelectedCondiciones(Array.isArray(data.condicionesIds) ? data.condicionesIds.map(String) : [])
+
+    if (isDuplicate || !keepClientProject) {
+      setSelectedCliente(null)
+      setSelectedProyecto(null)
+      setCliente("")
+      setRuc("")
+      setContacto("")
+      setTelefono("")
+      setCorreo("")
+      setProyecto("")
+      setUbicacion("")
+      setClienteSearch("")
+      setProyectoSearch("")
+    }
+  }, [])
 
   const loadQuote = useCallback(async () => {
     if (!quoteId) return
@@ -102,32 +183,32 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       if (!resp.ok) throw new Error(await resp.text())
       const payload = await resp.json()
       const data = payload?.data ?? {}
-      setNumero(data.numero || "")
-      setYear(Number(data.year || new Date().getFullYear()))
-      setCliente(data.cliente || "")
-      setRuc(data.ruc || "")
-      setContacto(data.contacto || "")
-      setTelefono(data.telefono || "")
-      setCorreo(data.email || "")
-      setProyecto(data.proyecto || "")
-      setUbicacion(data.ubicacion || "")
-      setClienteSearch(data.cliente || "")
-      setProyectoSearch(data.proyecto || "")
-      setItems(Array.isArray(data.items_json) && data.items_json.length > 0 ? data.items_json.map((it: any) => ({
-        codigo: String(it.codigo || ""),
-        descripcion: String(it.descripcion || ""),
-        norma: String(it.norma || ""),
-        acreditado: String(it.acreditado || "SI"),
-        costo_unitario: Number(it.costo_unitario || 0),
-        cantidad: Number(it.cantidad || 1),
-      })) : [emptyItem()])
-      setSelectedCondiciones(Array.isArray(data.condiciones_ids) ? data.condiciones_ids.map(String) : [])
+      hydrateQuote({
+        id: data.id,
+        numero: data.numero,
+        year: data.year,
+        cliente: data.cliente,
+        clienteRuc: data.ruc,
+        clienteContacto: data.contacto,
+        clienteEmail: data.email,
+        clienteTelefono: data.telefono,
+        proyectoNombre: data.proyecto,
+        ubicacion: data.ubicacion,
+        itemsJson: data.items_json,
+        condicionesIds: data.condiciones_ids,
+        plazoDias: data.plazo_dias,
+        condicionPago: data.condicion_pago,
+        correoVendedor: data.correo_vendedor,
+        telefonoComercial: data.telefono_comercial,
+        clienteId: data.cliente_id,
+        proyectoId: data.proyecto_id,
+      }, { keepClientProject: true })
     } catch (error: any) {
       toast.error("No se pudo cargar la cotización", { description: error?.message || "Error desconocido" })
     } finally {
       setLoading(false)
     }
-  }, [quoteId])
+  }, [hydrateQuote, quoteId])
 
   const searchClientes = useCallback(async (search: string) => {
     if (search.trim().length < 2) {
@@ -175,11 +256,59 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     }
   }, [])
 
+  const restoreDraft = useCallback(() => {
+    if (quoteId || duplicateSourceQuote) return false
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (!raw) return false
+      const parsed = JSON.parse(raw)
+      if (parsed?.version !== DRAFT_VERSION) return false
+      if (parsed?.payload) {
+        const shouldRestore = window.confirm("Se encontró un borrador guardado. ¿Deseas restaurarlo?")
+        if (!shouldRestore) return false
+        const payload = parsed.payload
+        setNumero(payload.numero || "")
+        setYear(Number(payload.year || new Date().getFullYear()))
+        setCliente(payload.cliente || "")
+        setRuc(payload.ruc || "")
+        setContacto(payload.contacto || "")
+        setTelefono(payload.telefono || "")
+        setCorreo(payload.correo || "")
+        setProyecto(payload.proyecto || "")
+        setUbicacion(payload.ubicacion || "")
+        setClienteSearch(payload.clienteSearch || payload.cliente || "")
+        setProyectoSearch(payload.proyectoSearch || payload.proyecto || "")
+        setItems(Array.isArray(payload.items) && payload.items.length > 0 ? payload.items : [emptyItem()])
+        setSelectedCondiciones(Array.isArray(payload.selectedCondiciones) ? payload.selectedCondiciones : [])
+        setSelectedCliente(payload.selectedCliente || null)
+        setSelectedProyecto(payload.selectedProyecto || null)
+        return true
+      }
+    } catch {
+      return false
+    }
+    return false
+  }, [draftKey, duplicateSourceQuote, quoteId])
+
   useEffect(() => {
+    if (!open) {
+      setHasHydratedSource(false)
+      return
+    }
     if (!open) return
     void loadQuote()
     void loadCondiciones()
-  }, [open, loadQuote])
+    if (!quoteId && !duplicateSourceQuote) {
+      restoreDraft()
+    }
+    if (duplicateSourceQuote && !hasHydratedSource) {
+      hydrateQuote({
+        ...duplicateSourceQuote,
+        numero: `${randomNumericCode(3)}`,
+      }, { duplicate: true })
+      setHasHydratedSource(true)
+    }
+  }, [duplicateSourceQuote, hasHydratedSource, hydrateQuote, loadCondiciones, loadQuote, open, quoteId, restoreDraft])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -233,6 +362,35 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       return next
     })
   }
+
+  useEffect(() => {
+    if (!open || quoteId || duplicateSourceQuote) return
+    const timer = setTimeout(() => {
+      const payload = {
+        version: DRAFT_VERSION,
+        savedAt: new Date().toISOString(),
+        payload: {
+          numero,
+          year,
+          cliente,
+          ruc,
+          contacto,
+          telefono,
+          correo,
+          proyecto,
+          ubicacion,
+          clienteSearch,
+          proyectoSearch,
+          items,
+          selectedCondiciones,
+          selectedCliente,
+          selectedProyecto,
+        },
+      }
+      localStorage.setItem(draftKey, JSON.stringify(payload))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [cliente, clienteSearch, correo, draftKey, duplicateSourceQuote, items, numero, open, proyecto, proyectoSearch, quoteId, ruc, selectedCliente, selectedCondiciones, selectedProyecto, telefono, ubicacion, year, contacto])
 
   const selectCliente = (clienteData: any) => {
     setSelectedCliente(clienteData)
@@ -357,6 +515,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       }
 
       toast.success("Cotización procesada correctamente")
+      clearDraft()
       onSuccess?.()
       onOpenChange(false)
     } catch (error: any) {
@@ -378,6 +537,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       if (!resp.ok) throw new Error(payload?.detail || payload?.message || `HTTP ${resp.status}`)
       toast.success("Excel importado")
       onSuccess?.()
+      clearDraft()
       setImportOpen(false)
     } catch (error: any) {
       toast.error("No se pudo importar el Excel", { description: error?.message || "Error desconocido" })

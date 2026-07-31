@@ -160,6 +160,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
+  const [duplicateSourceQuote, setDuplicateSourceQuote] = useState<Quote | null>(null)
   const [previewQuote, setPreviewQuote] = useState<Quote | null>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
@@ -293,6 +294,12 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         })
       })
   }, [loadQuoteDetails])
+
+  const openDuplicateDialog = useCallback((quote: Quote) => {
+    setDuplicateSourceQuote(quote)
+    setSelectedQuote(null)
+    setIsDialogOpen(true)
+  }, [])
 
   useEffect(() => {
     fetchQuotes()
@@ -1176,6 +1183,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             onViewFull={openViewDialog}
             onDelete={(quote) => { setPreviewQuote(quote); setIsDeleteConfirmOpen(true) }}
             onEdit={(quote) => { setSelectedQuote(quote); setIsDialogOpen(true) }}
+            onDuplicate={openDuplicateDialog}
             onUpload={handleUploadClick}
             isUpdating={updatingStatus || uploadingFile || loadingQuoteDetailsId === previewQuote?.id}
           />
@@ -1186,12 +1194,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         open={isDialogOpen}
         onOpenChange={(open) => {
           setIsDialogOpen(open);
-          if (!open) setSelectedQuote(null); // Clear selection on close
+          if (!open) {
+            setSelectedQuote(null)
+            setDuplicateSourceQuote(null)
+          }
         }}
-        iframeUrl={cotizadorUrl}
         user={user}
         onSuccess={fetchQuotes}
         quoteId={selectedQuote?.id}
+        duplicateSourceQuote={duplicateSourceQuote}
       />
 
       {/* Full View Dialog (for complete details) */}

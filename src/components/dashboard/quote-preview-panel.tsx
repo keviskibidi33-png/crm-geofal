@@ -18,6 +18,7 @@ interface QuotePreviewPanelProps {
     onStatusChange: (quoteId: string, status: Quote["estado"]) => void
     onViewFull: (quote: Quote) => void
     onEdit: (quote: Quote) => void
+    onDuplicate: (quote: Quote) => void
     onDelete: (quote: Quote) => void
     onUpload: (quote: Quote) => void
     isUpdating?: boolean
@@ -52,6 +53,7 @@ export function QuotePreviewPanel({
     onStatusChange,
     onViewFull,
     onEdit,
+    onDuplicate,
     onDelete,
     onUpload,
     isUpdating = false
@@ -343,6 +345,15 @@ export function QuotePreviewPanel({
                 </div>
 
                 <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-8 text-xs gap-1.5"
+                        onClick={() => onDuplicate(quote)}
+                    >
+                        <FileText className="h-3.5 w-3.5" />
+                        Duplicar
+                    </Button>
                     <Button
                         variant="ghost"
                         size="sm"
