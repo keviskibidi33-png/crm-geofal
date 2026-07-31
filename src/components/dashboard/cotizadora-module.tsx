@@ -623,7 +623,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       const formData = new FormData()
       formData.append("file", file)
 
-      const res = await fetch(`${baseUrl}/import-excel/preview`, {
+      const res = await authFetch(`${baseUrl}/import-excel/preview`, {
         method: "POST",
         body: formData,
       })
@@ -670,7 +670,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       formData.append("user_name", user.name)
 
       const condicionesParam = importSelectedCondiciones.length > 0 ? `&condiciones_ids=${encodeURIComponent(importSelectedCondiciones.join(","))}` : ""
-      const res = await fetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}&custom_numero=${encodeURIComponent(importNumero)}${condicionesParam}`, {
+      const res = await authFetch(`${baseUrl}/import-excel?user_id=${encodeURIComponent(user.id)}&user_name=${encodeURIComponent(user.name)}&custom_numero=${encodeURIComponent(importNumero)}${condicionesParam}`, {
         method: "POST",
         body: formData,
       })
@@ -742,7 +742,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
       const year = new Date().getFullYear()
-      const res = await fetch(`${baseUrl}/import-excel/check-number?numero=${encodeURIComponent(numero.trim())}&year=${year}`, {
+      const res = await authFetch(`${baseUrl}/import-excel/check-number?numero=${encodeURIComponent(numero.trim())}&year=${year}`, {
         method: "POST",
       })
       if (res.ok) {
