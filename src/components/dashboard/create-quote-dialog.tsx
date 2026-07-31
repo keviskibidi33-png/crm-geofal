@@ -15,6 +15,7 @@ import { authFetch } from "@/lib/api-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
 import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
+import { CreateProjectDialog } from "./create-project-dialog"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -120,6 +121,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [condiciones, setCondiciones] = useState<Condicion[]>([])
   const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
   const [showCondicionesModal, setShowCondicionesModal] = useState(false)
+  const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
   const [hasHydratedSource, setHasHydratedSource] = useState(false)
   const [pendingConditionTexts, setPendingConditionTexts] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -134,13 +136,20 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     localStorage.removeItem(draftKey)
   }, [draftKey])
 
+  const formatQuoteNumber = useCallback((value: string, currentYear = year) => {
+    const digits = value.replace(/\D/g, "")
+    if (!digits) return ""
+    const suffix = String(currentYear).slice(-2)
+    return `COT-${digits}-${suffix}`
+  }, [year])
+
   const hydrateQuote = useCallback((data: QuoteSource, opts?: { keepClientProject?: boolean; duplicate?: boolean }) => {
     const keepClientProject = opts?.keepClientProject ?? false
     const isDuplicate = opts?.duplicate ?? false
     const derivedNumero = String(data.numero || "").replace(/\D/g, "")
     const fallbackNumero = `${randomNumericCode(3)}`
 
-    setNumero(isDuplicate ? fallbackNumero : derivedNumero || "")
+    setNumero(isDuplicate ? formatQuoteNumber(fallbackNumero, Number(data.year || new Date().getFullYear())) : (derivedNumero ? formatQuoteNumber(derivedNumero, Number(data.year || new Date().getFullYear())) : ""))
     setYear(Number(data.year || new Date().getFullYear()))
     setCliente(keepClientProject ? (data.cliente || "") : (isDuplicate ? "" : (data.cliente || "")))
     setRuc(keepClientProject ? (data.clienteRuc || "") : (isDuplicate ? "" : (data.clienteRuc || "")))
@@ -442,6 +451,15 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     })
   }
 
+  const handleNumeroChange = (value: string) => {
+    const digits = value.replace(/\D/g, "")
+    if (!digits) {
+      setNumero("")
+      return
+    }
+    setNumero(formatQuoteNumber(digits))
+  }
+
   const handleImportFile = async (file: File) => {
     setLoadingPreview(true)
     setImportOpen(true)
@@ -593,7 +611,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Número de cotización</Label>
-                      <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder={`COT-${year}-001`} />
+                      <Input value={numero} onChange={(e) => handleNumeroChange(e.target.value)} placeholder={`COT-23232-${String(year).slice(-2)}`} />
                     </div>
                     <div className="space-y-2">
                       <Label>Año</Label>
@@ -613,7 +631,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         autoComplete="off"
                       />
                       {showClienteDropdown && clientes.length > 0 && (
-                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto overscroll-contain rounded-md border bg-background shadow-lg">
                           {clientes.map((c) => (
                             <button
                               key={c.id}
@@ -677,7 +695,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         autoComplete="off"
                       />
                       {showProyectoDropdown && proyectos.length > 0 && (
-                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border bg-background shadow-lg">
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto overscroll-contain rounded-md border bg-background shadow-lg">
                           {proyectos.map((p) => (
                             <button
                               key={p.id}
@@ -696,11 +714,11 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             <button
                               type="button"
                               className="w-full border-t px-3 py-2 text-left text-xs text-primary hover:bg-muted"
-                              onClick={() => setShowProyectoDropdown(false)}
-                            >
-                              <Plus className="inline h-3 w-3 mr-1" />
-                              Crear nuevo proyecto para {selectedCliente.nombre}
-                            </button>
+                          onClick={() => setShowCreateProjectDialog(true)}
+                        >
+                          <Plus className="inline h-3 w-3 mr-1" />
+                          Crear nuevo proyecto para {selectedCliente.nombre}
+                        </button>
                           ) : null}
                         </div>
                       )}
@@ -845,6 +863,15 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
           </div>
         </DialogContent>
       </Dialog>
+      <CreateProjectDialog
+        open={showCreateProjectDialog}
+        onOpenChange={setShowCreateProjectDialog}
+        user={user as any}
+        initialCliente={selectedCliente ? { id: selectedCliente.id, nombre: selectedCliente.nombre, ruc: selectedCliente.ruc } : null}
+        onSuccess={() => {
+          void searchProyectos(selectedCliente?.id, proyectoSearch)
+        }}
+      />
 
       <Dialog open={showCondicionesModal} onOpenChange={setShowCondicionesModal}>
         <DialogContent className="max-w-3xl">

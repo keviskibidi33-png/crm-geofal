@@ -31,6 +31,11 @@ interface CreateProjectDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
   user: User
+  initialCliente?: {
+    id: string
+    nombre: string
+    ruc?: string
+  } | null
 }
 
 interface ProjectFormData {
@@ -53,7 +58,7 @@ interface Cliente {
   cotizaciones_aprobadas?: number
 }
 
-export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initialCliente = null }: CreateProjectDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteSearch, setClienteSearch] = useState('')
@@ -116,12 +121,20 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user }: Cre
   useEffect(() => {
     if (open) {
       void fetchClientes()
-      setClienteSearch('')
-      setSelectedCliente(null)
+      setClienteSearch(initialCliente?.nombre || '')
+      setSelectedCliente(initialCliente?.id || null)
       setSelectedContacto(null)
-      reset()
+      reset({
+        nombre: '',
+        clienteId: initialCliente?.id || '',
+        contactoId: '',
+        ubicacion: '',
+        fechaInicio: '',
+        fechaFin: '',
+        presupuesto: undefined,
+      })
     }
-  }, [open, fetchClientes, reset])
+  }, [fetchClientes, initialCliente?.id, initialCliente?.nombre, open, reset])
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!user) {
