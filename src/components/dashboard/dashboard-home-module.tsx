@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Clock3, LayoutGrid, Sparkles } from "lucide-react"
 import type { ModuleType, User } from "@/hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
@@ -74,14 +74,66 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
 
 export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeModuleProps) {
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches"
   const roleKey = String(user.role || "").toLowerCase()
+  const greetingStorageKey = `crm-home-greeting-state-${user.id}`
   const moduleLabelMap = useMemo(() => {
     return new Map(PERMISSION_MODULE_CATALOG.map((item) => [item.id, item.label]))
   }, [])
   const canAccess = useCallback((module: ModuleType) => {
     return canAccessDashboardModule(module, user.role, user.permissions, user.email)
   }, [user.email, user.permissions, user.role])
+  const [greeting, setGreeting] = useState("Bienvenido de nuevo")
+
+  const baseGreeting = useMemo(() => {
+    if (hour < 12) return "Buenos días"
+    if (hour < 19) return "Buenas tardes"
+    return "Buenas noches"
+  }, [hour])
+
+  const greetingPool = useMemo(() => {
+    const firstEntryMessages = [
+      "Bienvenido de nuevo",
+      "Tu panel está listo",
+      "Todo listo para seguir",
+    ]
+    const repeatMessages = [
+      "Qué gusto verte de nuevo",
+      "Vamos con un gran día",
+      "CRM listo, café opcional",
+    ]
+
+    const sensitiveRole = [
+      "admin",
+      "admin_general",
+      "administrativo",
+      "laboratorio_lector",
+    ].includes(roleKey)
+
+    return {
+      firstEntry: sensitiveRole ? firstEntryMessages : [...firstEntryMessages, ...repeatMessages],
+      repeat: sensitiveRole
+        ? [...firstEntryMessages, "Bienvenido de nuevo"]
+        : [...repeatMessages, "Bienvenido de nuevo"],
+    }
+  }, [roleKey])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const saved = localStorage.getItem(greetingStorageKey)
+      const state = saved ? JSON.parse(saved) as { date?: string; count?: number } : null
+      const isSameDay = state?.date === today
+      const nextCount = isSameDay ? (state?.count || 0) + 1 : 1
+      const source = nextCount === 1 ? greetingPool.firstEntry : greetingPool.repeat
+      const phrase = source[Math.floor(Math.random() * source.length)] || "Bienvenido de nuevo"
+      setGreeting(phrase)
+      localStorage.setItem(greetingStorageKey, JSON.stringify({ date: today, count: nextCount }))
+    } catch {
+      setGreeting("Bienvenido de nuevo")
+    }
+  }, [greetingPool, greetingStorageKey])
   const shortcuts = useMemo(() => {
     const roleShortcuts = quickAccessByRole[roleKey] || []
     const fallbackShortcuts = canAccess("laboratorio") ? quickAccessByRole.laboratorio : quickAccessByRole.administrativo
@@ -118,8 +170,11 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
 
           <div className="space-y-3">
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              {greeting}, {user.name}
+              {baseGreeting}, {user.name}
             </h1>
+            <h2 className="text-2xl font-medium tracking-tight text-foreground/90 sm:text-3xl">
+              {greeting}, {user.name}
+            </h2>
             <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
               Este es tu punto de partida en Geofal CRM: accede rápido a lo que usas más, revisa tu rol y entra al flujo de trabajo sin perder tiempo.
             </p>
