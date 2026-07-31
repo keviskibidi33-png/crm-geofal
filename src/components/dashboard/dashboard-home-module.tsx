@@ -73,7 +73,6 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
 }
 
 export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeModuleProps) {
-  const hour = new Date().getHours()
   const roleKey = String(user.role || "").toLowerCase()
   const greetingStorageKey = `crm-home-greeting-state-${user.id}`
   const moduleLabelMap = useMemo(() => {
@@ -83,12 +82,6 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
     return canAccessDashboardModule(module, user.role, user.permissions, user.email)
   }, [user.email, user.permissions, user.role])
   const [greeting, setGreeting] = useState("Bienvenido de nuevo")
-
-  const baseGreeting = useMemo(() => {
-    if (hour < 12) return "Buenos días"
-    if (hour < 19) return "Buenas tardes"
-    return "Buenas noches"
-  }, [hour])
 
   const greetingPool = useMemo(() => {
     const firstEntryMessages = [
@@ -157,7 +150,8 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
       <section className="grid gap-8 lg:grid-cols-[1.35fr_0.85fr]">
-        <div className="space-y-5">
+        <Card className="border-border/70 bg-white shadow-sm">
+          <CardContent className="p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-3">
             <Badge className="rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em]">
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
@@ -170,11 +164,8 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
 
           <div className="space-y-3">
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              {baseGreeting}, {user.name}
-            </h1>
-            <h2 className="text-2xl font-medium tracking-tight text-foreground/90 sm:text-3xl">
               {greeting}, {user.name}
-            </h2>
+            </h1>
             <p className="max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
               Este es tu punto de partida en Geofal CRM: accede rápido a lo que usas más, revisa tu rol y entra al flujo de trabajo sin perder tiempo.
             </p>
@@ -188,7 +179,8 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
               </Button>
             ))}
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground">Acceso rápido</h2>
