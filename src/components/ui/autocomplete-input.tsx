@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Input } from './input';
 
@@ -32,6 +32,7 @@ export function AutocompleteInput({
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter suggestions based on input value
   const normalizedValue = value.toLowerCase().trim();
@@ -52,15 +53,29 @@ export function AutocompleteInput({
 
   const showDropdown = isOpen && filteredSuggestions.length > 0;
 
-  useEffect(() => {
-    if (!showDropdown || !inputRef.current) return;
+  const updatePosition = useCallback(() => {
+    if (!inputRef.current) return;
     const rect = inputRef.current.getBoundingClientRect();
     setPosition({
       top: rect.bottom + 4,
       left: rect.left,
       width: rect.width,
     });
-  }, [showDropdown, value]);
+  }, []);
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    updatePosition();
+
+    // The editor is a scrollable dialog. Keep the portaled menu anchored to
+    // the input instead of leaving it floating at its previous viewport point.
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [showDropdown, updatePosition, value]);
 
   // Close dropdown when clicking outside - but NOT on dropdown items
   useEffect(() => {
@@ -134,8 +149,19 @@ export function AutocompleteInput({
 
   const dropdownContent = showDropdown ? (
     <div
+      ref={dropdownRef}
       data-autocomplete-dropdown="true"
       onMouseDown={(e) => e.preventDefault()} // Prevent blur on input
+      onWheel={(event) => {
+        // Radix locks scrolling outside the active DialogContent. Because this
+        // list is portaled to body, consume the wheel here and scroll the list
+        // explicitly so the quote dialog/page never moves behind it.
+        event.preventDefault();
+        event.stopPropagation();
+        if (dropdownRef.current) {
+          dropdownRef.current.scrollTop += event.deltaY;
+        }
+      }}
       style={{
         position: 'fixed',
         top: position.top,

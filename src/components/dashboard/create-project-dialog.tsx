@@ -36,6 +36,7 @@ interface CreateProjectDialogProps {
     nombre: string
     ruc?: string
   } | null
+  compact?: boolean
 }
 
 interface ProjectFormData {
@@ -55,7 +56,7 @@ interface Cliente {
   cotizaciones_aprobadas?: number
 }
 
-export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initialCliente = null }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initialCliente = null, compact = false }: CreateProjectDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteSearch, setClienteSearch] = useState('')
@@ -139,25 +140,26 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
       toast.error("Error", { description: "Selecciona una empresa" })
       return
     }
-    if (!selectedContacto) {
+    if (!compact && !selectedContacto) {
       toast.error("Error", { description: "Selecciona un contacto para el proyecto" })
       return
     }
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.from("proyectos").insert({
+      const { data: createdProject, error } = await supabase.from("proyectos").insert({
         nombre: data.nombre,
         cliente_id: selectedCliente,
-        contacto_principal_id: selectedContacto,
+        contacto_principal_id: selectedContacto || null,
         vendedor_id: user.id,
         ubicacion: data.ubicacion,
         estado: "prospecto",
         etapa: "pipeline",
         progreso: 0,
-      })
+      }).select("id, nombre, ubicacion, cliente_id").single()
 
       if (error) throw error
+      if (!createdProject) throw new Error("No se pudo recuperar el proyecto creado")
 
       const empresaSeleccionada = clientes.find((c) => c.id === selectedCliente)
 
@@ -177,9 +179,10 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
       setSelectedContacto(null)
       onOpenChange(false)
       onSuccess?.({
-        nombre: data.nombre,
-        ubicacion: data.ubicacion,
-        clienteId: selectedCliente,
+        id: createdProject.id,
+        nombre: createdProject.nombre,
+        ubicacion: createdProject.ubicacion || "",
+        clienteId: createdProject.cliente_id,
       })
     } catch (err) {
       toast.error("Error", {
@@ -188,6 +191,54 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (compact) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nuevo proyecto</DialogTitle>
+            <DialogDescription>
+              {initialCliente?.nombre
+                ? `Se vinculará automáticamente a ${initialCliente.nombre}.`
+                : "Selecciona primero un cliente en la cotización."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="compact-project-name">Nombre del proyecto</Label>
+              <Input
+                id="compact-project-name"
+                {...register("nombre", { required: "Campo obligatorio" })}
+                placeholder="Ej: I.E. Independencia Americana"
+                autoComplete="off"
+                autoFocus
+              />
+              {errors.nombre ? <p className="text-sm text-destructive">{errors.nombre.message}</p> : null}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="compact-project-location">Ubicación</Label>
+              <Input
+                id="compact-project-location"
+                {...register("ubicacion")}
+                placeholder="Ubicación de la obra o servicio"
+                autoComplete="off"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading || !initialCliente?.id}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Crear proyecto
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (

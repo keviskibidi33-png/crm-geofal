@@ -166,7 +166,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [showCreateConditionModal, setShowCreateConditionModal] = useState(false)
   const [conditionSearch, setConditionSearch] = useState("")
   const [newConditionText, setNewConditionText] = useState("")
-  const [newConditionCategory, setNewConditionCategory] = useState("")
+  const [creatingCondition, setCreatingCondition] = useState(false)
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
   const [hasHydratedSource, setHasHydratedSource] = useState(false)
   const [pendingConditionTexts, setPendingConditionTexts] = useState<string[]>([])
@@ -355,7 +355,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       return false
     }
     return false
-  }, [draftKey, duplicateSourceQuote, quoteId])
+  }, [draftKey, duplicateSourceQuote, quoteId, user?.email, user?.name, user?.phone])
 
   useEffect(() => {
     if (!open) {
@@ -547,29 +547,31 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       toast.error("Escribe el texto de la condición")
       return
     }
+    setCreatingCondition(true)
     try {
-      const { data, error } = await supabase
-        .from("condiciones")
-        .insert({
-          texto,
-          categoria: newConditionCategory.trim() || null,
-        })
-        .select("id, texto, categoria, orden")
-        .single()
+      const response = await authFetch(`${API_URL}/condiciones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, categoria: "Cotización", vendedor_id: user?.id }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload?.detail || payload?.message || `HTTP ${response.status}`)
+      }
 
-      if (error) throw error
-
-      const created = data as ConditionItem
+      const created = (payload?.data ?? payload) as ConditionItem
+      if (!created?.id) throw new Error("El servidor no devolvió la condición creada")
       setCondiciones((prev) => [...prev, created])
       setSelectedCondiciones((prev) => [...prev, created.id])
       setNewConditionText("")
-      setNewConditionCategory("")
       setShowCreateConditionModal(false)
       toast.success("Condición creada y seleccionada")
     } catch (err: any) {
       toast.error("No se pudo crear la condición", {
         description: err?.message || "Error desconocido",
       })
+    } finally {
+      setCreatingCondition(false)
     }
   }
 
@@ -1044,11 +1046,13 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         open={showCreateProjectDialog}
         onOpenChange={setShowCreateProjectDialog}
         user={user as any}
+        compact
         initialCliente={selectedCliente ? { id: selectedCliente.id, nombre: selectedCliente.nombre, ruc: selectedCliente.ruc } : null}
         onSuccess={(project) => {
           if (project?.nombre) {
             setProyecto(project.nombre)
             setProyectoSearch(project.nombre)
+            setSelectedProyecto(project)
           }
           if (project?.ubicacion) {
             setUbicacion(project.ubicacion)
@@ -1119,18 +1123,13 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 rows={4}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Categoría (opcional)</Label>
-              <Input
-                value={newConditionCategory}
-                onChange={(e) => setNewConditionCategory(e.target.value)}
-                placeholder="Ej: Ensayos, Logística, Pagos, etc."
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateConditionModal(false)}>Cancelar</Button>
-            <Button onClick={createCondition}>Crear Condición</Button>
+            <Button onClick={createCondition} disabled={creatingCondition || !newConditionText.trim()}>
+              {creatingCondition ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Crear Condición
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
