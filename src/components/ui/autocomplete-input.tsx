@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from './input';
 
 interface AutocompleteInputProps {
@@ -28,6 +29,7 @@ export function AutocompleteInput({
 }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,16 @@ export function AutocompleteInput({
     : [];
 
   const showDropdown = isOpen && filteredSuggestions.length > 0;
+
+  useEffect(() => {
+    if (!showDropdown || !inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [showDropdown, value]);
 
   // Close dropdown when clicking outside - but NOT on dropdown items
   useEffect(() => {
@@ -125,10 +137,10 @@ export function AutocompleteInput({
       data-autocomplete-dropdown="true"
       onMouseDown={(e) => e.preventDefault()} // Prevent blur on input
       style={{
-        position: 'absolute',
-        top: 'calc(100% + 4px)',
-        left: 0,
-        width: '100%',
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: Math.max(position.width, 280),
         zIndex: 99999,
         backgroundColor: 'white',
         border: '1px solid #e5e7eb',
@@ -216,7 +228,7 @@ export function AutocompleteInput({
         className={className}
         autoComplete="off"
       />
-      {dropdownContent}
+      {dropdownContent && typeof document !== 'undefined' ? createPortal(dropdownContent, document.body) : null}
     </div>
   );
 }
