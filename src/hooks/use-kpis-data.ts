@@ -350,48 +350,19 @@ export function useKpisData(): KpisData {
         const createdDate = parseNormalizedDate(r.fecha_creacion)
         return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
       })
-      const uniqueByClient = new Map<string, any>()
-      for (const row of seguimientosMes as any[]) {
-        const key = String(row.ruc || row.razon_social || row.persona_contacto || row.numero_celular || row.id || "").trim()
-        const current = uniqueByClient.get(key)
-        if (!current) {
-          uniqueByClient.set(key, row)
-          continue
-        }
-        const currentDate = parseNormalizedDate(current.fecha_actualizacion || current.fecha_creacion)
-        const nextDate = parseNormalizedDate(row.fecha_actualizacion || row.fecha_creacion)
-        if (!currentDate || (nextDate && nextDate > currentDate)) {
-          uniqueByClient.set(key, row)
-        }
-      }
-      const seguimientos = Array.from(uniqueByClient.values())
+      const seguimientos = seguimientosMes
       const montoEnviada = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "COTIZACIÓN ENVIADA")
       const montoVenta = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "VENTA")
       const montoNegociacion = seguimientos.filter((r: any) => normalizeState(r.estado_cliente) === "NEGOCIACIÓN")
 
-      const leadStates = new Set(["LEADS", "CONTACTADO"])
-      const advancedStates = new Set([
-        "COTIZACIÓN ENVIADA",
-        "COTIZACIÓN REALIZADA",
-        "NEGOCIACIÓN",
-        "VENTA",
-        "SE GENERO UNA VERSIÓN",
-        "SE GENERÓ UNA VERSIÓN",
-        "COTIZACION ENVIADA",
-        "COTIZACION REALIZADA",
-      ])
-
       const leads = seguimientos.filter((r: any) => {
-        const createdDate = parseNormalizedDate(r.fecha_creacion)
         const state = normalizeState(r.estado_seguimiento)
-        return !!createdDate && leadStates.has(state)
+        return state === "LEADS"
       })
 
       const nuevos = seguimientos.filter((r: any) => {
-        const contactDate = parseNormalizedDate(r.fecha_ultimo_contacto || r.fecha_actualizacion || r.fecha_creacion)
-        const stateCliente = normalizeState(r.estado_cliente)
-        const stateSeguimiento = normalizeState(r.estado_seguimiento)
-        return !!contactDate && (advancedStates.has(stateCliente) || advancedStates.has(stateSeguimiento))
+        const createdDate = parseNormalizedDate(r.fecha_creacion)
+        return !!createdDate
       })
 
       const totalMonto = seguimientos.reduce((sum: number, r: any) => sum + parseMoney(r.costo_cotiz_sin_igv), 0)
@@ -432,8 +403,8 @@ export function useKpisData(): KpisData {
         if (estadoCliente === "COTIZACIÓN ENVIADA") week.cotizacionEnviada += monto
         if (estadoCliente === "VENTA") week.venta += monto
         if (estadoCliente === "NEGOCIACIÓN") week.negociacion += monto
-        if (leadStates.has(estadoSeguimiento)) week.leads += 1
-        if (advancedStates.has(estadoCliente) || advancedStates.has(estadoSeguimiento)) week.clienteNuevos += 1
+        if (estadoSeguimiento === "LEADS") week.leads += 1
+        if (baseDate) week.clienteNuevos += 1
       }
 
       setComercialUnico({
