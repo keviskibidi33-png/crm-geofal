@@ -90,6 +90,26 @@ const randomNumericCode = (length = 3) => {
   return String(Math.floor(Math.random() * max)).padStart(length, "0")
 }
 
+const getTodayPeru = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date())
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${map.year}-${map.month}-${map.day}`
+}
+
+const PAYMENT_OPTIONS = [
+  "Valorización mensual",
+  "Adelantado",
+  "50% Adelanto y saldo previo a entrega",
+  "Crédito a 7 días",
+  "Crédito a 15 días",
+  "Crédito a 30 días",
+]
+
 export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId, duplicateSourceQuote }: CreateQuoteDialogProps) {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -110,6 +130,14 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [ubicacion, setUbicacion] = useState("")
   const [numero, setNumero] = useState("")
   const [year, setYear] = useState(new Date().getFullYear())
+  const [fechaSolicitud, setFechaSolicitud] = useState(getTodayPeru())
+  const [fechaEmision, setFechaEmision] = useState(getTodayPeru())
+  const [personalComercial, setPersonalComercial] = useState(user?.name || "")
+  const [telefonoComercial, setTelefonoComercial] = useState(user?.phone || "")
+  const [correoVendedor, setCorreoVendedor] = useState(user?.email || "")
+  const [plazoDias, setPlazoDias] = useState(0)
+  const [condicionPago, setCondicionPago] = useState(PAYMENT_OPTIONS[0])
+  const [includeIgv, setIncludeIgv] = useState(true)
   const [clienteSearch, setClienteSearch] = useState("")
   const [proyectoSearch, setProyectoSearch] = useState("")
   const [clientes, setClientes] = useState<any[]>([])
@@ -128,7 +156,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const draftKey = useMemo(() => makeDraftKey(user?.id, quoteId), [quoteId, user?.id])
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.costo_unitario || 0) * Number(item.cantidad || 0), 0), [items])
-  const igv = subtotal * 0.18
+  const igv = includeIgv ? subtotal * 0.18 : 0
   const total = subtotal + igv
 
   const clearDraft = useCallback(() => {
@@ -293,6 +321,14 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         setSelectedCondiciones(Array.isArray(payload.selectedCondiciones) ? payload.selectedCondiciones : [])
         setSelectedCliente(payload.selectedCliente || null)
         setSelectedProyecto(payload.selectedProyecto || null)
+        setFechaSolicitud(payload.fechaSolicitud || getTodayPeru())
+        setFechaEmision(payload.fechaEmision || getTodayPeru())
+        setPersonalComercial(payload.personalComercial || user?.name || "")
+        setTelefonoComercial(payload.telefonoComercial || user?.phone || "")
+        setCorreoVendedor(payload.correoVendedor || user?.email || "")
+        setPlazoDias(Number(payload.plazoDias || 0))
+        setCondicionPago(payload.condicionPago || PAYMENT_OPTIONS[0])
+        setIncludeIgv(typeof payload.includeIgv === "boolean" ? payload.includeIgv : true)
         return true
       }
     } catch {
@@ -407,12 +443,20 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
           selectedCondiciones,
           selectedCliente,
           selectedProyecto,
+          fechaSolicitud,
+          fechaEmision,
+          personalComercial,
+          telefonoComercial,
+          correoVendedor,
+          plazoDias,
+          condicionPago,
+          includeIgv,
         },
       }
       localStorage.setItem(draftKey, JSON.stringify(payload))
     }, 500)
     return () => clearTimeout(timer)
-  }, [cliente, clienteSearch, correo, draftKey, duplicateSourceQuote, items, numero, open, proyecto, proyectoSearch, quoteId, ruc, selectedCliente, selectedCondiciones, selectedProyecto, telefono, ubicacion, year, contacto])
+  }, [cliente, clienteSearch, correo, correoVendedor, draftKey, duplicateSourceQuote, fechaEmision, fechaSolicitud, includeIgv, items, numero, open, personalComercial, plazoDias, proyecto, proyectoSearch, quoteId, ruc, selectedCliente, selectedCondiciones, selectedProyecto, telefono, telefonoComercial, ubicacion, year, contacto, condicionPago])
 
   const selectCliente = (clienteData: any) => {
     setSelectedCliente(clienteData)
@@ -499,10 +543,14 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         correo: correo || undefined,
         proyecto: proyecto || undefined,
         ubicacion: ubicacion || undefined,
+        fecha_solicitud: fechaSolicitud || undefined,
+        fecha_emision: fechaEmision || undefined,
+        plazo_dias: plazoDias || undefined,
+        condicion_pago: condicionPago || undefined,
         user_id: user?.id,
         proyecto_id: selectedProyecto?.id || proyectoId,
         cliente_id: selectedCliente?.id || clienteId,
-        include_igv: true,
+        include_igv: includeIgv,
         condiciones_ids: selectedCondiciones,
         items: items.map((item) => ({
           codigo: item.codigo || "",
@@ -681,7 +729,15 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <Label>Correo</Label>
                       <Input value={correo} onChange={(e) => setCorreo(e.target.value)} />
                     </div>
-                    <div className="space-y-2 relative">
+                    <div className="space-y-2">
+                      <Label>Fecha de solicitud</Label>
+                      <Input type="date" value={fechaSolicitud} onChange={(e) => setFechaSolicitud(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fecha de emisión</Label>
+                      <Input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 relative md:col-span-2">
                       <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Proyecto</Label>
                       <Input
                         value={proyectoSearch}
@@ -729,12 +785,48 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                     <Textarea value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} rows={2} />
                   </div>
 
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Personal comercial</Label>
+                      <Input value={personalComercial} onChange={(e) => setPersonalComercial(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Teléfono comercial</Label>
+                      <Input value={telefonoComercial} onChange={(e) => setTelefonoComercial(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Correo vendedor</Label>
+                      <Input value={correoVendedor} onChange={(e) => setCorreoVendedor(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Plazo estimado (días)</Label>
+                      <Input type="number" min={0} value={plazoDias} onChange={(e) => setPlazoDias(Number(e.target.value || 0))} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Condiciones de pago</Label>
+                      <select
+                        value={condicionPago}
+                        onChange={(e) => setCondicionPago(e.target.value)}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        {PAYMENT_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <Label>Condiciones específicas</Label>
+                      <div className="flex flex-col gap-1">
+                        <Label>Condiciones Específicas</Label>
+                        <span className="text-xs text-muted-foreground">{selectedCondiciones.length} seleccionada(s)</span>
+                      </div>
                       <Button type="button" variant="outline" size="sm" onClick={() => setShowCondicionesModal(true)}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Gestionar
+                        Gestionar Condiciones Específicas
                       </Button>
                     </div>
                     <div className="max-h-48 overflow-y-auto rounded-md border bg-background p-3 space-y-2">
@@ -758,9 +850,22 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         ))
                       )}
                     </div>
-                    {selectedCondiciones.length > 0 && (
-                      <p className="text-xs text-primary">{selectedCondiciones.length} condición(es) seleccionada(s)</p>
-                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-md border bg-background p-4">
+                    <div>
+                      <Label className="text-sm font-semibold">IGV</Label>
+                      <p className="text-xs text-muted-foreground">{includeIgv ? "Activado" : "Desactivado"}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIncludeIgv((prev) => !prev)}
+                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${includeIgv ? "bg-blue-500" : "bg-muted"}`}
+                      aria-pressed={includeIgv}
+                      aria-label="Activar / desactivar IGV"
+                    >
+                      <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${includeIgv ? "translate-x-7" : "translate-x-1"}`} />
+                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -852,10 +957,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                     {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
                     {quoteId ? "Actualizar y exportar" : "Guardar y exportar"}
                   </Button>
-                  <div className="rounded-xl bg-background p-4 space-y-2 text-sm">
-                    <div className="flex justify-between"><span>Subtotal</span><strong>S/. {subtotal.toFixed(2)}</strong></div>
-                    <div className="flex justify-between"><span>IGV</span><strong>S/. {igv.toFixed(2)}</strong></div>
-                    <div className="flex justify-between border-t pt-2"><span>Total</span><strong>S/. {total.toFixed(2)}</strong></div>
+                    <div className="rounded-xl bg-background p-4 space-y-2 text-sm">
+                      <div className="flex justify-between"><span>Subtotal</span><strong>S/. {subtotal.toFixed(2)}</strong></div>
+                      <div className="flex justify-between"><span>IGV</span><strong>S/. {igv.toFixed(2)}</strong></div>
+                      <div className="flex justify-between border-t pt-2"><span>Total</span><strong>S/. {total.toFixed(2)}</strong></div>
                   </div>
                 </CardContent>
               </Card>
