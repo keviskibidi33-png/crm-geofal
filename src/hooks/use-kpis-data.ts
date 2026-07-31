@@ -367,9 +367,18 @@ export function useKpisData(): KpisData {
         return !!createdDate && createdDate.getFullYear() === selectedYear && (createdDate.getMonth() + 1) === parseInt(selectedMonth)
       })
       const seguimientos = seguimientosMes
-      const montoEnviada = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "COTIZACION ENVIADA")
-      const montoVenta = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "VENTA")
-      const montoNegociacion = seguimientos.filter((r: any) => resolveSeguimientoState(r.estado_seguimiento) === "NEGOCIACION")
+      const montoEnviada = seguimientos.filter((r: any) => {
+        const estadoCliente = normalizeState(r.estado_cliente)
+        return estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")
+      })
+      const montoVenta = seguimientos.filter((r: any) => {
+        const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
+        return estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+      })
+      const montoNegociacion = seguimientos.filter((r: any) => {
+        const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
+        return estadoSeguimiento === "NEGOCIACION" || estadoSeguimiento.includes("NEGOCIACION")
+      })
 
       const leads = seguimientos.filter((r: any) => {
         const state = normalizeState(r.estado_seguimiento)
@@ -413,11 +422,12 @@ export function useKpisData(): KpisData {
         const week = weekBuckets[weekIndex]
         if (!week) continue
 
+        const estadoCliente = normalizeState(row.estado_cliente)
         const estadoSeguimiento = resolveSeguimientoState(row.estado_seguimiento)
         const monto = parseMoney(row.costo_cotiz_sin_igv)
-        if (estadoSeguimiento === "COTIZACION ENVIADA") week.cotizacionEnviada += monto
-        if (estadoSeguimiento === "VENTA") week.venta += monto
-        if (estadoSeguimiento === "NEGOCIACION") week.negociacion += monto
+        if (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")) week.cotizacionEnviada += monto
+        if (estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) week.venta += monto
+        if (estadoSeguimiento === "NEGOCIACION" || estadoSeguimiento.includes("NEGOCIACION")) week.negociacion += monto
         if (estadoSeguimiento === "LEADS") week.leads += 1
         if (baseDate) week.clienteNuevos += 1
       }
