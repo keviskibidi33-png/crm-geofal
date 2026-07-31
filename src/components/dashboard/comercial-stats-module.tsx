@@ -16,9 +16,7 @@ export function ComercialStatsModule() {
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
     : comercialUnico.montoAcumuladoMes.categories.filter((cat) => cat.label === estadoFilter)
-  const montoTotal = estadoFilter === "todos"
-    ? comercialUnico.montoAcumuladoMes.total
-    : (montoCategories[0]?.value ?? 0)
+  const montoTotal = montoCategories.reduce((sum, category) => sum + category.value, 0)
   const clientesCategories = comercialUnico.numeroClientes.categories
   const weekLabels = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
   type WeekMetric = Exclude<keyof (typeof comercialSemanas)[number], "semana">
