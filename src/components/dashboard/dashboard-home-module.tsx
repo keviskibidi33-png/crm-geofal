@@ -1,12 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
-import Link from "next/link"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowUpRight, Clock3, LayoutGrid, Sparkles } from "lucide-react"
 import type { ModuleType, User } from "@/hooks/use-auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { canAccessDashboardModule } from "@/lib/control-module-access"
 import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"
 
 interface DashboardHomeModuleProps {
@@ -30,40 +30,122 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
     { label: "Cotizadora", module: "cotizadora" },
     { label: "Control Comercial", module: "comercial" },
   ],
+  auxiliar_comercial: [
+    { label: "Clientes", module: "clientes" },
+    { label: "Cotizadora", module: "cotizadora" },
+    { label: "Control Comercial", module: "comercial" },
+  ],
   administrativo: [
     { label: "Clientes", module: "clientes" },
     { label: "Proyectos", module: "proyectos" },
     { label: "Control Administración", module: "administracion" },
+  ],
+  laboratorio: [
+    { label: "Seguimiento", module: "tracing" },
+    { label: "Recepción", module: "recepcion" },
+    { label: "Control Laboratorio", module: "laboratorio" },
+  ],
+  jefe_laboratorio: [
+    { label: "Seguimiento", module: "tracing" },
+    { label: "Laboratorio", module: "laboratorio" },
+    { label: "Control Informes", module: "ingenieria_archivos" },
+  ],
+  laboratorio_tipificador: [
+    { label: "Seguimiento", module: "tracing" },
+    { label: "Recepción", module: "recepcion" },
+    { label: "Verificación", module: "verificacion_muestras" },
+  ],
+  laboratorio_lector: [
+    { label: "Seguimiento", module: "tracing" },
+    { label: "Verificación", module: "verificacion_muestras" },
+    { label: "Control Informes", module: "ingenieria_archivos" },
   ],
   tecnico: [
     { label: "Seguimiento", module: "tracing" },
     { label: "Recepción", module: "recepcion" },
     { label: "Verificación", module: "verificacion_muestras" },
   ],
+  tecnico_suelos: [
+    { label: "Seguimiento", module: "tracing" },
+    { label: "Recepción", module: "recepcion" },
+    { label: "Verificación", module: "verificacion_muestras" },
+  ],
+}
+
+const favoriteDefaultsByRole: Record<string, { label: string; module: ModuleType }[]> = {
+  admin: quickAccessByRole.admin,
+  admin_general: quickAccessByRole.admin_general,
+  comercial: quickAccessByRole.comercial,
+  auxiliar_comercial: quickAccessByRole.auxiliar_comercial,
+  administrativo: quickAccessByRole.administrativo,
+  laboratorio: quickAccessByRole.laboratorio,
+  jefe_laboratorio: quickAccessByRole.jefe_laboratorio,
+  laboratorio_tipificador: quickAccessByRole.laboratorio_tipificador,
+  laboratorio_lector: quickAccessByRole.laboratorio_lector,
+  tecnico: quickAccessByRole.tecnico,
+  tecnico_suelos: quickAccessByRole.tecnico_suelos,
 }
 
 export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeModuleProps) {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches"
   const roleKey = String(user.role || "").toLowerCase()
-  const shortcuts = quickAccessByRole[roleKey] || quickAccessByRole.administrativo
+  const shortcuts = quickAccessByRole[roleKey] || (canAccess("laboratorio") ? quickAccessByRole.laboratorio : quickAccessByRole.administrativo)
+  const favoriteDefaults = favoriteDefaultsByRole[roleKey] || shortcuts
+  const favoriteStorageKey = `crm-home-favorites-${roleKey || "default"}`
+  const [favorites, setFavorites] = useState<ModuleType[]>(() => favoriteDefaults.map((item) => item.module))
   const moduleLabelMap = useMemo(() => {
     return new Map(PERMISSION_MODULE_CATALOG.map((item) => [item.id, item.label]))
   }, [])
+  const canAccess = useCallback((module: ModuleType) => {
+    return canAccessDashboardModule(module, user.role, user.permissions, user.email)
+  }, [user.email, user.permissions, user.role])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(favoriteStorageKey)
+      if (!saved) {
+        setFavorites(favoriteDefaults.map((item) => item.module))
+        return
+      }
+      const parsed = JSON.parse(saved) as ModuleType[]
+      const allowed = parsed.filter((module) => favoriteDefaults.some((item) => item.module === module))
+      setFavorites(allowed.length > 0 ? allowed : favoriteDefaults.map((item) => item.module))
+    } catch {
+      setFavorites(favoriteDefaults.map((item) => item.module))
+    }
+  }, [favoriteStorageKey, favoriteDefaults])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    localStorage.setItem(favoriteStorageKey, JSON.stringify(favorites))
+  }, [favoriteStorageKey, favorites])
 
   const recentModules = useMemo<Array<{ module: ModuleType; count: number }>>(() => {
     if (typeof window === "undefined") return []
     try {
       const freq = JSON.parse(localStorage.getItem("crm-module-frequency") || "{}") as Record<string, number>
       return Object.entries(freq)
-        .filter(([module]) => module !== "home")
+        .filter(([module]) => module !== "home" && canAccess(module as ModuleType))
         .sort((a, b) => b[1] - a[1])
         .slice(0, 4)
         .map(([module, count]) => ({ module: module as ModuleType, count }))
     } catch {
       return []
     }
-  }, [])
+  }, [canAccess])
+
+  const favoriteChoices = favoriteDefaults.filter((item) => favorites.includes(item.module) && canAccess(item.module))
+
+  const toggleFavorite = (module: ModuleType) => {
+    setFavorites((current) => {
+      if (current.includes(module)) {
+        const next = current.filter((item) => item !== module)
+        return next.length > 0 ? next : [module]
+      }
+      return [...current, module]
+    })
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 xl:gap-8">
@@ -89,7 +171,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {shortcuts.map((shortcut) => (
+            {shortcuts.filter((shortcut) => canAccess(shortcut.module)).map((shortcut) => (
               <Button key={shortcut.module} onClick={() => onNavigateModule(shortcut.module)} className="rounded-full">
                 {shortcut.label}
                 <ArrowUpRight className="ml-2 h-4 w-4" />
@@ -154,7 +236,7 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {shortcuts.map((shortcut) => (
+            {shortcuts.filter((shortcut) => canAccess(shortcut.module)).map((shortcut) => (
               <button
                 key={shortcut.module}
                 onClick={() => onNavigateModule(shortcut.module)}
@@ -171,11 +253,63 @@ export function DashboardHomeModule({ user, onNavigateModule }: DashboardHomeMod
         </Card>
       </section>
 
-      <div className="flex justify-end">
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-          Ir al panel completo
-        </Link>
-      </div>
+      <section className="rounded-3xl border border-border bg-white p-5 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground">Tus módulos favoritos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Personaliza estos accesos según tu rol. Puedes elegir los que más uses y dejar siempre visible lo importante.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {favoriteDefaults.filter((item) => canAccess(item.module)).map((item) => {
+            const active = favorites.includes(item.module)
+            return (
+              <Button
+                key={item.module}
+                type="button"
+                variant={active ? "default" : "outline"}
+                className={[
+                  "rounded-full border-dashed bg-white",
+                  active ? "" : "text-foreground hover:bg-muted/40",
+                ].join(" ")}
+                onClick={() => toggleFavorite(item.module)}
+              >
+                {item.label}
+                <ArrowUpRight className="ml-2 h-4 w-4" />
+              </Button>
+            )
+          })}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full border-dashed bg-white text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+            onClick={() => {
+            const next = favoriteDefaults.filter((item) => canAccess(item.module)).map((item) => item.module).find((module) => !favorites.includes(module))
+              if (next) toggleFavorite(next)
+            }}
+          >
+            Agregar módulo personalizado (+)
+          </Button>
+        </div>
+
+        {favoriteChoices.length > 0 && (
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Favoritos activos
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {favoriteChoices.map((item) => (
+                <Button key={item.module} onClick={() => onNavigateModule(item.module)} className="rounded-full">
+                  {item.label}
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

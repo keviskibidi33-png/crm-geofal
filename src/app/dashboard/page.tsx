@@ -99,13 +99,7 @@ const DashboardHomeModule = dashboardDynamic(async () => (await import("@/compon
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
-  const [activeModule, setActiveModule] = useState<ModuleType>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem("crm-active-module") as ModuleType
-      return saved || "home"
-    }
-    return "home"
-  })
+  const [activeModule, setActiveModule] = useState<ModuleType>("home")
   const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
   const [pendingLabNotification, setPendingLabNotification] = useState<{ module: ModuleType; recordId: number } | null>(null)
   const [configHasUnsavedChanges, setConfigHasUnsavedChanges] = useState(false)
@@ -250,9 +244,12 @@ export default function DashboardPage() {
         ? "tracing"
         : getPreferredControlModule(user.role, user.permissions)
     initRedirectedRef.current = true
-      if (controlDefault && activeModule !== controlDefault) {
-        setActiveModule(controlDefault)
-      }
+    if (activeModule === "home" || activeModule === "clientes") {
+      return
+    }
+    if (controlDefault && activeModule !== controlDefault) {
+      setActiveModule(controlDefault)
+    }
   }, [loading, user, activeModule])
 
   useEffect(() => {
