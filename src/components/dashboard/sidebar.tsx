@@ -80,7 +80,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
 const kpiModules: { id: ModuleType; label: string; icon: React.ElementType }[] = [
   { id: "estadistica_laboratorio", label: "Estadistica Laboratorio", icon: FlaskConical },
   { id: "estadistica_comercial", label: "Estadistica Comercial", icon: TrendingUp },
-  { id: "estadistica_gerencia", label: "Estadistica Administracion", icon: BarChart3 },
+  { id: "estadistica_gerencia", label: "KPIs Administración", icon: BarChart3 },
 ]
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
@@ -104,9 +104,14 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
   const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive)
 
-  const isKpiActive = React.useMemo(() =>
-    ["estadistica_laboratorio", "estadistica_comercial", "estadistica_gerencia"].includes(activeModule),
-    [activeModule]
+  const accessibleKpiModules = React.useMemo(
+    () => kpiModules.filter((module) => canAccessDashboardModule(module.id, user.role, user.permissions, user.email)),
+    [user.email, user.permissions, user.role],
+  )
+
+  const isKpiActive = React.useMemo(
+    () => accessibleKpiModules.some((module) => module.id === activeModule),
+    [accessibleKpiModules, activeModule],
   )
 
   const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive)
@@ -402,7 +407,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       {/* Navigation */}
       <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
         {/* KPIs Section - Collapsed */}
-        {collapsed && (
+        {collapsed && accessibleKpiModules.length > 0 && (
           <Tooltip key="kpi_collapsed">
             <TooltipTrigger asChild>
               <button
@@ -424,7 +429,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         )}
 
         {/* KPIs Section - Expanded */}
-        {!collapsed && (
+        {!collapsed && accessibleKpiModules.length > 0 && (
           <div className="space-y-1">
             <button
               type="button"
@@ -447,7 +452,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
             {kpiExpanded && (
               <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
-                {kpiModules.map((sub) => {
+                {accessibleKpiModules.map((sub) => {
                   const SubIcon = sub.icon
                   const isSubActive = activeModule === sub.id
                   return (

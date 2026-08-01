@@ -128,6 +128,29 @@ export function canAccessDashboardModule(
     return true
   }
 
+  if (activeCheckModule === "estadistica_laboratorio") {
+    if (isAdministracionDashboardRole(role)) return false
+    return isAdminDashboardRole(role)
+      || isLaboratorioDashboardRole(role)
+      || permissions?.laboratorio?.read === true
+      || permissions?.estadistica_laboratorio?.read === true
+  }
+
+  if (activeCheckModule === "estadistica_comercial") {
+    if (isAdministracionDashboardRole(role)) return false
+    return isAdminDashboardRole(role)
+      || isComercialDashboardRole(role)
+      || permissions?.comercial?.read === true
+      || permissions?.estadistica_comercial?.read === true
+  }
+
+  if (activeCheckModule === "estadistica_gerencia") {
+    return isAdminDashboardRole(role)
+      || isAdministracionDashboardRole(role)
+      || permissions?.administracion?.read === true
+      || permissions?.estadistica_gerencia?.read === true
+  }
+
   if (activeCheckModule === "permisos") {
     return isAdminDashboardRole(role)
   }

@@ -48,7 +48,7 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "administracion", label: "Control Administración" },
   { id: "estadistica_laboratorio", label: "Estadística Laboratorio" },
   { id: "estadistica_comercial", label: "Estadística Comercial" },
-  { id: "estadistica_gerencia", label: "Estadística Gerencia" },
+  { id: "estadistica_gerencia", label: "KPIs Administración" },
   { id: "usuarios", label: "Usuarios" },
   { id: "permisos", label: "Matriz de Permisos" },
   { id: "auditoria", label: "Auditoría" },

@@ -1,35 +1,261 @@
-﻿"use client"
+"use client"
 
-import { useState } from "react"
-import { useKpisData } from "@/hooks/use-kpis-data"
-import { KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
-import { KpiHistoricoAdmin } from "@/components/dashboard/kpi-historico-comercial-admin"
-import { BarChart3, RefreshCw, History } from "lucide-react"
+import { useState, type ReactNode } from "react"
+import {
+  AlertTriangle,
+  BadgeCheck,
+  BarChart3,
+  CircleDollarSign,
+  LayoutDashboard,
+  RefreshCw,
+  TicketCheck,
+  TrendingUp,
+  Users,
+} from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  XAxis,
+  YAxis,
+} from "recharts"
+
+import { MonthSelector } from "@/components/dashboard/kpi-charts"
+import { AdministracionCommercialTracking } from "@/components/dashboard/administracion-commercial-tracking"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { useAdministracionKpis } from "@/hooks/use-administracion-kpis"
 
-interface GerenciaStatsProps {
-  user?: any
+const CATEGORY_COLORS = ["#f59e0b", "#22c55e", "#ef4444", "#3b82f6", "#8b5cf6"]
+const EVIDENCE_COLORS = ["#16a34a", "#ef4444"]
+
+const chartConfig = {
+  value: {
+    label: "Valor",
+    color: "#2563eb",
+  },
+} satisfies ChartConfig
+
+const moneyFormatter = new Intl.NumberFormat("es-PE", {
+  style: "currency",
+  currency: "PEN",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+const numberFormatter = new Intl.NumberFormat("es-PE", {
+  maximumFractionDigits: 0,
+})
+
+function formatMoney(value: number) {
+  return moneyFormatter.format(value).replace("PEN", "S/")
 }
 
-export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
-  const { gerencia, prevGerencia, historicalAdmin, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
-  const [tabView, setTabView] = useState<"mes" | "historico">("mes")
+function formatPercentage(value: number) {
+  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 2 })}%`
+}
+
+function formatCompact(value: number, monetary: boolean) {
+  const formatted = new Intl.NumberFormat("es-PE", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value)
+  return monetary ? `S/ ${formatted}` : formatted
+}
+
+interface ChartDatum {
+  label: string
+  shortLabel: string
+  value: number
+  fill: string
+  displayValue: string
+}
+
+function MetricBarChart({
+  data,
+  monetary = false,
+  loading,
+}: {
+  data: ChartDatum[]
+  monetary?: boolean
+  loading: boolean
+}) {
+  if (loading) {
+    return <div className="h-[250px] animate-pulse rounded-xl bg-slate-100" />
+  }
+
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+      <ChartContainer config={chartConfig} className="h-[250px] w-full">
+        <BarChart data={data} margin={{ top: 30, right: 12, left: monetary ? 16 : 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+          <XAxis dataKey="shortLabel" tickLine={false} axisLine={false} tickMargin={8} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={monetary ? 72 : 42}
+            tickFormatter={(value) => formatCompact(Number(value), monetary)}
+          />
+          <ChartTooltip
+            cursor={{ fill: "rgba(148, 163, 184, 0.12)" }}
+            content={
+              <ChartTooltipContent
+                labelKey="label"
+                formatter={(_, __, item) => (
+                  <div className="flex w-full items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Valor</span>
+                    <span className="font-mono font-semibold">{String(item.payload?.displayValue ?? "0")}</span>
+                  </div>
+                )}
+              />
+            }
+          />
+          <Bar dataKey="value" radius={[7, 7, 0, 0]} maxBarSize={72}>
+            {data.map((item) => (
+              <Cell key={item.label} fill={item.fill} />
+            ))}
+            <LabelList dataKey="displayValue" position="top" className="fill-slate-600 text-[10px] font-semibold" />
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+    </div>
+  )
+}
+
+function KpiPanel({
+  title,
+  description,
+  source,
+  icon,
+  children,
+  chart,
+}: {
+  title: string
+  description: string
+  source: string
+  icon: ReactNode
+  children: ReactNode
+  chart: ReactNode
+}) {
+  return (
+    <Card className="overflow-hidden border-slate-200 shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              {icon}
+            </div>
+            <div>
+              <CardTitle className="text-base font-black tracking-tight text-slate-900">{title}</CardTitle>
+              <p className="mt-1 text-xs text-slate-500">{description}</p>
+            </div>
+          </div>
+          <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+            Fuente: {source}
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-5 p-5 xl:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200">{children}</div>
+        {chart}
+      </CardContent>
+    </Card>
+  )
+}
+
+function TableSkeleton({ rows = 5, columns = 3 }: { rows?: number; columns?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }, (_, index) => (
+        <tr key={index} className="border-b border-slate-100 last:border-b-0">
+          <td className="px-4 py-3" colSpan={columns}>
+            <div className="h-5 animate-pulse rounded bg-slate-100" />
+          </td>
+        </tr>
+      ))}
+    </>
+  )
+}
+
+function TableHeaderCell({ children, numeric = false }: { children: ReactNode; numeric?: boolean }) {
+  return (
+    <th className={`bg-slate-100 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-slate-600 ${numeric ? "text-right" : "text-left"}`}>
+      {children}
+    </th>
+  )
+}
+
+function TotalRow({ children }: { children: ReactNode }) {
+  return <tr className="bg-slate-50 font-bold text-slate-900">{children}</tr>
+}
+
+export function GerenciaStatsModule() {
+  const [dashboardView, setDashboardView] = useState<"administracion" | "seguimiento">("administracion")
+  const {
+    kpis,
+    isLoading,
+    error,
+    trackingError,
+    lastUpdated,
+    refresh,
+    selectedMonth,
+    selectedYear,
+    availableMonths,
+    setSelectedMonth,
+  } = useAdministracionKpis()
+
+  const incomeChart = kpis.categories.map((category, index) => ({
+    label: category.label,
+    shortLabel: category.shortLabel,
+    value: category.income,
+    fill: CATEGORY_COLORS[index],
+    displayValue: formatCompact(category.income, true),
+  }))
+  const clientsChart = kpis.categories.map((category, index) => ({
+    label: category.label,
+    shortLabel: category.shortLabel,
+    value: category.clients,
+    fill: CATEGORY_COLORS[index],
+    displayValue: numberFormatter.format(category.clients),
+  }))
+  const ticketChart = kpis.categories.map((category, index) => ({
+    label: category.label,
+    shortLabel: category.shortLabel,
+    value: category.averageTicket,
+    fill: CATEGORY_COLORS[index],
+    displayValue: formatCompact(category.averageTicket, true),
+  }))
+  const evidenceChart = kpis.evidences.map((item, index) => ({
+    label: item.label,
+    shortLabel: item.label,
+    value: item.value,
+    fill: EVIDENCE_COLORS[index],
+    displayValue: numberFormatter.format(item.value),
+  }))
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Estadistica Administracion</h2>
-          <p className="text-sm text-muted-foreground">
-            Resumen ejecutivo y KPIs de administracion
-            {lastUpdated && (
-              <span className="ml-2">
-                Actualizado: {lastUpdated.toLocaleTimeString("es-PE")}
-              </span>
-            )}
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-blue-700" />
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">KPIs Administración</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Indicadores administrativos y seguimiento comercial del mes seleccionado.
+            {lastUpdated ? <span className="ml-2">Actualizado: {lastUpdated.toLocaleTimeString("es-PE")}</span> : null}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-3">
           <MonthSelector
             availableMonths={availableMonths}
             selectedMonth={selectedMonth}
@@ -37,57 +263,224 @@ export function GerenciaStatsModule({ user }: GerenciaStatsProps) {
             onMonthChange={setSelectedMonth}
             loading={isLoading}
           />
-          <Button variant="outline" size="sm" onClick={() => refresh()} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={isLoading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Actualizar
           </Button>
         </div>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 w-fit">
-        <Button variant={tabView === "mes" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("mes")}>
-          <BarChart3 className="h-3.5 w-3.5" />
-          Mes Actual
+      <div className="flex w-fit items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
+        <Button
+          type="button"
+          variant={dashboardView === "administracion" ? "default" : "ghost"}
+          size="sm"
+          className="gap-2"
+          onClick={() => setDashboardView("administracion")}
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Administración
         </Button>
-        <Button variant={tabView === "historico" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("historico")}>
-          <History className="h-3.5 w-3.5" />
-          Histórico
+        <Button
+          type="button"
+          variant={dashboardView === "seguimiento" ? "default" : "ghost"}
+          size="sm"
+          className="gap-2"
+          onClick={() => setDashboardView("seguimiento")}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Seguimiento Comercial 1
         </Button>
       </div>
 
-      {tabView === "mes" ? (
+      {error ? (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {dashboardView === "seguimiento" && trackingError ? (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {trackingError}
+        </div>
+      ) : null}
+
+      {dashboardView === "administracion" ? (
         <>
-          {/* Tabla + Pie + Bar: Resumen Mensual */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={gerencia.resumenMensual.categories} previousCategories={prevGerencia?.resumenMensual.categories} loading={isLoading} title="ANALISIS RESUMEN MENSUAL" />
-            <KpiPieChart data={gerencia.resumenMensual} loading={isLoading} />
-            <KpiBarChart data={gerencia.resumenMensual} loading={isLoading} />
-          </div>
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
+        <span className="font-bold text-slate-800">Clasificación desde Laboratorio:</span> DENSIDAD/DEN → DEN; PROBETA/CONCRETO/CILINDRO/COMPRESIÓN/ROTURA/CO → PROB; EMS o Mecánica de Suelos → EMS; ALQ/ALQUILER → ALQ; los demás códigos → ENS.V.
+      </div>
+      {kpis.uncategorizedRecords > 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {kpis.uncategorizedRecords} registro(s) de Control Comercial no tienen código de muestra ni descripción y no se incluyen en los totales.
+        </div>
+      ) : null}
 
-          {/* Tabla + Pie + Bar: Facturacion */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={gerencia.facturacion.categories} previousCategories={prevGerencia?.facturacion.categories} loading={isLoading} title="ANALISIS FACTURACION" />
-            <KpiPieChart data={gerencia.facturacion} loading={isLoading} />
-            <KpiBarChart data={gerencia.facturacion} loading={isLoading} />
-          </div>
+      {kpis.missingCostRecords > 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {kpis.missingCostRecords} trabajo(s) no tienen costo del servicio con IGV. Se contabilizan en cantidad, pero aportan S/ 0.00 al ingreso.
+        </div>
+      ) : null}
 
-          {/* Tabla + Pie + Bar: Estado de Pago */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={gerencia.estadoPago.categories} previousCategories={prevGerencia?.estadoPago.categories} loading={isLoading} title="ANALISIS ESTADO DE PAGO" />
-            <KpiPieChart data={gerencia.estadoPago} loading={isLoading} />
-            <KpiBarChart data={gerencia.estadoPago} loading={isLoading} />
-          </div>
+      {kpis.missingClientRecords > 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {kpis.missingClientRecords} trabajo(s) no tienen nombre de cliente y no se incluyen en Número de clientes ni en el divisor del Ticket promedio.
+        </div>
+      ) : null}
 
-          {/* Tabla + Pie + Bar: Status Probetas Entregadas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={gerencia.statusProbetasEntregadas.categories} previousCategories={prevGerencia?.statusProbetasEntregadas.categories} loading={isLoading} title="ANALISIS STATUS PROBETAS ENTREGADAS" />
-            <KpiPieChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
-            <KpiBarChart data={gerencia.statusProbetasEntregadas} loading={isLoading} />
-          </div>
+      <KpiPanel
+        title="INGRESO DE TRABAJO POR RECEPCIÓN"
+        description="Suma del costo del servicio con IGV, relacionando cada código de muestra de Laboratorio con su fila de Control Comercial."
+        source="Control Comercial"
+        icon={<CircleDollarSign className="h-5 w-5" />}
+        chart={<MetricBarChart data={incomeChart} monetary loading={isLoading} />}
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <TableHeaderCell>Descripción</TableHeaderCell>
+              <TableHeaderCell numeric>Costo S/.</TableHeaderCell>
+              <TableHeaderCell numeric>Costo %</TableHeaderCell>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <TableSkeleton columns={3} /> : kpis.categories.map((category) => (
+              <tr key={category.key} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
+                <td className="px-4 py-2.5 font-medium text-slate-700">{category.label}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatMoney(category.income)}</td>
+                <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatPercentage(category.incomePercentage)}</td>
+              </tr>
+            ))}
+            {!isLoading ? (
+              <TotalRow>
+                <td className="px-4 py-3">Monto total</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{formatMoney(kpis.totalIncome)}</td>
+                <td className="px-4 py-3 text-right">{kpis.totalIncome > 0 ? "100%" : "0%"}</td>
+              </TotalRow>
+            ) : null}
+          </tbody>
+        </table>
+      </KpiPanel>
+
+      <KpiPanel
+        title="NÚMERO DE CLIENTES"
+        description="Empresas únicas por categoría, identificadas por el mismo nombre de cliente en Control Comercial."
+        source="Control Comercial"
+        icon={<Users className="h-5 w-5" />}
+        chart={<MetricBarChart data={clientsChart} loading={isLoading} />}
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <TableHeaderCell>Descripción</TableHeaderCell>
+              <TableHeaderCell numeric>Cant. und</TableHeaderCell>
+              <TableHeaderCell numeric>Cant. %</TableHeaderCell>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <TableSkeleton columns={3} /> : kpis.categories.map((category) => (
+              <tr key={category.key} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
+                <td className="px-4 py-2.5 font-medium text-slate-700">{category.label}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">{numberFormatter.format(category.clients)}</td>
+                <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{formatPercentage(category.clientsPercentage)}</td>
+              </tr>
+            ))}
+            {!isLoading ? (
+              <TotalRow>
+                <td className="px-4 py-3">Total clientes</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{numberFormatter.format(kpis.totalClients)}</td>
+                <td className="px-4 py-3 text-right">{kpis.totalClients > 0 ? "100%" : "0%"}</td>
+              </TotalRow>
+            ) : null}
+          </tbody>
+        </table>
+      </KpiPanel>
+
+      <KpiPanel
+        title="KPI TICKET PROMEDIO"
+        description="Por categoría: costo con IGV ÷ clientes únicos. El total final suma los cinco tickets promedio, igual que el Excel."
+        source="Control Comercial"
+        icon={<TicketCheck className="h-5 w-5" />}
+        chart={<MetricBarChart data={ticketChart} monetary loading={isLoading} />}
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <TableHeaderCell>Descripción</TableHeaderCell>
+              <TableHeaderCell numeric>Costo S/.</TableHeaderCell>
+              <TableHeaderCell numeric>Cant. und</TableHeaderCell>
+              <TableHeaderCell numeric>Ticket prom. S/.</TableHeaderCell>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <TableSkeleton columns={4} /> : kpis.categories.map((category) => (
+              <tr key={category.key} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
+                <td className="px-4 py-2.5 font-medium text-slate-700">{category.label}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">{formatMoney(category.income)}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">{numberFormatter.format(category.clients)}</td>
+                <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums">{formatMoney(category.averageTicket)}</td>
+              </tr>
+            ))}
+            {!isLoading ? (
+              <TotalRow>
+                <td className="px-4 py-3">Monto total</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{formatMoney(kpis.totalIncome)}</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{numberFormatter.format(kpis.totalClients)}</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{formatMoney(kpis.averageTicket)}</td>
+              </TotalRow>
+            ) : null}
+          </tbody>
+        </table>
+      </KpiPanel>
+
+      <KpiPanel
+        title="EVIDENCIA DE RECEPCIONES"
+        description="Clasificación directa del campo Evidencias de Control Comercial: SI se cuenta como Si y NO como No."
+        source="Control Comercial"
+        icon={<BadgeCheck className="h-5 w-5" />}
+        chart={<MetricBarChart data={evidenceChart} loading={isLoading} />}
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <TableHeaderCell>Descripción</TableHeaderCell>
+              <TableHeaderCell numeric>Cant. und</TableHeaderCell>
+              <TableHeaderCell numeric>Cant. %</TableHeaderCell>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? <TableSkeleton rows={2} columns={3} /> : kpis.evidences.map((item) => (
+              <tr key={item.label} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
+                <td className="px-4 py-3 font-medium text-slate-700">{item.label}</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{numberFormatter.format(item.value)}</td>
+                <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatPercentage(item.percentage)}</td>
+              </tr>
+            ))}
+            {!isLoading ? (
+              <TotalRow>
+                <td className="px-4 py-3">Total recepciones</td>
+                <td className="px-4 py-3 text-right font-mono tabular-nums">{numberFormatter.format(kpis.totalEvidences)}</td>
+                <td className="px-4 py-3 text-right">{kpis.totalEvidences > 0 ? "100%" : "0%"}</td>
+              </TotalRow>
+            ) : null}
+            {!isLoading && kpis.ignoredEvidenceRecords > 0 ? (
+              <tr className="border-t border-amber-200 bg-amber-50 text-amber-800">
+                <td colSpan={3} className="px-4 py-2.5 text-xs">
+                  {kpis.ignoredEvidenceRecords} registro(s) con evidencia vacía o distinta de SI/NO no se incluyen en el total.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </KpiPanel>
         </>
       ) : (
-        <KpiHistoricoAdmin data={historicalAdmin} loading={isHistoricalLoading} />
+        <AdministracionCommercialTracking data={kpis.commercialTracking} loading={isLoading} />
       )}
     </div>
   )

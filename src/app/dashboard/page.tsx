@@ -549,9 +549,9 @@ export default function DashboardPage() {
       case "estadistica_laboratorio":
         return <LaboratorioStatsModule user={dashboardUser} />
       case "estadistica_comercial":
-        return <ComercialStatsModule user={dashboardUser} />
+        return <ComercialStatsModule />
       case "estadistica_gerencia":
-        return <GerenciaStatsModule user={dashboardUser} />
+        return <GerenciaStatsModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)
         return (
