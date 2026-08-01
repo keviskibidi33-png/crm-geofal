@@ -345,8 +345,6 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       const parsed = JSON.parse(raw)
       if (parsed?.version !== DRAFT_VERSION) return false
       if (parsed?.payload) {
-        const shouldRestore = window.confirm("Se encontró un borrador guardado. ¿Deseas restaurarlo?")
-        if (!shouldRestore) return false
         const payload = parsed.payload
         const draftYear = Number(payload.year || new Date().getFullYear())
         setNumero(extractQuoteSequence(String(payload.numero || ""), draftYear))
