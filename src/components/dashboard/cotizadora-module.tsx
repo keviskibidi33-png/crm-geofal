@@ -1388,7 +1388,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         }
       }}>
         <DialogContent
-          className="max-w-[96vw] w-[96vw] max-h-[92vh] overflow-hidden p-0 flex flex-col"
+          showCloseButton={false}
+          className="max-w-[96vw] w-[96vw] h-[92vh] max-h-[92vh] overflow-hidden p-0 flex flex-col"
           onPointerDownOutside={(event) => {
             const target = event.detail.originalEvent.target
             if (target instanceof Element && target.closest('[data-autocomplete-dropdown="true"]')) {
@@ -1406,24 +1407,16 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-6 space-y-6">
               <Card>
                 <CardContent className="p-4 space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="space-y-2 col-span-2">
                       <Label>Número sugerido</Label>
                       <Input
                         value={duplicateDraft?.numero || ""}
                         onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, numero: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Año</Label>
-                      <Input
-                        type="number"
-                        value={duplicateDraft?.year || new Date().getFullYear()}
-                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, year: Number(e.target.value) }))}
                       />
                     </div>
                     <div className="space-y-2 relative">

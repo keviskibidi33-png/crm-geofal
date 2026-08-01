@@ -398,6 +398,20 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   }, [duplicateSourceQuote, hasHydratedSource, hydrateQuote, loadCondiciones, loadQuote, open, quoteId, restoreDraft])
 
   useEffect(() => {
+    if (fechaEmision) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaEmision)
+      if (match) {
+        setYear(Number(match[1]))
+      } else {
+        const matchSlash = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(fechaEmision)
+        if (matchSlash) {
+          setYear(Number(matchSlash[3]))
+        }
+      }
+    }
+  }, [fechaEmision])
+
+  useEffect(() => {
     if (condiciones.length === 0 || pendingConditionTexts.length === 0 || selectedCondiciones.length > 0) return
     const normalized = (value: string) => value.trim().toLowerCase()
     const mapped = condiciones
@@ -738,7 +752,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
               <Card>
                 <CardContent className="p-4 space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="space-y-2 col-span-2">
                       <Label>Número de cotización</Label>
                       <div className="flex h-10 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                         <span className="pl-3 text-sm text-muted-foreground">OT-</span>
@@ -752,17 +766,6 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         />
                         <span className="pr-3 text-sm text-muted-foreground">-{String(year).slice(-2)}</span>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Año</Label>
-                      <Input
-                        type="number"
-                        value={year}
-                        onChange={(e) => {
-                          const nextYear = Number(e.target.value || new Date().getFullYear())
-                          setYear(nextYear)
-                        }}
-                      />
                     </div>
                   </div>
 
