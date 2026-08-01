@@ -125,12 +125,12 @@ const getTodayPeru = () => {
 }
 
 const PAYMENT_OPTIONS = [
-  "Valorización mensual",
-  "Adelantado",
-  "50% Adelanto y saldo previo a entrega",
-  "Crédito a 7 días",
-  "Crédito a 15 días",
-  "Crédito a 30 días",
+  { value: "valorizacion", label: "Valorización mensual" },
+  { value: "adelantado", label: "Adelantado" },
+  { value: "50_adelanto", label: "50% Adelanto y saldo previo a entrega" },
+  { value: "credito_7", label: "Crédito a 7 días" },
+  { value: "credito_15", label: "Crédito a 15 días" },
+  { value: "credito_30", label: "Crédito a 30 días" },
 ]
 
 type ConditionItem = { id: string; texto: string; categoria?: string; orden?: number }
@@ -649,8 +649,11 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         })),
       }
 
-      const resp = await authFetch(`${API_URL}/export/xlsx`, {
-        method: "POST",
+      const url = quoteId ? `${API_URL}/quotes/${quoteId}` : `${API_URL}/export/xlsx`
+      const method = quoteId ? "PUT" : "POST"
+
+      const resp = await authFetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
@@ -660,15 +663,23 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         throw new Error(errorText || `HTTP ${resp.status}`)
       }
 
-      const blob = await resp.blob()
-      const url = window.URL.createObjectURL(blob)
+      let blob: Blob
+      if (quoteId) {
+        const downloadResp = await authFetch(`${API_URL}/quotes/${quoteId}/download`)
+        if (!downloadResp.ok) throw new Error("No se pudo descargar el Excel actualizado")
+        blob = await downloadResp.blob()
+      } else {
+        blob = await resp.blob()
+      }
+
+      const urlBlob = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
-      a.href = url
+      a.href = urlBlob
       a.download = `${numero ? formatQuoteNumber(numero, year) : `OT-nuevo-${String(year).slice(-2)}`}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()
-      window.URL.revokeObjectURL(url)
+      window.URL.revokeObjectURL(urlBlob)
 
       if (user) {
         logAction({
@@ -918,8 +929,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                           Seleccionar...
                         </option>
                         {PAYMENT_OPTIONS.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </select>
