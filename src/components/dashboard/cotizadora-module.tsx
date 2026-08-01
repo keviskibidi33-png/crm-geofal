@@ -37,7 +37,7 @@ import { isToday, isThisWeek, isThisMonth, parseISO } from "date-fns"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { authFetch } from "@/lib/api-auth"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
-import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
+import { ensayosData, getEnsayosRequeridos, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -1591,7 +1591,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                             }))
                           }}
                           onSelect={(ensayo: EnsayoItem) => {
-                            const related = searchEnsayos(ensayo.codigo)
+                            const related = getEnsayosRequeridos(ensayo.codigo)
                             setDuplicateDraft((prev: any) => {
                               const next = [...prev.itemsJson]
                               next[idx] = {
@@ -1631,7 +1631,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                             }))
                           }}
                           onSelect={(ensayo: EnsayoItem) => {
-                            const related = searchEnsayos(ensayo.codigo)
+                            const related = getEnsayosRequeridos(ensayo.codigo)
                             setDuplicateDraft((prev: any) => {
                               const next = [...prev.itemsJson]
                               next[idx] = {

@@ -1966,6 +1966,10 @@ export const getEnsayosRelacionados = (codigo: string): EnsayoItem[] => {
   return ensayosData.filter((item) => ensayo.codigosRelacionados!.includes(item.codigo));
 };
 
+export const getEnsayosRequeridos = (codigo: string): EnsayoItem[] => {
+  return getEnsayosRelacionados(codigo);
+};
+
 export const getCategorias = (): string[] => {
   return [...new Set(ensayosData.map((item) => item.categoria))];
 };

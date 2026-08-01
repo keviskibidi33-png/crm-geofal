@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
-import { ensayosData, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
+import { ensayosData, getEnsayosRequeridos, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
 import { CreateProjectDialog } from "./create-project-dialog"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -446,7 +446,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   }
 
   const addEnsayoWithRelated = (index: number, ensayo: EnsayoItem) => {
-    const related = searchEnsayos(ensayo.codigo)
+    const related = getEnsayosRequeridos(ensayo.codigo)
     const mainItem: QuoteItem = {
       codigo: ensayo.codigo,
       descripcion: ensayo.descripcion,
