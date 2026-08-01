@@ -105,7 +105,7 @@ const extractQuoteSequence = (value: string, currentYear: number) => {
 
 const formatQuoteNumber = (value: string, currentYear: number) => {
   const digits = extractQuoteSequence(value, currentYear)
-  return digits ? `OT-${digits}-${String(currentYear).slice(-2)}` : ""
+  return digits ? `COT-${digits}-${String(currentYear).slice(-2)}` : ""
 }
 
 const toApiQuoteDate = (value: string) => {
@@ -617,8 +617,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     setSaving(true)
     try {
       const body = {
-        // The backend stores only the sequence and adds the year in the Excel.
-        // Sending the visual OT-... value duplicated prefixes/suffixes downstream.
+    // The backend stores only the sequence and adds the year in the Excel.
+    // Sending the visual COT-... value duplicated prefixes/suffixes downstream.
         cotizacion_numero: numero || undefined,
         cliente: cliente || undefined,
         ruc: ruc || undefined,
@@ -675,7 +675,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       const urlBlob = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = urlBlob
-      a.download = `${numero ? formatQuoteNumber(numero, year) : `OT-nuevo-${String(year).slice(-2)}`}.xlsx`
+    a.download = `${numero ? formatQuoteNumber(numero, year) : `COT-nuevo-${String(year).slice(-2)}`}.xlsx`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -725,12 +725,18 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     }
   }
 
+  const handleClearDraft = useCallback(() => {
+    clearDraft()
+    toast.success("Autoguardado local limpiado")
+  }, [clearDraft])
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none"
-          onPointerDownOutside={(event) => {
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none"
+        onPointerDownOutside={(event) => {
             const target = event.detail.originalEvent.target
             if (target instanceof Element && target.closest('[data-autocomplete-dropdown="true"]')) {
               event.preventDefault()
@@ -751,6 +757,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   <FileUp className="mr-2 h-4 w-4" />
                   Importar Excel
                 </Button>
+                <Button variant="outline" size="sm" onClick={handleClearDraft}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Limpiar local
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                   Cerrar
                 </Button>
@@ -766,7 +776,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                     <div className="space-y-2 col-span-2">
                       <Label>Número de cotización</Label>
                       <div className="flex h-10 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                        <span className="pl-3 text-sm text-muted-foreground">OT-</span>
+                        <span className="pl-3 text-sm text-muted-foreground">COT-</span>
                         <Input
                           value={numero}
                           onChange={(e) => handleNumeroChange(e.target.value)}
@@ -1035,6 +1045,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                                 placeholder="Código"
                                 displayField="descripcion"
                                 codeField="codigo"
+                                minChars={0}
                               />
                             </TableCell>
                             <TableCell className="align-top">
@@ -1046,6 +1057,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                                 placeholder="Descripción"
                                 displayField="descripcion"
                                 codeField="codigo"
+                                minChars={0}
                               />
                             </TableCell>
                             <TableCell className="align-top"><Input value={item.norma} onChange={(e) => updateItem(index, { norma: e.target.value })} /></TableCell>

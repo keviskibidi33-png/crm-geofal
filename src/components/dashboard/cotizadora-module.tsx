@@ -1620,6 +1620,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                           placeholder="Código"
                           displayField="descripcion"
                           codeField="codigo"
+                          minChars={0}
                         />
                         <AutocompleteInput
                           value={item.descripcion || ""}
@@ -1659,6 +1660,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                           placeholder="Descripción"
                           displayField="descripcion"
                           codeField="codigo"
+                          minChars={0}
                         />
                         <Input value={item.norma || ""} onChange={(e) => {
                           const value = e.target.value
