@@ -910,7 +910,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     } finally {
       setImportingExcel(false)
     }
-  }, [loadSuggestedImportNumber])
+  }
 
   const handleClearDraft = useCallback(() => {
     clearDraft()
