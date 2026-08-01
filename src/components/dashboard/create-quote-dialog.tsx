@@ -143,12 +143,47 @@ type PlantillaCotizacion = {
   id: string
   nombre: string
   descripcion?: string | null
-  items_json?: any[]
-  condiciones_ids?: string[] | null
+  items_json?: unknown
+  condiciones_ids?: unknown
   plazo_dias?: number | null
   condicion_pago?: string | null
   veces_usada?: number | null
+  vendedor_id?: string | null
+  es_propia?: boolean
+  created_at?: string | null
 }
+
+const parseArrayValue = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[]
+  if (typeof value !== "string" || !value.trim()) return []
+
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed as T[] : []
+  } catch {
+    return []
+  }
+}
+
+const parseStringArrayValue = (value: unknown) => {
+  if (Array.isArray(value)) return value.map(String)
+  if (typeof value !== "string" || !value.trim()) return []
+
+  const trimmed = value.trim()
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    return parseArrayValue<unknown>(trimmed).map(String)
+  }
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed.slice(1, -1)
+      .split(",")
+      .map((item) => item.trim().replace(/^"|"$/g, ""))
+      .filter(Boolean)
+  }
+  return [trimmed]
+}
+
+const getPlantillaItems = (plantilla: PlantillaCotizacion) => parseArrayValue<any>(plantilla.items_json)
+const getPlantillaConditionIds = (plantilla: PlantillaCotizacion) => parseStringArrayValue(plantilla.condiciones_ids)
 
 export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId, duplicateSourceQuote }: CreateQuoteDialogProps) {
   const [loading, setLoading] = useState(false)
@@ -207,6 +242,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [plantillaFormMode, setPlantillaFormMode] = useState<"create" | "edit">("create")
   const [plantillaForm, setPlantillaForm] = useState({ nombre: "", descripcion: "" })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const skipNextDraftSaveRef = useRef(false)
   const draftKey = useMemo(() => makeDraftKey(user?.id, quoteId), [quoteId, user?.id])
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + Number(item.costo_unitario || 0) * Number(item.cantidad || 0), 0), [items])
@@ -225,7 +261,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     const query = plantillaSearch.trim().toLowerCase()
     if (!query) return plantillas
     return plantillas.filter((plantilla) =>
-      `${plantilla.nombre} ${plantilla.descripcion || ""}`.toLowerCase().includes(query)
+      `${plantilla.nombre} ${plantilla.descripcion || ""} ${getPlantillaItems(plantilla)
+        .map((item: any) => `${item.codigo || ""} ${item.descripcion || ""}`).join(" ")}`
+        .toLowerCase()
+        .includes(query)
     )
   }, [plantillaSearch, plantillas])
 
@@ -233,6 +272,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     () => plantillas.find((plantilla) => plantilla.id === selectedPlantillaId) || null,
     [plantillas, selectedPlantillaId]
   )
+  const selectedPlantillaItems = selectedPlantilla ? getPlantillaItems(selectedPlantilla) : []
+  const selectedPlantillaConditionIds = selectedPlantilla ? getPlantillaConditionIds(selectedPlantilla) : []
 
   const currentPlantillaPayload = useMemo(() => ({
     nombre: plantillaForm.nombre.trim(),
@@ -260,7 +301,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     if (!user?.id) return
     setLoadingPlantillas(true)
     try {
-      const resp = await authFetch(`${API_URL}/plantillas?vendedor_id=${encodeURIComponent(user.id)}`)
+      const resp = await authFetch(
+        `${API_URL}/plantillas?vendedor_id=${encodeURIComponent(user.id)}&incluir_compartidas=true`
+      )
       const payload = await resp.json().catch(() => ({}))
       if (!resp.ok) throw new Error(payload?.detail || "No se pudieron cargar las plantillas")
       const data = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
@@ -284,8 +327,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       const payload = await resp.json().catch(() => ({}))
       if (!resp.ok) throw new Error(payload?.detail || "No se pudo recuperar la plantilla")
 
-      const itemsFromTemplate = Array.isArray(payload.items_json) && payload.items_json.length > 0
-        ? payload.items_json.map((item: any) => ({
+      const templateItems = parseArrayValue<any>(payload.items_json)
+      const itemsFromTemplate = templateItems.length > 0
+        ? templateItems.map((item: any) => ({
             codigo: String(item.codigo || ""),
             descripcion: String(item.descripcion || ""),
             norma: String(item.norma || ""),
@@ -297,7 +341,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         : [emptyItem()]
 
       setItems(itemsFromTemplate)
-      setSelectedCondiciones(Array.isArray(payload.condiciones_ids) ? payload.condiciones_ids.map(String) : [])
+      setSelectedCondiciones(parseStringArrayValue(payload.condiciones_ids))
       setPendingConditionTexts([])
       setPlazoDias(Number(payload.plazo_dias || 0))
       setCondicionPago(payload.condicion_pago || "")
@@ -663,6 +707,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
 
   useEffect(() => {
     if (!open || quoteId || duplicateSourceQuote) return
+    if (skipNextDraftSaveRef.current) {
+      skipNextDraftSaveRef.current = false
+      return
+    }
     const timer = setTimeout(() => {
       const payload = {
         version: DRAFT_VERSION,
@@ -913,9 +961,40 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   }
 
   const handleClearDraft = useCallback(() => {
+    if (!quoteId && !duplicateSourceQuote) {
+      skipNextDraftSaveRef.current = true
+    }
     clearDraft()
-    toast.success("Autoguardado local limpiado")
-  }, [clearDraft])
+    setNumero("")
+    setYear(new Date().getFullYear())
+    setCliente("")
+    setRuc("")
+    setContacto("")
+    setTelefono("")
+    setCorreo("")
+    setProyecto("")
+    setUbicacion("")
+    setFechaSolicitud(getTodayPeru())
+    setFechaEmision(getTodayPeru())
+    setPersonalComercial(user?.name || "")
+    setTelefonoComercial(user?.phone || "")
+    setCorreoVendedor(user?.email || "")
+    setPlazoDias(0)
+    setCondicionPago("")
+    setIncludeIgv(true)
+    setClienteSearch("")
+    setProyectoSearch("")
+    setClientes([])
+    setProyectos([])
+    setShowClienteDropdown(false)
+    setShowProyectoDropdown(false)
+    setSelectedCliente(null)
+    setSelectedProyecto(null)
+    setItems([emptyItem()])
+    setSelectedCondiciones([])
+    setPendingConditionTexts([])
+    toast.success("Datos actuales y autoguardado local limpiados")
+  }, [clearDraft, duplicateSourceQuote, quoteId, user?.email, user?.name, user?.phone])
 
   const loadSuggestedImportNumber = useCallback(async () => {
     try {
@@ -1435,6 +1514,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 ) : (
                   filteredPlantillas.map((plantilla) => {
                     const isSelected = plantilla.id === selectedPlantillaId
+                    const plantillaItems = getPlantillaItems(plantilla)
+                    const plantillaConditionIds = getPlantillaConditionIds(plantilla)
                     return (
                       <button
                         key={plantilla.id}
@@ -1455,11 +1536,16 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                           <span className="rounded-full bg-background px-2 py-0.5 border">
-                            {Array.isArray(plantilla.items_json) ? plantilla.items_json.length : 0} ítems
+                            {plantillaItems.length} ítems
                           </span>
                           <span className="rounded-full bg-background px-2 py-0.5 border">
-                            {Array.isArray(plantilla.condiciones_ids) ? plantilla.condiciones_ids.length : 0} condiciones
+                            {plantillaConditionIds.length} condiciones
                           </span>
+                          {plantilla.es_propia === false ? (
+                            <span className="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 border border-amber-200">
+                              Recuperada
+                            </span>
+                          ) : null}
                           <span className="rounded-full bg-background px-2 py-0.5 border">
                             Uso: {plantilla.veces_usada || 0}
                           </span>
@@ -1483,14 +1569,16 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             {selectedPlantilla.descripcion || "Sin descripción"}
                           </p>
                         </div>
-                        <Badge variant="outline">Plantilla</Badge>
+                        <Badge variant="outline">
+                          {selectedPlantilla.es_propia === false ? "Recuperada" : "Propia"}
+                        </Badge>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span className="rounded-full border px-2 py-1 bg-background">
-                          Ítems: {Array.isArray(selectedPlantilla.items_json) ? selectedPlantilla.items_json.length : 0}
+                          Ítems: {selectedPlantillaItems.length}
                         </span>
                         <span className="rounded-full border px-2 py-1 bg-background">
-                          Condiciones: {Array.isArray(selectedPlantilla.condiciones_ids) ? selectedPlantilla.condiciones_ids.length : 0}
+                          Condiciones: {selectedPlantillaConditionIds.length}
                         </span>
                         <span className="rounded-full border px-2 py-1 bg-background">
                           Uso: {selectedPlantilla.veces_usada || 0}
@@ -1504,7 +1592,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold">Vista previa de ítems</h4>
                         <span className="text-xs text-muted-foreground">
-                          {Array.isArray(selectedPlantilla.items_json) ? selectedPlantilla.items_json.length : 0} filas
+                          {selectedPlantillaItems.length} filas
                         </span>
                       </div>
                       <div className="max-h-72 overflow-y-auto rounded-lg border">
@@ -1518,7 +1606,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {(selectedPlantilla.items_json || []).map((item: any, index: number) => (
+                            {selectedPlantillaItems.map((item: any, index: number) => (
                               <TableRow key={`${selectedPlantilla.id}-${index}`}>
                                 <TableCell className="font-mono text-xs">{item.codigo || "—"}</TableCell>
                                 <TableCell className="max-w-[280px] truncate">{item.descripcion || "—"}</TableCell>
@@ -1536,8 +1624,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         <div className="rounded-lg border p-3">
                           <p className="text-xs font-semibold uppercase text-muted-foreground">Condiciones</p>
                           <p className="mt-1 text-sm">
-                            {Array.isArray(selectedPlantilla.condiciones_ids) && selectedPlantilla.condiciones_ids.length > 0
-                              ? `${selectedPlantilla.condiciones_ids.length} condiciones vinculadas`
+                            {selectedPlantillaConditionIds.length > 0
+                              ? `${selectedPlantillaConditionIds.length} condiciones vinculadas`
                               : "Sin condiciones vinculadas"}
                           </p>
                         </div>
