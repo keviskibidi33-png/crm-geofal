@@ -95,6 +95,7 @@ const PermisosModule = dashboardDynamic(async () => (await import("@/components/
 const LaboratorioStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-stats-module")).LaboratorioStatsModule)
 const ComercialStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-stats-module")).ComercialStatsModule)
 const GerenciaStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/gerencia-stats-module")).GerenciaStatsModule)
+const AdministracionKpisDevelopment = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-kpis-development")).AdministracionKpisDevelopment)
 const DashboardHomeModule = dashboardDynamic(async () => (await import("@/components/dashboard/dashboard-home-module")).DashboardHomeModule)
 
 export default function DashboardPage() {
@@ -551,6 +552,8 @@ export default function DashboardPage() {
       case "estadistica_comercial":
         return <ComercialStatsModule />
       case "estadistica_gerencia":
+        return <AdministracionKpisDevelopment onOpenGerencia={() => setActiveModule("gerencia")} />
+      case "gerencia":
         return <GerenciaStatsModule />
       default:
         console.warn('[CRM] Modulo no reconocido:', activeModule)

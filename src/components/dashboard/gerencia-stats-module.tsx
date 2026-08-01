@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react"
 import {
   AlertTriangle,
   BadgeCheck,
-  BarChart3,
   CircleDollarSign,
   LayoutDashboard,
   RefreshCw,
@@ -23,16 +22,15 @@ import {
 } from "recharts"
 
 import { MonthSelector } from "@/components/dashboard/kpi-charts"
-import { AdministracionCommercialTracking } from "@/components/dashboard/administracion-commercial-tracking"
+import { GerenciaCommercialTracking } from "@/components/dashboard/gerencia-commercial-tracking"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { useAdministracionKpis } from "@/hooks/use-administracion-kpis"
+import { useGerenciaKpis } from "@/hooks/use-gerencia-kpis"
 
 const CATEGORY_COLORS = ["#f59e0b", "#22c55e", "#ef4444", "#3b82f6", "#8b5cf6"]
 const EVIDENCE_COLORS = ["#16a34a", "#ef4444"]
@@ -146,28 +144,26 @@ function KpiPanel({
   chart: ReactNode
 }) {
   return (
-    <Card className="overflow-hidden border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-              {icon}
-            </div>
-            <div>
-              <CardTitle className="text-base font-black tracking-tight text-slate-900">{title}</CardTitle>
-              <p className="mt-1 text-xs text-slate-500">{description}</p>
-            </div>
+    <section className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            {icon}
           </div>
-          <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
-            Fuente: {source}
-          </span>
+          <div>
+            <h3 className="text-lg font-bold text-slate-950">{title}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent className="grid gap-5 p-5 xl:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
+        <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+          Fuente: {source}
+        </span>
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(440px,0.95fr)_minmax(420px,1.05fr)]">
         <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200">{children}</div>
         {chart}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }
 
@@ -198,7 +194,7 @@ function TotalRow({ children }: { children: ReactNode }) {
 }
 
 export function GerenciaStatsModule() {
-  const [dashboardView, setDashboardView] = useState<"administracion" | "seguimiento">("administracion")
+  const [dashboardView, setDashboardView] = useState<"indicadores" | "seguimiento">("indicadores")
   const {
     kpis,
     isLoading,
@@ -210,7 +206,7 @@ export function GerenciaStatsModule() {
     selectedYear,
     availableMonths,
     setSelectedMonth,
-  } = useAdministracionKpis()
+  } = useGerenciaKpis()
 
   const incomeChart = kpis.categories.map((category, index) => ({
     label: category.label,
@@ -243,14 +239,11 @@ export function GerenciaStatsModule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-blue-700" />
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">KPIs Administración</h2>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Indicadores administrativos y seguimiento comercial del mes seleccionado.
+          <h2 className="text-2xl font-bold">Gerencia</h2>
+          <p className="text-sm text-muted-foreground">
+            Indicadores gerenciales de Laboratorio y Comercial del mes seleccionado.
             {lastUpdated ? <span className="ml-2">Actualizado: {lastUpdated.toLocaleTimeString("es-PE")}</span> : null}
           </p>
         </div>
@@ -270,25 +263,25 @@ export function GerenciaStatsModule() {
         </div>
       </div>
 
-      <div className="flex w-fit items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
+      <div className="flex w-fit items-center gap-1 rounded-lg bg-muted p-0.5">
         <Button
           type="button"
-          variant={dashboardView === "administracion" ? "default" : "ghost"}
+          variant={dashboardView === "indicadores" ? "default" : "ghost"}
           size="sm"
-          className="gap-2"
-          onClick={() => setDashboardView("administracion")}
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setDashboardView("indicadores")}
         >
-          <LayoutDashboard className="h-4 w-4" />
-          Administración
+          <LayoutDashboard className="h-3.5 w-3.5" />
+          Indicadores Gerenciales
         </Button>
         <Button
           type="button"
           variant={dashboardView === "seguimiento" ? "default" : "ghost"}
           size="sm"
-          className="gap-2"
+          className="h-8 gap-1.5 text-xs"
           onClick={() => setDashboardView("seguimiento")}
         >
-          <TrendingUp className="h-4 w-4" />
+          <TrendingUp className="h-3.5 w-3.5" />
           Seguimiento Comercial 1
         </Button>
       </div>
@@ -307,7 +300,7 @@ export function GerenciaStatsModule() {
         </div>
       ) : null}
 
-      {dashboardView === "administracion" ? (
+      {dashboardView === "indicadores" ? (
         <>
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
         <span className="font-bold text-slate-800">Clasificación desde Laboratorio:</span> DENSIDAD/DEN → DEN; PROBETA/CONCRETO/CILINDRO/COMPRESIÓN/ROTURA/CO → PROB; EMS o Mecánica de Suelos → EMS; ALQ/ALQUILER → ALQ; los demás códigos → ENS.V.
@@ -336,7 +329,7 @@ export function GerenciaStatsModule() {
       <KpiPanel
         title="INGRESO DE TRABAJO POR RECEPCIÓN"
         description="Suma del costo del servicio con IGV, relacionando cada código de muestra de Laboratorio con su fila de Control Comercial."
-        source="Control Comercial"
+        source="Laboratorio + Comercial"
         icon={<CircleDollarSign className="h-5 w-5" />}
         chart={<MetricBarChart data={incomeChart} monetary loading={isLoading} />}
       >
@@ -369,8 +362,8 @@ export function GerenciaStatsModule() {
 
       <KpiPanel
         title="NÚMERO DE CLIENTES"
-        description="Empresas únicas por categoría, identificadas por el mismo nombre de cliente en Control Comercial."
-        source="Control Comercial"
+        description="Empresas únicas por categoría, identificadas por el nombre de cliente registrado en Laboratorio."
+        source="Laboratorio + Comercial"
         icon={<Users className="h-5 w-5" />}
         chart={<MetricBarChart data={clientsChart} loading={isLoading} />}
       >
@@ -404,7 +397,7 @@ export function GerenciaStatsModule() {
       <KpiPanel
         title="KPI TICKET PROMEDIO"
         description="Por categoría: costo con IGV ÷ clientes únicos. El total final suma los cinco tickets promedio, igual que el Excel."
-        source="Control Comercial"
+        source="Laboratorio + Comercial"
         icon={<TicketCheck className="h-5 w-5" />}
         chart={<MetricBarChart data={ticketChart} monetary loading={isLoading} />}
       >
@@ -441,7 +434,7 @@ export function GerenciaStatsModule() {
       <KpiPanel
         title="EVIDENCIA DE RECEPCIONES"
         description="Clasificación directa del campo Evidencias de Control Comercial: SI se cuenta como Si y NO como No."
-        source="Control Comercial"
+        source="Laboratorio + Comercial"
         icon={<BadgeCheck className="h-5 w-5" />}
         chart={<MetricBarChart data={evidenceChart} loading={isLoading} />}
       >
@@ -480,7 +473,7 @@ export function GerenciaStatsModule() {
       </KpiPanel>
         </>
       ) : (
-        <AdministracionCommercialTracking data={kpis.commercialTracking} loading={isLoading} />
+        <GerenciaCommercialTracking data={kpis.commercialTracking} loading={isLoading} />
       )}
     </div>
   )

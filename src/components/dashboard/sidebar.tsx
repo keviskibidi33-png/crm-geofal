@@ -77,10 +77,11 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "configuracion", label: "Configuración", icon: Settings },
 ]
 
-const kpiModules: { id: ModuleType; label: string; icon: React.ElementType }[] = [
+const kpiModules: { id: ModuleType; label: string; icon: React.ElementType; status?: string }[] = [
   { id: "estadistica_laboratorio", label: "Estadistica Laboratorio", icon: FlaskConical },
   { id: "estadistica_comercial", label: "Estadistica Comercial", icon: TrendingUp },
-  { id: "estadistica_gerencia", label: "KPIs Administración", icon: BarChart3 },
+  { id: "estadistica_gerencia", label: "KPIs Administración", icon: Shield, status: "En desarrollo" },
+  { id: "gerencia", label: "Gerencia", icon: BarChart3 },
 ]
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
@@ -469,6 +470,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     >
                       <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="flex-1 text-left truncate">{sub.label}</span>
+                      {sub.status ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">
+                          {sub.status}
+                        </span>
+                      ) : null}
                       {isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
                     </button>
                   )

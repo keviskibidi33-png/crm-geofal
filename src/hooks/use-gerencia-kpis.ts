@@ -53,7 +53,7 @@ interface ControlCommercialRow {
   activo: boolean | null
 }
 
-export interface AdministracionKpiCategory {
+export interface GerenciaKpiCategory {
   key: CategoryKey
   label: string
   shortLabel: CategoryKey
@@ -64,7 +64,7 @@ export interface AdministracionKpiCategory {
   averageTicket: number
 }
 
-export interface AdministracionEvidenceKpi {
+export interface GerenciaEvidenceKpi {
   label: "Si" | "No"
   value: number
   percentage: number
@@ -95,12 +95,12 @@ export interface CommercialTrackingKpis {
   conversionRates: CommercialWeeklyAmounts
 }
 
-export interface AdministracionKpis {
-  categories: AdministracionKpiCategory[]
+export interface GerenciaKpis {
+  categories: GerenciaKpiCategory[]
   totalIncome: number
   totalClients: number
   averageTicket: number
-  evidences: AdministracionEvidenceKpi[]
+  evidences: GerenciaEvidenceKpi[]
   totalEvidences: number
   ignoredEvidenceRecords: number
   uncategorizedRecords: number
@@ -127,7 +127,7 @@ function createEmptyCommercialGroup(): CommercialTrackingAmountGroup {
   }
 }
 
-const EMPTY_KPIS: AdministracionKpis = {
+const EMPTY_KPIS: GerenciaKpis = {
   categories: CATEGORY_DEFINITIONS.map((category) => ({
     ...category,
     shortLabel: category.key,
@@ -338,12 +338,12 @@ async function fetchControlCommercialRows(startDate: string, endDate: string) {
   return rows
 }
 
-export function useAdministracionKpis() {
+export function useGerenciaKpis() {
   const [today] = useState(() => new Date())
   const [selectedMonth, setSelectedMonthState] = useState(String(today.getMonth() + 1))
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
   const [availableMonths] = useState<MonthOption[]>(createAvailableMonths)
-  const [kpis, setKpis] = useState<AdministracionKpis>(EMPTY_KPIS)
+  const [kpis, setKpis] = useState<GerenciaKpis>(EMPTY_KPIS)
   const [isLoading, setIsLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)

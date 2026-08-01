@@ -2,11 +2,10 @@
 
 import { FileCheck2, ShoppingCart, TrendingUp, Users } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   CommercialTrackingAmountGroup,
   CommercialTrackingKpis,
-} from "@/hooks/use-administracion-kpis"
+} from "@/hooks/use-gerencia-kpis"
 
 const moneyFormatter = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 0,
@@ -182,7 +181,7 @@ function ClientsTable({ data, loading }: { data: CommercialTrackingKpis; loading
   )
 }
 
-export function AdministracionCommercialTracking({
+export function GerenciaCommercialTracking({
   data,
   loading,
 }: {
@@ -190,40 +189,36 @@ export function AdministracionCommercialTracking({
   loading: boolean
 }) {
   return (
-    <Card className="overflow-hidden border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-slate-950 to-slate-800 text-white">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg font-black uppercase tracking-wide">Seguimiento Comercial 1</CardTitle>
-            <p className="mt-1 text-xs text-slate-300">
-              Cotizaciones enviadas, ventas y conversión semanal por categoría de cliente.
-            </p>
-          </div>
-          <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-            Fuente: Seguimiento
-          </span>
+    <section className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-bold text-slate-950">SEGUIMIENTO COMERCIAL 1</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Cotizaciones enviadas, ventas y conversión semanal por categoría de cliente.
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-5 bg-slate-50/50 p-5">
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
-          <span className="font-bold text-slate-800">Reglas:</span> Cotización enviada usa Estado cliente = Cotización enviada, número de cotización y monto válido. Venta usa Estado seguimiento = Venta. Leads cuentan registros con número de cotización y Cliente nuevos los registros en Venta.
-        </div>
-        <AmountTable
-          title="Cotización enviada"
-          data={data.quoteSent}
-          weekLabels={data.weekLabels}
-          loading={loading}
-          tone="blue"
-        />
-        <AmountTable
-          title="Venta"
-          data={data.sales}
-          weekLabels={data.weekLabels}
-          loading={loading}
-          tone="emerald"
-        />
-        <ClientsTable data={data} loading={loading} />
-      </CardContent>
-    </Card>
+        <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+          Fuente: Seguimiento
+        </span>
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+        <span className="font-bold text-slate-800">Reglas:</span> Cotización enviada usa Estado cliente = Cotización enviada, número de cotización y monto válido. Venta usa Estado seguimiento = Venta. Leads cuentan registros con número de cotización y Cliente nuevos los registros en Venta.
+      </div>
+      <AmountTable
+        title="Cotización enviada"
+        data={data.quoteSent}
+        weekLabels={data.weekLabels}
+        loading={loading}
+        tone="blue"
+      />
+      <AmountTable
+        title="Venta"
+        data={data.sales}
+        weekLabels={data.weekLabels}
+        loading={loading}
+        tone="emerald"
+      />
+      <ClientsTable data={data} loading={loading} />
+    </section>
   )
 }

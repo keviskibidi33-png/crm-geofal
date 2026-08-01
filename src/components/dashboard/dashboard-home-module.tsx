@@ -16,13 +16,13 @@ interface DashboardHomeModuleProps {
 
 const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]> = {
   admin: [
-    { label: "Clientes", module: "clientes" },
+    { label: "Gerencia", module: "gerencia" },
     { label: "Seguimiento", module: "tracing" },
     { label: "Control Informes", module: "ingenieria_archivos" },
   ],
   admin_general: [
+    { label: "Gerencia", module: "gerencia" },
     { label: "Clientes", module: "clientes" },
-    { label: "Seguimiento", module: "tracing" },
     { label: "Control Comercial", module: "comercial" },
   ],
   comercial: [
@@ -36,7 +36,7 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
     { label: "Control Comercial", module: "comercial" },
   ],
   administrativo: [
-    { label: "Clientes", module: "clientes" },
+    { label: "Gerencia", module: "gerencia" },
     { label: "Proyectos", module: "proyectos" },
     { label: "Control Administración", module: "administracion" },
   ],

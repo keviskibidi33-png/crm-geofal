@@ -45,6 +45,10 @@ export function isAdministracionDashboardRole(role: string | null | undefined) {
   return normalizedRole.includes("administracion") || normalizedRole.includes("administrativo")
 }
 
+export function isGerenciaDashboardRole(role: string | null | undefined) {
+  return normalizeRole(role).includes("gerencia")
+}
+
 const CONTROL_ACCESS_BLOCKED_ROLES = new Set(["tecnico", "tecnico_suelos"])
 
 export function isRestrictedTechnicalRole(role: string | null | undefined) {
@@ -149,6 +153,15 @@ export function canAccessDashboardModule(
       || isAdministracionDashboardRole(role)
       || permissions?.administracion?.read === true
       || permissions?.estadistica_gerencia?.read === true
+  }
+
+  if (activeCheckModule === "gerencia") {
+    return isAdminDashboardRole(role)
+      || isAdministracionDashboardRole(role)
+      || isGerenciaDashboardRole(role)
+      || permissions?.administracion?.read === true
+      || permissions?.estadistica_gerencia?.read === true
+      || permissions?.gerencia?.read === true
   }
 
   if (activeCheckModule === "permisos") {
