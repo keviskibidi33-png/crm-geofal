@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AlertCircle, ExternalLink, FileUp, Loader2, Plus, Search, Trash2 } from "lucide-react"
+import { AlertCircle, ExternalLink, FileUp, Loader2, Plus, Search, Trash2, FolderOpen, ChevronRight, ListFilter, Pencil } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -108,6 +108,11 @@ const formatQuoteNumber = (value: string, currentYear: number) => {
   return digits ? `COT-${digits}-${String(currentYear).slice(-2)}` : ""
 }
 
+const getSuggestedQuoteSequence = (value: string) => {
+  const digits = String(value || "").replace(/\D/g, "")
+  return digits || ""
+}
+
 const toApiQuoteDate = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   return match ? `${match[3]}/${match[2]}/${match[1]}` : value
@@ -134,6 +139,16 @@ const PAYMENT_OPTIONS = [
 ]
 
 type ConditionItem = { id: string; texto: string; categoria?: string; orden?: number }
+type PlantillaCotizacion = {
+  id: string
+  nombre: string
+  descripcion?: string | null
+  items_json?: any[]
+  condiciones_ids?: string[] | null
+  plazo_dias?: number | null
+  condicion_pago?: string | null
+  veces_usada?: number | null
+}
 
 export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyectoId, clienteId, quoteId, duplicateSourceQuote }: CreateQuoteDialogProps) {
   const [loading, setLoading] = useState(false)
@@ -181,6 +196,16 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
   const [hasHydratedSource, setHasHydratedSource] = useState(false)
   const [pendingConditionTexts, setPendingConditionTexts] = useState<string[]>([])
+  const [showPlantillasModal, setShowPlantillasModal] = useState(false)
+  const [loadingPlantillas, setLoadingPlantillas] = useState(false)
+  const [loadingPlantillaId, setLoadingPlantillaId] = useState<string | null>(null)
+  const [savingPlantilla, setSavingPlantilla] = useState(false)
+  const [plantillas, setPlantillas] = useState<PlantillaCotizacion[]>([])
+  const [selectedPlantillaId, setSelectedPlantillaId] = useState<string | null>(null)
+  const [plantillaSearch, setPlantillaSearch] = useState("")
+  const [showPlantillaFormModal, setShowPlantillaFormModal] = useState(false)
+  const [plantillaFormMode, setPlantillaFormMode] = useState<"create" | "edit">("create")
+  const [plantillaForm, setPlantillaForm] = useState({ nombre: "", descripcion: "" })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const draftKey = useMemo(() => makeDraftKey(user?.id, quoteId), [quoteId, user?.id])
 
@@ -196,10 +221,168 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     )
   }, [conditionSearch, condiciones])
 
+  const filteredPlantillas = useMemo(() => {
+    const query = plantillaSearch.trim().toLowerCase()
+    if (!query) return plantillas
+    return plantillas.filter((plantilla) =>
+      `${plantilla.nombre} ${plantilla.descripcion || ""}`.toLowerCase().includes(query)
+    )
+  }, [plantillaSearch, plantillas])
+
+  const selectedPlantilla = useMemo(
+    () => plantillas.find((plantilla) => plantilla.id === selectedPlantillaId) || null,
+    [plantillas, selectedPlantillaId]
+  )
+
+  const currentPlantillaPayload = useMemo(() => ({
+    nombre: plantillaForm.nombre.trim(),
+    descripcion: plantillaForm.descripcion.trim(),
+    vendedor_id: user?.id,
+    items: items.map((item) => ({
+      codigo: item.codigo || "",
+      descripcion: item.descripcion || "",
+      norma: item.norma || "",
+      acreditado: item.acreditado || "SI",
+      costo_unitario: Number(item.costo_unitario || 0),
+      cantidad: Number(item.cantidad || 1),
+    })),
+    condiciones_ids: selectedCondiciones,
+    plazo_dias: plazoDias || 0,
+    condicion_pago: condicionPago || "",
+  }), [condicionPago, items, plazoDias, plantillaForm.descripcion, plantillaForm.nombre, selectedCondiciones, user?.id])
+
   const clearDraft = useCallback(() => {
     if (typeof window === "undefined") return
     localStorage.removeItem(draftKey)
   }, [draftKey])
+
+  const loadPlantillas = useCallback(async () => {
+    if (!user?.id) return
+    setLoadingPlantillas(true)
+    try {
+      const resp = await authFetch(`${API_URL}/plantillas?vendedor_id=${encodeURIComponent(user.id)}`)
+      const payload = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(payload?.detail || "No se pudieron cargar las plantillas")
+      const data = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : []
+      setPlantillas(data)
+      setSelectedPlantillaId((current) => current || data[0]?.id || null)
+    } catch (error: any) {
+      toast.error("No se pudieron cargar las plantillas", {
+        description: error?.message || "Error desconocido",
+      })
+      setPlantillas([])
+      setSelectedPlantillaId(null)
+    } finally {
+      setLoadingPlantillas(false)
+    }
+  }, [user?.id])
+
+  const applyPlantilla = useCallback(async (plantillaId: string) => {
+    setLoadingPlantillaId(plantillaId)
+    try {
+      const resp = await authFetch(`${API_URL}/plantillas/${plantillaId}`)
+      const payload = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(payload?.detail || "No se pudo recuperar la plantilla")
+
+      const itemsFromTemplate = Array.isArray(payload.items_json) && payload.items_json.length > 0
+        ? payload.items_json.map((item: any) => ({
+            codigo: String(item.codigo || ""),
+            descripcion: String(item.descripcion || ""),
+            norma: String(item.norma || ""),
+            acreditado: String(item.acreditado || "SI"),
+            costo_unitario: Number(item.costo_unitario ?? item.precio ?? 0),
+            cantidad: Number(item.cantidad || 1),
+            ensayoData: item.ensayoData,
+          }))
+        : [emptyItem()]
+
+      setItems(itemsFromTemplate)
+      setSelectedCondiciones(Array.isArray(payload.condiciones_ids) ? payload.condiciones_ids.map(String) : [])
+      setPendingConditionTexts([])
+      setPlazoDias(Number(payload.plazo_dias || 0))
+      setCondicionPago(payload.condicion_pago || "")
+      setShowPlantillasModal(false)
+      toast.success(`Plantilla "${payload.nombre}" cargada`)
+    } catch (error: any) {
+      toast.error("No se pudo cargar la plantilla", {
+        description: error?.message || "Error desconocido",
+      })
+    } finally {
+      setLoadingPlantillaId(null)
+    }
+  }, [])
+
+  const openCreatePlantillaForm = useCallback(() => {
+    setPlantillaFormMode("create")
+    setPlantillaForm({
+      nombre: `Plantilla ${new Date().getFullYear()}`,
+      descripcion: "",
+    })
+    setShowPlantillaFormModal(true)
+  }, [])
+
+  const openEditPlantillaForm = useCallback(() => {
+    if (!selectedPlantilla) return
+    setPlantillaFormMode("edit")
+    setPlantillaForm({
+      nombre: selectedPlantilla.nombre || "",
+      descripcion: selectedPlantilla.descripcion || "",
+    })
+    setShowPlantillaFormModal(true)
+  }, [selectedPlantilla])
+
+  const submitPlantillaForm = useCallback(async () => {
+    if (!user?.id) return
+    if (!currentPlantillaPayload.nombre) {
+      toast.error("Escribe un nombre para la plantilla")
+      return
+    }
+
+    const isEdit = plantillaFormMode === "edit" && selectedPlantillaId
+    const url = isEdit ? `${API_URL}/plantillas/${selectedPlantillaId}` : `${API_URL}/plantillas`
+    const method = isEdit ? "PUT" : "POST"
+    setSavingPlantilla(true)
+    try {
+      const resp = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentPlantillaPayload),
+      })
+      const payload = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(payload?.detail || "No se pudo guardar la plantilla")
+
+      toast.success(isEdit ? "Plantilla actualizada" : "Plantilla guardada")
+      setShowPlantillaFormModal(false)
+      await loadPlantillas()
+    } catch (error: any) {
+      toast.error("No se pudo guardar la plantilla", {
+        description: error?.message || "Error desconocido",
+      })
+    } finally {
+      setSavingPlantilla(false)
+    }
+  }, [API_URL, currentPlantillaPayload, loadPlantillas, plantillaFormMode, selectedPlantillaId, user?.id])
+
+  const deleteSelectedPlantilla = useCallback(async () => {
+    if (!selectedPlantillaId) return
+    const target = selectedPlantilla?.nombre || "esta plantilla"
+    if (!window.confirm(`¿Eliminar ${target}?`)) return
+    setLoadingPlantillaId(selectedPlantillaId)
+    try {
+      const resp = await authFetch(`${API_URL}/plantillas/${selectedPlantillaId}`, { method: "DELETE" })
+      const payload = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(payload?.detail || "No se pudo eliminar la plantilla")
+      toast.success("Plantilla eliminada")
+      setSelectedPlantillaId(null)
+      await loadPlantillas()
+    } catch (error: any) {
+      toast.error("No se pudo eliminar la plantilla", {
+        description: error?.message || "Error desconocido",
+      })
+    } finally {
+      setLoadingPlantillaId(null)
+    }
+  }, [loadPlantillas, selectedPlantilla, selectedPlantillaId])
 
   const hydrateQuote = useCallback((data: QuoteSource, opts?: { keepClientProject?: boolean; duplicate?: boolean }) => {
     const keepClientProject = opts?.keepClientProject ?? false
@@ -409,6 +592,11 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     }
   }, [fechaEmision])
 
+  const openPlantillasModal = useCallback(() => {
+    setShowPlantillasModal(true)
+    void loadPlantillas()
+  }, [loadPlantillas])
+
   useEffect(() => {
     if (condiciones.length === 0 || pendingConditionTexts.length === 0 || selectedCondiciones.length > 0) return
     const normalized = (value: string) => value.trim().toLowerCase()
@@ -562,9 +750,10 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       const payload = await resp.json().catch(() => ({}))
       if (!resp.ok) throw new Error(payload?.detail || payload?.message || `HTTP ${resp.status}`)
       setImportPreview(payload.preview || payload)
-      const suggested = payload?.preview?.suggested_numero || payload?.suggested_numero || ""
+      const suggested = getSuggestedQuoteSequence(payload?.preview?.suggested_numero || payload?.suggested_numero || "")
       setImportNumero(String(suggested || ""))
       toast.success("Excel analizado")
+      void loadSuggestedImportNumber()
     } catch (error: any) {
       toast.error("No se pudo analizar el Excel", { description: error?.message || "Error desconocido" })
       setImportOpen(false)
@@ -721,12 +910,27 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     } finally {
       setImportingExcel(false)
     }
-  }
+  }, [loadSuggestedImportNumber])
 
   const handleClearDraft = useCallback(() => {
     clearDraft()
     toast.success("Autoguardado local limpiado")
   }, [clearDraft])
+
+  const loadSuggestedImportNumber = useCallback(async () => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const res = await authFetch(`${baseUrl}/quote/next-number`, { method: "POST" })
+      if (!res.ok) return
+      const data = await res.json().catch(() => ({}))
+      const suggested = getSuggestedQuoteSequence(data?.number || data?.token || data?.suggested_numero || "")
+      if (suggested) {
+        setImportNumero(suggested)
+      }
+    } catch {
+      // keep preview suggestion if available
+    }
+  }, [])
 
   return (
     <>
@@ -754,6 +958,14 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                   <FileUp className="mr-2 h-4 w-4" />
                   Importar Excel
+                </Button>
+                <Button variant="outline" size="sm" onClick={openPlantillasModal}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Plantillas
+                </Button>
+                <Button variant="outline" size="sm" onClick={openCreatePlantillaForm}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Guardar plantilla
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleClearDraft}>
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -1189,6 +1401,246 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showPlantillasModal} onOpenChange={setShowPlantillasModal}>
+        <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <ListFilter className="h-5 w-5 text-primary" />
+              Plantillas de cotización
+            </DialogTitle>
+            <DialogDescription>
+              Revisa, previsualiza y carga una plantilla guardada del vendedor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[360px_1fr] gap-0">
+            <div className="border-r bg-muted/20 p-4 min-h-0 flex flex-col">
+              <Input
+                value={plantillaSearch}
+                onChange={(e) => setPlantillaSearch(e.target.value)}
+                placeholder="Buscar plantilla..."
+                autoComplete="off"
+                className="mb-3"
+              />
+              <div className="min-h-0 flex-1 overflow-y-auto space-y-2 pr-1">
+                {loadingPlantillas ? (
+                  <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando plantillas...
+                  </div>
+                ) : filteredPlantillas.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                    No hay plantillas guardadas.
+                  </div>
+                ) : (
+                  filteredPlantillas.map((plantilla) => {
+                    const isSelected = plantilla.id === selectedPlantillaId
+                    return (
+                      <button
+                        key={plantilla.id}
+                        type="button"
+                        onClick={() => setSelectedPlantillaId(plantilla.id)}
+                        className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                          isSelected ? "border-primary bg-primary/5" : "hover:bg-background"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold truncate">{plantilla.nombre}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {plantilla.descripcion || "Sin descripción"}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <span className="rounded-full bg-background px-2 py-0.5 border">
+                            {Array.isArray(plantilla.items_json) ? plantilla.items_json.length : 0} ítems
+                          </span>
+                          <span className="rounded-full bg-background px-2 py-0.5 border">
+                            {Array.isArray(plantilla.condiciones_ids) ? plantilla.condiciones_ids.length : 0} condiciones
+                          </span>
+                          <span className="rounded-full bg-background px-2 py-0.5 border">
+                            Uso: {plantilla.veces_usada || 0}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="min-h-0 p-4 flex flex-col">
+              {selectedPlantilla ? (
+                <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
+                  <Card>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-lg font-semibold">{selectedPlantilla.nombre}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedPlantilla.descripcion || "Sin descripción"}
+                          </p>
+                        </div>
+                        <Badge variant="outline">Plantilla</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span className="rounded-full border px-2 py-1 bg-background">
+                          Ítems: {Array.isArray(selectedPlantilla.items_json) ? selectedPlantilla.items_json.length : 0}
+                        </span>
+                        <span className="rounded-full border px-2 py-1 bg-background">
+                          Condiciones: {Array.isArray(selectedPlantilla.condiciones_ids) ? selectedPlantilla.condiciones_ids.length : 0}
+                        </span>
+                        <span className="rounded-full border px-2 py-1 bg-background">
+                          Uso: {selectedPlantilla.veces_usada || 0}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold">Vista previa de ítems</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {Array.isArray(selectedPlantilla.items_json) ? selectedPlantilla.items_json.length : 0} filas
+                        </span>
+                      </div>
+                      <div className="max-h-72 overflow-y-auto rounded-lg border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Código</TableHead>
+                              <TableHead>Descripción</TableHead>
+                              <TableHead className="text-right">P.U.</TableHead>
+                              <TableHead className="text-right">Cant.</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(selectedPlantilla.items_json || []).map((item: any, index: number) => (
+                              <TableRow key={`${selectedPlantilla.id}-${index}`}>
+                                <TableCell className="font-mono text-xs">{item.codigo || "—"}</TableCell>
+                                <TableCell className="max-w-[280px] truncate">{item.descripcion || "—"}</TableCell>
+                                <TableCell className="text-right">
+                                  S/. {Number(item.costo_unitario ?? item.precio ?? 0).toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right">{Number(item.cantidad || 1)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs font-semibold uppercase text-muted-foreground">Condiciones</p>
+                          <p className="mt-1 text-sm">
+                            {Array.isArray(selectedPlantilla.condiciones_ids) && selectedPlantilla.condiciones_ids.length > 0
+                              ? `${selectedPlantilla.condiciones_ids.length} condiciones vinculadas`
+                              : "Sin condiciones vinculadas"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs font-semibold uppercase text-muted-foreground">Pago / Plazo</p>
+                          <p className="mt-1 text-sm">
+                            {selectedPlantilla.condicion_pago || "Sin condición de pago"} ·{" "}
+                            {selectedPlantilla.plazo_dias ? `${selectedPlantilla.plazo_dias} días` : "Sin plazo"}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                  Selecciona una plantilla para verla.
+                </div>
+              )}
+
+              <DialogFooter className="pt-4 border-t mt-4">
+                <Button variant="outline" onClick={() => setShowPlantillasModal(false)}>
+                  Cerrar
+                </Button>
+                <Button variant="outline" onClick={openEditPlantillaForm} disabled={!selectedPlantillaId}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  onClick={() => selectedPlantillaId && void applyPlantilla(selectedPlantillaId)}
+                  disabled={!selectedPlantillaId || loadingPlantillaId === selectedPlantillaId}
+                >
+                  {loadingPlantillaId === selectedPlantillaId ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                  )}
+                  Usar plantilla
+                </Button>
+              </DialogFooter>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPlantillaFormModal} onOpenChange={setShowPlantillaFormModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{plantillaFormMode === "edit" ? "Editar plantilla" : "Guardar plantilla"}</DialogTitle>
+            <DialogDescription>
+              {plantillaFormMode === "edit"
+                ? "Actualiza el nombre o descripción de la plantilla seleccionada."
+                : "Guarda la cotización actual como una plantilla reutilizable."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input
+                value={plantillaForm.nombre}
+                onChange={(e) => setPlantillaForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Ej: COT Probetas - Base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Textarea
+                value={plantillaForm.descripcion}
+                onChange={(e) => setPlantillaForm((prev) => ({ ...prev, descripcion: e.target.value }))}
+                placeholder="Notas o uso recomendado"
+                rows={4}
+              />
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">Se guardará:</p>
+              <p>{items.length} ítems</p>
+              <p>{selectedCondiciones.length} condiciones</p>
+              <p>{plazoDias || 0} días de plazo</p>
+              <p>{condicionPago || "Sin condición de pago"}</p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowPlantillaFormModal(false)}>
+                Cancelar
+              </Button>
+              {plantillaFormMode === "edit" && (
+                <Button variant="destructive" onClick={deleteSelectedPlantilla} disabled={savingPlantilla || !selectedPlantillaId}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </Button>
+              )}
+            </div>
+            <Button onClick={submitPlantillaForm} disabled={savingPlantilla}>
+              {savingPlantilla ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {plantillaFormMode === "edit" ? "Actualizar plantilla" : "Guardar plantilla"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -1204,7 +1656,17 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label>Número sugerido</Label>
-                <Input value={importNumero} onChange={(e) => setImportNumero(e.target.value)} />
+                <div className="flex h-10 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="pl-3 text-sm text-muted-foreground">COT-</span>
+                  <Input
+                    value={importNumero}
+                    onChange={(e) => setImportNumero(e.target.value.replace(/\D/g, ""))}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    className="h-9 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <span className="pr-3 text-sm text-muted-foreground">-{String(year).slice(-2)}</span>
+                </div>
               </div>
               <pre className="max-h-64 overflow-auto rounded-lg bg-muted p-3 text-xs">
                 {JSON.stringify(importPreview?.cliente || importPreview || {}, null, 2)}

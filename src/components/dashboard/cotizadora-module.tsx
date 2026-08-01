@@ -194,7 +194,7 @@ interface CotizadoraModuleProps {
 const DEFAULT_QUOTES_PER_PAGE = 20
 
 const createSuggestedQuoteCode = () => ({
-  numero: String(Math.floor(100 + Math.random() * 900)),
+  numero: "",
   year: new Date().getFullYear(),
 })
 
@@ -351,11 +351,23 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     setDuplicateDraftLoading(true)
     try {
       const detailed = await loadQuoteDetails(quote.id)
-      const suggested = createSuggestedQuoteCode()
+      let suggestedNumero = ""
+      let suggestedYear = new Date().getFullYear()
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        const resp = await authFetch(`${baseUrl}/quote/next-number`, { method: "POST" })
+        if (resp.ok) {
+          const nextData = await resp.json().catch(() => ({}))
+          suggestedNumero = String(nextData?.number || "").replace(/\D/g, "")
+          suggestedYear = Number(nextData?.year || suggestedYear)
+        }
+      } catch {
+        suggestedNumero = ""
+      }
       const source = {
         id: detailed.id,
-        numero: suggested.numero,
-        year: suggested.year,
+        numero: suggestedNumero,
+        year: suggestedYear,
         cliente: "",
         clienteRuc: "",
         clienteContacto: "",
@@ -1414,10 +1426,17 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2 col-span-2">
                       <Label>Número sugerido</Label>
-                      <Input
-                        value={duplicateDraft?.numero || ""}
-                        onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, numero: e.target.value }))}
-                      />
+                      <div className="flex h-10 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                        <span className="pl-3 text-sm text-muted-foreground">COT-</span>
+                        <Input
+                          value={duplicateDraft?.numero || ""}
+                          onChange={(e) => setDuplicateDraft((prev: any) => ({ ...prev, numero: e.target.value.replace(/\D/g, "") }))}
+                          inputMode="numeric"
+                          autoComplete="off"
+                          className="h-9 min-w-0 flex-1 border-0 px-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                        <span className="pr-3 text-sm text-muted-foreground">-{String(duplicateDraft?.year || new Date().getFullYear()).slice(-2)}</span>
+                      </div>
                     </div>
                     <div className="space-y-2 relative">
                       <Label className="flex items-center gap-2"><Building2 className="h-4 w-4" /> Cliente / Empresa</Label>
