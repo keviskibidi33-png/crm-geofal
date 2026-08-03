@@ -2,15 +2,22 @@
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
+import { useCommercialTrackingKpis } from "@/hooks/use-commercial-tracking-kpis"
 import { KpiPieChart, KpiBarChart, KpiSummaryRow, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistoricoComercial } from "@/components/dashboard/kpi-historico-comercial-admin"
-import { RefreshCw, BarChart3, History } from "lucide-react"
+import { GerenciaCommercialTracking } from "@/components/dashboard/gerencia-commercial-tracking"
+import { AlertTriangle, RefreshCw, BarChart3, History } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function ComercialStatsModule() {
   const { comercialUnico, comercialSemanas, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
+  const {
+    kpis: commercialTrackingKpis,
+    isLoading: isCommercialTrackingLoading,
+    error: commercialTrackingError,
+  } = useCommercialTrackingKpis(selectedMonth, selectedYear)
   const [tabView, setTabView] = useState<"kpis" | "historico">("kpis")
   const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
   const montoCategories = estadoFilter === "todos"
@@ -211,6 +218,17 @@ export function ComercialStatsModule() {
             <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
           </div>
 
+          {commercialTrackingError ? (
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {commercialTrackingError}
+            </div>
+          ) : null}
+
+          <GerenciaCommercialTracking
+            data={commercialTrackingKpis}
+            loading={isLoading || isCommercialTrackingLoading}
+          />
         </div>
       ) : (
         <KpiHistoricoComercial data={historicalComercial} loading={isHistoricalLoading} />

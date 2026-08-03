@@ -1,14 +1,12 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { type ReactNode } from "react"
 import {
   AlertTriangle,
   BadgeCheck,
   CircleDollarSign,
-  LayoutDashboard,
   RefreshCw,
   TicketCheck,
-  TrendingUp,
   Users,
 } from "lucide-react"
 import {
@@ -193,12 +191,10 @@ function TotalRow({ children }: { children: ReactNode }) {
 }
 
 export function GerenciaStatsModule() {
-  const [dashboardView, setDashboardView] = useState<"indicadores" | "seguimiento">("indicadores")
   const {
     kpis,
     isLoading,
     error,
-    trackingError,
     lastUpdated,
     refresh,
     selectedMonth,
@@ -262,29 +258,6 @@ export function GerenciaStatsModule() {
         </div>
       </div>
 
-      <div className="flex w-fit items-center gap-1 rounded-lg bg-muted p-0.5">
-        <Button
-          type="button"
-          variant={dashboardView === "indicadores" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={() => setDashboardView("indicadores")}
-        >
-          <LayoutDashboard className="h-3.5 w-3.5" />
-          Indicadores Gerenciales
-        </Button>
-        <Button
-          type="button"
-          variant={dashboardView === "seguimiento" ? "default" : "ghost"}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={() => setDashboardView("seguimiento")}
-        >
-          <TrendingUp className="h-3.5 w-3.5" />
-          Estadística Comercial
-        </Button>
-      </div>
-
       {error ? (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -292,15 +265,7 @@ export function GerenciaStatsModule() {
         </div>
       ) : null}
 
-      {dashboardView === "seguimiento" && trackingError ? (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          {trackingError}
-        </div>
-      ) : null}
-
-      {dashboardView === "indicadores" ? (
-        <>
+      <>
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
         <span className="font-bold text-slate-800">Clasificación desde Laboratorio:</span> DENSIDAD/DEN → DEN; PROBETA/CONCRETO/CILINDRO/COMPRESIÓN/ROTURA/CO → PROB; EMS o Mecánica de Suelos → EMS; ALQ/ALQUILER → ALQ; los demás códigos → ENS.V.
       </div>
@@ -470,12 +435,7 @@ export function GerenciaStatsModule() {
           </tbody>
         </table>
       </KpiPanel>
-        </>
-      ) : (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          La estadística comercial se migró al módulo <span className="font-semibold">Estadística Comercial</span>.
-        </div>
-      )}
+      </>
     </div>
   )
 }

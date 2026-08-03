@@ -5,7 +5,7 @@ import { FileCheck2, ShoppingCart, TrendingUp, Users } from "lucide-react"
 import type {
   CommercialTrackingAmountGroup,
   CommercialTrackingKpis,
-} from "@/hooks/use-gerencia-kpis"
+} from "@/hooks/use-commercial-tracking-kpis"
 
 const moneyFormatter = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 0,
