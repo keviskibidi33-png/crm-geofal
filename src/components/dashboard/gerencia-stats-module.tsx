@@ -282,7 +282,7 @@ export function GerenciaStatsModule() {
           onClick={() => setDashboardView("seguimiento")}
         >
           <TrendingUp className="h-3.5 w-3.5" />
-          Comercial KPIs
+          Estadística Comercial
         </Button>
       </div>
 
