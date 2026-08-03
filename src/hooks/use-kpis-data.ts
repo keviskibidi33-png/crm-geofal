@@ -144,6 +144,41 @@ export interface KpisData {
   refreshHistorical: () => Promise<void>
 }
 
+
+const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30)
+const MS_PER_DAY = 1000 * 60 * 60 * 24
+
+function parseDateOnlyUtc(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const cleaned = String(value).trim().split("T")[0]
+  const match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+
+  const [, year, month, day] = match
+  const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function calculateDiasAtrasoLabForKpi(fechaEntregaEstimada: string | null | undefined, entregaReal: string | null | undefined): number | null {
+  const estimated = parseDateOnlyUtc(fechaEntregaEstimada)
+  if (!estimated) return null
+
+  const real = parseDateOnlyUtc(entregaReal)
+  if (!real) {
+    return -Math.round((estimated.getTime() - EXCEL_EPOCH_UTC) / MS_PER_DAY)
+  }
+
+  return Math.round((real.getTime() - estimated.getTime()) / MS_PER_DAY)
+}
+
+function isEntregaTrabajoATiempo(diasAtraso: number | null): boolean {
+  return diasAtraso !== null && diasAtraso >= -10 && diasAtraso <= 0
+}
+
+function isEntregaTrabajoAtrasado(diasAtraso: number | null): boolean {
+  return diasAtraso !== null && diasAtraso >= 1 && diasAtraso <= 10
+}
+
 function calcPct(value: number, total: number): number {
   if (total === 0) return 0
   return Math.round((value / total) * 100 * 100) / 100
@@ -299,6 +334,9 @@ export function useKpisData(): KpisData {
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       const yesterdayLabDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
       const yesterday = `${yesterdayLabDate.getFullYear()}-${String(yesterdayLabDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayLabDate.getDate()).padStart(2, "0")}`
+      const tomorrowLabDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+      const tomorrow = `${tomorrowLabDate.getFullYear()}-${String(tomorrowLabDate.getMonth() + 1).padStart(2, "0")}-${String(tomorrowLabDate.getDate()).padStart(2, "0")}`
+      const entregaTrabajoEndDate = selectedYear === now.getFullYear() && targetMonth === now.getMonth() + 1 ? tomorrow : endDate
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
@@ -311,7 +349,7 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "INFORME LISTO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ANULADO").gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id,entrega_real,fecha_entrega_estimada", { count: "exact" }).not("entrega_real", "is", null).gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id,entrega_real,fecha_entrega_estimada").not("fecha_entrega_estimada", "is", null).gte(dateCol, startDate).lt(dateCol, entregaTrabajoEndDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("envio_informes.ilike.%si%,envio_informes.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -554,9 +592,10 @@ export function useKpisData(): KpisData {
       const adminPagRes = { count: adPag }
       const adminPendRes = { count: adPend }
 
-      const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string }[]
-      const tATCount = tEntregaRows.filter(r => !r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada).length
-      const tCRCount = tEntregaRows.filter(r => r.entrega_real && r.entrega_real > r.fecha_entrega_estimada).length
+      const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string | null }[]
+      const tEntregaDias = tEntregaRows.map(r => calculateDiasAtrasoLabForKpi(r.fecha_entrega_estimada, r.entrega_real))
+      const tATCount = tEntregaDias.filter(isEntregaTrabajoATiempo).length
+      const tCRCount = tEntregaDias.filter(isEntregaTrabajoAtrasado).length
 
       if (lastUpdated) {
         setPrevLaboratorio({ ...laboratorio })
@@ -697,8 +736,9 @@ export function useKpisData(): KpisData {
           const proceso = monthRows.filter(r => r.estado_trabajo === "PROCESO").length
           const informeListo = monthRows.filter(r => r.estado_trabajo === "INFORME LISTO").length
           const anulado = monthRows.filter(r => r.estado_trabajo === "ANULADO").length
-          const conFechaEst = monthRows.filter(r => r.fecha_entrega_estimada)
-      const aTiempo = monthRows.filter(r => r.fecha_entrega_estimada && (!r.entrega_real || r.entrega_real <= r.fecha_entrega_estimada)).length
+          const entregaTrabajoDias = monthRows.map(r => calculateDiasAtrasoLabForKpi(r.fecha_entrega_estimada, r.entrega_real))
+          const entregaTrabajoEvaluables = entregaTrabajoDias.filter(dias => isEntregaTrabajoATiempo(dias) || isEntregaTrabajoAtrasado(dias)).length
+          const aTiempo = entregaTrabajoDias.filter(isEntregaTrabajoATiempo).length
       const envInfSi = monthRows.filter(r => r.envio_informes === "SI").length
       const envRecSi = monthRows.filter(r => r.evidencia_envio_recepcion === "SI").length
           const [y, m] = key.split("-")
@@ -714,7 +754,7 @@ export function useKpisData(): KpisData {
             anulado,
             tasaEntrega: calcPct(entregado, total),
             confirmacionEnvios: calcPct(envInfSi, total),
-            cumplimientoTiempo: conFechaEst.length > 0 ? calcPct(aTiempo, conFechaEst.length) : 0,
+            cumplimientoTiempo: entregaTrabajoEvaluables > 0 ? calcPct(aTiempo, entregaTrabajoEvaluables) : 0,
             serviciosEnProceso: calcPct(proceso, total),
             recepcionesDoc: calcPct(envRecSi, total),
             tasaAnulacion: calcPct(anulado, total),
