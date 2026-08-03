@@ -18,7 +18,7 @@ export function ComercialStatsModule() {
     isLoading: isCommercialTrackingLoading,
     error: commercialTrackingError,
   } = useCommercialTrackingKpis(selectedMonth, selectedYear)
-  const [tabView, setTabView] = useState<"kpis" | "historico">("kpis")
+  const [tabView, setTabView] = useState<"kpis" | "resumen_comercial_1" | "historico">("kpis")
   const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
@@ -80,6 +80,10 @@ export function ComercialStatsModule() {
         <Button variant={tabView === "kpis" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("kpis")}>
           <BarChart3 className="h-3.5 w-3.5" />
           KPIs Comerciales
+        </Button>
+        <Button variant={tabView === "resumen_comercial_1" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("resumen_comercial_1")}>
+          <BarChart3 className="h-3.5 w-3.5" />
+          Resumen Comercial 1
         </Button>
         <Button variant={tabView === "historico" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("historico")}>
           <History className="h-3.5 w-3.5" />
@@ -218,6 +222,9 @@ export function ComercialStatsModule() {
             <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
           </div>
 
+        </div>
+      ) : tabView === "resumen_comercial_1" ? (
+        <div className="space-y-6">
           {commercialTrackingError ? (
             <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               <AlertTriangle className="h-4 w-4 shrink-0" />
