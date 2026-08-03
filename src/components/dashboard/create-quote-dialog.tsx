@@ -1501,7 +1501,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 autoComplete="off"
                 className="mb-3"
               />
-              <div className="min-h-0 flex-1 overflow-y-auto space-y-2 pr-1">
+              <div className="min-h-0 flex-1 max-h-[calc(92vh-190px)] overflow-y-auto space-y-2 pr-2">
                 {loadingPlantillas ? (
                   <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />

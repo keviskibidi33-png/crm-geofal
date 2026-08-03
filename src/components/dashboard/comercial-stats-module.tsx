@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export function ComercialStatsModule() {
   const { comercialUnico, comercialSemanas, historicalComercial, isLoading, isHistoricalLoading, lastUpdated, refresh, selectedMonth, selectedYear, availableMonths, setSelectedMonth } = useKpisData()
-  const [tabView, setTabView] = useState<"mes" | "historico">("mes")
+  const [tabView, setTabView] = useState<"kpis" | "historico">("kpis")
   const [estadoFilter, setEstadoFilter] = useState<"todos" | "Cotización Enviada" | "Venta" | "Negociación">("todos")
   const montoCategories = estadoFilter === "todos"
     ? comercialUnico.montoAcumuladoMes.categories
@@ -70,9 +70,9 @@ export function ComercialStatsModule() {
 
       {/* Tab Switcher */}
       <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 w-fit">
-        <Button variant={tabView === "mes" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("mes")}>
+        <Button variant={tabView === "kpis" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("kpis")}>
           <BarChart3 className="h-3.5 w-3.5" />
-          Mes Actual
+          KPIs Comerciales
         </Button>
         <Button variant={tabView === "historico" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("historico")}>
           <History className="h-3.5 w-3.5" />
@@ -80,7 +80,7 @@ export function ComercialStatsModule() {
         </Button>
       </div>
 
-      {tabView === "mes" ? (
+      {tabView === "kpis" ? (
         <div className="space-y-6">
           <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
             <div>
@@ -210,6 +210,7 @@ export function ComercialStatsModule() {
             <p className="text-4xl font-black mt-3">{comercialUnico.tasaConversion}%</p>
             <p className="text-sm text-muted-foreground mt-2">Leads → clientes nuevos</p>
           </div>
+
         </div>
       ) : (
         <KpiHistoricoComercial data={historicalComercial} loading={isHistoricalLoading} />

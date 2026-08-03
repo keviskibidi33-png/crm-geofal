@@ -22,7 +22,6 @@ import {
 } from "recharts"
 
 import { MonthSelector } from "@/components/dashboard/kpi-charts"
-import { GerenciaCommercialTracking } from "@/components/dashboard/gerencia-commercial-tracking"
 import { Button } from "@/components/ui/button"
 import {
   ChartContainer,
@@ -473,7 +472,9 @@ export function GerenciaStatsModule() {
       </KpiPanel>
         </>
       ) : (
-        <GerenciaCommercialTracking data={kpis.commercialTracking} loading={isLoading} />
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          La estadística comercial se migró al módulo <span className="font-semibold">Estadística Comercial</span>.
+        </div>
       )}
     </div>
   )
