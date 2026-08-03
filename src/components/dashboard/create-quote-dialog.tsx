@@ -1481,7 +1481,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       </Dialog>
 
       <Dialog open={showPlantillasModal} onOpenChange={setShowPlantillasModal}>
-        <DialogContent className="max-w-6xl w-[96vw] max-h-[92vh] overflow-hidden p-0">
+        <DialogContent className="max-w-6xl w-[96vw] h-[92vh] flex flex-col overflow-hidden p-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <ListFilter className="h-5 w-5 text-primary" />
@@ -1492,8 +1492,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[360px_1fr] gap-0">
-            <div className="border-r bg-muted/20 p-4 min-h-0 flex flex-col">
+          <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[360px_1fr] gap-0 overflow-hidden">
+            <div className="border-r bg-muted/20 p-4 min-h-0 flex flex-col overflow-hidden">
               <Input
                 value={plantillaSearch}
                 onChange={(e) => setPlantillaSearch(e.target.value)}
@@ -1501,7 +1501,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 autoComplete="off"
                 className="mb-3"
               />
-              <div className="min-h-0 flex-1 max-h-[calc(92vh-190px)] overflow-y-auto space-y-2 pr-2">
+              <div className="min-h-0 flex-1 overflow-y-auto space-y-2 pr-2">
                 {loadingPlantillas ? (
                   <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1557,9 +1557,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
               </div>
             </div>
 
-            <div className="min-h-0 p-4 flex flex-col">
+            <div className="min-h-0 p-4 flex flex-col overflow-hidden">
               {selectedPlantilla ? (
-                <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
+                <div className="min-h-0 flex-1 overflow-y-auto space-y-4 pr-1">
                   <Card>
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-3">
@@ -1646,7 +1646,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                 </div>
               )}
 
-              <DialogFooter className="pt-4 border-t mt-4">
+              <DialogFooter className="mt-auto pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowPlantillasModal(false)}>
                   Cerrar
                 </Button>
