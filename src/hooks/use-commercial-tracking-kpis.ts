@@ -58,7 +58,7 @@ function createEmptyCommercialGroup(): CommercialTrackingAmountGroup {
     weeklyTotals: emptyWeeklyAmounts(),
     categories: CATEGORY_DEFINITIONS.map((category, index) => ({
       key: category.key,
-      label: `CLIENTE ${index + 1} (${category.key})`,
+      label: `Categoría ${index + 1} (${category.key})`,
       weeklyAmounts: emptyWeeklyAmounts(),
       total: 0,
       percentage: 0,
@@ -147,7 +147,7 @@ function buildCommercialGroup(amountsByCategory: Map<CategoryKey, CommercialWeek
     const total = weeklyAmounts.reduce((sum, amount) => sum + amount, 0)
     return {
       key: category.key,
-      label: `CLIENTE ${index + 1} (${category.key})`,
+      label: `Categoría ${index + 1} (${category.key})`,
       weeklyAmounts,
       total,
       percentage: 0,
