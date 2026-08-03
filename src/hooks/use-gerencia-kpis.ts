@@ -380,8 +380,8 @@ export function useGerenciaKpis() {
       const allControlCommercialRows = controlCommercialResult.value
       const allSeguimientoRows = seguimientoResult.status === "fulfilled" ? seguimientoResult.value : []
       if (seguimientoResult.status === "rejected") {
-        console.error("Error fetching Seguimiento Comercial 1:", seguimientoResult.reason)
-        setTrackingError("No se pudo cargar Seguimiento Comercial 1. Los indicadores de Control Comercial sí permanecen disponibles.")
+        console.error("Error fetching Seguimiento1 - Seguimiento 2:", seguimientoResult.reason)
+        setTrackingError("No se pudo cargar Seguimiento1 - Seguimiento 2. Los indicadores de Control Comercial sí permanecen disponibles.")
       }
 
       const seguimientoRows = allSeguimientoRows.filter((row) => {
