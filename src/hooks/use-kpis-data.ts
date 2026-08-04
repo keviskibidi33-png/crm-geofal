@@ -340,7 +340,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecEntRes, evInfEntRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clTotalProcesoRes] = await Promise.all([
+      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfEntRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clTotalProcesoRes] = await Promise.all([
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -350,7 +350,7 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "INFORME LISTO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ANULADO").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id,entrega_real,fecha_entrega_estimada").not("fecha_entrega_estimada", "is", null).gte(dateCol, startDate).lt(dateCol, entregaTrabajoEndDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("envio_informes.ilike.%si%,envio_informes.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").or("evidencia_envio_recepcion.ilike.%si%,evidencia_envio_recepcion.ilike.%ok%").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "ENTREGADO").is("evidencia_envio_recepcion", null).gte(dateCol, startDate).lt(dateCol, endDate),
@@ -593,8 +593,9 @@ export function useKpisData(): KpisData {
       const adminPendRes = { count: adPend }
 
       const tEntregaRows = (tEntregaRes.data ?? []) as { id: string; entrega_real: string | null; fecha_entrega_estimada: string | null }[]
+      const recepcionesCount = sTotalRes.count ?? 0
       const entregadosCount = eEntRes.count ?? 0
-      const evidenciaRecepcionSiCount = evRecEntRes.count ?? 0
+      const evidenciaRecepcionSiCount = evRecRes.count ?? 0
       const evidenciaInformeSiCount = evInfEntRes.count ?? 0
       const tEntregaDias = tEntregaRows.map(r => calculateDiasAtrasoLabForKpi(r.fecha_entrega_estimada, r.entrega_real))
       const tATCount = tEntregaDias.filter(isEntregaTrabajoATiempo).length
@@ -628,12 +629,16 @@ export function useKpisData(): KpisData {
           { label: "A Tiempo", value: tATCount },
           { label: "Con Retraso", value: tCRCount },
         ]),
-        evidenciaEnvio: buildGroup("Evidencia Envio", [
-          { label: "Recepción (SI)", value: evidenciaRecepcionSiCount },
-          { label: "Recepción (Faltante)", value: Math.max(0, entregadosCount - evidenciaRecepcionSiCount) },
-          { label: "Informe (SI)", value: evidenciaInformeSiCount },
-          { label: "Informe (Faltante)", value: Math.max(0, entregadosCount - evidenciaInformeSiCount) },
-        ], entregadosCount),
+        evidenciaEnvio: {
+          title: "Evidencia Envio",
+          total: recepcionesCount,
+          categories: [
+            { label: "Recepción (SI)", value: evidenciaRecepcionSiCount, percentage: calcPct(evidenciaRecepcionSiCount, recepcionesCount) },
+            { label: "Recepción (Faltante)", value: Math.max(0, recepcionesCount - evidenciaRecepcionSiCount), percentage: calcPct(Math.max(0, recepcionesCount - evidenciaRecepcionSiCount), recepcionesCount) },
+            { label: "Informe (SI)", value: evidenciaInformeSiCount, percentage: calcPct(evidenciaInformeSiCount, entregadosCount) },
+            { label: "Informe (Faltante)", value: Math.max(0, entregadosCount - evidenciaInformeSiCount), percentage: calcPct(Math.max(0, entregadosCount - evidenciaInformeSiCount), entregadosCount) },
+          ],
+        },
         controlLabGeneral: buildGroup("Control Lab General", [
           { label: "Hoy", value: clHoyRes.count ?? 0 },
           { label: "Ayer", value: clAyerRes.count ?? 0 },

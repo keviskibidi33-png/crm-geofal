@@ -335,6 +335,8 @@ export function KpiEvidenciasSummaryRow({ categories, previousCategories, loadin
   const recFaltante = categories.find(c => c.label.includes("Recepción (Faltante)")) ?? { label: "Recepción (Faltante)", value: 0, percentage: 0 }
   const infSi = categories.find(c => c.label.includes("Informe (SI)")) ?? { label: "Informe (SI)", value: 0, percentage: 0 }
   const infFaltante = categories.find(c => c.label.includes("Informe (Faltante)")) ?? { label: "Informe (Faltante)", value: 0, percentage: 0 }
+  const totalRecepciones = recSi.value + recFaltante.value
+  const totalInformes = infSi.value + infFaltante.value
 
   const getDeltaSpan = (catLabel: string, currentVal: number) => {
     const prev = previousCategories?.find(p => p.label === catLabel)
@@ -383,7 +385,7 @@ export function KpiEvidenciasSummaryRow({ categories, previousCategories, loadin
           </tr>
           <tr className="border-b bg-muted/20 font-semibold text-xs">
             <td className="px-4 py-1.5 pl-6">Total Recepciones</td>
-            <td className="text-center px-4 py-1.5 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums">{totalRecepciones || total}</td>
             <td className="text-center px-4 py-1.5">100%</td>
           </tr>
 
@@ -409,7 +411,7 @@ export function KpiEvidenciasSummaryRow({ categories, previousCategories, loadin
           </tr>
           <tr className="bg-muted/30 font-semibold text-xs">
             <td className="px-4 py-1.5 pl-6">Total Informes</td>
-            <td className="text-center px-4 py-1.5 tabular-nums">{total}</td>
+            <td className="text-center px-4 py-1.5 tabular-nums">{totalInformes}</td>
             <td className="text-center px-4 py-1.5">100%</td>
           </tr>
         </tbody>
@@ -433,16 +435,17 @@ export function KpiEvidenciasProgressCard({ data, loading, className }: KpiPieCh
   const recFalt = data.categories.find(c => c.label.includes("Recepción (Faltante)"))?.value ?? 0
   const infSi = data.categories.find(c => c.label.includes("Informe (SI)"))?.value ?? 0
   const infFalt = data.categories.find(c => c.label.includes("Informe (Faltante)"))?.value ?? 0
-  const total = data.total || (recSi + recFalt) || 1
+  const recTotal = recSi + recFalt || data.total || 1
+  const infTotal = infSi + infFalt || 1
 
-  const recPct = Math.round((recSi / total) * 100 * 10) / 10
-  const infPct = Math.round((infSi / total) * 100 * 10) / 10
+  const recPct = Math.round((recSi / recTotal) * 100 * 10) / 10
+  const infPct = Math.round((infSi / infTotal) * 100 * 10) / 10
 
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Cumplimiento Evidencias</CardTitle>
-        <p className="text-xs text-muted-foreground">Total Muestras: {total}</p>
+        <p className="text-xs text-muted-foreground">Recepciones: {recTotal} · Informes entregados: {infTotal}</p>
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
         {/* Progress Recepcion */}
@@ -452,7 +455,7 @@ export function KpiEvidenciasProgressCard({ data, loading, className }: KpiPieCh
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
               Evidencia Recepción
             </span>
-            <span className="text-blue-700">{recSi} / {total} ({recPct}%)</span>
+            <span className="text-blue-700">{recSi} / {recTotal} ({recPct}%)</span>
           </div>
           <div className="w-full h-3.5 bg-amber-100 rounded-full overflow-hidden flex">
             <div className="h-full bg-blue-600 transition-all rounded-l-full" style={{ width: `${recPct}%` }} />
@@ -471,7 +474,7 @@ export function KpiEvidenciasProgressCard({ data, loading, className }: KpiPieCh
               <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
               Evidencia Envío Informe
             </span>
-            <span className="text-orange-700">{infSi} / {total} ({infPct}%)</span>
+            <span className="text-orange-700">{infSi} / {infTotal} ({infPct}%)</span>
           </div>
           <div className="w-full h-3.5 bg-red-100 rounded-full overflow-hidden flex">
             <div className="h-full bg-orange-500 transition-all rounded-l-full" style={{ width: `${infPct}%` }} />
