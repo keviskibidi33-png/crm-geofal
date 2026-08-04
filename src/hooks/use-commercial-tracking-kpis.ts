@@ -134,10 +134,15 @@ function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
   const categoryText = normalizeText(`${row.categoria_servicio ?? ""} ${row.servicio_solicitado ?? ""}`)
 
   if (/\bENS\s*\.?\s*V\.?\b/.test(categoryText)) return "ENS.V."
+  if (/ENSAYOS DE LABORATORIO/.test(categoryText)) return "ENS.V."
   if (/\bPROB\b/.test(categoryText)) return "PROB"
+  if (/PROBETAS/.test(categoryText)) return "PROB"
   if (/\bEMS\b/.test(categoryText)) return "EMS"
+  if (/ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS/.test(categoryText)) return "EMS"
   if (/\bALQ\b/.test(categoryText)) return "ALQ"
+  if (/ALQUILER/.test(categoryText)) return "ALQ"
   if (/\bDEN\b/.test(categoryText)) return "DEN"
+  if (/DENSIDADES?/.test(categoryText)) return "DEN"
   return null
 }
 
