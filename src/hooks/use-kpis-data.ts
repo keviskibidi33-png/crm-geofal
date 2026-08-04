@@ -340,7 +340,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clTotalElegibleRes] = await Promise.all([
+      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clTotalProcesoRes] = await Promise.all([
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -363,7 +363,7 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("fecha_entrega_estimada", today),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("fecha_entrega_estimada", yesterday),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").lte("fecha_entrega_estimada", today),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO"),
       ])
 
       const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
@@ -634,7 +634,7 @@ export function useKpisData(): KpisData {
         controlLabGeneral: buildGroup("Control Lab General", [
           { label: "Hoy", value: clHoyRes.count ?? 0 },
           { label: "Ayer", value: clAyerRes.count ?? 0 },
-          { label: "Anteriores", value: Math.max(0, (clTotalElegibleRes.count ?? 0) - (clHoyRes.count ?? 0) - (clAyerRes.count ?? 0)) },
+          { label: "Anteriores", value: Math.max(0, (clTotalProcesoRes.count ?? 0) - (clHoyRes.count ?? 0) - (clAyerRes.count ?? 0)) },
         ]),
       })
 
