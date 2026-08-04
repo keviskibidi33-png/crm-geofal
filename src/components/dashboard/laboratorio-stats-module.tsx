@@ -1,19 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { useKpisData, type DateFilter } from "@/hooks/use-kpis-data"
-import { KpiChartCard, KpiPieChart, KpiBarChart, KpiSummaryRow, KpiEvidenciasSummaryRow, KpiEvidenciasProgressCard, MonthSelector } from "@/components/dashboard/kpi-charts"
+import { useKpisData } from "@/hooks/use-kpis-data"
+import { KpiPieChart, KpiBarChart, KpiSummaryRow, KpiEvidenciasSummaryRow, KpiEvidenciasProgressCard, MonthSelector } from "@/components/dashboard/kpi-charts"
 import { KpiHistorico } from "@/components/dashboard/kpi-historico"
-import { RefreshCw, CalendarCheck, CalendarPlus, BarChart3, History } from "lucide-react"
+import { RefreshCw, CalendarCheck, CalendarPlus, BarChart3, History, TestTube2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface LaboratorioStatsProps {
-  user?: any
+  user?: unknown
 }
 
-type TabView = "mes" | "historico"
+type TabView = "mes" | "probetas" | "historico"
 
 export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
+  void user
   const { laboratorio, gerencia, prevLaboratorio, prevGerencia, isLoading, isHistoricalLoading, lastUpdated, refresh, refreshHistorical, selectedMonth, selectedYear, dateFilter, availableMonths, setSelectedMonth, setDateFilter, historical } = useKpisData()
   const [tabView, setTabView] = useState<TabView>("mes")
 
@@ -52,7 +53,7 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
               Creación
             </Button>
           </div>
-          {tabView === "mes" && (
+          {(tabView === "mes" || tabView === "probetas") && (
             <MonthSelector
               availableMonths={availableMonths}
               selectedMonth={selectedMonth}
@@ -78,6 +79,15 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
         >
           <BarChart3 className="h-3.5 w-3.5" />
           Mes Actual
+        </Button>
+        <Button
+          variant={tabView === "probetas" ? "default" : "ghost"}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setTabView("probetas")}
+        >
+          <TestTube2 className="h-3.5 w-3.5" />
+          Probetas
         </Button>
         <Button
           variant={tabView === "historico" ? "default" : "ghost"}
@@ -113,20 +123,6 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
             <KpiBarChart data={laboratorio.tiempoEntrega} loading={isLoading} />
           </div>
 
-          {/* Tabla + Pie + Bar: Analisis Probetas Ensayada y Por Ensayar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={laboratorio.probetasEnsayo.categories} previousCategories={prevLaboratorio?.probetasEnsayo.categories} loading={isLoading} title="ANALISIS PROBETAS ENSAYADA Y POR ENSAYAR" />
-            <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
-            <KpiBarChart data={laboratorio.probetasEnsayo} loading={isLoading} />
-          </div>
-
-          {/* Tabla + Pie + Bar: Analisis Probetas Falta Ensayar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} previousCategories={prevGerencia?.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
-            <KpiPieChart data={gerencia.probetasFaltantes} loading={isLoading} />
-            <KpiBarChart data={gerencia.probetasFaltantes} loading={isLoading} />
-          </div>
-
           {/* Tabla + Pie + Bar: Control Lab Correcto General */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KpiSummaryRow categories={laboratorio.controlLabGeneral.categories} previousCategories={prevLaboratorio?.controlLabGeneral.categories} loading={isLoading} title="PENDIENTES DE ENTREGA DE INFORME" />
@@ -139,6 +135,29 @@ export function LaboratorioStatsModule({ user }: LaboratorioStatsProps) {
             <KpiEvidenciasSummaryRow categories={laboratorio.evidenciaEnvio.categories} previousCategories={prevLaboratorio?.evidenciaEnvio.categories} loading={isLoading} title="DASHBOARD EVIDENCIAS DE RECEPCION E INFORME" total={laboratorio.evidenciaEnvio.total} />
             <KpiEvidenciasProgressCard data={laboratorio.evidenciaEnvio} loading={isLoading} />
             <KpiBarChart data={laboratorio.evidenciaEnvio} loading={isLoading} />
+          </div>
+        </>
+      ) : tabView === "probetas" ? (
+        <>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3">
+            <h3 className="text-sm font-bold text-blue-950 uppercase tracking-wide">Panel Probetas</h3>
+            <p className="text-xs text-blue-800/80 mt-0.5">
+              KPIs agrupados exclusivamente para control, ensayo, faltantes y entrega de probetas.
+            </p>
+          </div>
+
+          {/* Tabla + Pie + Bar: Analisis Probetas Ensayada y Por Ensayar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <KpiSummaryRow categories={laboratorio.probetasEnsayo.categories} previousCategories={prevLaboratorio?.probetasEnsayo.categories} loading={isLoading} title="ANALISIS PROBETAS ENSAYADA Y POR ENSAYAR" />
+            <KpiPieChart data={laboratorio.probetasEnsayo} loading={isLoading} />
+            <KpiBarChart data={laboratorio.probetasEnsayo} loading={isLoading} />
+          </div>
+
+          {/* Tabla + Pie + Bar: Analisis Probetas Falta Ensayar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <KpiSummaryRow categories={gerencia.probetasFaltantes.categories} previousCategories={prevGerencia?.probetasFaltantes.categories} loading={isLoading} title="ANALISIS PROBETAS FALTA ENSAYAR" />
+            <KpiPieChart data={gerencia.probetasFaltantes} loading={isLoading} />
+            <KpiBarChart data={gerencia.probetasFaltantes} loading={isLoading} />
           </div>
 
           {/* Tabla + Pie + Bar: Status Probetas Entregadas */}

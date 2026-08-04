@@ -331,7 +331,6 @@ export function useKpisData(): KpisData {
       const endMonth = targetMonth === 12 ? 1 : targetMonth + 1
       const endYear = targetMonth === 12 ? selectedYear + 1 : selectedYear
       const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       const yesterdayLabDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
       const yesterday = `${yesterdayLabDate.getFullYear()}-${String(yesterdayLabDate.getMonth() + 1).padStart(2, "0")}-${String(yesterdayLabDate.getDate()).padStart(2, "0")}`
       const tomorrowLabDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
@@ -340,7 +339,7 @@ export function useKpisData(): KpisData {
 
       const dateCol = dateFilter === "recepcion" ? "fecha_recepcion" : "created_at"
 
-      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfEntRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clHoyRes, clAyerRes, clTotalProcesoRes] = await Promise.all([
+      const [sTotalRes, sEmsRes, sDenRes, sProbRes, eEntRes, eProRes, eInfRes, eAnuRes, tEntregaRes, evRecRes, evInfEntRes, stEntRes, stNoIndNullRes, stNoIndEmptyRes, dAtrasoAT, dAtraso1a3, dAtraso4a7, dAtraso8, cumTiempoAT, cumTiempoCR, clAyerRes, clAnterioresRes, clTotalProcesoRes] = await Promise.all([
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%EMS%,and(codigo_muestra.ilike.SU%,cliente_nombre.eq.GEOFAL ING)").gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).or("codigo_muestra.ilike.%DENSIDAD%,codigo_muestra.ilike.%DEN%").gte(dateCol, startDate).lt(dateCol, endDate),
@@ -361,8 +360,8 @@ export function useKpisData(): KpisData {
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 7).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).gt("dias_atraso_lab", 0).gte(dateCol, startDate).lt(dateCol, endDate),
-        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("fecha_entrega_estimada", today),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").eq("fecha_entrega_estimada", yesterday),
+        supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO").lt("fecha_entrega_estimada", yesterday),
         supabase.from("programacion_lab").select("id", { count: "exact", head: true }).eq("estado_trabajo", "PROCESO"),
       ])
 
@@ -597,6 +596,9 @@ export function useKpisData(): KpisData {
       const entregadosCount = eEntRes.count ?? 0
       const evidenciaRecepcionSiCount = evRecRes.count ?? 0
       const evidenciaInformeSiCount = evInfEntRes.count ?? 0
+      const pendientesInformeAyerCount = clAyerRes.count ?? 0
+      const pendientesInformeAnterioresCount = clAnterioresRes.count ?? 0
+      const pendientesInformeHoyCount = Math.max(0, (clTotalProcesoRes.count ?? 0) - pendientesInformeAyerCount - pendientesInformeAnterioresCount)
       const tEntregaDias = tEntregaRows.map(r => calculateDiasAtrasoLabForKpi(r.fecha_entrega_estimada, r.entrega_real))
       const tATCount = tEntregaDias.filter(isEntregaTrabajoATiempo).length
       const tCRCount = tEntregaDias.filter(isEntregaTrabajoAtrasado).length
@@ -640,9 +642,9 @@ export function useKpisData(): KpisData {
           ],
         },
         controlLabGeneral: buildGroup("Control Lab General", [
-          { label: "Hoy", value: clHoyRes.count ?? 0 },
-          { label: "Ayer", value: clAyerRes.count ?? 0 },
-          { label: "Anteriores", value: Math.max(0, (clTotalProcesoRes.count ?? 0) - (clHoyRes.count ?? 0) - (clAyerRes.count ?? 0)) },
+          { label: "Hoy", value: pendientesInformeHoyCount },
+          { label: "Ayer", value: pendientesInformeAyerCount },
+          { label: "Anteriores", value: pendientesInformeAnterioresCount },
         ]),
       })
 
