@@ -9,7 +9,64 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { KpiGroup, MonthOption } from "@/hooks/use-kpis-data"
 
-const PIE_COLORS = ["#2563eb", "#f59e0b", "#f97316", "#22c55e", "#8b5cf6", "#06b6d4"]
+export const COLOR_AZUL = "#2563eb"
+export const COLOR_NARANJA = "#f97316"
+export const COLOR_ROJO = "#ef4444"
+export const COLOR_AZUL_CLARO = "#38bdf8"
+export const COLOR_VERDE = "#22c55e"
+export const COLOR_GRIS = "#64748b"
+
+const DEFAULT_PALETTE = [COLOR_AZUL, COLOR_NARANJA, COLOR_ROJO, COLOR_AZUL_CLARO, COLOR_VERDE, COLOR_GRIS]
+
+export function getCategoryColor(label: string, title?: string, index: number = 0): string {
+  const normLabel = String(label || "").trim().toLowerCase()
+  const normTitle = String(title || "").trim().toLowerCase()
+
+  // 1. Control Lab General / Probetas Faltantes (Hoy = rojo, Ayer = naranja, Anteriores = azul claro)
+  if (normLabel === "hoy") return COLOR_ROJO
+  if (normLabel === "ayer") return COLOR_NARANJA
+  if (normLabel.includes("anterior")) return COLOR_AZUL_CLARO
+
+  // 2. Entrega de trabajo / Tiempo Entrega (A tiempo = azul, Con retraso = naranja)
+  if (normLabel === "a tiempo" || normLabel === "a tiempo (0)") return COLOR_AZUL
+  if (normLabel === "con retraso") return COLOR_NARANJA
+
+  // 3. Cantidad por Tipo de Servicio (Suelo y ag = azul, EMS = naranja, Densidad = verde, Probetas = azul claro)
+  if (normLabel.includes("suelo")) return COLOR_AZUL
+  if (normLabel === "ems") return COLOR_NARANJA
+  if (normLabel.includes("densidad")) return COLOR_VERDE
+
+  // 4. Estado de trabajo
+  if (normLabel === "entregado" || normLabel === "entregados") return COLOR_AZUL
+  if (normLabel === "en proceso") return COLOR_NARANJA
+  if (normLabel === "informe listo") return COLOR_VERDE
+  if (normLabel === "anulado" || normLabel === "anulados") return COLOR_ROJO
+
+  // 5. Probetas Ensayo
+  if (normLabel === "ensayada" || normLabel === "ensayadas") return COLOR_AZUL
+  if (normLabel === "pendiente" || normLabel === "pendientes") return COLOR_NARANJA
+  if (normLabel === "falta") return COLOR_ROJO
+
+  // 6. Evidencias y Status
+  if (normLabel.includes("recepción (si)") || normLabel.includes("recepcion (si)")) return COLOR_AZUL
+  if (normLabel.includes("recepción (faltante)") || normLabel.includes("recepcion (faltante)")) return COLOR_NARANJA
+  if (normLabel.includes("informe (si)")) return COLOR_VERDE
+  if (normLabel.includes("informe (faltante)")) return COLOR_ROJO
+  if (normLabel === "con evidencia" || normLabel === "con factura" || normLabel === "pagado" || normLabel === "enviado") return COLOR_AZUL
+  if (normLabel === "sin evidencia" || normLabel === "sin factura" || normLabel === "no enviado") return COLOR_NARANJA
+
+  // 7. Comercial
+  if (normLabel.includes("cotización enviada") || normLabel.includes("cotizacion enviada") || normLabel === "leads") return COLOR_AZUL
+  if (normLabel === "venta" || normLabel.includes("cliente nuevos") || normLabel.includes("clientes nuevos") || normLabel === "1-3 dias") return COLOR_VERDE
+  if (normLabel === "negociación" || normLabel === "negociacion" || normLabel === "4-7 dias") return COLOR_NARANJA
+  if (normLabel === "8+ dias") return COLOR_ROJO
+  if (normLabel === "sin registro") return COLOR_GRIS
+
+  // Fallback para probetas
+  if (normLabel.includes("probeta")) return COLOR_AZUL_CLARO
+
+  return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
+}
 
 interface KpiPieChartProps {
   data: KpiGroup
@@ -19,13 +76,13 @@ interface KpiPieChartProps {
 
 export function KpiPieChart({ data, loading, className }: KpiPieChartProps) {
   const chartData = React.useMemo(
-    () => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })),
-    [data.categories]
+    () => data.categories.map((c, i) => ({ ...c, fill: getCategoryColor(c.label, data.title, i) })),
+    [data.categories, data.title]
   )
 
   const config: ChartConfig = React.useMemo(
-    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
-    [data.categories]
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: getCategoryColor(c.label, data.title, i) }])),
+    [data.categories, data.title]
   )
 
   if (loading) {
@@ -68,11 +125,14 @@ interface KpiBarChartProps {
 }
 
 export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const chartData = React.useMemo(
+    () => data.categories.map((c, i) => ({ ...c, fill: getCategoryColor(c.label, data.title, i) })),
+    [data.categories, data.title]
+  )
 
   const config: ChartConfig = React.useMemo(
-    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
-    [data.categories]
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: getCategoryColor(c.label, data.title, i) }])),
+    [data.categories, data.title]
   )
 
   if (loading) {
@@ -161,10 +221,14 @@ export function KpiChartCard({ data, loading, className }: KpiChartCardProps) {
 }
 
 function BarChartInner({ data }: { data: KpiGroup }) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const chartData = React.useMemo(
+    () => data.categories.map((c, i) => ({ ...c, fill: getCategoryColor(c.label, data.title, i) })),
+    [data.categories, data.title]
+  )
+
   const config: ChartConfig = React.useMemo(
-    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
-    [data.categories]
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: getCategoryColor(c.label, data.title, i) }])),
+    [data.categories, data.title]
   )
 
   return (
@@ -185,10 +249,14 @@ function BarChartInner({ data }: { data: KpiGroup }) {
 }
 
 function PieChartInner({ data }: { data: KpiGroup }) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const chartData = React.useMemo(
+    () => data.categories.map((c, i) => ({ ...c, fill: getCategoryColor(c.label, data.title, i) })),
+    [data.categories, data.title]
+  )
+
   const config: ChartConfig = React.useMemo(
-    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
-    [data.categories]
+    () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: getCategoryColor(c.label, data.title, i) }])),
+    [data.categories, data.title]
   )
 
   return (
@@ -282,13 +350,19 @@ export function KpiSummaryRow({ categories, previousCategories, loading, title, 
           </tr>
         </thead>
         <tbody>
-          {categories.map((cat) => {
+          {categories.map((cat, idx) => {
             const prev = previousCategories?.find(p => p.label === cat.label)
             const delta = prev ? cat.value - prev.value : undefined
             const hasDelta = delta !== undefined && delta !== 0
+            const dotColor = getCategoryColor(cat.label, title, idx)
             return (
               <tr key={cat.label} className="border-b last:border-b-0">
-                <td className="px-4 py-2 font-medium">{cat.label}</td>
+                <td className="px-4 py-2 font-medium">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                    <span>{cat.label}</span>
+                  </div>
+                </td>
                 <td className="text-center px-4 py-2 tabular-nums">
                   {formatValue(cat.value)}
                   {hasDelta && (
