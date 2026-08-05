@@ -317,6 +317,11 @@ export function useControlProbetas() {
             updatedItem.status_entrega = "ANULADAS"
             updatedItem.estado_probeta = "ANULADO"
           }
+          if (payload.status_entrega === "ENTREGADO" || payload.status_ensayo === "ENSAYADO") {
+            updatedItem.status_ensayo = "ENSAYADO"
+            updatedItem.status_entrega = "ENTREGADO"
+            updatedItem.estado_probeta = "ensayado"
+          }
           return updatedItem
         }
         return x
