@@ -1080,6 +1080,8 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
     currentStatusSelect = "ANULADO"
   } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME" || statusEntregaRaw === "INFORME ENVIADO") {
     currentStatusSelect = "ENTREGADO"
+  } else if (statusEnsayoRaw === "FALTA" || item.estado_probeta === "vencido") {
+    currentStatusSelect = "FALTA"
   }
 
   return (
@@ -1166,7 +1168,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
               const dd = String(today.getDate()).padStart(2, '0')
               void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "ENTREGADO", fecha_entrega: `${yyyy}/${mm}/${dd}` })
             } else {
-              // PENDIENTE / RESTABLECER: volver a cálculo automático
+              // PENDIENTE / FALTA / RESTABLECER: volver a cálculo automático
               void onUpdate(item.muestra_id, { status_ensayo: "-" })
             }
           }}
@@ -1176,6 +1178,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
+            <SelectItem value="FALTA">FALTA</SelectItem>
             <SelectItem value="ENTREGADO">ENTREGADO</SelectItem>
             <SelectItem value="ANULADO">ANULADO</SelectItem>
           </SelectContent>
