@@ -1080,8 +1080,6 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
     currentStatusSelect = "ANULADO"
   } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME") {
     currentStatusSelect = "ENTREGADO"
-  } else if (statusEnsayoRaw === "ENSAYADO" || item.estado_probeta === "ensayado") {
-    currentStatusSelect = "ENSAYADO"
   }
 
   return (
@@ -1167,8 +1165,6 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
               const mm = String(today.getMonth() + 1).padStart(2, '0')
               const dd = String(today.getDate()).padStart(2, '0')
               void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "ENTREGADO", fecha_entrega: `${yyyy}/${mm}/${dd}` })
-            } else if (v === "ENSAYADO") {
-              void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "-" })
             } else {
               // PENDIENTE / RESTABLECER: des-anular y volver a cálculo automático
               void onUpdate(item.muestra_id, { status_ensayo: "-", status_entrega: "-", fecha_entrega: "" })
@@ -1180,7 +1176,6 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
-            <SelectItem value="ENSAYADO">ENSAYADO</SelectItem>
             <SelectItem value="ENTREGADO">ENTREGADO</SelectItem>
             <SelectItem value="ANULADO">ANULADO</SelectItem>
           </SelectContent>
