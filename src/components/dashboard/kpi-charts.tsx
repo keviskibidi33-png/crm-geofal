@@ -68,7 +68,7 @@ interface KpiBarChartProps {
 }
 
 export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })).reverse(), [data.categories])
 
   const config: ChartConfig = React.useMemo(
     () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
@@ -161,7 +161,7 @@ export function KpiChartCard({ data, loading, className }: KpiChartCardProps) {
 }
 
 function BarChartInner({ data }: { data: KpiGroup }) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })).reverse(), [data.categories])
   const config: ChartConfig = React.useMemo(
     () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
     [data.categories]
