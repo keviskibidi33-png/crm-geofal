@@ -68,7 +68,7 @@ interface KpiBarChartProps {
 }
 
 export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })).reverse(), [data.categories])
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
 
   const config: ChartConfig = React.useMemo(
     () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
@@ -93,12 +93,12 @@ export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[200px] w-full">
-          <BarChart data={chartData} layout="vertical" margin={{ left: 10 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis type="number" />
-            <YAxis dataKey="label" type="category" width={80} tick={{ fontSize: 11 }} />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} />
+            <YAxis type="number" tick={{ fontSize: 11 }} />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {chartData.map((entry, idx) => (
                 <Cell key={idx} fill={entry.fill} />
               ))}
@@ -161,7 +161,7 @@ export function KpiChartCard({ data, loading, className }: KpiChartCardProps) {
 }
 
 function BarChartInner({ data }: { data: KpiGroup }) {
-  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })).reverse(), [data.categories])
+  const chartData = React.useMemo(() => data.categories.map((c, i) => ({ ...c, fill: PIE_COLORS[i % PIE_COLORS.length] })), [data.categories])
   const config: ChartConfig = React.useMemo(
     () => Object.fromEntries(data.categories.map((c, i) => [c.label, { label: c.label, color: PIE_COLORS[i % PIE_COLORS.length] }])),
     [data.categories]
@@ -169,12 +169,12 @@ function BarChartInner({ data }: { data: KpiGroup }) {
 
   return (
     <ChartContainer config={config} className="h-[200px] w-full">
-      <BarChart data={chartData} layout="vertical" margin={{ left: 10 }}>
+      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis type="number" />
-        <YAxis dataKey="label" type="category" width={80} tick={{ fontSize: 11 }} />
+        <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} />
+        <YAxis type="number" tick={{ fontSize: 11 }} />
         <ChartTooltip content={<ChartTooltipContent />} />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((entry, idx) => (
             <Cell key={idx} fill={entry.fill} />
           ))}
