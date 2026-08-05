@@ -55,8 +55,8 @@ export interface ProbetasKpis {
 
 export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
 export const POZAS = ["-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "ANULADO", "ROTAS"] as const
-export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "ENSAYADO", "PENDIENTE", "FALTA", "ANULADO"]
-export const STATUS_ENTREGA = ["-", "ENTREGADO", "INFORME", "INFORME ENVIADO", "ANULADAS"] as const
+export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "FALTA", "ENSAYADO", "PENDIENTE", "ANULADO"]
+export const STATUS_ENTREGA = ["-", "ENTREGADO", "INFORME LISTO"] as const
 
 export function formatDateDisplay(v?: string | null): string {
   if (!v || v === "-") return ""

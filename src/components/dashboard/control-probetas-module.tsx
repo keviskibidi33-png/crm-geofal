@@ -1078,7 +1078,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
   let currentStatusSelect = "PENDIENTE"
   if (statusEnsayoRaw === "ANULADO" || statusEntregaRaw === "ANULADAS" || statusEntregaRaw === "ANULADO") {
     currentStatusSelect = "ANULADO"
-  } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME" || statusEntregaRaw === "INFORME ENVIADO") {
+  } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME LISTO" || statusEntregaRaw === "INFORME" || statusEntregaRaw === "INFORME ENVIADO") {
     currentStatusSelect = "ENTREGADO"
   } else if (statusEnsayoRaw === "FALTA" || item.estado_probeta === "vencido") {
     currentStatusSelect = "FALTA"
@@ -1193,7 +1193,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           className="h-7 text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
-            if (v === "ENTREGADO" || v === "INFORME" || v === "INFORME ENVIADO") {
+            if (v === "ENTREGADO" || v === "INFORME LISTO" || v === "INFORME" || v === "INFORME ENVIADO") {
               const today = new Date()
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
