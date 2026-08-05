@@ -1062,6 +1062,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
     vencido: "bg-red-50 text-red-700 border-red-200",
     curado: "bg-blue-50 text-blue-700 border-blue-200",
+    anulado: "bg-slate-100 text-slate-600 border-slate-300",
   }
 
   const densidadColors: Record<string, string> = {
@@ -1070,6 +1071,18 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
   }
 
   const currentDensidad = (item.densidad === "SI" ? "SI" : "NO") as DensidadValue
+
+  const statusEnsayoRaw = (item.status_ensayo || "").toString().trim().toUpperCase()
+  const statusEntregaRaw = (item.status_entrega || "").toString().trim().toUpperCase()
+
+  let currentStatusSelect = "PENDIENTE"
+  if (statusEnsayoRaw === "ANULADO" || statusEntregaRaw === "ANULADAS") {
+    currentStatusSelect = "ANULADO"
+  } else if (statusEntregaRaw === "ENTREGADO") {
+    currentStatusSelect = "ENTREGADO"
+  } else if (statusEnsayoRaw === "ENSAYADO" || item.estado_probeta === "ensayado") {
+    currentStatusSelect = "ENSAYADO"
+  }
 
   return (
     <tr className={`transition-colors group ${isPreview ? "bg-amber-50/40 hover:bg-amber-50/70" : `${bgClass || "bg-white"} hover:bg-slate-100/60`} ${isSelected ? "bg-blue-50/80 hover:bg-blue-50" : ""}`}>
@@ -1141,18 +1154,24 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           placeholder="Poza"
         />
       </td>
-      {/* STATUS ENSAYO */}
+      {/* STATUS ENSAYO / CONTROL UNIFICADO */}
       <td className={TD}>
-        {(() => {
-          const statusEnsayoReal = ((item.status_ensayo || "PENDIENTE").toString().trim().toUpperCase() || "PENDIENTE") as "PENDIENTE" | "FALTA" | "ENSAYADO" | "ANULADO"
-          const statusEnsayoDisplay = statusEnsayoReal === "ANULADO" ? "ANULADO" : statusEnsayoReal
-          const statusEnsayoItems = statusEnsayoReal === "ANULADO" ? ["ANULADO"] : [statusEnsayoDisplay, "ANULADO"]
-          return (
         <Select
-              value={statusEnsayoDisplay}
+          value={currentStatusSelect}
           onValueChange={(v) => {
             if (v === "ANULADO") {
               void onUpdate(item.muestra_id, { status_ensayo: "ANULADO", status_entrega: "ANULADAS" })
+            } else if (v === "ENTREGADO") {
+              const today = new Date()
+              const yyyy = today.getFullYear()
+              const mm = String(today.getMonth() + 1).padStart(2, '0')
+              const dd = String(today.getDate()).padStart(2, '0')
+              void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "ENTREGADO", fecha_entrega: `${yyyy}/${mm}/${dd}` })
+            } else if (v === "ENSAYADO") {
+              void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "-" })
+            } else {
+              // PENDIENTE / RESTABLECER: des-anular y volver a cálculo automático
+              void onUpdate(item.muestra_id, { status_ensayo: "-", status_entrega: "-" })
             }
           }}
         >
@@ -1160,15 +1179,12 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {statusEnsayoItems.map((status) => (
-              <SelectItem key={status} value={status} disabled={status !== "ANULADO"}>
-                {status}
-              </SelectItem>
-            ))}
+            <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
+            <SelectItem value="ENSAYADO">ENSAYADO</SelectItem>
+            <SelectItem value="ENTREGADO">ENTREGADO</SelectItem>
+            <SelectItem value="ANULADO">ANULADO</SelectItem>
           </SelectContent>
         </Select>
-          )
-        })()}
       </td>
       {/* STATUS ENTREGA */}
       <td className={TD}>
