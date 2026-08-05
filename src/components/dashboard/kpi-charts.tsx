@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { KpiGroup, MonthOption } from "@/hooks/use-kpis-data"
 
-const PIE_COLORS = ["#2563eb", "#f59e0b", "#f97316", "#ef4444", "#8b5cf6", "#06b6d4"]
+const PIE_COLORS = ["#2563eb", "#f59e0b", "#f97316", "#22c55e", "#8b5cf6", "#06b6d4"]
 
 interface KpiPieChartProps {
   data: KpiGroup

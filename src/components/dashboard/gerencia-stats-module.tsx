@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/chart"
 import { useGerenciaKpis } from "@/hooks/use-gerencia-kpis"
 
-const CATEGORY_COLORS = ["#f59e0b", "#22c55e", "#ef4444", "#3b82f6", "#8b5cf6"]
+const CATEGORY_COLORS = ["#f59e0b", "#22c55e", "#10b981", "#3b82f6", "#8b5cf6"]
 const EVIDENCE_COLORS = ["#16a34a", "#ef4444"]
 
 const chartConfig = {
