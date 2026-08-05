@@ -48,7 +48,7 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
   jefe_laboratorio: [
     { label: "Seguimiento", module: "tracing" },
     { label: "Laboratorio", module: "laboratorio" },
-    { label: "Control Informes", module: "ingenieria_archivos" },
+    { label: "Estadística Laboratorio", module: "estadistica_laboratorio" },
   ],
   laboratorio_tipificador: [
     { label: "Seguimiento", module: "tracing" },
