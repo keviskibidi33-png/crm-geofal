@@ -1078,7 +1078,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
   let currentStatusSelect = "PENDIENTE"
   if (statusEnsayoRaw === "ANULADO" || statusEntregaRaw === "ANULADAS" || statusEntregaRaw === "ANULADO") {
     currentStatusSelect = "ANULADO"
-  } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME") {
+  } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME" || statusEntregaRaw === "INFORME ENVIADO") {
     currentStatusSelect = "ENTREGADO"
   }
 
@@ -1158,7 +1158,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           value={currentStatusSelect}
           onValueChange={(v) => {
             if (v === "ANULADO") {
-              void onUpdate(item.muestra_id, { status_ensayo: "ANULADO", status_entrega: "ANULADAS" })
+              void onUpdate(item.muestra_id, { status_ensayo: "ANULADO" })
             } else if (v === "ENTREGADO") {
               const today = new Date()
               const yyyy = today.getFullYear()
@@ -1166,8 +1166,8 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
               const dd = String(today.getDate()).padStart(2, '0')
               void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "ENTREGADO", fecha_entrega: `${yyyy}/${mm}/${dd}` })
             } else {
-              // PENDIENTE / RESTABLECER: des-anular y volver a cálculo automático
-              void onUpdate(item.muestra_id, { status_ensayo: "-", status_entrega: "-", fecha_entrega: "" })
+              // PENDIENTE / RESTABLECER: volver a cálculo automático
+              void onUpdate(item.muestra_id, { status_ensayo: "-" })
             }
           }}
         >
@@ -1190,7 +1190,7 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           className="h-7 text-[9px] px-1 font-semibold"
           onChange={(v) => {
             const payload: Record<string, any> = { status_entrega: v }
-            if (v === "ENTREGADO" || v === "INFORME") {
+            if (v === "ENTREGADO" || v === "INFORME" || v === "INFORME ENVIADO") {
               const today = new Date()
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
