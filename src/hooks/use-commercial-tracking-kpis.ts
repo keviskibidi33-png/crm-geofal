@@ -122,6 +122,30 @@ function hasQuoteNumber(value: unknown) {
   return normalized !== "" && normalized !== "-"
 }
 
+function toIsoDatePart(value: unknown): string | null {
+  const raw = String(value ?? "").trim()
+  if (!raw) return null
+
+  const iso = raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/)
+  if (iso) {
+    const year = iso[1]
+    const month = iso[2].padStart(2, "0")
+    const day = iso[3].padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const slash = raw.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2}|\d{4})$/)
+  if (slash) {
+    const day = slash[1].padStart(2, "0")
+    const month = slash[2].padStart(2, "0")
+    const numericYear = Number.parseInt(slash[3], 10)
+    const year = slash[3].length === 2 ? 2000 + numericYear : numericYear
+    return `${year}-${month}-${day}`
+  }
+
+  return null
+}
+
 function isSentQuote(row: SeguimientoRow) {
   const estadoClientNorm = normalizeText(row.estado_cliente)
   const estadoSegNorm = normalizeText(row.estado_seguimiento)
@@ -147,19 +171,19 @@ function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
 
   if (!categoryText) return null
 
-  // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES, CLIENTE 1, CATEGORIA 1, CAT 1
+  // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES, DENSIMETRO, CLIENTE 1, CATEGORIA 1, CAT 1
   if (
     /\bDEN\b/.test(categoryText) ||
-    /DENSIDADES?/.test(categoryText) ||
+    /DENSIDA|DENSIME/.test(categoryText) ||
     /CLIENTE\s*1\b|CATEGORIA\s*1\b|CAT\s*1\b/.test(categoryText)
   ) {
     return "DEN"
   }
 
-  // Categoría 2 (PROB): PROB, PROBETA, PROBETAS, CLIENTE 2, CATEGORIA 2, CAT 2
+  // Categoría 2 (PROB): PROB, PROBETA, PROBETAS, COMPRESION, ROTURA, CLIENTE 2, CATEGORIA 2, CAT 2
   if (
     /\bPROB\b/.test(categoryText) ||
-    /PROBETAS?/.test(categoryText) ||
+    /PROBETA|ROTURA|COMPRESION/.test(categoryText) ||
     /CLIENTE\s*2\b|CATEGORIA\s*2\b|CAT\s*2\b/.test(categoryText)
   ) {
     return "PROB"
@@ -168,7 +192,7 @@ function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
   // Categoría 3 (EMS): EMS, ESTUDIOS DE SUELOS, ENSAYOS DE SUELOS, CLIENTE 3, CATEGORIA 3, CAT 3
   if (
     /\bEMS\b/.test(categoryText) ||
-    /ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS/.test(categoryText) ||
+    /ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS|SUELOS/.test(categoryText) ||
     /CLIENTE\s*3\b|CATEGORIA\s*3\b|CAT\s*3\b/.test(categoryText)
   ) {
     return "EMS"
@@ -183,10 +207,10 @@ function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
     return "ALQ"
   }
 
-  // Categoría 5 (ENS.V.): ENS.V., ENSAYOS DE LABORATORIO, CLIENTE 5, CATEGORIA 5, CAT 5
+  // Categoría 5 (ENS.V.): ENS.V., ENSAYOS DE LABORATORIO, MEZCLA, AGREGADO, LADRILLOS, CORTE DIRECTO, PROCTOR, BLOQUE, ROCA, CLIENTE 5, CATEGORIA 5, CAT 5
   if (
     /\bENS\s*\.?\s*V\.?\b/.test(categoryText) ||
-    /ENSAYOS DE LABORATORIO|ENSAYOS VARIOS/.test(categoryText) ||
+    /ENSAYO|MEZCLA|AGREGADO|LADRILLO|CORTE DIRECTO|PROCTOR|BLOQUE|ROCA|LABORATORIO/.test(categoryText) ||
     /CLIENTE\s*5\b|CATEGORIA\s*5\b|CAT\s*5\b/.test(categoryText)
   ) {
     return "ENS.V."
@@ -263,9 +287,8 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
       const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
       const seguimientoRows = (await fetchSeguimientoRows(apiUrl)).filter((row) => {
-        if (!row.fecha_contacto) return false
-        const datePart = String(row.fecha_contacto).split("T")[0]
-        return datePart >= startDate && datePart < endDate
+        const datePart = toIsoDatePart(row.fecha_contacto)
+        return datePart !== null && datePart >= startDate && datePart < endDate
       })
 
       const quoteAmountsByCategory = new Map<CategoryKey, CommercialWeeklyAmounts>(
@@ -278,8 +301,8 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
       const weeklyNewClients = emptyWeeklyAmounts()
 
       for (const row of seguimientoRows) {
-        const datePart = String(row.fecha_contacto).split("T")[0]
-        const day = Number.parseInt(datePart.slice(8, 10), 10)
+        const datePart = toIsoDatePart(row.fecha_contacto)
+        const day = Number.parseInt(datePart?.slice(8, 10) ?? "", 10)
         const weekIndex = Number.isInteger(day) && day > 0 ? Math.min(3, Math.floor((day - 1) / 7)) : null
         const sale = isSale(row)
 
