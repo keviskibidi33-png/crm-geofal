@@ -57,6 +57,8 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
     const [iframeToken, setIframeToken] = useState<string | null>(null)
     const [iframeReloadKey, setIframeReloadKey] = useState(0)
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    /** KPI visibility for this user — loaded from perfiles.show_kpi on mount */
+    const [showKpi, setShowKpi] = useState<boolean>(true)
 
     // KPIs come pre-computed from the hook (lightweight count queries)
     const stats = { total: kpis.total, atrasados: kpis.atrasados, pendientesEnvio: 0, totalMes: kpis.total }
@@ -126,6 +128,25 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
     useEffect(() => {
         syncIframeToken("mount")
     }, [syncIframeToken])
+
+    // Load show_kpi flag from perfiles for this user
+    useEffect(() => {
+        if (!user?.id) return
+        supabase
+            .from("perfiles")
+            .select("show_kpi")
+            .eq("id", user.id)
+            .single()
+            .then(({ data }) => {
+                if (data && typeof data.show_kpi === "boolean") {
+                    setShowKpi(data.show_kpi)
+                }
+            })
+            .catch(() => {
+                // Column may not exist yet (migration pending); default to true
+                setShowKpi(true)
+            })
+    }, [user?.id, supabase])
 
     const handleIframeSessionFailure = useCallback((reason: string) => {
         bridgeWarn("preserving shell session after iframe auth failure", {
@@ -243,8 +264,10 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
         } else {
             url.searchParams.delete("retry")
         }
+        // Pass show_kpi so the iframe can hide the KPI tab without a DB round-trip
+        url.searchParams.set("showKpi", String(showKpi))
         return url.toString()
-    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, user.id, user.role, user.name, user.email])
+    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, showKpi, user.id, user.role, user.name, user.email])
 
     const openModule = useCallback(async () => {
         const token = await syncIframeToken("open")
