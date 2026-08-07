@@ -927,7 +927,12 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       }
 
       toast.success("Cotización procesada correctamente")
-      clearDraft()
+      if (quoteId) {
+        clearDraft()
+      } else {
+        // Reset React state as well as localStorage before the next new quote.
+        handleClearDraft(false)
+      }
       setPendingConditionTexts([])
       onSuccess?.()
       onOpenChange(false)
@@ -960,7 +965,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     }
   }
 
-  const handleClearDraft = useCallback(() => {
+  const handleClearDraft = useCallback((showToast = true) => {
     if (!quoteId && !duplicateSourceQuote) {
       skipNextDraftSaveRef.current = true
     }
@@ -993,7 +998,9 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     setItems([emptyItem()])
     setSelectedCondiciones([])
     setPendingConditionTexts([])
-    toast.success("Datos actuales y autoguardado local limpiados")
+    if (showToast) {
+      toast.success("Datos actuales y autoguardado local limpiados")
+    }
   }, [clearDraft, duplicateSourceQuote, quoteId, user?.email, user?.name, user?.phone])
 
   const loadSuggestedImportNumber = useCallback(async () => {
@@ -1046,7 +1053,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   <Plus className="mr-2 h-4 w-4" />
                   Guardar plantilla
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleClearDraft}>
+                <Button variant="outline" size="sm" onClick={() => handleClearDraft()}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Limpiar local
                 </Button>
@@ -1318,7 +1325,8 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <TableBody>
                         {items.map((item, index) => (
                           <TableRow
-                            key={`${index}-${item.descripcion}`}
+                            // Keep the row mounted while editable values change.
+                            key={`quote-item-${index}`}
                             draggable
                             onDragStart={() => setDragIndex(index)}
                             onDragOver={(e) => e.preventDefault()}

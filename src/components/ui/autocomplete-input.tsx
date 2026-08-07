@@ -267,6 +267,7 @@ export function AutocompleteInput({
         placeholder={placeholder}
         className={className}
         autoComplete="off"
+        data-lpignore="true"
       />
       {dropdownContent && typeof document !== 'undefined' ? createPortal(dropdownContent, document.body) : null}
     </div>
