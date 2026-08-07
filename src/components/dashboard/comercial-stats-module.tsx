@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { useKpisData } from "@/hooks/use-kpis-data"
@@ -83,7 +83,7 @@ export function ComercialStatsModule() {
         </Button>
         <Button variant={tabView === "resumen_comercial_1" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("resumen_comercial_1")}>
           <BarChart3 className="h-3.5 w-3.5" />
-          Resumen Comercial 1
+          KPI Comercial Personal
         </Button>
         <Button variant={tabView === "historico" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setTabView("historico")}>
           <History className="h-3.5 w-3.5" />

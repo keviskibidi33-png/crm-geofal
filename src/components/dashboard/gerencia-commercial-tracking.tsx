@@ -192,7 +192,7 @@ export function GerenciaCommercialTracking({
     <section className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold text-slate-950">Resumen Comercial 1</h3>
+          <h3 className="text-lg font-bold text-slate-950">KPI Comercial Personal</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             Cotizaciones enviadas, ventas y conversión semanal por categoría de cliente.
           </p>

@@ -18,6 +18,7 @@ interface SeguimientoRow {
   fecha_contacto: string | null
   servicio_solicitado: string | null
   categoria_servicio: string | null
+  categoria_cliente?: string | null
   costo_cotiz_sin_igv: string | null
   estado_cliente: string | null
   estado_seguimiento: string | null
@@ -122,27 +123,75 @@ function hasQuoteNumber(value: unknown) {
 }
 
 function isSentQuote(row: SeguimientoRow) {
-  return normalizeText(row.estado_cliente).includes("COTIZACION ENVIADA")
-    && hasQuoteNumber(row.numero_cotizacion)
+  const estadoClientNorm = normalizeText(row.estado_cliente)
+  const estadoSegNorm = normalizeText(row.estado_seguimiento)
+  const isSent =
+    estadoClientNorm.includes("COTIZACION ENVIADA") ||
+    estadoClientNorm.includes("COTIZACION REALIZADA") ||
+    estadoSegNorm.includes("COTIZACION ENVIADA") ||
+    estadoSegNorm.includes("COTIZACION REALIZADA")
+
+  return isSent && hasQuoteNumber(row.numero_cotizacion)
 }
 
 function isSale(row: SeguimientoRow) {
-  return normalizeText(row.estado_seguimiento).includes("VENTA")
+  const estadoClientNorm = normalizeText(row.estado_cliente)
+  const estadoSegNorm = normalizeText(row.estado_seguimiento)
+  return estadoClientNorm.includes("VENTA") || estadoSegNorm.includes("VENTA")
 }
 
 function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
-  const categoryText = normalizeText(`${row.categoria_servicio ?? ""} ${row.servicio_solicitado ?? ""}`)
+  const categoryText = normalizeText(
+    `${row.categoria_servicio ?? ""} ${row.categoria_cliente ?? ""} ${row.servicio_solicitado ?? ""}`
+  )
 
-  if (/\bENS\s*\.?\s*V\.?\b/.test(categoryText)) return "ENS.V."
-  if (/ENSAYOS DE LABORATORIO/.test(categoryText)) return "ENS.V."
-  if (/\bPROB\b/.test(categoryText)) return "PROB"
-  if (/PROBETAS/.test(categoryText)) return "PROB"
-  if (/\bEMS\b/.test(categoryText)) return "EMS"
-  if (/ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS/.test(categoryText)) return "EMS"
-  if (/\bALQ\b/.test(categoryText)) return "ALQ"
-  if (/ALQUILER/.test(categoryText)) return "ALQ"
-  if (/\bDEN\b/.test(categoryText)) return "DEN"
-  if (/DENSIDADES?/.test(categoryText)) return "DEN"
+  if (!categoryText) return null
+
+  // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES, CLIENTE 1, CATEGORIA 1, CAT 1
+  if (
+    /\bDEN\b/.test(categoryText) ||
+    /DENSIDADES?/.test(categoryText) ||
+    /CLIENTE\s*1\b|CATEGORIA\s*1\b|CAT\s*1\b/.test(categoryText)
+  ) {
+    return "DEN"
+  }
+
+  // Categoría 2 (PROB): PROB, PROBETA, PROBETAS, CLIENTE 2, CATEGORIA 2, CAT 2
+  if (
+    /\bPROB\b/.test(categoryText) ||
+    /PROBETAS?/.test(categoryText) ||
+    /CLIENTE\s*2\b|CATEGORIA\s*2\b|CAT\s*2\b/.test(categoryText)
+  ) {
+    return "PROB"
+  }
+
+  // Categoría 3 (EMS): EMS, ESTUDIOS DE SUELOS, ENSAYOS DE SUELOS, CLIENTE 3, CATEGORIA 3, CAT 3
+  if (
+    /\bEMS\b/.test(categoryText) ||
+    /ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS/.test(categoryText) ||
+    /CLIENTE\s*3\b|CATEGORIA\s*3\b|CAT\s*3\b/.test(categoryText)
+  ) {
+    return "EMS"
+  }
+
+  // Categoría 4 (ALQ): ALQ, ALQUILER, CLIENTE 4, CATEGORIA 4, CAT 4
+  if (
+    /\bALQ\b/.test(categoryText) ||
+    /ALQUILER/.test(categoryText) ||
+    /CLIENTE\s*4\b|CATEGORIA\s*4\b|CAT\s*4\b/.test(categoryText)
+  ) {
+    return "ALQ"
+  }
+
+  // Categoría 5 (ENS.V.): ENS.V., ENSAYOS DE LABORATORIO, CLIENTE 5, CATEGORIA 5, CAT 5
+  if (
+    /\bENS\s*\.?\s*V\.?\b/.test(categoryText) ||
+    /ENSAYOS DE LABORATORIO|ENSAYOS VARIOS/.test(categoryText) ||
+    /CLIENTE\s*5\b|CATEGORIA\s*5\b|CAT\s*5\b/.test(categoryText)
+  ) {
+    return "ENS.V."
+  }
+
   return null
 }
 
