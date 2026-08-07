@@ -279,10 +279,12 @@ function buildCommercialGroup(amountsByCategory: Map<CategoryKey, CommercialWeek
   }
 }
 
-async function fetchSeguimientoRows(apiUrl: string) {
+async function fetchSeguimientoRows(apiUrl: string, asesor?: string) {
   const pageSize = 10_000
   const fetchPage = async (offset: number) => {
-    const response = await authFetch(`${apiUrl}/api/seguimiento-comercial?limit=${pageSize}&offset=${offset}`)
+    const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) })
+    if (asesor) params.append("asesor", asesor)
+    const response = await authFetch(`${apiUrl}/api/seguimiento-comercial?${params.toString()}`)
     if (!response.ok) throw new Error(`Seguimiento respondió ${response.status}`)
     return response.json() as Promise<{ total?: number; items?: SeguimientoRow[] }>
   }
@@ -300,7 +302,7 @@ async function fetchSeguimientoRows(apiUrl: string) {
   return [...firstItems, ...remainingPages.flatMap((page) => page.items ?? [])]
 }
 
-export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: number) {
+export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: number, selectedAdvisor?: string) {
   const [kpis, setKpis] = useState<CommercialTrackingKpis>(EMPTY_COMMERCIAL_TRACKING)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -319,7 +321,7 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
       const endDate = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`
       const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
-      const seguimientoRows = (await fetchSeguimientoRows(apiUrl)).filter((row) => {
+      const seguimientoRows = (await fetchSeguimientoRows(apiUrl, selectedAdvisor)).filter((row) => {
         const datePart = getRowDate(row)
         return datePart !== null && datePart >= startDate && datePart < endDate
       })
