@@ -128,39 +128,46 @@ export function canAccessDashboardModule(
     activeCheckModule = "densidad_huantar";
   }
 
+const KPI_AUTHORIZED_IDENTITIES = ["irma.coaquira", "irma", "fabian", "labprueba"]
+
+function isKpiAuthorizedEmail(email?: string) {
+  if (!email) return false
+  const norm = email.toLowerCase().trim()
+  return KPI_AUTHORIZED_IDENTITIES.some((id) => norm.includes(id))
+}
+
   if (activeCheckModule === "configuracion") {
     return true
   }
 
   if (activeCheckModule === "estadistica_laboratorio") {
-    if (isAdministracionDashboardRole(role)) return false
+    if (isComercialDashboardRole(role)) return false
     return isAdminDashboardRole(role)
-      || isLaboratorioDashboardRole(role)
-      || permissions?.laboratorio?.read === true
+      || isKpiAuthorizedEmail(email)
       || permissions?.estadistica_laboratorio?.read === true
   }
 
   if (activeCheckModule === "estadistica_comercial") {
-    if (isAdministracionDashboardRole(role)) return false
+    if (isComercialDashboardRole(role)) return false
     return isAdminDashboardRole(role)
-      || isComercialDashboardRole(role)
-      || permissions?.comercial?.read === true
+      || isGerenciaDashboardRole(role)
+      || isKpiAuthorizedEmail(email)
       || permissions?.estadistica_comercial?.read === true
   }
 
   if (activeCheckModule === "estadistica_gerencia") {
+    if (isComercialDashboardRole(role)) return false
     return isAdminDashboardRole(role)
-      || isAdministracionDashboardRole(role)
-      || permissions?.administracion?.read === true
+      || isGerenciaDashboardRole(role)
+      || isKpiAuthorizedEmail(email)
       || permissions?.estadistica_gerencia?.read === true
   }
 
   if (activeCheckModule === "gerencia") {
+    if (isComercialDashboardRole(role)) return false
     return isAdminDashboardRole(role)
-      || isAdministracionDashboardRole(role)
       || isGerenciaDashboardRole(role)
-      || permissions?.administracion?.read === true
-      || permissions?.estadistica_gerencia?.read === true
+      || isKpiAuthorizedEmail(email)
       || permissions?.gerencia?.read === true
   }
 
