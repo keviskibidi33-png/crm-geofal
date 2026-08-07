@@ -48,6 +48,8 @@ interface Seller {
     last_seen_at?: string | null
     /** Whether this user can view the KPI tab in the Comercial module */
     show_kpi?: boolean
+    /** Assigned tracking table: 'tabla1' | 'tabla2' */
+    tabla_seguimiento?: string
 }
 
 interface RoleDefinition {
@@ -112,6 +114,8 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
     const lastFocusedUserIdRef = useRef<string | null>(null)
     /** Local state for the show_kpi toggle in the edit dialog */
     const [editShowKpi, setEditShowKpi] = useState<boolean>(true)
+    /** Local state for the tabla_seguimiento select in the edit dialog */
+    const [editTablaSeguimiento, setEditTablaSeguimiento] = useState<string>("tabla2")
     // const { toast } = useToast() // Replaced by Sonner
 
     const simplifiedRoles = useMemo(() => {
@@ -176,6 +180,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                 estado: s.deleted_at ? "inactivo" : "activo",
                 last_seen_at: s.last_seen_at,
                 show_kpi: typeof s.show_kpi === 'boolean' ? s.show_kpi : true,
+                tabla_seguimiento: s.tabla_seguimiento || (s.role === "auxiliar_comercial" || s.role === "comercial" ? "tabla2" : "tabla1"),
             })))
         } catch (err: any) {
             toast.error("Error al cargar usuarios", {
@@ -476,12 +481,13 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                     full_name: data.nombre,
                     role: data.role,
                     show_kpi: editShowKpi,
+                    tabla_seguimiento: editTablaSeguimiento,
                 })
                 .eq("id", editingSeller.id)
 
             if (error) throw error
 
-            setSellers(sellers.map(s => s.id === editingSeller.id ? { ...s, nombre: data.nombre, role: data.role, show_kpi: editShowKpi } : s))
+            setSellers(sellers.map(s => s.id === editingSeller.id ? { ...s, nombre: data.nombre, role: data.role, show_kpi: editShowKpi, tabla_seguimiento: editTablaSeguimiento } : s))
 
             toast.success("Usuario actualizado", {
                 description: "Los datos del usuario han sido actualizados.",
@@ -699,8 +705,9 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                                                     <DropdownMenuItem
                                                         onClick={() => {
                                                             setEditingSeller(seller)
-                                                            // Initialize the KPI toggle from the seller's stored show_kpi value
+                                                            // Initialize the KPI toggle and tracking table from the seller's stored values
                                                             setEditShowKpi(typeof seller.show_kpi === 'boolean' ? seller.show_kpi : true)
+                                                            setEditTablaSeguimiento(seller.tabla_seguimiento || "tabla2")
                                                         }}
                                                     >
                                                         <Pencil className="mr-2 h-4 w-4" />
@@ -939,23 +946,42 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                                 ))}
                             </select>
                         </div>
-                        {/* KPI Toggle — only visible for comercial roles */}
+                        {/* KPI Toggle & Tabla de Seguimiento — only visible for comercial roles */}
                         {(editingSeller?.role || "").toLowerCase().includes("comercial") && (
-                            <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="edit-show-kpi" className="text-sm font-medium">
-                                        Ver panel KPI
+                            <>
+                                <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                                    <Label htmlFor="edit-tabla-seguimiento" className="text-sm font-medium">
+                                        Tabla de Seguimiento Asignada
                                     </Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        Permite ver la pestaña «KPI Personal» en el módulo comercial.
+                                    <select
+                                        id="edit-tabla-seguimiento"
+                                        value={editTablaSeguimiento}
+                                        onChange={(e) => setEditTablaSeguimiento(e.target.value)}
+                                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    >
+                                        <option value="tabla2">Tabla 2 - Seguimiento B2B (Nuevos / Acompañante)</option>
+                                        <option value="tabla1">Tabla 1 - Seguimiento Yerly / Silvia</option>
+                                    </select>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Permite cambiar si el usuario opera en Tabla 1 o Tabla 2.
                                     </p>
                                 </div>
-                                <Switch
-                                    id="edit-show-kpi"
-                                    checked={editShowKpi}
-                                    onCheckedChange={setEditShowKpi}
-                                />
-                            </div>
+                                <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="edit-show-kpi" className="text-sm font-medium">
+                                            Ver panel KPI
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Permite ver la pestaña «KPI Personal» en el módulo comercial.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="edit-show-kpi"
+                                        checked={editShowKpi}
+                                        onCheckedChange={setEditShowKpi}
+                                    />
+                                </div>
+                            </>
                         )}
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="ghost" onClick={() => setEditingSeller(null)}>Cancelar</Button>

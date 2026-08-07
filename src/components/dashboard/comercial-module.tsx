@@ -129,17 +129,24 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
         syncIframeToken("mount")
     }, [syncIframeToken])
 
-    // Load show_kpi flag from perfiles for this user
+    const [tablaSeguimiento, setTablaSeguimiento] = useState<string | null>(null)
+
+    // Load show_kpi & tabla_seguimiento flags from perfiles for this user
     useEffect(() => {
         if (!user?.id) return
         supabase
             .from("perfiles")
-            .select("show_kpi")
+            .select("show_kpi, tabla_seguimiento")
             .eq("id", user.id)
             .single()
             .then(({ data, error }) => {
-                if (!error && data && typeof data.show_kpi === "boolean") {
-                    setShowKpi(data.show_kpi)
+                if (!error && data) {
+                    if (typeof data.show_kpi === "boolean") {
+                        setShowKpi(data.show_kpi)
+                    }
+                    if (data.tabla_seguimiento) {
+                        setTablaSeguimiento(data.tabla_seguimiento)
+                    }
                 }
             })
             .catch(() => {
@@ -265,8 +272,11 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
         }
         // Pass show_kpi so the iframe can hide the KPI tab without a DB round-trip
         url.searchParams.set("showKpi", String(showKpi))
+        if (tablaSeguimiento) {
+            url.searchParams.set("tabla_seguimiento", tablaSeguimiento)
+        }
         return url.toString()
-    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, showKpi, user.id, user.role, user.name, user.email])
+    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, showKpi, tablaSeguimiento, user.id, user.role, user.name, user.email])
 
     const openModule = useCallback(async () => {
         const token = await syncIframeToken("open")
