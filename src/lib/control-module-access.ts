@@ -148,9 +148,10 @@ function isKpiAuthorizedEmail(email?: string) {
   }
 
   if (activeCheckModule === "estadistica_comercial") {
-    if (isComercialDashboardRole(role)) return false
+    if (isAdministracionDashboardRole(role)) return false
     return isAdminDashboardRole(role)
       || isGerenciaDashboardRole(role)
+      || isComercialDashboardRole(role)
       || isKpiAuthorizedEmail(email)
       || permissions?.estadistica_comercial?.read === true
   }
