@@ -15,14 +15,20 @@ const CATEGORY_DEFINITIONS = [
 type CategoryKey = (typeof CATEGORY_DEFINITIONS)[number]["key"]
 
 interface SeguimientoRow {
-  fecha_contacto: string | null
-  servicio_solicitado: string | null
-  categoria_servicio: string | null
+  fecha_contacto?: string | null
+  fecha_ultimo_contacto?: string | null
+  fecha_creacion?: string | null
+  created_at?: string | null
+  servicio_solicitado?: string | null
+  categoria_servicio?: string | null
   categoria_cliente?: string | null
-  costo_cotiz_sin_igv: string | null
-  estado_cliente: string | null
-  estado_seguimiento: string | null
-  numero_cotizacion: string | null
+  costo_cotiz_sin_igv?: string | null
+  monto?: string | number | null
+  costo?: string | number | null
+  costo_cotizacion?: string | number | null
+  estado_cliente?: string | null
+  estado_seguimiento?: string | null
+  numero_cotizacion?: string | null
 }
 
 export type CommercialWeeklyAmounts = [number, number, number, number]
@@ -87,6 +93,9 @@ function normalizeText(value: unknown) {
 }
 
 function parseMoney(value: unknown) {
+  if (value === null || value === undefined) return 0
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0
+
   const raw = String(value ?? "").trim().replace(/[^0-9.,-]/g, "")
   if (!raw) return 0
 
@@ -110,6 +119,12 @@ function parseMoney(value: unknown) {
 
   const parsed = Number.parseFloat(normalized) * sign
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function getRowAmount(row: SeguimientoRow): number {
+  return parseMoney(
+    row.costo_cotiz_sin_igv ?? row.monto ?? row.costo ?? row.costo_cotizacion
+  )
 }
 
 function calcPercentage(value: number, total: number) {
@@ -146,14 +161,25 @@ function toIsoDatePart(value: unknown): string | null {
   return null
 }
 
+function getRowDate(row: SeguimientoRow): string | null {
+  return (
+    toIsoDatePart(row.fecha_contacto) ||
+    toIsoDatePart(row.fecha_ultimo_contacto) ||
+    toIsoDatePart(row.fecha_creacion) ||
+    toIsoDatePart(row.created_at)
+  )
+}
+
 function isSentQuote(row: SeguimientoRow) {
   const estadoClientNorm = normalizeText(row.estado_cliente)
   const estadoSegNorm = normalizeText(row.estado_seguimiento)
   const isSent =
-    estadoClientNorm.includes("COTIZACION ENVIADA") ||
-    estadoClientNorm.includes("COTIZACION REALIZADA") ||
-    estadoSegNorm.includes("COTIZACION ENVIADA") ||
-    estadoSegNorm.includes("COTIZACION REALIZADA")
+    estadoClientNorm.includes("COTIZACION") ||
+    estadoClientNorm.includes("COTIZADO") ||
+    estadoClientNorm.includes("ENVIAD") ||
+    estadoSegNorm.includes("COTIZACION") ||
+    estadoSegNorm.includes("COTIZADO") ||
+    estadoSegNorm.includes("ENVIAD")
 
   return isSent && hasQuoteNumber(row.numero_cotizacion)
 }
@@ -161,7 +187,14 @@ function isSentQuote(row: SeguimientoRow) {
 function isSale(row: SeguimientoRow) {
   const estadoClientNorm = normalizeText(row.estado_cliente)
   const estadoSegNorm = normalizeText(row.estado_seguimiento)
-  return estadoClientNorm.includes("VENTA") || estadoSegNorm.includes("VENTA")
+  return (
+    estadoClientNorm.includes("VENTA") ||
+    estadoClientNorm.includes("GANADO") ||
+    estadoClientNorm.includes("VENDIDO") ||
+    estadoSegNorm.includes("VENTA") ||
+    estadoSegNorm.includes("GANADO") ||
+    estadoSegNorm.includes("VENDIDO")
+  )
 }
 
 function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
@@ -287,7 +320,7 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
       const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
       const seguimientoRows = (await fetchSeguimientoRows(apiUrl)).filter((row) => {
-        const datePart = toIsoDatePart(row.fecha_contacto)
+        const datePart = getRowDate(row)
         return datePart !== null && datePart >= startDate && datePart < endDate
       })
 
@@ -301,7 +334,7 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
       const weeklyNewClients = emptyWeeklyAmounts()
 
       for (const row of seguimientoRows) {
-        const datePart = toIsoDatePart(row.fecha_contacto)
+        const datePart = getRowDate(row)
         const day = Number.parseInt(datePart?.slice(8, 10) ?? "", 10)
         const weekIndex = Number.isInteger(day) && day > 0 ? Math.min(3, Math.floor((day - 1) / 7)) : null
         const sale = isSale(row)
@@ -313,7 +346,7 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
 
         const category = resolveSeguimientoCategory(row)
         if (!category) continue
-        const amount = parseMoney(row.costo_cotiz_sin_igv)
+        const amount = getRowAmount(row)
         if (weekIndex !== null && amount > 0) {
           if (isSentQuote(row)) quoteAmountsByCategory.get(category)![weekIndex] += amount
           if (sale) saleAmountsByCategory.get(category)![weekIndex] += amount
