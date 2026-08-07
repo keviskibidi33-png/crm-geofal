@@ -226,6 +226,13 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
         url.searchParams.set("role", user.role)
         url.searchParams.set("canWrite", String(canWrite))
         url.searchParams.set("isAdmin", String(isAdmin))
+        // Pass the user's display name so the iframe can resolve advisor scope synchronously
+        // without waiting for an async Supabase DB fetch
+        if (user.name) {
+            url.searchParams.set("userName", user.name)
+        } else if (user.email) {
+            url.searchParams.set("userName", user.email)
+        }
         if (iframeToken) {
             url.searchParams.set("token", iframeToken)
         } else {
@@ -237,7 +244,7 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
             url.searchParams.delete("retry")
         }
         return url.toString()
-    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, user.id, user.role])
+    }, [canWrite, iframeReloadKey, iframeToken, iframeUrl, isAdmin, user.id, user.role, user.name, user.email])
 
     const openModule = useCallback(async () => {
         const token = await syncIframeToken("open")
