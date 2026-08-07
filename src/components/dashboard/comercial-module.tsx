@@ -137,13 +137,12 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
             .select("show_kpi")
             .eq("id", user.id)
             .single()
-            .then(({ data }) => {
-                if (data && typeof data.show_kpi === "boolean") {
+            .then(({ data, error }) => {
+                if (!error && data && typeof data.show_kpi === "boolean") {
                     setShowKpi(data.show_kpi)
                 }
             })
             .catch(() => {
-                // Column may not exist yet (migration pending); default to true
                 setShowKpi(true)
             })
     }, [user?.id, supabase])
