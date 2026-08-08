@@ -483,7 +483,11 @@ export default function DashboardPage() {
       case "ingenieria_archivos":
         return <ControlInformesModule />
       case "control_ambiental":
-        return <ControlAmbientalModule user={dashboardUser} />
+        return (
+          <RoleGuard user={dashboardUser} allowedRoles={["admin", "jefe_laboratorio"]}>
+            <ControlAmbientalModule user={dashboardUser} />
+          </RoleGuard>
+        )
       case "densidad_huantar":
         return <DensidadHuantarModule />
       case "huanta_probetas":

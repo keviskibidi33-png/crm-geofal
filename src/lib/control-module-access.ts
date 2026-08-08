@@ -136,8 +136,13 @@ function isKpiAuthorizedEmail(email?: string) {
   return KPI_AUTHORIZED_IDENTITIES.some((id) => norm.includes(id))
 }
 
-  if (activeCheckModule === "configuracion" || activeCheckModule === "control_ambiental") {
+  if (activeCheckModule === "configuracion") {
     return true
+  }
+
+  if (activeCheckModule === "control_ambiental") {
+    const normalizedRole = normalizeRole(role)
+    return normalizedRole === "admin" || normalizedRole === "admin_general" || normalizedRole === "jefe_laboratorio"
   }
 
   if (activeCheckModule === "estadistica_laboratorio") {
