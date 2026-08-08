@@ -15,6 +15,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,6 +85,34 @@ interface ControlBalanzaItem {
   observaciones?: string | null
 }
 
+interface TempRow {
+  id?: number
+  fecha_registro: string
+  hora_toma: string
+  fecha_lectura: string
+  temp_min: string
+  temp_max: string
+  hum_min: string
+  hum_max: string
+  temperatura_c: string
+  humedad_relativa_pct: string
+  cumple: boolean
+  responsable_registro: string
+  responsable_revision: string
+}
+
+interface BalanzaRow {
+  id?: number
+  fecha: string
+  hora: string
+  temp_c: string
+  humedad_pct: string
+  masa_patron_g: string
+  lectura_balanza_g: string
+  verificado_por: string
+  revisado_por: string
+}
+
 const DEFAULT_AREAS = [
   "Area de Recepción de muestras",
   "Área de Ensayos físicos",
@@ -137,58 +166,69 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [balanzaPage, setBalanzaPage] = useState(1)
   const [balanzaRowsPerPage, setBalanzaRowsPerPage] = useState(25)
 
-  // ── Modals ──
+  // ── Safety exit ──
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
+  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null)
+
+  // ── Modals & Document State ──
   const [showTempModal, setShowTempModal] = useState(false)
-  const [editingTempId, setEditingTempId] = useState<number | null>(null)
   const [tempIsDirty, setTempIsDirty] = useState(false)
-  const [tempForm, setTempForm] = useState({
-    fecha: new Date().toISOString().split("T")[0],
-    hora_lectura: "08:00",
-    fecha_lectura: new Date().toISOString().split("T")[0],
+  const [tempDocHeader, setTempDocHeader] = useState({
+    registro: "REG-01",
+    mes_anio: getMesAnio(),
+    aprobado_por: "JEFE DE LABORATORIO",
+    fecha_aprobacion: "2024-01-02",
     area_ambiente: "Area de Recepción de muestras",
-    temperatura_c: "23.0",
-    humedad_relativa_pct: "50.0",
-    temp_min: "10.0",
-    temp_max: "30.0",
-    hum_min: "20.0",
-    hum_max: "80.0",
-    cumple_especificacion: true,
-    responsable_lectura: user.name || "LABORATORIO",
-    revisado_por: "",
-    observaciones: "",
   })
+  const [tempDocRows, setTempDocRows] = useState<TempRow[]>([
+    {
+      fecha_registro: new Date().toISOString().split("T")[0],
+      hora_toma: "08:00",
+      fecha_lectura: new Date().toISOString().split("T")[0],
+      temp_min: "10.0",
+      temp_max: "30.0",
+      hum_min: "20.0",
+      hum_max: "80.0",
+      temperatura_c: "23.0",
+      humedad_relativa_pct: "50.0",
+      cumple: true,
+      responsable_registro: user.name || "LABORATORIO",
+      responsable_revision: "",
+    },
+  ])
 
   const [showBalanzaModal, setShowBalanzaModal] = useState(false)
-  const [editingBalanzaId, setEditingBalanzaId] = useState<number | null>(null)
   const [balanzaIsDirty, setBalanzaIsDirty] = useState(false)
-  const [balanzaForm, setBalanzaForm] = useState({
-    fecha: new Date().toISOString().split("T")[0],
-    hora: "08:00",
-    mes_anio: getMesAnio(),
+  const [balanzaDocHeader, setBalanzaDocHeader] = useState({
     codigo_balanza: "BAL-01",
+    mes_anio: getMesAnio(),
     ubicacion: "Muestras / Cám. Húmeda",
     codigos_pesas_patron: "PP-01, PP-02, PP-05",
     capacidad_g: "30000",
     masa_patron_g: "5000",
-    lectura_balanza_g: "5000.0",
     error_max_permitido_g: "1.0",
     limpieza_nivelacion: true,
-    verificado_por: user.name || "LABORATORIO",
-    revisado_por: "",
-    observaciones: "",
   })
-
-  // ── Safety exit ──
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
-  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null)
+  const [balanzaDocRows, setBalanzaDocRows] = useState<BalanzaRow[]>([
+    {
+      fecha: new Date().toISOString().split("T")[0],
+      hora: "08:00",
+      temp_c: "23.0",
+      humedad_pct: "50.0",
+      masa_patron_g: "5000",
+      lectura_balanza_g: "5000.0",
+      verificado_por: user.name || "LABORATORIO",
+      revisado_por: "",
+    },
+  ])
 
   // ── Fetch ──
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       const [resTemp, resBal] = await Promise.all([
-        authFetch(`${API_URL}/api/control-ambiental/temperatura?limit=200`),
-        authFetch(`${API_URL}/api/control-ambiental/balanza?limit=200`),
+        authFetch(`${API_URL}/api/control-ambiental/temperatura?limit=500`),
+        authFetch(`${API_URL}/api/control-ambiental/balanza?limit=500`),
       ])
       if (resTemp.ok) setTemperaturaList(await resTemp.json())
       if (resBal.ok) setBalanzaList(await resBal.json())
@@ -226,159 +266,333 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }
   }
 
-  // ── Guardar temperatura ──
-  const handleSaveTemp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const payload = {
-        fecha: tempForm.fecha,
-        hora_lectura: tempForm.hora_lectura,
-        area_ambiente: tempForm.area_ambiente,
-        temperatura_c: parseFloat(tempForm.temperatura_c) || 0.0,
-        humedad_relativa_pct: parseFloat(tempForm.humedad_relativa_pct) || 0.0,
-        temp_min: tempForm.temp_min ? parseFloat(tempForm.temp_min) : null,
-        temp_max: tempForm.temp_max ? parseFloat(tempForm.temp_max) : null,
-        cumple_especificacion: tempForm.cumple_especificacion,
-        responsable_lectura: tempForm.responsable_lectura,
-        observaciones: tempForm.observaciones,
-      }
-      const url = editingTempId
-        ? `${API_URL}/api/control-ambiental/temperatura/${editingTempId}`
-        : `${API_URL}/api/control-ambiental/temperatura`
-      const method = editingTempId ? "PUT" : "POST"
-      const res = await authFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        toast.success(editingTempId ? "Lectura actualizada" : "Lectura registrada con éxito")
-        setTempIsDirty(false)
-        setShowTempModal(false)
-        fetchData()
-      } else {
-        const err = await res.json()
-        toast.error(`Error al guardar: ${err.detail || "Error del servidor"}`)
-      }
-    } catch {
-      toast.error("Error de conexión al guardar la lectura")
-    }
-  }
+  // ── Document Groupings for History List (Imagen 2 format) ──
+  const tempDocGroups = useMemo(() => {
+    const map = new Map<string, {
+      key: string
+      area_ambiente: string
+      mes_anio: string
+      items: ControlTemperaturaItem[]
+    }>()
 
-  // ── Guardar balanza ──
-  const handleSaveBalanza = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const payload = {
-        fecha: balanzaForm.fecha,
-        codigo_balanza: balanzaForm.codigo_balanza,
-        ubicacion: balanzaForm.ubicacion,
-        capacidad_g: parseFloat(balanzaForm.capacidad_g) || 0.0,
-        masa_patron_g: parseFloat(balanzaForm.masa_patron_g) || 0.0,
-        lectura_balanza_g: parseFloat(balanzaForm.lectura_balanza_g) || 0.0,
-        error_max_permitido_g: parseFloat(balanzaForm.error_max_permitido_g) || 0.5,
-        limpieza_nivelacion: balanzaForm.limpieza_nivelacion,
-        verificado_por: balanzaForm.verificado_por,
-        observaciones: balanzaForm.observaciones,
-      }
-      const url = editingBalanzaId
-        ? `${API_URL}/api/control-ambiental/balanza/${editingBalanzaId}`
-        : `${API_URL}/api/control-ambiental/balanza`
-      const method = editingBalanzaId ? "PUT" : "POST"
-      const res = await authFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        toast.success(editingBalanzaId ? "Verificación actualizada" : "Verificación registrada con éxito")
-        setBalanzaIsDirty(false)
-        setShowBalanzaModal(false)
-        fetchData()
-      } else {
-        const err = await res.json()
-        toast.error(`Error al guardar: ${err.detail || "Error del servidor"}`)
-      }
-    } catch {
-      toast.error("Error de conexión al guardar la verificación")
-    }
-  }
+    temperaturaList.forEach((item) => {
+      const fechaObj = new Date(item.fecha + "T00:00:00")
+      const mes_anio = item.fecha
+        ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
+        : "AGOSTO 2026"
+      const key = `${item.area_ambiente}__${mes_anio}`
 
-  // ── Eliminar ──
-  const handleDeleteTemp = async (id: number) => {
-    if (!confirm("¿Está seguro de eliminar esta lectura de temperatura?")) return
-    try {
-      const res = await authFetch(`${API_URL}/api/control-ambiental/temperatura/${id}`, { method: "DELETE" })
-      if (res.ok) {
-        toast.success("Lectura eliminada")
-        fetchData()
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          area_ambiente: item.area_ambiente,
+          mes_anio,
+          items: [],
+        })
       }
-    } catch {
-      toast.error("Error eliminando registro")
-    }
-  }
+      map.get(key)!.items.push(item)
+    })
 
-  const handleDeleteBalanza = async (id: number) => {
-    if (!confirm("¿Está seguro de eliminar esta verificación de balanza?")) return
-    try {
-      const res = await authFetch(`${API_URL}/api/control-ambiental/balanza/${id}`, { method: "DELETE" })
-      if (res.ok) {
-        toast.success("Verificación eliminada")
-        fetchData()
+    return Array.from(map.values())
+  }, [temperaturaList])
+
+  const balanzaDocGroups = useMemo(() => {
+    const map = new Map<string, {
+      key: string
+      codigo_balanza: string
+      mes_anio: string
+      ubicacion: string
+      items: ControlBalanzaItem[]
+    }>()
+
+    balanzaList.forEach((item) => {
+      const fechaObj = new Date(item.fecha + "T00:00:00")
+      const mes_anio = item.fecha
+        ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
+        : "AGOSTO 2026"
+      const key = `${item.codigo_balanza}__${mes_anio}`
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          codigo_balanza: item.codigo_balanza,
+          mes_anio,
+          ubicacion: item.ubicacion,
+          items: [],
+        })
       }
-    } catch {
-      toast.error("Error eliminando registro")
-    }
-  }
+      map.get(key)!.items.push(item)
+    })
 
-  // ── Listas filtradas ──
-  const filteredTempList = useMemo(() =>
-    temperaturaList.filter((item) => {
+    return Array.from(map.values())
+  }, [balanzaList])
+
+  // ── Filtered Document Lists ──
+  const filteredTempDocs = useMemo(() => {
+    return tempDocGroups.filter((doc) => {
       const q = searchTemp.toLowerCase()
-      const matchSearch =
-        item.area_ambiente.toLowerCase().includes(q) ||
-        item.responsable_lectura.toLowerCase().includes(q) ||
-        item.fecha.includes(q)
-      const matchArea = areaFilter === "TODAS" || item.area_ambiente.toUpperCase().includes(areaFilter.toUpperCase())
+      const matchSearch = doc.area_ambiente.toLowerCase().includes(q) || doc.mes_anio.toLowerCase().includes(q)
+      const matchArea = areaFilter === "TODAS" || doc.area_ambiente.toUpperCase().includes(areaFilter.toUpperCase())
       return matchSearch && matchArea
-    }),
-  [temperaturaList, searchTemp, areaFilter])
+    })
+  }, [tempDocGroups, searchTemp, areaFilter])
 
-  const filteredBalanzaList = useMemo(() =>
-    balanzaList.filter((item) => {
+  const filteredBalanzaDocs = useMemo(() => {
+    return balanzaDocGroups.filter((doc) => {
       const q = searchBalanza.toLowerCase()
       const matchSearch =
-        item.codigo_balanza.toLowerCase().includes(q) ||
-        item.ubicacion.toLowerCase().includes(q) ||
-        item.verificado_por.toLowerCase().includes(q) ||
-        item.fecha.includes(q)
-      const matchBalanza = balanzaFilter === "TODAS" || item.codigo_balanza === balanzaFilter
+        doc.codigo_balanza.toLowerCase().includes(q) ||
+        doc.ubicacion.toLowerCase().includes(q) ||
+        doc.mes_anio.toLowerCase().includes(q)
+      const matchBalanza = balanzaFilter === "TODAS" || doc.codigo_balanza === balanzaFilter
       return matchSearch && matchBalanza
-    }),
-  [balanzaList, searchBalanza, balanzaFilter])
+    })
+  }, [balanzaDocGroups, searchBalanza, balanzaFilter])
 
-  // ── Paginated data calculation ──
-  const tempTotalPages = Math.ceil(filteredTempList.length / tempRowsPerPage) || 1
-  const paginatedTempList = useMemo(() => {
+  // ── Paginated Data ──
+  const tempTotalPages = Math.ceil(filteredTempDocs.length / tempRowsPerPage) || 1
+  const paginatedTempDocs = useMemo(() => {
     const start = (tempPage - 1) * tempRowsPerPage
-    return filteredTempList.slice(start, start + tempRowsPerPage)
-  }, [filteredTempList, tempPage, tempRowsPerPage])
+    return filteredTempDocs.slice(start, start + tempRowsPerPage)
+  }, [filteredTempDocs, tempPage, tempRowsPerPage])
 
-  const balanzaTotalPages = Math.ceil(filteredBalanzaList.length / balanzaRowsPerPage) || 1
-  const paginatedBalanzaList = useMemo(() => {
+  const balanzaTotalPages = Math.ceil(filteredBalanzaDocs.length / balanzaRowsPerPage) || 1
+  const paginatedBalanzaDocs = useMemo(() => {
     const start = (balanzaPage - 1) * balanzaRowsPerPage
-    return filteredBalanzaList.slice(start, start + balanzaRowsPerPage)
-  }, [filteredBalanzaList, balanzaPage, balanzaRowsPerPage])
+    return filteredBalanzaDocs.slice(start, start + balanzaRowsPerPage)
+  }, [filteredBalanzaDocs, balanzaPage, balanzaRowsPerPage])
 
-  // ── Balanza calculation error helper ──
-  const balanzaErrorCalc = useMemo(() => {
-    const m = parseFloat(balanzaForm.masa_patron_g) || 0
-    const l = parseFloat(balanzaForm.lectura_balanza_g) || 0
-    const tol = parseFloat(balanzaForm.error_max_permitido_g) || 0.5
-    const err = l - m
-    const conforme = Math.abs(err) <= tol
-    return { error: err, conforme }
-  }, [balanzaForm.masa_patron_g, balanzaForm.lectura_balanza_g, balanzaForm.error_max_permitido_g])
+  // ── Open Form for New Document ──
+  const openNewTempDoc = () => {
+    executeWithSafetyCheck(() => {
+      setTempDocHeader({
+        registro: "REG-01",
+        mes_anio: getMesAnio(),
+        aprobado_por: "JEFE DE LABORATORIO",
+        fecha_aprobacion: "2024-01-02",
+        area_ambiente: "Area de Recepción de muestras",
+      })
+      setTempDocRows([
+        {
+          fecha_registro: new Date().toISOString().split("T")[0],
+          hora_toma: "08:00",
+          fecha_lectura: new Date().toISOString().split("T")[0],
+          temp_min: "10.0",
+          temp_max: "30.0",
+          hum_min: "20.0",
+          hum_max: "80.0",
+          temperatura_c: "23.0",
+          humedad_relativa_pct: "50.0",
+          cumple: true,
+          responsable_registro: user.name || "LABORATORIO",
+          responsable_revision: "",
+        },
+      ])
+      setTempIsDirty(false)
+      setShowTempModal(true)
+    })
+  }
+
+  const openNewBalanzaDoc = () => {
+    executeWithSafetyCheck(() => {
+      setBalanzaDocHeader({
+        codigo_balanza: "BAL-01",
+        mes_anio: getMesAnio(),
+        ubicacion: "Muestras / Cám. Húmeda",
+        codigos_pesas_patron: "PP-01, PP-02, PP-05",
+        capacidad_g: "30000",
+        masa_patron_g: "5000",
+        error_max_permitido_g: "1.0",
+        limpieza_nivelacion: true,
+      })
+      setBalanzaDocRows([
+        {
+          fecha: new Date().toISOString().split("T")[0],
+          hora: "08:00",
+          temp_c: "23.0",
+          humedad_pct: "50.0",
+          masa_patron_g: "5000",
+          lectura_balanza_g: "5000.0",
+          verificado_por: user.name || "LABORATORIO",
+          revisado_por: "",
+        },
+      ])
+      setBalanzaIsDirty(false)
+      setShowBalanzaModal(true)
+    })
+  }
+
+  // ── Open Form for Existing Document (Edit Sheet) ──
+  const openEditTempDoc = (items: ControlTemperaturaItem[]) => {
+    executeWithSafetyCheck(() => {
+      if (items.length > 0) {
+        const first = items[0]
+        const fechaObj = new Date(first.fecha + "T00:00:00")
+        setTempDocHeader({
+          registro: "REG-01",
+          mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+          aprobado_por: "JEFE DE LABORATORIO",
+          fecha_aprobacion: "2024-01-02",
+          area_ambiente: first.area_ambiente,
+        })
+        setTempDocRows(
+          items.map((it) => ({
+            id: it.id,
+            fecha_registro: it.fecha,
+            hora_toma: it.hora_lectura,
+            fecha_lectura: it.fecha,
+            temp_min: String(it.temp_min ?? "10.0"),
+            temp_max: String(it.temp_max ?? "30.0"),
+            hum_min: "20.0",
+            hum_max: "80.0",
+            temperatura_c: String(it.temperatura_c),
+            humedad_relativa_pct: String(it.humedad_relativa_pct),
+            cumple: it.cumple_especificacion,
+            responsable_registro: it.responsable_lectura,
+            responsable_revision: "",
+          }))
+        )
+      }
+      setTempIsDirty(false)
+      setShowTempModal(true)
+    })
+  }
+
+  const openEditBalanzaDoc = (items: ControlBalanzaItem[]) => {
+    executeWithSafetyCheck(() => {
+      if (items.length > 0) {
+        const first = items[0]
+        const fechaObj = new Date(first.fecha + "T00:00:00")
+        setBalanzaDocHeader({
+          codigo_balanza: first.codigo_balanza,
+          mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+          ubicacion: first.ubicacion,
+          codigos_pesas_patron: "PP-01, PP-02, PP-05",
+          capacidad_g: String(first.capacidad_g),
+          masa_patron_g: String(first.masa_patron_g),
+          error_max_permitido_g: String(first.error_max_permitido_g),
+          limpieza_nivelacion: first.limpieza_nivelacion,
+        })
+        setBalanzaDocRows(
+          items.map((it) => ({
+            id: it.id,
+            fecha: it.fecha,
+            hora: "08:00",
+            temp_c: "23.0",
+            humedad_pct: "50.0",
+            masa_patron_g: String(it.masa_patron_g),
+            lectura_balanza_g: String(it.lectura_balanza_g),
+            verificado_por: it.verificado_por,
+            revisado_por: "",
+          }))
+        )
+      }
+      setBalanzaIsDirty(false)
+      setShowBalanzaModal(true)
+    })
+  }
+
+  // ── Delete Document Group ──
+  const handleDeleteTempGroup = async (items: ControlTemperaturaItem[]) => {
+    if (!confirm(`¿Está seguro de eliminar el formato con ${items.length} lecturas?`)) return
+    try {
+      await Promise.all(
+        items.map((it) => authFetch(`${API_URL}/api/control-ambiental/temperatura/${it.id}`, { method: "DELETE" }))
+      )
+      toast.success("Formato eliminado")
+      fetchData()
+    } catch {
+      toast.error("Error eliminando formato")
+    }
+  }
+
+  const handleDeleteBalanzaGroup = async (items: ControlBalanzaItem[]) => {
+    if (!confirm(`¿Está seguro de eliminar el formato con ${items.length} verificaciones?`)) return
+    try {
+      await Promise.all(
+        items.map((it) => authFetch(`${API_URL}/api/control-ambiental/balanza/${it.id}`, { method: "DELETE" }))
+      )
+      toast.success("Formato eliminado")
+      fetchData()
+    } catch {
+      toast.error("Error eliminando formato")
+    }
+  }
+
+  // ── Save Document Sheets ──
+  const handleSaveTempDoc = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const promises = tempDocRows.map((row) => {
+        const payload = {
+          fecha: row.fecha_registro,
+          hora_lectura: row.hora_toma,
+          area_ambiente: tempDocHeader.area_ambiente,
+          temperatura_c: parseFloat(row.temperatura_c) || 0.0,
+          humedad_relativa_pct: parseFloat(row.humedad_relativa_pct) || 0.0,
+          temp_min: parseFloat(row.temp_min) || 10.0,
+          temp_max: parseFloat(row.temp_max) || 30.0,
+          cumple_especificacion: row.cumple,
+          responsable_lectura: row.responsable_registro,
+          observaciones: "",
+        }
+        const url = row.id
+          ? `${API_URL}/api/control-ambiental/temperatura/${row.id}`
+          : `${API_URL}/api/control-ambiental/temperatura`
+        const method = row.id ? "PUT" : "POST"
+        return authFetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      })
+
+      await Promise.all(promises)
+      toast.success("Formato F-LEM-P-05.01 guardado con éxito")
+      setTempIsDirty(false)
+      setShowTempModal(false)
+      fetchData()
+    } catch {
+      toast.error("Error al guardar formato de temperatura")
+    }
+  }
+
+  const handleSaveBalanzaDoc = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const promises = balanzaDocRows.map((row) => {
+        const payload = {
+          fecha: row.fecha,
+          codigo_balanza: balanzaDocHeader.codigo_balanza,
+          ubicacion: balanzaDocHeader.ubicacion,
+          capacidad_g: parseFloat(balanzaDocHeader.capacidad_g) || 0.0,
+          masa_patron_g: parseFloat(row.masa_patron_g) || 0.0,
+          lectura_balanza_g: parseFloat(row.lectura_balanza_g) || 0.0,
+          error_max_permitido_g: parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5,
+          limpieza_nivelacion: balanzaDocHeader.limpieza_nivelacion,
+          verificado_por: row.verificado_por,
+          observaciones: "",
+        }
+        const url = row.id
+          ? `${API_URL}/api/control-ambiental/balanza/${row.id}`
+          : `${API_URL}/api/control-ambiental/balanza`
+        const method = row.id ? "PUT" : "POST"
+        return authFetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      })
+
+      await Promise.all(promises)
+      toast.success("Formato F-LEM-IN-01.02 guardado con éxito")
+      setBalanzaIsDirty(false)
+      setShowBalanzaModal(false)
+      fetchData()
+    } catch {
+      toast.error("Error al guardar formato de balanzas")
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER: MODULE 1 · CONTROL DE TEMPERATURA Y HUMEDAD
@@ -405,7 +619,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative w-full sm:w-72">
               <Input
-                placeholder="Buscar por área, fecha, usuario..."
+                placeholder="Buscar por área o mes..."
                 value={searchTemp}
                 onChange={(e) => {
                   setSearchTemp(e.target.value)
@@ -427,17 +641,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </Button>
             <Button
               size="sm"
-              onClick={() =>
-                executeWithSafetyCheck(() => {
-                  setEditingTempId(null)
-                  setTempIsDirty(false)
-                  setShowTempModal(true)
-                })
-              }
+              onClick={openNewTempDoc}
               className="gap-2 h-9 bg-sky-600 hover:bg-sky-700 text-white font-medium shadow-xs"
             >
               <Plus className="h-4 w-4" />
-              Nuevo Registro
+              Nuevo Formato
             </Button>
           </div>
         </div>
@@ -447,10 +655,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                Historial Control de Temperatura
+                Historial Formatos Control de Temperatura
               </h3>
               <p className="text-xs text-muted-foreground">
-                Registros guardados con acceso a detalle y edición.
+                Registros guardados con acceso a detalle y edición de la hoja completa.
               </p>
             </div>
             <Select value={areaFilter} onValueChange={(val) => { setAreaFilter(val); setTempPage(1) }}>
@@ -465,10 +673,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           <Table className="w-full text-xs">
             <TableHeader className="bg-slate-50/80">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold text-slate-700">Fecha / Hora</TableHead>
-                <TableHead className="font-semibold text-slate-700">Área / Ambiente</TableHead>
-                <TableHead className="text-center font-semibold text-slate-700">Temp (°C)</TableHead>
-                <TableHead className="text-center font-semibold text-slate-700">Humedad (%)</TableHead>
+                <TableHead className="font-semibold text-slate-700">Formato / Código</TableHead>
+                <TableHead className="font-semibold text-slate-700">Área de Control</TableHead>
+                <TableHead className="font-semibold text-slate-700">Mes / Año</TableHead>
+                <TableHead className="text-center font-semibold text-slate-700">Lecturas en Hoja</TableHead>
                 <TableHead className="text-center font-semibold text-slate-700">Estado</TableHead>
                 <TableHead className="text-right font-semibold text-slate-700 pr-6">Acciones</TableHead>
               </TableRow>
@@ -478,11 +686,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" />
-                    Cargando registros...
+                    Cargando formatos...
                   </TableCell>
                 </TableRow>
               )}
-              {!loading && filteredTempList.length === 0 && (
+              {!loading && filteredTempDocs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                     Sin resultados.
@@ -490,29 +698,22 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </TableRow>
               )}
               {!loading &&
-                paginatedTempList.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                paginatedTempDocs.map((doc) => (
+                  <TableRow key={doc.key} className="hover:bg-slate-50/80 transition-colors">
                     <TableCell className="font-medium">
-                      <div className="font-semibold text-slate-900">{item.fecha}</div>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {item.hora_lectura}
+                      <div className="font-bold text-slate-900 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-sky-600" />
+                        F-LEM-P-05.01-2026
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold text-slate-800">{item.area_ambiente}</TableCell>
-                    <TableCell className="text-center font-mono font-bold text-sky-600 text-sm">
-                      {item.temperatura_c.toFixed(1)}°C
-                    </TableCell>
-                    <TableCell className="text-center font-mono font-bold text-blue-600 text-sm">
-                      {item.humedad_relativa_pct.toFixed(1)}%
+                    <TableCell className="font-semibold text-slate-800">{doc.area_ambiente}</TableCell>
+                    <TableCell className="font-mono text-slate-700 font-medium">{doc.mes_anio}</TableCell>
+                    <TableCell className="text-center font-mono font-bold text-sky-700">
+                      {doc.items.length} filas diarias
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                        item.cumple_especificacion
-                          ? "bg-blue-50 text-blue-600 border-blue-100"
-                          : "bg-red-50 text-red-600 border-red-100"
-                      }`}>
-                        {item.cumple_especificacion ? "CUMPLE" : "NO CUMPLE"}
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
+                        COMPLETO
                       </span>
                     </TableCell>
                     <TableCell className="text-right pr-4">
@@ -521,29 +722,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                          onClick={() =>
-                            executeWithSafetyCheck(() => {
-                              setEditingTempId(item.id)
-                              setTempForm({
-                                fecha: item.fecha,
-                                hora_lectura: item.hora_lectura,
-                                fecha_lectura: item.fecha,
-                                area_ambiente: item.area_ambiente,
-                                temperatura_c: String(item.temperatura_c),
-                                humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                temp_min: item.temp_min ? String(item.temp_min) : "10.0",
-                                temp_max: item.temp_max ? String(item.temp_max) : "30.0",
-                                hum_min: "20.0",
-                                hum_max: "80.0",
-                                cumple_especificacion: item.cumple_especificacion,
-                                responsable_lectura: item.responsable_lectura,
-                                revisado_por: "",
-                                observaciones: item.observaciones || "",
-                              })
-                              setTempIsDirty(false)
-                              setShowTempModal(true)
-                            })
-                          }
+                          onClick={() => openEditTempDoc(doc.items)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -551,29 +730,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                          onClick={() =>
-                            executeWithSafetyCheck(() => {
-                              setEditingTempId(item.id)
-                              setTempForm({
-                                fecha: item.fecha,
-                                hora_lectura: item.hora_lectura,
-                                fecha_lectura: item.fecha,
-                                area_ambiente: item.area_ambiente,
-                                temperatura_c: String(item.temperatura_c),
-                                humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                temp_min: item.temp_min ? String(item.temp_min) : "10.0",
-                                temp_max: item.temp_max ? String(item.temp_max) : "30.0",
-                                hum_min: "20.0",
-                                hum_max: "80.0",
-                                cumple_especificacion: item.cumple_especificacion,
-                                responsable_lectura: item.responsable_lectura,
-                                revisado_por: "",
-                                observaciones: item.observaciones || "",
-                              })
-                              setTempIsDirty(false)
-                              setShowTempModal(true)
-                            })
-                          }
+                          onClick={() => openEditTempDoc(doc.items)}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -581,7 +738,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteTemp(item.id)}
+                          onClick={() => handleDeleteTempGroup(doc.items)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -593,12 +750,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           </Table>
 
           {/* Pagination Footer estilo Imagen 2 */}
-          {!loading && filteredTempList.length > 0 && (
+          {!loading && filteredTempDocs.length > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between border-t px-5 py-3 text-xs gap-3">
               <span className="text-muted-foreground">
                 Mostrando {(tempPage - 1) * tempRowsPerPage + 1} a{" "}
-                {Math.min(tempPage * tempRowsPerPage, filteredTempList.length)} de{" "}
-                {filteredTempList.length} registros
+                {Math.min(tempPage * tempRowsPerPage, filteredTempDocs.length)} de{" "}
+                {filteredTempDocs.length} formatos
               </span>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -646,7 +803,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           )}
         </div>
 
-        {/* Modal Form F-LEM-P-05.01 */}
+        {/* Modal Form F-LEM-P-05.01 Sheet Completo */}
         {renderTempModal()}
 
         <ModernConfirmDialog
@@ -709,17 +866,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           </Button>
           <Button
             size="sm"
-            onClick={() =>
-              executeWithSafetyCheck(() => {
-                setEditingBalanzaId(null)
-                setBalanzaIsDirty(false)
-                setShowBalanzaModal(true)
-              })
-            }
+            onClick={openNewBalanzaDoc}
             className="gap-2 h-9 bg-sky-600 hover:bg-sky-700 text-white font-medium shadow-xs"
           >
             <Plus className="h-4 w-4" />
-            Nueva Verificación
+            Nuevo Formato
           </Button>
         </div>
       </div>
@@ -729,10 +880,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
-              Historial Verificación de Balanzas
+              Historial Formatos Verificación de Balanzas
             </h3>
             <p className="text-xs text-muted-foreground">
-              Registros guardados con acceso a detalle y edición.
+              Registros guardados con acceso a detalle y edición de la hoja completa.
             </p>
           </div>
           <Select value={balanzaFilter} onValueChange={(val) => { setBalanzaFilter(val); setBalanzaPage(1) }}>
@@ -747,11 +898,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         <Table className="w-full text-xs">
           <TableHeader className="bg-slate-50/80">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-slate-700">Código Balanza</TableHead>
-              <TableHead className="font-semibold text-slate-700">Ubicación / Fecha</TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">Masa Patrón (g)</TableHead>
-              <TableHead className="text-right font-semibold text-slate-700">Lectura (g)</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700">Error (g)</TableHead>
+              <TableHead className="font-semibold text-slate-700">Formato / Código Balanza</TableHead>
+              <TableHead className="font-semibold text-slate-700">Ubicación</TableHead>
+              <TableHead className="font-semibold text-slate-700">Mes / Año</TableHead>
+              <TableHead className="text-center font-semibold text-slate-700">Verificaciones en Hoja</TableHead>
               <TableHead className="text-center font-semibold text-slate-700">Estado</TableHead>
               <TableHead className="text-right font-semibold text-slate-700 pr-6">Acciones</TableHead>
             </TableRow>
@@ -759,43 +909,34 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" />
-                  Cargando verificaciones...
+                  Cargando formatos...
                 </TableCell>
               </TableRow>
             )}
-            {!loading && filteredBalanzaList.length === 0 && (
+            {!loading && filteredBalanzaDocs.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                   Sin resultados.
                 </TableCell>
               </TableRow>
             )}
             {!loading &&
-              paginatedBalanzaList.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                  <TableCell className="font-bold text-sky-600 text-sm">
-                    {item.codigo_balanza}
+              paginatedBalanzaDocs.map((doc) => (
+                <TableRow key={doc.key} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell className="font-bold text-sky-600 text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-sky-600" />
+                    {doc.codigo_balanza}
                   </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="font-semibold text-slate-900">{item.ubicacion}</div>
-                    <div className="text-[11px] text-muted-foreground font-mono">{item.fecha}</div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs">{item.masa_patron_g}g</TableCell>
-                  <TableCell className="text-right font-mono text-xs font-bold">{item.lectura_balanza_g}g</TableCell>
-                  <TableCell className="text-center font-mono text-xs">
-                    <span className={item.error_g === 0 ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
-                      {item.error_g > 0 ? `+${item.error_g}` : item.error_g}g
-                    </span>
+                  <TableCell className="font-semibold text-slate-800">{doc.ubicacion}</TableCell>
+                  <TableCell className="font-mono text-slate-700 font-medium">{doc.mes_anio}</TableCell>
+                  <TableCell className="text-center font-mono font-bold text-sky-700">
+                    {doc.items.length} verificaciones
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                      item.estado_conforme
-                        ? "bg-blue-50 text-blue-600 border-blue-100"
-                        : "bg-red-50 text-red-600 border-red-100"
-                    }`}>
-                      {item.estado_conforme ? "CONFORME" : "NO CONFORME"}
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
+                      COMPLETO
                     </span>
                   </TableCell>
                   <TableCell className="text-right pr-4">
@@ -804,30 +945,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                        onClick={() =>
-                          executeWithSafetyCheck(() => {
-                            setEditingBalanzaId(item.id)
-                            const fechaObj = new Date(item.fecha + "T00:00:00")
-                            setBalanzaForm({
-                              fecha: item.fecha,
-                              hora: "08:00",
-                              mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-                              codigo_balanza: item.codigo_balanza,
-                              ubicacion: item.ubicacion,
-                              codigos_pesas_patron: "PP-01, PP-02, PP-05",
-                              capacidad_g: String(item.capacidad_g),
-                              masa_patron_g: String(item.masa_patron_g),
-                              lectura_balanza_g: String(item.lectura_balanza_g),
-                              error_max_permitido_g: String(item.error_max_permitido_g),
-                              limpieza_nivelacion: item.limpieza_nivelacion,
-                              verificado_por: item.verificado_por,
-                              revisado_por: "",
-                              observaciones: item.observaciones || "",
-                            })
-                            setBalanzaIsDirty(false)
-                            setShowBalanzaModal(true)
-                          })
-                        }
+                        onClick={() => openEditBalanzaDoc(doc.items)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -835,30 +953,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                        onClick={() =>
-                          executeWithSafetyCheck(() => {
-                            setEditingBalanzaId(item.id)
-                            const fechaObj = new Date(item.fecha + "T00:00:00")
-                            setBalanzaForm({
-                              fecha: item.fecha,
-                              hora: "08:00",
-                              mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-                              codigo_balanza: item.codigo_balanza,
-                              ubicacion: item.ubicacion,
-                              codigos_pesas_patron: "PP-01, PP-02, PP-05",
-                              capacidad_g: String(item.capacidad_g),
-                              masa_patron_g: String(item.masa_patron_g),
-                              lectura_balanza_g: String(item.lectura_balanza_g),
-                              error_max_permitido_g: String(item.error_max_permitido_g),
-                              limpieza_nivelacion: item.limpieza_nivelacion,
-                              verificado_por: item.verificado_por,
-                              revisado_por: "",
-                              observaciones: item.observaciones || "",
-                            })
-                            setBalanzaIsDirty(false)
-                            setShowBalanzaModal(true)
-                          })
-                        }
+                        onClick={() => openEditBalanzaDoc(doc.items)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -866,7 +961,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteBalanza(item.id)}
+                        onClick={() => handleDeleteBalanzaGroup(doc.items)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -878,12 +973,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         </Table>
 
         {/* Pagination Footer estilo Imagen 2 */}
-        {!loading && filteredBalanzaList.length > 0 && (
+        {!loading && filteredBalanzaDocs.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between border-t px-5 py-3 text-xs gap-3">
             <span className="text-muted-foreground">
               Mostrando {(balanzaPage - 1) * balanzaRowsPerPage + 1} a{" "}
-              {Math.min(balanzaPage * balanzaRowsPerPage, filteredBalanzaList.length)} de{" "}
-              {filteredBalanzaList.length} registros
+              {Math.min(balanzaPage * balanzaRowsPerPage, filteredBalanzaDocs.length)} de{" "}
+              {filteredBalanzaDocs.length} formatos
             </span>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -931,7 +1026,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         )}
       </div>
 
-      {/* Modal Form F-LEM-IN-01.02 */}
+      {/* Modal Form F-LEM-IN-01.02 Sheet Completo */}
       {renderBalanzaModal()}
 
       <ModernConfirmDialog
@@ -949,6 +1044,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
   // ─────────────────────────────────────────────────────────────────────────────
   // FORMULARIO SHEET EXCEL EXACTO ILUSTRADO EN LA SEGUNDA IMAGEN: F-LEM-P-05.01 V03
+  // (FORMATO COMPLETO MULTIFILA / MULTIPLE LECTURAS EN EL MISMO DOCUMENTO)
   // ─────────────────────────────────────────────────────────────────────────────
   function renderTempModal() {
     return (
@@ -959,8 +1055,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[1000px] max-h-[92vh] overflow-y-auto p-6 bg-white">
-          <form onSubmit={handleSaveTemp} className="space-y-4">
+        <DialogContent className="max-w-[95vw] sm:max-w-[1100px] max-h-[92vh] overflow-y-auto p-6 bg-white">
+          <form onSubmit={handleSaveTempDoc} className="space-y-4">
             {/* Header Formato Oficial (Imagen F-LEM-P-05.01 V03) */}
             <div className="border border-slate-400 rounded-md p-3 bg-white text-center space-y-1">
               <div className="flex items-center justify-center gap-2 mb-1">
@@ -981,7 +1077,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   REGISTRO
                 </label>
                 <Input
-                  defaultValue="REG-01"
+                  value={tempDocHeader.registro}
+                  onChange={(e) => {
+                    setTempDocHeader((p) => ({ ...p, registro: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
                   className="h-7 text-xs font-mono text-center bg-white"
                 />
               </div>
@@ -990,13 +1090,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   MES-AÑO
                 </label>
                 <Input
-                  value={tempForm.fecha ? tempForm.fecha.substring(0, 7) : "2026-08"}
+                  value={tempDocHeader.mes_anio}
                   onChange={(e) => {
-                    setTempForm((p) => ({ ...p, fecha: e.target.value + "-01" }))
+                    setTempDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
                     setTempIsDirty(true)
                   }}
                   className="h-7 text-xs font-mono text-center uppercase bg-white"
-                  placeholder="AGOSTO-2026"
+                  placeholder="AGOSTO 2026"
                 />
               </div>
               <div className="border border-slate-400 rounded-md p-2 bg-slate-50/50 space-y-1">
@@ -1004,7 +1104,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   APROBADO POR
                 </label>
                 <Input
-                  defaultValue="JEFE DE LABORATORIO"
+                  value={tempDocHeader.aprobado_por}
+                  onChange={(e) => {
+                    setTempDocHeader((p) => ({ ...p, aprobado_por: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
                   className="h-7 text-xs text-center uppercase bg-white"
                 />
               </div>
@@ -1014,7 +1118,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </label>
                 <Input
                   type="date"
-                  defaultValue="2024-01-02"
+                  value={tempDocHeader.fecha_aprobacion}
+                  onChange={(e) => {
+                    setTempDocHeader((p) => ({ ...p, fecha_aprobacion: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
                   className="h-7 text-xs font-mono text-center bg-white"
                 />
               </div>
@@ -1032,19 +1140,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       ÁREA DE CONTROL:
                     </label>
                     <Select
-                      value={tempForm.area_ambiente}
+                      value={tempDocHeader.area_ambiente}
                       onValueChange={(val) => {
-                        setTempForm((p) => ({ ...p, area_ambiente: val }))
+                        setTempDocHeader((p) => ({ ...p, area_ambiente: val }))
                         setTempIsDirty(true)
                       }}
                     >
                       <SelectTrigger className="h-8 text-xs font-semibold bg-white flex-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Area de Recepción de muestras">Area de Recepción de muestras</SelectItem>
-                        <SelectItem value="Área de Ensayos físicos">Área de Ensayos físicos</SelectItem>
-                        <SelectItem value="Area de Ensayos especiales">Area de Ensayos especiales</SelectItem>
-                        <SelectItem value="Area de Temperatura controlada">Area de Temperatura controlada</SelectItem>
-                        <SelectItem value="Area de Lavado y compactación">Area de Lavado y compactación</SelectItem>
+                        {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1056,7 +1160,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <Input
                       readOnly
                       value={
-                        tempForm.area_ambiente.includes("compactación")
+                        tempDocHeader.area_ambiente.includes("compactación")
                           ? "18 °C – 24 °C | Menor a 80 %"
                           : "10 °C – 30 °C | Menor a 80 %"
                       }
@@ -1098,7 +1202,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Table Grid Sheet de Datos (F-LEM-P-05.01) */}
+            {/* Table Grid Sheet MULTIFILA de Datos (Todas las lecturas del informe en una sola hoja) */}
             <div className="border border-slate-400 rounded-md overflow-hidden bg-white">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
@@ -1121,155 +1225,209 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           <div className="p-1">Máximo</div>
                         </div>
                       </th>
-                      <th className="border-r border-slate-300 p-2 w-40">[ ] RESPONSABLE DEL REGISTRO</th>
-                      <th className="p-2 w-40">[ ] RESPONSABLE DE LA REVISIÓN DEL REGISTRO</th>
+                      <th className="border-r border-slate-300 p-2 w-36">[ ] RESPONSABLE DEL REGISTRO</th>
+                      <th className="border-r border-slate-300 p-2 w-36">[ ] RESPONSABLE DE LA REVISIÓN</th>
+                      <th className="p-2 w-12 text-center">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="date"
-                          value={tempForm.fecha}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, fecha: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono text-center"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="time"
-                          value={tempForm.hora_lectura}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, hora_lectura: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono text-center"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="date"
-                          value={tempForm.fecha_lectura || tempForm.fecha}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, fecha_lectura: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono text-center"
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="Mín"
-                          value={tempForm.temp_min}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, temp_min: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono text-center"
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="Máx / Actual"
-                          value={tempForm.temperatura_c}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, temperatura_c: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono font-bold text-sky-700 text-center"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="Mín"
-                          value={tempForm.hum_min}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, hum_min: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono text-center"
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="Máx / Actual"
-                          value={tempForm.humedad_relativa_pct}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono font-bold text-blue-700 text-center"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          value={tempForm.responsable_lectura}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, responsable_lectura: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs"
-                          placeholder="Nombre operador"
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          value={tempForm.revisado_por}
-                          onChange={(e) => {
-                            setTempForm((p) => ({ ...p, revisado_por: e.target.value }))
-                            setTempIsDirty(true)
-                          }}
-                          className="h-8 text-xs"
-                          placeholder="Nombre revisor"
-                        />
-                      </td>
-                    </tr>
+                    {tempDocRows.map((row, idx) => (
+                      <tr key={idx} className="border-b border-slate-300 hover:bg-slate-50">
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="date"
+                            value={row.fecha_registro}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, fecha_registro: val, fecha_lectura: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono text-center"
+                            required
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="time"
+                            value={row.hora_toma}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, hora_toma: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono text-center"
+                            required
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="date"
+                            value={row.fecha_lectura}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, fecha_lectura: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono text-center"
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="10.0"
+                            value={row.temp_min}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, temp_min: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono text-center"
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="30.0"
+                            value={row.temperatura_c}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, temperatura_c: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono font-bold text-sky-700 text-center"
+                            required
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="20.0"
+                            value={row.hum_min}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, hum_min: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono text-center"
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="80.0"
+                            value={row.humedad_relativa_pct}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, humedad_relativa_pct: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs font-mono font-bold text-blue-700 text-center"
+                            required
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            value={row.responsable_registro}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, responsable_registro: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs"
+                            placeholder="Nombre operador"
+                            required
+                          />
+                        </td>
+                        <td className="border-r border-slate-300 p-1.5">
+                          <Input
+                            value={row.responsable_revision}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setTempDocRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, responsable_revision: val } : r))
+                              )
+                              setTempIsDirty(true)
+                            }}
+                            className="h-8 text-xs"
+                            placeholder="Nombre revisor"
+                          />
+                        </td>
+                        <td className="p-1.5 text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            disabled={tempDocRows.length <= 1}
+                            onClick={() => {
+                              setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
+                              setTempIsDirty(true)
+                            }}
+                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            </div>
 
-            {/* Cumple Especificación Toggle */}
-            <div className="flex items-center justify-between p-3 rounded-md border border-slate-300 bg-slate-50">
-              <span className="text-xs font-bold text-slate-800">
-                Cumple Especificaciones del Área
-              </span>
-              <div className="flex gap-2">
-                {[true, false].map((val) => (
-                  <button
-                    key={String(val)}
-                    type="button"
-                    onClick={() => {
-                      setTempForm((p) => ({ ...p, cumple_especificacion: val }))
-                      setTempIsDirty(true)
-                    }}
-                    className={`px-3 py-1.5 rounded text-xs font-bold border transition-all ${
-                      tempForm.cumple_especificacion === val
-                        ? val
-                          ? "bg-blue-600 border-blue-600 text-white"
-                          : "bg-red-600 border-red-600 text-white"
-                        : "border-slate-300 text-slate-600 bg-white"
-                    }`}
-                  >
-                    {val ? "SÍ CUMPLE (OK)" : "NO CUMPLE"}
-                  </button>
-                ))}
+              {/* Botón Agregar Nueva Fila al Informe */}
+              <div className="p-2 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const last = tempDocRows[tempDocRows.length - 1]
+                    setTempDocRows((rows) => [
+                      ...rows,
+                      {
+                        fecha_registro: last ? last.fecha_registro : new Date().toISOString().split("T")[0],
+                        hora_toma: "08:00",
+                        fecha_lectura: last ? last.fecha_lectura : new Date().toISOString().split("T")[0],
+                        temp_min: "10.0",
+                        temp_max: "30.0",
+                        hum_min: "20.0",
+                        hum_max: "80.0",
+                        temperatura_c: "23.0",
+                        humedad_relativa_pct: "50.0",
+                        cumple: true,
+                        responsable_registro: user.name || "LABORATORIO",
+                        responsable_revision: "",
+                      },
+                    ])
+                    setTempIsDirty(true)
+                  }}
+                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar Fila de Lectura Diaria
+                </Button>
+                <span className="text-[11px] font-semibold text-slate-600">
+                  Total de filas en este informe: {tempDocRows.length}
+                </span>
               </div>
             </div>
 
@@ -1281,8 +1439,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white">
-                {editingTempId ? "Actualizar Registro" : "Guardar Registro"}
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold">
+                Guardar Formato F-LEM-P-05.01
               </Button>
             </DialogFooter>
           </form>
@@ -1293,6 +1451,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
   // ─────────────────────────────────────────────────────────────────────────────
   // FORMULARIO SHEET EXACTO ILUSTRADO EN LA PRIMERA IMAGEN: F-LEM-IN-01.02 V03
+  // (FORMATO COMPLETO MULTIFILA / MULTIPLE VERIFICACIONES EN EL MISMO DOCUMENTO)
   // ─────────────────────────────────────────────────────────────────────────────
   function renderBalanzaModal() {
     return (
@@ -1303,8 +1462,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowBalanzaModal(true)
         }}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-[1000px] max-h-[92vh] overflow-y-auto p-6 bg-white">
-          <form onSubmit={handleSaveBalanza} className="space-y-4">
+        <DialogContent className="max-w-[95vw] sm:max-w-[1100px] max-h-[92vh] overflow-y-auto p-6 bg-white">
+          <form onSubmit={handleSaveBalanzaDoc} className="space-y-4">
             {/* Header Formato Oficial idéntico a Imagen 1 */}
             <div className="border border-slate-400 rounded-md p-3 bg-white flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -1331,10 +1490,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     CÓDIGO DE LA BALANZA:
                   </label>
                   <Select
-                    value={balanzaForm.codigo_balanza}
+                    value={balanzaDocHeader.codigo_balanza}
                     onValueChange={(val) => {
                       const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                      setBalanzaForm((p) => ({
+                      setBalanzaDocHeader((p) => ({
                         ...p,
                         codigo_balanza: val,
                         ubicacion: found?.ubi || p.ubicacion,
@@ -1361,9 +1520,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     MES / AÑO:
                   </label>
                   <Input
-                    value={balanzaForm.mes_anio}
+                    value={balanzaDocHeader.mes_anio}
                     onChange={(e) => {
-                      setBalanzaForm((p) => ({ ...p, mes_anio: e.target.value }))
+                      setBalanzaDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
                       setBalanzaIsDirty(true)
                     }}
                     className="h-8 text-xs font-mono uppercase bg-white"
@@ -1376,9 +1535,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     UBICACIÓN:
                   </label>
                   <Input
-                    value={balanzaForm.ubicacion}
+                    value={balanzaDocHeader.ubicacion}
                     onChange={(e) => {
-                      setBalanzaForm((p) => ({ ...p, ubicacion: e.target.value }))
+                      setBalanzaDocHeader((p) => ({ ...p, ubicacion: e.target.value }))
                       setBalanzaIsDirty(true)
                     }}
                     className="h-8 text-xs bg-white"
@@ -1391,9 +1550,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   CÓDIGOS DE LAS PESAS PATRÓN:
                 </label>
                 <Input
-                  value={balanzaForm.codigos_pesas_patron}
+                  value={balanzaDocHeader.codigos_pesas_patron}
                   onChange={(e) => {
-                    setBalanzaForm((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
+                    setBalanzaDocHeader((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
                     setBalanzaIsDirty(true)
                   }}
                   className="h-8 text-xs font-mono bg-white"
@@ -1402,7 +1561,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Grid Formulario Sheet Interactivo (F-LEM-IN-01.02 de Imagen 1) */}
+            {/* Grid Formulario Sheet MULTIFILA Interactivo (F-LEM-IN-01.02 de Imagen 1) */}
             <div className="border border-slate-400 rounded-md overflow-hidden bg-white">
               <div className="bg-slate-200 px-3 py-1.5 text-center font-bold text-xs uppercase border-b border-slate-400 text-slate-800">
                 PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
@@ -1410,128 +1569,216 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
-                  <thead className="bg-slate-100 font-bold text-[11px] text-slate-800 border-b border-slate-400">
+                  <thead className="bg-slate-100 font-bold text-[11px] text-slate-800 border-b border-slate-400 text-center">
                     <tr>
                       <th className="border-r border-slate-300 p-2 w-28">FECHA</th>
                       <th className="border-r border-slate-300 p-2 w-20">HORA</th>
-                      <th className="border-r border-slate-300 p-2 w-28">Temp (°C)</th>
-                      <th className="border-r border-slate-300 p-2 w-28">Humedad (%H.R.)</th>
-                      <th className="border-r border-slate-300 p-2 text-right">Masa Patrón (g)</th>
-                      <th className="border-r border-slate-300 p-2 text-right">Lectura (g)</th>
+                      <th className="border-r border-slate-300 p-2 w-24">Temp (°C)</th>
+                      <th className="border-r border-slate-300 p-2 w-24">Humedad (%H.R.)</th>
+                      <th className="border-r border-slate-300 p-2 text-right w-28">Masa Patrón (g)</th>
+                      <th className="border-r border-slate-300 p-2 text-right w-28">Lectura (g)</th>
                       <th className="border-r border-slate-300 p-2 text-center w-28">Error / Result</th>
-                      <th className="border-r border-slate-300 p-2 w-36">Realizado por:</th>
-                      <th className="p-2 w-36">Revisado por:</th>
+                      <th className="border-r border-slate-300 p-2 w-32">Realizado por:</th>
+                      <th className="border-r border-slate-300 p-2 w-32">Revisado por:</th>
+                      <th className="p-2 w-12 text-center">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="date"
-                          value={balanzaForm.fecha}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, fecha: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="time"
-                          value={balanzaForm.hora}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, hora: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="23.0"
-                          defaultValue="23.0"
-                          className="h-8 text-xs font-mono"
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          placeholder="50.0"
-                          defaultValue="50.0"
-                          className="h-8 text-xs font-mono"
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.001"
-                          value={balanzaForm.masa_patron_g}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, masa_patron_g: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono font-bold text-right"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          type="number"
-                          step="0.001"
-                          value={balanzaForm.lectura_balanza_g}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, lectura_balanza_g: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs font-mono font-bold text-sky-700 text-right"
-                          required
-                        />
-                      </td>
-                      <td className="border-r border-slate-300 p-2 text-center">
-                        <div
-                          className={`h-8 flex items-center justify-center rounded px-2 text-xs font-bold ${
-                            balanzaErrorCalc.conforme
-                              ? "bg-blue-50 text-blue-700 border border-blue-200"
-                              : "bg-red-50 text-red-700 border border-red-200"
-                          }`}
-                        >
-                          {balanzaErrorCalc.conforme ? "OK" : "NO OK"} (
-                          {balanzaErrorCalc.error >= 0 ? "+" : ""}
-                          {balanzaErrorCalc.error.toFixed(2)}g)
-                        </div>
-                      </td>
-                      <td className="border-r border-slate-300 p-2">
-                        <Input
-                          value={balanzaForm.verificado_por}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, verificado_por: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs"
-                          placeholder="Operador"
-                          required
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          value={balanzaForm.revisado_por}
-                          onChange={(e) => {
-                            setBalanzaForm((p) => ({ ...p, revisado_por: e.target.value }))
-                            setBalanzaIsDirty(true)
-                          }}
-                          className="h-8 text-xs"
-                          placeholder="Revisado por"
-                        />
-                      </td>
-                    </tr>
+                    {balanzaDocRows.map((row, idx) => {
+                      const m = parseFloat(row.masa_patron_g) || 0
+                      const l = parseFloat(row.lectura_balanza_g) || 0
+                      const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
+                      const err = l - m
+                      const conforme = Math.abs(err) <= tol
+
+                      return (
+                        <tr key={idx} className="border-b border-slate-300 hover:bg-slate-50">
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="date"
+                              value={row.fecha}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, fecha: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono text-center"
+                              required
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="time"
+                              value={row.hora}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, hora: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono text-center"
+                              required
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={row.temp_c}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, temp_c: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono text-center"
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={row.humedad_pct}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, humedad_pct: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono text-center"
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={row.masa_patron_g}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, masa_patron_g: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono font-bold text-right"
+                              required
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={row.lectura_balanza_g}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, lectura_balanza_g: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs font-mono font-bold text-sky-700 text-right"
+                              required
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5 text-center">
+                            <div
+                              className={`h-8 flex items-center justify-center rounded px-1.5 text-[11px] font-bold ${
+                                conforme
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                  : "bg-red-50 text-red-700 border border-red-200"
+                              }`}
+                            >
+                              {conforme ? "OK" : "NO OK"} ({err >= 0 ? "+" : ""}
+                              {err.toFixed(2)}g)
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              value={row.verificado_por}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, verificado_por: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs"
+                              placeholder="Operador"
+                              required
+                            />
+                          </td>
+                          <td className="border-r border-slate-300 p-1.5">
+                            <Input
+                              value={row.revisado_por}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setBalanzaDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, revisado_por: val } : r))
+                                )
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-8 text-xs"
+                              placeholder="Revisado por"
+                            />
+                          </td>
+                          <td className="p-1.5 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={balanzaDocRows.length <= 1}
+                              onClick={() => {
+                                setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
+                                setBalanzaIsDirty(true)
+                              }}
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Botón Agregar Nueva Fila a la Verificación */}
+              <div className="p-2 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const last = balanzaDocRows[balanzaDocRows.length - 1]
+                    setBalanzaDocRows((rows) => [
+                      ...rows,
+                      {
+                        fecha: last ? last.fecha : new Date().toISOString().split("T")[0],
+                        hora: "08:00",
+                        temp_c: "23.0",
+                        humedad_pct: "50.0",
+                        masa_patron_g: last ? last.masa_patron_g : "5000",
+                        lectura_balanza_g: last ? last.lectura_balanza_g : "5000.0",
+                        verificado_por: user.name || "LABORATORIO",
+                        revisado_por: "",
+                      },
+                    ])
+                    setBalanzaIsDirty(true)
+                  }}
+                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar Fila de Verificación Diaria
+                </Button>
+                <span className="text-[11px] font-semibold text-slate-600">
+                  Total de verificaciones en este informe: {balanzaDocRows.length}
+                </span>
               </div>
             </div>
 
@@ -1546,11 +1793,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     key={String(val)}
                     type="button"
                     onClick={() => {
-                      setBalanzaForm((p) => ({ ...p, limpieza_nivelacion: val }))
+                      setBalanzaDocHeader((p) => ({ ...p, limpieza_nivelacion: val }))
                       setBalanzaIsDirty(true)
                     }}
                     className={`px-3 py-1.5 rounded text-xs font-bold border transition-all ${
-                      balanzaForm.limpieza_nivelacion === val
+                      balanzaDocHeader.limpieza_nivelacion === val
                         ? val
                           ? "bg-blue-600 border-blue-600 text-white"
                           : "bg-red-600 border-red-600 text-white"
@@ -1571,8 +1818,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white">
-                {editingBalanzaId ? "Actualizar Verificación" : "Guardar Verificación"}
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-semibold">
+                Guardar Formato F-LEM-IN-01.02
               </Button>
             </DialogFooter>
           </form>
