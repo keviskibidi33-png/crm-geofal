@@ -11,17 +11,13 @@ import {
   Clock,
   Edit2,
   Trash2,
-  CheckCircle2,
-  XCircle,
   Eye,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  FlaskConical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -33,9 +29,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
@@ -92,11 +85,11 @@ interface ControlBalanzaItem {
 }
 
 const DEFAULT_AREAS = [
-  "CÁMARA HÚMEDA",
-  "LABORATORIO SUELOS",
-  "LABORATORIO CONCRETO",
-  "ENSAYOS QUÍMICOS",
-  "ÁREA DE LAVADO Y COMPACTACIÓN",
+  "Area de Recepción de muestras",
+  "Área de Ensayos físicos",
+  "Area de Ensayos especiales",
+  "Area de Temperatura controlada",
+  "Area de Lavado y compactación",
 ]
 
 const DEFAULT_BALANZAS = [
@@ -106,14 +99,6 @@ const DEFAULT_BALANZAS = [
   { codigo: "BAL-04", ubi: "Química / Finos",          cap: 1000,  masa: 500,  tol: 0.05  },
   { codigo: "BAL-05", ubi: "Analítica General",        cap: 300,   masa: 100,  tol: 0.005 },
   { codigo: "BAL-06", ubi: "Laboratorio Huanta",       cap: 15000, masa: 2000, tol: 0.5   },
-]
-
-const AREA_PARAMETROS = [
-  { area: "Área de Recepción de muestras",   temp: "10°C – 30°C",  humedad: "Menor a 80%" },
-  { area: "Área de Ensayos Físicos",          temp: "10°C – 30°C",  humedad: "Menor a 80%" },
-  { area: "Área de Ensayos especiales",       temp: "10°C – 30°C",  humedad: "Menor a 80%" },
-  { area: "Área de Temperatura controlada",   temp: "10°C – 30°C",  humedad: "Menor a 80%" },
-  { area: "Área de Lavado y compactación",    temp: "10°C – 24°C",  humedad: "Menor a 80%" },
 ]
 
 function getMesAnio() {
@@ -145,7 +130,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [areaFilter, setAreaFilter] = useState("TODAS")
   const [balanzaFilter, setBalanzaFilter] = useState("TODAS")
 
-  // ── Pagination states (matching Imagen 2) ──
+  // ── Pagination states ──
   const [tempPage, setTempPage] = useState(1)
   const [tempRowsPerPage, setTempRowsPerPage] = useState(25)
 
@@ -160,13 +145,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     fecha: new Date().toISOString().split("T")[0],
     hora_lectura: "08:00",
     fecha_lectura: new Date().toISOString().split("T")[0],
-    area_ambiente: "CÁMARA HÚMEDA",
+    area_ambiente: "Area de Recepción de muestras",
     temperatura_c: "23.0",
-    humedad_relativa_pct: "95.0",
-    temp_min: "",
-    temp_max: "",
-    hum_min: "",
-    hum_max: "",
+    humedad_relativa_pct: "50.0",
+    temp_min: "10.0",
+    temp_max: "30.0",
+    hum_min: "20.0",
+    hum_max: "80.0",
     cumple_especificacion: true,
     responsable_lectura: user.name || "LABORATORIO",
     revisado_por: "",
@@ -191,13 +176,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     verificado_por: user.name || "LABORATORIO",
     revisado_por: "",
     observaciones: "",
-    readings: [
-      { weight: "50g", ok: true, value: "50.0" },
-      { weight: "100g", ok: true, value: "100.0" },
-      { weight: "200g", ok: true, value: "200.0" },
-      { weight: "500g", ok: true, value: "500.0" },
-      { weight: "1000g", ok: true, value: "1000.0" },
-    ],
   })
 
   // ── Safety exit ──
@@ -553,10 +531,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 area_ambiente: item.area_ambiente,
                                 temperatura_c: String(item.temperatura_c),
                                 humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                temp_min: item.temp_min ? String(item.temp_min) : "",
-                                temp_max: item.temp_max ? String(item.temp_max) : "",
-                                hum_min: "",
-                                hum_max: "",
+                                temp_min: item.temp_min ? String(item.temp_min) : "10.0",
+                                temp_max: item.temp_max ? String(item.temp_max) : "30.0",
+                                hum_min: "20.0",
+                                hum_max: "80.0",
                                 cumple_especificacion: item.cumple_especificacion,
                                 responsable_lectura: item.responsable_lectura,
                                 revisado_por: "",
@@ -583,10 +561,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 area_ambiente: item.area_ambiente,
                                 temperatura_c: String(item.temperatura_c),
                                 humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                temp_min: item.temp_min ? String(item.temp_min) : "",
-                                temp_max: item.temp_max ? String(item.temp_max) : "",
-                                hum_min: "",
-                                hum_max: "",
+                                temp_min: item.temp_min ? String(item.temp_min) : "10.0",
+                                temp_max: item.temp_max ? String(item.temp_max) : "30.0",
+                                hum_min: "20.0",
+                                hum_max: "80.0",
                                 cumple_especificacion: item.cumple_especificacion,
                                 responsable_lectura: item.responsable_lectura,
                                 revisado_por: "",
@@ -845,13 +823,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               verificado_por: item.verificado_por,
                               revisado_por: "",
                               observaciones: item.observaciones || "",
-                              readings: [
-                                { weight: "50g", ok: true, value: "50.0" },
-                                { weight: "100g", ok: true, value: "100.0" },
-                                { weight: "200g", ok: true, value: "200.0" },
-                                { weight: "500g", ok: true, value: "500.0" },
-                                { weight: "1000g", ok: true, value: "1000.0" },
-                              ],
                             })
                             setBalanzaIsDirty(false)
                             setShowBalanzaModal(true)
@@ -883,13 +854,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               verificado_por: item.verificado_por,
                               revisado_por: "",
                               observaciones: item.observaciones || "",
-                              readings: [
-                                { weight: "50g", ok: true, value: "50.0" },
-                                { weight: "100g", ok: true, value: "100.0" },
-                                { weight: "200g", ok: true, value: "200.0" },
-                                { weight: "500g", ok: true, value: "500.0" },
-                                { weight: "1000g", ok: true, value: "1000.0" },
-                              ],
                             })
                             setBalanzaIsDirty(false)
                             setShowBalanzaModal(true)
@@ -984,7 +948,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   )
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // FORMULARIO SHEET EXCEL EXACTO: F-LEM-P-05.01 V03
+  // FORMULARIO SHEET EXCEL EXACTO ILUSTRADO EN LA SEGUNDA IMAGEN: F-LEM-P-05.01 V03
   // ─────────────────────────────────────────────────────────────────────────────
   function renderTempModal() {
     return (
@@ -995,156 +959,297 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="sm:max-w-[780px] max-h-[92vh] overflow-y-auto p-6 bg-white">
+        <DialogContent className="max-w-[95vw] sm:max-w-[1000px] max-h-[92vh] overflow-y-auto p-6 bg-white">
           <form onSubmit={handleSaveTemp} className="space-y-4">
-            {/* Header Formato Oficial */}
-            <div className="border border-slate-300 rounded-md p-3 bg-slate-50 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-8 w-auto" />
-                <div>
-                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900">
-                    LABORATORIO DE ENSAYO DE MATERIALES
-                  </h3>
-                  <p className="text-[11px] font-semibold text-slate-700">
-                    CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
-                  </p>
-                </div>
+            {/* Header Formato Oficial (Imagen F-LEM-P-05.01 V03) */}
+            <div className="border border-slate-400 rounded-md p-3 bg-white text-center space-y-1">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
               </div>
-              <div className="border border-slate-300 rounded bg-white p-2 text-[10px] space-y-0.5 text-slate-600 font-mono">
-                <div><span className="font-bold">CÓDIGO:</span> F-LEM-P-05.01</div>
-                <div><span className="font-bold">VERSIÓN:</span> 03</div>
-                <div><span className="font-bold">FECHA:</span> 02-01-2024</div>
-                <div><span className="font-bold">PÁGINA:</span> 1 de 1</div>
-              </div>
+              <h2 className="font-bold text-sm sm:text-base uppercase text-slate-900 tracking-wide underline">
+                LABORATORIO DE ENSAYO DE MATERIALES
+              </h2>
+              <h3 className="font-bold text-xs sm:text-sm uppercase text-slate-800 tracking-wide underline">
+                F-LEM-P-05.01 V03 CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
+              </h3>
             </div>
 
-            {/* Referencia de Parámetros Normativos */}
-            <div className="border border-slate-200 rounded-md p-3 bg-slate-50/50">
-              <p className="text-[11px] font-bold text-slate-700 mb-1.5 uppercase">
-                PARÁMETROS DE LAS ÁREAS (REFERENCIA NORMATIVA)
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                {AREA_PARAMETROS.map((p, i) => (
-                  <div key={i} className="flex justify-between border-b border-slate-200 pb-0.5">
-                    <span className="text-slate-600 font-medium">{p.area}:</span>
-                    <span className="font-semibold text-slate-800">{p.temp} | {p.humedad}</span>
-                  </div>
-                ))}
+            {/* Cabecera de 4 cajas (REGISTRO | MES-AÑO | APROBADO POR | FECHA DE APROBACIÓN) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="border border-slate-400 rounded-md p-2 bg-slate-50/50 space-y-1">
+                <label className="text-[10px] font-bold text-slate-900 uppercase block text-center">
+                  REGISTRO
+                </label>
+                <Input
+                  defaultValue="REG-01"
+                  className="h-7 text-xs font-mono text-center bg-white"
+                />
               </div>
-            </div>
-
-            {/* Campos del Formulario */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Área / Ambiente</label>
-                <Select
-                  value={tempForm.area_ambiente}
-                  onValueChange={(val) => {
-                    setTempForm((p) => ({ ...p, area_ambiente: val }))
+              <div className="border border-slate-400 rounded-md p-2 bg-slate-50/50 space-y-1">
+                <label className="text-[10px] font-bold text-slate-900 uppercase block text-center">
+                  MES-AÑO
+                </label>
+                <Input
+                  value={tempForm.fecha ? tempForm.fecha.substring(0, 7) : "2026-08"}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, fecha: e.target.value + "-01" }))
                     setTempIsDirty(true)
                   }}
-                >
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                  className="h-7 text-xs font-mono text-center uppercase bg-white"
+                  placeholder="AGOSTO-2026"
+                />
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Fecha de Lectura</label>
+              <div className="border border-slate-400 rounded-md p-2 bg-slate-50/50 space-y-1">
+                <label className="text-[10px] font-bold text-slate-900 uppercase block text-center">
+                  APROBADO POR
+                </label>
+                <Input
+                  defaultValue="JEFE DE LABORATORIO"
+                  className="h-7 text-xs text-center uppercase bg-white"
+                />
+              </div>
+              <div className="border border-slate-400 rounded-md p-2 bg-slate-50/50 space-y-1">
+                <label className="text-[10px] font-bold text-slate-900 uppercase block text-center">
+                  FECHA DE APROBACIÓN
+                </label>
                 <Input
                   type="date"
-                  value={tempForm.fecha}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, fecha: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Hora de Lectura</label>
-                <Input
-                  type="time"
-                  value={tempForm.hora_lectura}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, hora_lectura: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono"
-                  required
+                  defaultValue="2024-01-02"
+                  className="h-7 text-xs font-mono text-center bg-white"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 border-t border-slate-200 pt-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-sky-700">Temperatura (°C)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={tempForm.temperatura_c}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, temperatura_c: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono font-bold text-sky-700"
-                  required
-                />
+            {/* Sección DATOS + Tabla de Parámetros de las Áreas */}
+            <div className="border border-slate-400 rounded-md p-3 bg-white grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-7 space-y-3">
+                <div className="bg-slate-200 px-3 py-1 font-bold text-xs uppercase border border-slate-400 text-slate-900 text-center">
+                  DATOS
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-900 w-36 shrink-0">
+                      ÁREA DE CONTROL:
+                    </label>
+                    <Select
+                      value={tempForm.area_ambiente}
+                      onValueChange={(val) => {
+                        setTempForm((p) => ({ ...p, area_ambiente: val }))
+                        setTempIsDirty(true)
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs font-semibold bg-white flex-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Area de Recepción de muestras">Area de Recepción de muestras</SelectItem>
+                        <SelectItem value="Área de Ensayos físicos">Área de Ensayos físicos</SelectItem>
+                        <SelectItem value="Area de Ensayos especiales">Area de Ensayos especiales</SelectItem>
+                        <SelectItem value="Area de Temperatura controlada">Area de Temperatura controlada</SelectItem>
+                        <SelectItem value="Area de Lavado y compactación">Area de Lavado y compactación</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-900 w-36 shrink-0">
+                      PARÁMETROS:
+                    </label>
+                    <Input
+                      readOnly
+                      value={
+                        tempForm.area_ambiente.includes("compactación")
+                          ? "18 °C – 24 °C | Menor a 80 %"
+                          : "10 °C – 30 °C | Menor a 80 %"
+                      }
+                      className="h-8 text-xs font-mono font-semibold bg-slate-50 flex-1"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-blue-700">Humedad (%H.R.)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={tempForm.humedad_relativa_pct}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono font-bold text-blue-700"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Temp. Mín (°C)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={tempForm.temp_min}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, temp_min: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Temp. Máx (°C)</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={tempForm.temp_max}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, temp_max: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs font-mono"
-                />
+              {/* Tabla PARÁMETROS DE LAS ÁREAS */}
+              <div className="lg:col-span-5 border border-slate-400 rounded overflow-hidden text-[11px]">
+                <div className="bg-slate-100 p-1.5 font-bold text-center border-b border-slate-400 text-slate-900 uppercase">
+                  PARÁMETROS DE LAS ÁREAS
+                </div>
+                <table className="w-full border-collapse">
+                  <tbody>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1.5 font-medium border-r border-slate-300">Area de Recepción de muestras</td>
+                      <td className="p-1.5 font-bold text-center">10 °C – 30 °C<br/>Menor a 80 %</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1.5 font-medium border-r border-slate-300">Área de Ensayos físicos</td>
+                      <td className="p-1.5 font-bold text-center">10 °C – 30 °C<br/>Menor a 80 %</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1.5 font-medium border-r border-slate-300">Area de Ensayos especiales</td>
+                      <td className="p-1.5 font-bold text-center">10 °C – 30 °C<br/>Menor a 80 %</td>
+                    </tr>
+                    <tr className="border-b border-slate-300">
+                      <td className="p-1.5 font-medium border-r border-slate-300">Area de Temperatura controlada</td>
+                      <td className="p-1.5 font-bold text-center">10 °C – 30 °C<br/>Menor a 80 %</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1.5 font-medium border-r border-slate-300">Area de Lavado y compactación</td>
+                      <td className="p-1.5 font-bold text-center">18 °C – 24 °C<br/>Menor a 80 %</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Cumple especificación toggle */}
-            <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 bg-slate-50">
-              <label className="text-xs font-semibold text-slate-800 flex-1">
+            {/* Table Grid Sheet de Datos (F-LEM-P-05.01) */}
+            <div className="border border-slate-400 rounded-md overflow-hidden bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="bg-slate-100 font-bold text-[11px] text-slate-900 border-b border-slate-400 text-center">
+                    <tr>
+                      <th className="border-r border-slate-300 p-2 w-32">FECHA DE REGISTRO DE DATOS</th>
+                      <th className="border-r border-slate-300 p-2 w-24">HORA DE TOMA DE DATOS</th>
+                      <th className="border-r border-slate-300 p-2 w-32">FECHA DE LECTURA DE TEMPERATURA Y HUMEDAD</th>
+                      <th className="border-r border-slate-300 p-1" colSpan={2}>
+                        TEMPERATURA (°C)
+                        <div className="grid grid-cols-2 border-t border-slate-300 mt-1 font-semibold text-[10px]">
+                          <div className="border-r border-slate-300 p-1">Mínimo</div>
+                          <div className="p-1">Máximo</div>
+                        </div>
+                      </th>
+                      <th className="border-r border-slate-300 p-1" colSpan={2}>
+                        HUMEDAD RELATIVA (%)
+                        <div className="grid grid-cols-2 border-t border-slate-300 mt-1 font-semibold text-[10px]">
+                          <div className="border-r border-slate-300 p-1">Mínimo</div>
+                          <div className="p-1">Máximo</div>
+                        </div>
+                      </th>
+                      <th className="border-r border-slate-300 p-2 w-40">[ ] RESPONSABLE DEL REGISTRO</th>
+                      <th className="p-2 w-40">[ ] RESPONSABLE DE LA REVISIÓN DEL REGISTRO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="date"
+                          value={tempForm.fecha}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, fecha: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono text-center"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="time"
+                          value={tempForm.hora_lectura}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, hora_lectura: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono text-center"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="date"
+                          value={tempForm.fecha_lectura || tempForm.fecha}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, fecha_lectura: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono text-center"
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Mín"
+                          value={tempForm.temp_min}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, temp_min: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono text-center"
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Máx / Actual"
+                          value={tempForm.temperatura_c}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, temperatura_c: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono font-bold text-sky-700 text-center"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Mín"
+                          value={tempForm.hum_min}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, hum_min: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono text-center"
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Máx / Actual"
+                          value={tempForm.humedad_relativa_pct}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono font-bold text-blue-700 text-center"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          value={tempForm.responsable_lectura}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, responsable_lectura: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs"
+                          placeholder="Nombre operador"
+                          required
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          value={tempForm.revisado_por}
+                          onChange={(e) => {
+                            setTempForm((p) => ({ ...p, revisado_por: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          className="h-8 text-xs"
+                          placeholder="Nombre revisor"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Cumple Especificación Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-md border border-slate-300 bg-slate-50">
+              <span className="text-xs font-bold text-slate-800">
                 Cumple Especificaciones del Área
-              </label>
+              </span>
               <div className="flex gap-2">
                 {[true, false].map((val) => (
                   <button
@@ -1154,7 +1259,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       setTempForm((p) => ({ ...p, cumple_especificacion: val }))
                       setTempIsDirty(true)
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
+                    className={`px-3 py-1.5 rounded text-xs font-bold border transition-all ${
                       tempForm.cumple_especificacion === val
                         ? val
                           ? "bg-blue-600 border-blue-600 text-white"
@@ -1162,38 +1267,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         : "border-slate-300 text-slate-600 bg-white"
                     }`}
                   >
-                    {val ? "SÍ CUMPLE" : "NO CUMPLE"}
+                    {val ? "SÍ CUMPLE (OK)" : "NO CUMPLE"}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* Firmas / Responsables */}
-            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700 uppercase">Realizado Por</label>
-                <Input
-                  placeholder="Nombre del operador"
-                  value={tempForm.responsable_lectura}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, responsable_lectura: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-700 uppercase">Revisado Por</label>
-                <Input
-                  placeholder="Jefe de laboratorio / Revisor"
-                  value={tempForm.revisado_por}
-                  onChange={(e) => {
-                    setTempForm((p) => ({ ...p, revisado_por: e.target.value }))
-                    setTempIsDirty(true)
-                  }}
-                  className="h-8 text-xs"
-                />
               </div>
             </div>
 
@@ -1216,7 +1292,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // FORMULARIO SHEET EXACTO ILUSTRADO EN LA IMAGEN 1: F-LEM-IN-01.02 V03
+  // FORMULARIO SHEET EXACTO ILUSTRADO EN LA PRIMERA IMAGEN: F-LEM-IN-01.02 V03
   // ─────────────────────────────────────────────────────────────────────────────
   function renderBalanzaModal() {
     return (
