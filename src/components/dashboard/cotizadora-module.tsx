@@ -1035,7 +1035,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="p-3">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1055,7 +1055,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         {/* Advanced Filters Bar */}
         <div className="flex flex-wrap items-center gap-2 p-3 bg-card rounded-lg border border-border">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar cliente, RUC, proyecto..."
@@ -1067,7 +1067,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
           {/* Date Filter */}
           <Select value={dateFilter || "all"} onValueChange={(v: any) => setDateFilter(v)}>
-            <SelectTrigger className="w-[130px] h-9 text-xs">
+            <SelectTrigger className="w-32.5 h-9 text-xs">
               <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -1081,7 +1081,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
           {/* Status Filter */}
           <Select value={statusFilter || "all"} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[120px] h-9 text-xs">
+            <SelectTrigger className="w-30 h-9 text-xs">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -1094,7 +1094,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
           {/* Cliente Filter */}
           <Select value={clienteFilter || "all"} onValueChange={setClienteFilter}>
-            <SelectTrigger className="w-[160px] h-9 text-xs">
+            <SelectTrigger className="w-40 h-9 text-xs">
               <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
@@ -1109,7 +1109,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           </Select>
 
           <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
-            <SelectTrigger className="w-[130px] h-9 text-xs">
+            <SelectTrigger className="w-32.5 h-9 text-xs">
               <SelectValue placeholder="Filas" />
             </SelectTrigger>
             <SelectContent>
@@ -1123,7 +1123,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           {/* Vendedor Filter (Admin only) */}
           {user.role === "admin" && (
             <Select value={vendedorFilter || "all"} onValueChange={setVendedorFilter}>
-              <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectTrigger className="w-35 h-9 text-xs">
                 <User2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue placeholder="Vendedor" />
               </SelectTrigger>
@@ -1168,14 +1168,14 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
               <Table>
                 <TableHeader className="bg-card">
                   <TableRow className="hover:bg-transparent border-b">
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[100px]">ID</TableHead>
-                    <TableHead className="text-xs font-semibold px-4 py-3 max-w-[300px] xl:max-w-[400px]">Cliente / Proyecto</TableHead>
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[80px] text-center">Items</TableHead>
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[120px] text-right">Monto</TableHead>
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[100px]">Estado</TableHead>
-                    {user.role === "admin" && <TableHead className="text-xs font-semibold px-4 py-3 w-[110px]">Vendedor</TableHead>}
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[90px]">Fecha</TableHead>
-                    <TableHead className="text-xs font-semibold px-4 py-3 w-[80px]"></TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-25">ID</TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 max-w-75 xl:max-w-100">Cliente / Proyecto</TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-20 text-center">Items</TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-30 text-right">Monto</TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-25">Estado</TableHead>
+                    {user.role === "admin" && <TableHead className="text-xs font-semibold px-4 py-3 w-27.5">Vendedor</TableHead>}
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-22.5">Fecha</TableHead>
+                    <TableHead className="text-xs font-semibold px-4 py-3 w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1190,7 +1190,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                           {quote.numero}-{String(quote.year).slice(-2)}
                         </span>
                       </TableCell>
-                      <TableCell className="px-4 py-2.5 max-w-[300px] xl:max-w-[400px]">
+                      <TableCell className="px-4 py-2.5 max-w-75 xl:max-w-100">
                         <div className="flex flex-col min-w-0">
                           <span className="font-semibold text-sm truncate" title={quote.cliente}>{quote.cliente}</span>
                           <span className="text-[10px] text-muted-foreground truncate" title={quote.proyectoNombre}>{quote.proyectoNombre}</span>
@@ -1217,7 +1217,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                             <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary">
                               {quote.owner.charAt(0)}
                             </div>
-                            <span className="text-xs truncate max-w-[70px]">{quote.owner}</span>
+                            <span className="text-xs truncate max-w-17.5">{quote.owner}</span>
                           </div>
                         </TableCell>
                       )}
@@ -1351,7 +1351,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       </div>
 
       <Sheet open={!!previewQuote} onOpenChange={(open) => !open && setPreviewQuote(null)}>
-        <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0 border-l border-border bg-card">
+        <SheetContent side="right" className="w-100 sm:w-135 p-0 border-l border-border bg-card">
           <SheetHeader className="sr-only">
             <SheetTitle>Vista Previa de Cotización</SheetTitle>
             <SheetDescription>Detalles rápidos de la cotización seleccionada</SheetDescription>
@@ -1727,7 +1727,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       {/* Full View Dialog (for complete details) */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent showCloseButton={false} className="sm:max-w-[650px] w-[95vw] max-h-[90vh] bg-card border-border p-0 flex flex-col overflow-hidden rounded-2xl">
+        <DialogContent showCloseButton={false} className="sm:max-w-162.5 w-[95vw] max-h-[90vh] bg-card border-border p-0 flex flex-col overflow-hidden rounded-2xl">
           <DialogHeader className="p-6 shrink-0 border-b border-border/50">
             <DialogTitle className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1994,7 +1994,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                         {importPreview.items.map((item: any, idx: number) => (
                           <TableRow key={idx}>
                             <TableCell className="text-xs font-mono">{idx + 1}</TableCell>
-                            <TableCell className="text-xs max-w-[200px] truncate" title={item.descripcion}>
+                            <TableCell className="text-xs max-w-50 truncate" title={item.descripcion}>
                               {item.descripcion}
                             </TableCell>
                             <TableCell className="text-xs text-right">

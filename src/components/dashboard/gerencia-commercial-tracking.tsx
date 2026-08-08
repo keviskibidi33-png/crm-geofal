@@ -51,19 +51,19 @@ function AmountTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[920px] w-full text-xs">
+        <table className="min-w-230 w-full text-xs">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-100 text-slate-700">
-              <th rowSpan={2} className="w-[210px] border-r border-slate-200 px-3 py-2 text-left font-bold uppercase">
+              <th rowSpan={2} className="w-52.5 border-r border-slate-200 px-3 py-2 text-left font-bold uppercase">
                 Descripción
               </th>
               <th colSpan={4} className="border-r border-slate-200 px-3 py-2 text-center font-bold uppercase">
                 Monto (S/.)
               </th>
-              <th rowSpan={2} className="w-[125px] border-r border-slate-200 px-3 py-2 text-right font-bold uppercase">
+              <th rowSpan={2} className="w-31.25 border-r border-slate-200 px-3 py-2 text-right font-bold uppercase">
                 Total parcial (S/.)
               </th>
-              <th rowSpan={2} className="w-[110px] px-3 py-2 text-right font-bold uppercase">
+              <th rowSpan={2} className="w-27.5 px-3 py-2 text-right font-bold uppercase">
                 Monto parcial (%)
               </th>
             </tr>
@@ -127,10 +127,10 @@ function ClientsTable({ data, loading }: { data: CommercialTrackingKpis; loading
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[720px] w-full text-xs">
+        <table className="min-w-180 w-full text-xs">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-100 text-slate-700">
-              <th className="w-[210px] border-r border-slate-200 px-3 py-2.5 text-left font-bold uppercase">Descripción</th>
+              <th className="w-52.5 border-r border-slate-200 px-3 py-2.5 text-left font-bold uppercase">Descripción</th>
               {data.weekLabels.map((week) => (
                 <th key={week} className="border-r border-slate-200 px-3 py-2.5 text-right font-bold uppercase last:border-r-0">
                   {week}

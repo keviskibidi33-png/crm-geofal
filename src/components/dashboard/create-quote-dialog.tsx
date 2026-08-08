@@ -1023,7 +1023,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
       <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-[100vw] w-[100vw] h-[100vh] p-0 overflow-hidden rounded-none sm:rounded-none"
+        className="max-w-[100vw] w-screen h-screen p-0 overflow-hidden rounded-none sm:rounded-none"
         onPointerDownOutside={(event) => {
             const target = event.detail.originalEvent.target
             if (target instanceof Element && target.closest('[data-autocomplete-dropdown="true"]')) {
@@ -1155,11 +1155,11 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                       <Label>Fecha de solicitud</Label>
                       <Input type="date" value={fechaSolicitud} onChange={(e) => setFechaSolicitud(e.target.value)} />
                     </div>
-                    <div className="space-y-2 md:order-[9]">
+                    <div className="space-y-2 md:order-9">
                       <Label>Fecha de emisión</Label>
                       <Input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} />
                     </div>
-                    <div className="space-y-2 relative md:order-[7]">
+                    <div className="space-y-2 relative md:order-7">
                       <Label className="flex items-center gap-2"><Search className="h-4 w-4" /> Proyecto</Label>
                       <Input
                         value={proyectoSearch}
@@ -1201,7 +1201,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2 md:order-[8]">
+                    <div className="space-y-2 md:order-8">
                       <Label>Ubicación</Label>
                       <Input value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} />
                     </div>
@@ -1617,7 +1617,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                             {selectedPlantillaItems.map((item: any, index: number) => (
                               <TableRow key={`${selectedPlantilla.id}-${index}`}>
                                 <TableCell className="font-mono text-xs">{item.codigo || "—"}</TableCell>
-                                <TableCell className="max-w-[280px] truncate">{item.descripcion || "—"}</TableCell>
+                                <TableCell className="max-w-70 truncate">{item.descripcion || "—"}</TableCell>
                                 <TableCell className="text-right">
                                   S/. {Number(item.costo_unitario ?? item.precio ?? 0).toFixed(2)}
                                 </TableCell>

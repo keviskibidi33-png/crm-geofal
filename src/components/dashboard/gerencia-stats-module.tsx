@@ -84,12 +84,12 @@ function MetricBarChart({
   loading: boolean
 }) {
   if (loading) {
-    return <div className="h-[250px] animate-pulse rounded-xl bg-slate-100" />
+    return <div className="h-62.5 animate-pulse rounded-xl bg-slate-100" />
   }
 
   return (
     <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-      <ChartContainer config={chartConfig} className="h-[250px] w-full">
+      <ChartContainer config={chartConfig} className="h-62.5 w-full">
         <BarChart data={data} margin={{ top: 30, right: 12, left: monetary ? 16 : 0, bottom: 0 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
           <XAxis dataKey="shortLabel" tickLine={false} axisLine={false} tickMargin={8} />

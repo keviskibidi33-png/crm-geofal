@@ -88,7 +88,7 @@ export function KpiPieChart({ data, loading, className }: KpiPieChartProps) {
   if (loading) {
     return (
       <Card className={className}>
-        <CardContent className="flex items-center justify-center h-[250px]">
+        <CardContent className="flex items-center justify-center h-62.5">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
@@ -102,7 +102,7 @@ export function KpiPieChart({ data, loading, className }: KpiPieChartProps) {
         <p className="text-xs text-muted-foreground">Total: {data.total}</p>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={config} className="h-[200px] w-full">
+        <ChartContainer config={config} className="h-50 w-full">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent />} />
             <Pie data={chartData} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
@@ -138,7 +138,7 @@ export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
   if (loading) {
     return (
       <Card className={className}>
-        <CardContent className="flex items-center justify-center h-[250px]">
+        <CardContent className="flex items-center justify-center h-62.5">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
@@ -152,7 +152,7 @@ export function KpiBarChart({ data, loading, className }: KpiBarChartProps) {
         <p className="text-xs text-muted-foreground">Total: {data.total}</p>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={config} className="h-[200px] w-full">
+        <ChartContainer config={config} className="h-50 w-full">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} />
@@ -207,7 +207,7 @@ export function KpiChartCard({ data, loading, className }: KpiChartCardProps) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex items-center justify-center h-[200px]">
+          <div className="flex items-center justify-center h-50">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : chartType === "bar" ? (
@@ -232,7 +232,7 @@ function BarChartInner({ data }: { data: KpiGroup }) {
   )
 
   return (
-    <ChartContainer config={config} className="h-[200px] w-full">
+    <ChartContainer config={config} className="h-50 w-full">
       <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
         <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} />
@@ -260,7 +260,7 @@ function PieChartInner({ data }: { data: KpiGroup }) {
   )
 
   return (
-    <ChartContainer config={config} className="h-[200px] w-full">
+    <ChartContainer config={config} className="h-50 w-full">
       <PieChart>
         <ChartTooltip content={<ChartTooltipContent />} />
         <Pie data={chartData} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
@@ -498,7 +498,7 @@ export function KpiEvidenciasProgressCard({ data, loading, className }: KpiPieCh
   if (loading) {
     return (
       <Card className={className}>
-        <CardContent className="flex items-center justify-center h-[250px]">
+        <CardContent className="flex items-center justify-center h-62.5">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
@@ -615,7 +615,7 @@ export function MonthSelector({ availableMonths, selectedMonth, selectedYear, on
         }}
         disabled={loading}
       >
-        <SelectTrigger className="w-[180px] h-8">
+        <SelectTrigger className="w-45 h-8">
           <SelectValue placeholder="Seleccionar mes">
             {currentLabel}
           </SelectValue>

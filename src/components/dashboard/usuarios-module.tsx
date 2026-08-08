@@ -628,7 +628,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por estado:</span>
                     <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-45">
                             <SelectValue placeholder="Estado" />
                         </SelectTrigger>
                         <SelectContent>
@@ -820,7 +820,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
 
             {/* Create User Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent className="sm:max-w-[450px] bg-card border-border">
+                <DialogContent className="sm:max-w-112.5 bg-card border-border">
                     <DialogHeader>
                         <DialogTitle>Nuevo Usuario</DialogTitle>
                         <DialogDescription>El usuario se creará activo y verificado.</DialogDescription>
@@ -871,7 +871,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
             <Dialog open={!!editingSeller} onOpenChange={(open) => {
                 if (!open) setEditingSeller(null)
             }}>
-                <DialogContent className="sm:max-w-[450px] bg-card border-border">
+                <DialogContent className="sm:max-w-112.5 bg-card border-border">
                     <DialogHeader>
                         <DialogTitle>Editar Usuario</DialogTitle>
                         <DialogDescription>Modifica los datos de acceso y perfil del usuario.</DialogDescription>
@@ -1000,7 +1000,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
 
             {/* Status Confirmation Dialog */}
             <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-                <DialogContent className="sm:max-w-[400px] bg-card border-border">
+                <DialogContent className="sm:max-w-100 bg-card border-border">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             {targetStatus === "activo" ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-yellow-500" />}

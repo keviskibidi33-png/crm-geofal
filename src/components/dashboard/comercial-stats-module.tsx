@@ -58,7 +58,7 @@ export function ComercialStatsModule() {
             loading={isLoading}
           />
           <Select value={estadoFilter} onValueChange={(value) => setEstadoFilter(value as typeof estadoFilter)}>
-            <SelectTrigger className="w-[240px]">
+            <SelectTrigger className="w-60">
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
             <SelectContent>
@@ -114,7 +114,7 @@ export function ComercialStatsModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[260px]">DESCRIPCION</TableHead>
+                    <TableHead className="w-65">DESCRIPCION</TableHead>
                     {weekLabels.map((week) => (
                       <TableHead key={week} className="text-right">{week}</TableHead>
                     ))}
@@ -171,7 +171,7 @@ export function ComercialStatsModule() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[260px]">DESCRIPCION</TableHead>
+                    <TableHead className="w-65">DESCRIPCION</TableHead>
                     {weekLabels.map((week) => (
                       <TableHead key={week} className="text-right">{week}</TableHead>
                     ))}

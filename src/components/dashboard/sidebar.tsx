@@ -316,7 +316,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     <TooltipProvider delayDuration={0}>
     <aside className={cn(
       "h-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0",
-      collapsed ? "w-[68px]" : isTabletLayout ? "w-56" : "w-64"
+      collapsed ? "w-17" : isTabletLayout ? "w-56" : "w-64"
     )}>
       {/* Logo + Collapse Toggle */}
       <div className="border-b border-sidebar-border shrink-0">
@@ -360,13 +360,13 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         {brandBubbleOpen && (
           <div
             ref={brandBubbleRef}
-            className="fixed z-[80] min-w-[208px] rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+            className="fixed z-80 min-w-52 rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
             style={{
               left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 220)),
               top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 152)),
             }}
           >
-            <div className="px-3 py-2 border-b border-sidebar-border bg-gradient-to-r from-primary/10 to-transparent">
+            <div className="px-3 py-2 border-b border-sidebar-border bg-linear-to-r from-primary/10 to-transparent">
               <div className="flex items-center gap-2.5">
                 <Image src="/logo-geofal.svg" alt="Geofal CRM" width={30} height={30} className="h-7.5 w-7.5" />
                 <div className="min-w-0">

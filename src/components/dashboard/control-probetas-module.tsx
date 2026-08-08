@@ -212,7 +212,7 @@ function ClientValue({ value }: { value?: string | null }) {
   if (isLong) {
     return (
       <div
-        className="mx-auto max-w-[160px] text-[11px] font-semibold text-slate-700 leading-tight wrap-break-word"
+        className="mx-auto max-w-40 text-[11px] font-semibold text-slate-700 leading-tight wrap-break-word"
         style={{
           display: "-webkit-box",
           WebkitLineClamp: 2,
@@ -227,7 +227,7 @@ function ClientValue({ value }: { value?: string | null }) {
   }
 
   return (
-    <div className="mx-auto max-w-[160px] truncate text-[11px] font-semibold text-slate-700 leading-tight" title={text}>
+    <div className="mx-auto max-w-40 truncate text-[11px] font-semibold text-slate-700 leading-tight" title={text}>
       {text}
     </div>
   )
@@ -648,7 +648,7 @@ function FilterBar({
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible flex-none">
       <div className="flex flex-col xl:flex-row xl:items-center gap-5 p-4">
         {/* Search */}
-        <div className="flex-1 xl:max-w-[210px] relative">
+        <div className="flex-1 xl:max-w-52.5 relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
@@ -659,7 +659,7 @@ function FilterBar({
         </div>
 
         {/* Importador de Recepciones */}
-        <div className="flex-1 xl:max-w-[260px] relative" ref={dropdownRef}>
+        <div className="flex-1 xl:max-w-65 relative" ref={dropdownRef}>
           <Plus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={recepcionQuery}
@@ -692,7 +692,7 @@ function FilterBar({
               type="date"
               value={fechaInicio}
               onChange={(e) => onFechaInicioChange(e.target.value)}
-              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-28"
               title="Fecha de Rotura"
             />
             {fechaInicio && (
@@ -707,7 +707,7 @@ function FilterBar({
               type="date"
               value={fechaFin}
               onChange={(e) => onFechaFinChange(e.target.value)}
-              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-[112px]"
+              className="text-xs bg-transparent border-none focus:outline-none text-slate-700 font-semibold w-28"
               title="Fecha de Entrega"
             />
             {fechaFin && (
@@ -716,7 +716,7 @@ function FilterBar({
           </div>
 
           {/* Estado Select */}
-          <div className="w-[150px] min-w-[150px]">
+          <div className="w-37.5 min-w-37.5">
             <Select value={estadoProbeta || "todos"} onValueChange={(v) => onEstadoProbetaChange(v === "todos" ? "" : v)}>
               <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="Filtrar por Estado" />
@@ -928,7 +928,7 @@ function DataTable({
         </div>
       )}
       <div className="flex-1 min-h-0 overflow-auto" onScroll={handleScroll}>
-        <table className="min-w-[1100px] w-full text-sm border-collapse">
+        <table className="min-w-275 w-full text-sm border-collapse">
           <thead className="bg-zinc-200 text-zinc-950 font-black border-b-2 border-slate-300 sticky top-0 z-10">
             <tr>
               <th className={`${TH} w-8`}>
@@ -948,15 +948,15 @@ function DataTable({
               </th>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
               <SortTh label="RECEPCIÓN" column="numero_recepcion" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-28" />
-              <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[88px]" />
-              <SortTh label="CLIENTE" column="cliente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[136px]" />
-              <SortTh label="ELEMENTO" column="elemento" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
+              <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-22" />
+              <SortTh label="CLIENTE" column="cliente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-34" />
+              <SortTh label="ELEMENTO" column="elemento" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
               <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="DENSIDAD" column="densidad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-12" />
               <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-10" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
-              <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[72px]" />
-              <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-[84px]" />
+              <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
+              <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-21" />
               <SortTh label="STATUS ENTREGA" column="status_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="F. ENTREGA" column="fecha_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <SortTh label="ESTADO" column="estado_probeta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />

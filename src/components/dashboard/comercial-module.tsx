@@ -477,7 +477,7 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                             {recentChanges.map((item, idx) => (
                                 <div key={idx} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
                                     <div className="flex items-start gap-4">
-                                        <div className="mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
+                                        <div className="mt-1 shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-xs uppercase">
                                             {item.ot ? item.ot.slice(-2) : "OT"}
                                         </div>
                                         <div className="space-y-1">
@@ -486,13 +486,13 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                                                     OT: {item.ot || "SIN OT"}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 font-medium">|</span>
-                                                <span className="text-xs text-slate-600 font-semibold truncate max-w-[250px]" title={item.cliente_nombre}>
+                                                <span className="text-xs text-slate-600 font-semibold truncate max-w-62.5" title={item.cliente_nombre}>
                                                     {item.cliente_nombre || "Cliente no especificado"}
                                                 </span>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-500">
                                                 <div className="sm:col-span-2">
-                                                    Proyecto: <span className="font-bold text-slate-700 truncate max-w-[300px]" title={item.proyecto}>{item.proyecto || "-"}</span>
+                                                    Proyecto: <span className="font-bold text-slate-700 truncate max-w-75" title={item.proyecto}>{item.proyecto || "-"}</span>
                                                 </div>
                                                 <div>
                                                     Entrega: <span className="font-bold text-indigo-650">{item.fecha_entrega_com || "Por Definir"}</span>
@@ -504,7 +504,7 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0">
+                                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
                                         <div className="flex items-center gap-2">
                                             <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-slate-50 text-slate-700 border-slate-200`}>
                                                 ESTADO: {item.estado_trabajo || "PENDIENTE"}
@@ -555,7 +555,7 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                 </div>
 
                 <div className="bg-indigo-50 border border-indigo-105 rounded-2xl p-6 flex items-start gap-4 md:col-span-2 lg:col-span-1 shadow-sm">
-                    <div className="p-3 bg-white text-indigo-600 rounded-full border border-indigo-100 flex-shrink-0">
+                    <div className="p-3 bg-white text-indigo-600 rounded-full border border-indigo-100 shrink-0">
                         <Shield className="w-5 h-5" />
                     </div>
                     <div>
