@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
 import LLPForm from "./llp-native/LLPForm"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
 
 // --- Smart Iframe Component with Retry Logic ---
 interface SmartIframeProps {
@@ -189,7 +190,7 @@ export function LLPModule() {
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(null)
     const [search, setSearch] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 100
+    const [pageSize, setPageSize] = useState(25)
 
     const FRONTEND_URL = (
         process.env.NEXT_PUBLIC_LLP_FRONTEND_URL ||
@@ -428,9 +429,9 @@ export function LLPModule() {
         )
     })
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage))
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
     const safeCurrentPage = Math.min(currentPage, totalPages)
-    const paginatedData = filtered.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage)
+    const paginatedData = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize)
 
     useEffect(() => {
         setCurrentPage(1)
@@ -557,19 +558,18 @@ export function LLPModule() {
                     </TableBody>
                     <TableCaption className="text-xs text-muted-foreground">Limite — listado con búsqueda y acceso rápido.</TableCaption>
                 </Table>
-                {!loading && filtered.length > 0 && (
-                    <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
-                        <span className="text-muted-foreground">
-                            Mostrando {(safeCurrentPage - 1) * itemsPerPage + 1} - {Math.min(safeCurrentPage * itemsPerPage, filtered.length)} de {filtered.length}
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" disabled={safeCurrentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</Button>
-                            <span className="min-w-[88px] text-center font-medium">Página {safeCurrentPage} / {totalPages}</span>
-                            <Button variant="outline" size="sm" disabled={safeCurrentPage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Siguiente</Button>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Pagination Controls */}
+            <DataTablePagination
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filtered.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                disabled={loading}
+            />
 
             {/* Modal for Creation/Edit (Native or Iframe) */}
             {LLP_MODE === "native" ? (

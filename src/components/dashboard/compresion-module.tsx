@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { formatLocalDate } from "@/lib/utils"
 import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard"
 import { TimelineEtapas } from "@/components/dashboard/shared/TimelineEtapas"
+import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import dynamic from "next/dynamic"
 
 const CompresionNativeModals = dynamic(() => import("./compresion-native/CompresionNativeModals"), { ssr: false })
@@ -171,6 +172,8 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
     const [ensayos, setEnsayos] = useState<EnsayoCompresion[]>([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(25)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [iframePath, setIframePath] = useState("/compresion")
@@ -525,6 +528,17 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
         item.numero_recepcion?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    const totalPages = Math.ceil(filteredData.length / pageSize) || 1
+
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * pageSize
+        return filteredData.slice(start, start + pageSize)
+    }, [filteredData, currentPage, pageSize])
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm])
+
     const getEstadoBadge = (estado: string) => {
         switch (estado?.toUpperCase()) {
             case 'COMPLETADO':
@@ -594,7 +608,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredData.map((item) => (
+                            paginatedData.map((item) => (
                                 <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item)}>
                                     <TableCell className="font-bold text-primary">{item.numero_ot}</TableCell>
                                     <TableCell>{item.numero_recepcion}</TableCell>
@@ -638,6 +652,17 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Pagination Controls */}
+            <DataTablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filteredData.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                disabled={loading}
+            />
 
             {/* Modal for Creation/Editing */}
             {COMPRESION_MODE === "native" ? (
