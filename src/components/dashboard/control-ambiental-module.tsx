@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import {
+
   Thermometer,
   Scale,
   Activity,
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   XCircle,
   User,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -697,71 +699,147 @@ export function ControlAmbientalModule({ user }: ControlAmbientalModuleProps) {
         {/* ════════════════════════════════════════════════════════════════
             TAB 2 · TEMPERATURA Y HUMEDAD RELATIVA
         ════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="temperatura" className="space-y-4">
-          <Card className="border-border/80">
-            <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <Thermometer className="h-5 w-5 text-emerald-400" />
-                    Control de Temperatura y Humedad Relativa
-                  </CardTitle>
-                  <CardDescription>F-LEM-P-05.01 V03</CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar área, fecha, usuario..." value={searchTemp} onChange={(e) => setSearchTemp(e.target.value)} className="pl-9 h-9" />
-                  </div>
-                  <Select value={areaFilter} onValueChange={setAreaFilter}>
-                    <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODAS">Todas las áreas</SelectItem>
-                      {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* ════════════════════════════════════════════════════════════════
+            TAB 2 · TEMPERATURA Y HUMEDAD RELATIVA — F-LEM-P-05.01
+        ════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="temperatura" className="space-y-0">
+
+          {/* Header estilo F. Probetas */}
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <Thermometer className="h-6 w-6 text-emerald-400" />
+                Temperatura / Humedad
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Gestión y control de registros de temperatura y humedad relativa
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 gap-1.5">
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button size="sm"
+                onClick={() => executeWithSafetyCheck(() => { setEditingTempId(null); setTempForm(resetTempForm()); setTempIsDirty(false); setShowTempModal(true) })}
+                className="h-9 gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+              >
+                <Plus className="h-4 w-4" /> Nueva Lectura
+              </Button>
+            </div>
+          </div>
+
+          {/* Barra de búsqueda y filtro */}
+          <Card className="border-border/60 mb-0 rounded-b-none border-b-0">
+            <CardContent className="p-4 flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por área, responsable, fecha..."
+                  value={searchTemp}
+                  onChange={(e) => setSearchTemp(e.target.value)}
+                  className="pl-9 h-9"
+                />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border border-border/60 overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase border-b border-border/60">
-                    <tr>
-                      <th className="py-3 px-4">Fecha / Hora</th>
-                      <th className="py-3 px-4">Área / Ambiente</th>
-                      <th className="py-3 px-4 text-center">Temp (°C)</th>
-                      <th className="py-3 px-4 text-center">Humedad (%)</th>
-                      <th className="py-3 px-4 text-center">Min / Max °C</th>
-                      <th className="py-3 px-4 text-center">Estado</th>
-                      <th className="py-3 px-4">Responsable</th>
-                      <th className="py-3 px-4 text-right">Acciones</th>
+              <Select value={areaFilter} onValueChange={setAreaFilter}>
+                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODAS">Todas las áreas</SelectItem>
+                  {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Tabla estilo F. Probetas */}
+          <Card className="border-border/60 rounded-t-none">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60">
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Fecha</th>
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Hora</th>
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Área / Ambiente</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Temperatura</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Humedad</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Min / Max °C</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Estado</th>
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Responsable</th>
+                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/40">
+                  <tbody>
                     {filteredTempList.length === 0 ? (
-                      <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">No se encontraron registros de temperatura.</td></tr>
+                      <tr>
+                        <td colSpan={9} className="py-14 text-center text-muted-foreground">
+                          <Thermometer className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">No se encontraron registros de temperatura.</p>
+                        </td>
+                      </tr>
                     ) : (
                       filteredTempList.map((item) => (
-                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4 font-mono text-xs">
-                            <div className="font-semibold">{item.fecha}</div>
-                            <div className="text-muted-foreground flex items-center gap-1 mt-0.5"><Clock className="h-3 w-3" />{item.hora_lectura}</div>
+                        <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                          {/* Fecha en badge azul */}
+                          <td className="py-3.5 px-5">
+                            <span className="inline-flex items-center rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 text-xs font-semibold font-mono">
+                              {item.fecha}
+                            </span>
                           </td>
-                          <td className="py-3 px-4 font-medium">{item.area_ambiente}</td>
-                          <td className="py-3 px-4 text-center font-bold text-emerald-400">{item.temperatura_c.toFixed(1)}°C</td>
-                          <td className="py-3 px-4 text-center font-bold text-blue-400">{item.humedad_relativa_pct.toFixed(1)}%</td>
-                          <td className="py-3 px-4 text-center text-xs text-muted-foreground">
+                          {/* Hora */}
+                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono flex items-center gap-1 pt-5">
+                            <Clock className="h-3 w-3" />{item.hora_lectura}
+                          </td>
+                          {/* Área */}
+                          <td className="py-3.5 px-5 font-medium text-sm">{item.area_ambiente}</td>
+                          {/* Temperatura */}
+                          <td className="py-3.5 px-5 text-center">
+                            <span className="font-bold text-emerald-400 text-sm">{item.temperatura_c.toFixed(1)}°C</span>
+                          </td>
+                          {/* Humedad */}
+                          <td className="py-3.5 px-5 text-center">
+                            <span className="font-bold text-blue-400 text-sm">{item.humedad_relativa_pct.toFixed(1)}%</span>
+                          </td>
+                          {/* Min / Max */}
+                          <td className="py-3.5 px-5 text-center text-xs text-muted-foreground font-mono">
                             {item.temp_min ? `${item.temp_min}°C` : "—"} / {item.temp_max ? `${item.temp_max}°C` : "—"}
                           </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge variant={item.cumple_especificacion ? "default" : "destructive"}>
-                              {item.cumple_especificacion ? "CUMPLE" : "NO CUMPLE"}
-                            </Badge>
+                          {/* Estado badge coloreado */}
+                          <td className="py-3.5 px-5 text-center">
+                            {item.cumple_especificacion ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 text-[11px] font-semibold">
+                                <CheckCircle2 className="h-3 w-3" />Cumple
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 px-2.5 py-1 text-[11px] font-semibold">
+                                <XCircle className="h-3 w-3" />No Cumple
+                              </span>
+                            )}
                           </td>
-                          <td className="py-3 px-4 text-xs font-mono">{item.responsable_lectura}</td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                          {/* Responsable */}
+                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono max-w-[140px] truncate">
+                            {item.responsable_lectura}
+                          </td>
+                          {/* Acciones: ojo, lápiz, basura */}
+                          <td className="py-3.5 px-5 text-right">
+                            <div className="flex items-center justify-end gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => executeWithSafetyCheck(() => {
+                                  setEditingTempId(item.id)
+                                  setTempForm({
+                                    fecha: item.fecha, hora_lectura: item.hora_lectura, fecha_lectura: item.fecha,
+                                    area_ambiente: item.area_ambiente, temperatura_c: String(item.temperatura_c),
+                                    humedad_relativa_pct: String(item.humedad_relativa_pct),
+                                    temp_min: item.temp_min ? String(item.temp_min) : "",
+                                    temp_max: item.temp_max ? String(item.temp_max) : "",
+                                    hum_min: "", hum_max: "",
+                                    cumple_especificacion: item.cumple_especificacion,
+                                    responsable_lectura: item.responsable_lectura,
+                                    revisado_por: "", observaciones: item.observaciones || "",
+                                  })
+                                  setTempIsDirty(false); setShowTempModal(true)
+                                })}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                 onClick={() => executeWithSafetyCheck(() => {
                                   setEditingTempId(item.id)
@@ -792,85 +870,157 @@ export function ControlAmbientalModule({ user }: ControlAmbientalModuleProps) {
                   </tbody>
                 </table>
               </div>
+              {/* Footer con conteo */}
+              {filteredTempList.length > 0 && (
+                <div className="px-5 py-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground bg-muted/20">
+                  <span>Mostrando <span className="font-semibold text-foreground">{filteredTempList.length}</span> de <span className="font-semibold text-foreground">{temperaturaList.length}</span> registros</span>
+                  <span className="font-mono text-[10px]">F-LEM-P-05.01 V03</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* ════════════════════════════════════════════════════════════════
-            TAB 3 · CONTROL DE BALANZAS
+            TAB 3 · CONTROL DE BALANZAS — F-LEM-IN-01.02
         ════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="balanza" className="space-y-4">
-          <Card className="border-border/80">
-            <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <Scale className="h-5 w-5 text-amber-400" />
-                    Verificación Diaria de Balanzas
-                  </CardTitle>
-                  <CardDescription>F-LEM-IN-01.02 V03</CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar balanza, ubicación..." value={searchBalanza} onChange={(e) => setSearchBalanza(e.target.value)} className="pl-9 h-9" />
-                  </div>
-                  <Select value={balanzaFilter} onValueChange={setBalanzaFilter}>
-                    <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODAS">Todas las balanzas</SelectItem>
-                      {DEFAULT_BALANZAS.map((b) => <SelectItem key={b.codigo} value={b.codigo}>{b.codigo}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <TabsContent value="balanza" className="space-y-0">
+
+          {/* Header estilo F. Probetas */}
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <Scale className="h-6 w-6 text-amber-400" />
+                Verificación de Balanzas
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Gestión y control de formatos de verificación diaria de balanzas
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 gap-1.5">
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button size="sm"
+                onClick={() => executeWithSafetyCheck(() => { setEditingBalanzaId(null); setBalanzaForm(resetBalanzaForm()); setBalanzaIsDirty(false); setShowBalanzaModal(true) })}
+                className="h-9 gap-2 bg-amber-600 hover:bg-amber-500 text-white"
+              >
+                <Plus className="h-4 w-4" /> Nueva Verificación
+              </Button>
+            </div>
+          </div>
+
+          {/* Barra de búsqueda y filtro */}
+          <Card className="border-border/60 mb-0 rounded-b-none border-b-0">
+            <CardContent className="p-4 flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por código, ubicación, responsable..."
+                  value={searchBalanza}
+                  onChange={(e) => setSearchBalanza(e.target.value)}
+                  className="pl-9 h-9"
+                />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border border-border/60 overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase border-b border-border/60">
-                    <tr>
-                      <th className="py-3 px-4">Fecha</th>
-                      <th className="py-3 px-4">Código / Ubicación</th>
-                      <th className="py-3 px-4 text-right">Capacidad</th>
-                      <th className="py-3 px-4 text-right">Masa Patrón</th>
-                      <th className="py-3 px-4 text-right">Lectura</th>
-                      <th className="py-3 px-4 text-center">Error / Tol.</th>
-                      <th className="py-3 px-4 text-center">Limpieza</th>
-                      <th className="py-3 px-4 text-center">Estado</th>
-                      <th className="py-3 px-4">Verificado Por</th>
-                      <th className="py-3 px-4 text-right">Acciones</th>
+              <Select value={balanzaFilter} onValueChange={setBalanzaFilter}>
+                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODAS">Todas las balanzas</SelectItem>
+                  {DEFAULT_BALANZAS.map((b) => <SelectItem key={b.codigo} value={b.codigo}>{b.codigo} — {b.ubi}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Tabla estilo F. Probetas */}
+          <Card className="border-border/60 rounded-t-none">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60">
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Fecha</th>
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Código / Ubicación</th>
+                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Capacidad</th>
+                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Masa Patrón</th>
+                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Lectura</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Error / Tol.</th>
+                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Estado</th>
+                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Verificado Por</th>
+                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/40">
+                  <tbody>
                     {filteredBalanzaList.length === 0 ? (
-                      <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">No se encontraron verificaciones de balanza.</td></tr>
+                      <tr>
+                        <td colSpan={9} className="py-14 text-center text-muted-foreground">
+                          <Scale className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">No se encontraron verificaciones de balanza.</p>
+                        </td>
+                      </tr>
                     ) : (
                       filteredBalanzaList.map((item) => (
-                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4 font-mono text-xs font-semibold">{item.fecha}</td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold">{item.codigo_balanza}</div>
+                        <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                          {/* Fecha en badge azul */}
+                          <td className="py-3.5 px-5">
+                            <span className="inline-flex items-center rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 text-xs font-semibold font-mono">
+                              {item.fecha}
+                            </span>
+                          </td>
+                          {/* Código resaltado + ubicación */}
+                          <td className="py-3.5 px-5">
+                            <div className="font-bold text-primary text-sm">{item.codigo_balanza}</div>
                             <div className="text-xs text-muted-foreground">{item.ubicacion}</div>
                           </td>
-                          <td className="py-3 px-4 text-right font-mono text-xs">{item.capacidad_g}g</td>
-                          <td className="py-3 px-4 text-right font-mono text-xs font-medium">{item.masa_patron_g}g</td>
-                          <td className="py-3 px-4 text-right font-mono text-xs font-bold">{item.lectura_balanza_g}g</td>
-                          <td className="py-3 px-4 text-center font-mono text-xs">
-                            <span className={item.error_g === 0 ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                          <td className="py-3.5 px-5 text-right font-mono text-xs">{item.capacidad_g}g</td>
+                          <td className="py-3.5 px-5 text-right font-mono text-xs font-semibold">{item.masa_patron_g}g</td>
+                          <td className="py-3.5 px-5 text-right font-mono text-xs font-bold">{item.lectura_balanza_g}g</td>
+                          {/* Error + tolerancia */}
+                          <td className="py-3.5 px-5 text-center">
+                            <span className={`font-mono text-xs font-bold block ${item.error_g === 0 ? "text-emerald-400" : "text-amber-400"}`}>
                               {item.error_g > 0 ? `+${item.error_g}` : item.error_g}g
                             </span>
-                            <span className="text-muted-foreground text-[11px] block">Tol: ±{item.error_max_permitido_g}g</span>
+                            <span className="text-[10px] text-muted-foreground">Tol: ±{item.error_max_permitido_g}g</span>
                           </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge variant={item.limpieza_nivelacion ? "outline" : "destructive"}>{item.limpieza_nivelacion ? "OK" : "NO"}</Badge>
+                          {/* Estado con badge coloreado */}
+                          <td className="py-3.5 px-5 text-center">
+                            {item.estado_conforme ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 text-[11px] font-semibold">
+                                <CheckCircle2 className="h-3 w-3" />Conforme
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 px-2.5 py-1 text-[11px] font-semibold">
+                                <XCircle className="h-3 w-3" />No Conforme
+                              </span>
+                            )}
                           </td>
-                          <td className="py-3 px-4 text-center">
-                            <Badge variant={item.estado_conforme ? "default" : "destructive"}>{item.estado_conforme ? "CONFORME" : "NO CONFORME"}</Badge>
+                          {/* Verificado por */}
+                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono max-w-[140px] truncate">
+                            {item.verificado_por}
                           </td>
-                          <td className="py-3 px-4 text-xs font-mono">{item.verificado_por}</td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
+                          {/* Acciones: ojo, lápiz, basura */}
+                          <td className="py-3.5 px-5 text-right">
+                            <div className="flex items-center justify-end gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => executeWithSafetyCheck(() => {
+                                  setEditingBalanzaId(item.id)
+                                  const fechaObj = new Date(item.fecha + "T00:00:00")
+                                  setBalanzaForm({
+                                    fecha: item.fecha, hora: "08:00",
+                                    mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+                                    codigo_balanza: item.codigo_balanza, ubicacion: item.ubicacion,
+                                    codigos_pesas_patron: "",
+                                    capacidad_g: String(item.capacidad_g), masa_patron_g: String(item.masa_patron_g),
+                                    lectura_balanza_g: String(item.lectura_balanza_g),
+                                    error_max_permitido_g: String(item.error_max_permitido_g),
+                                    limpieza_nivelacion: item.limpieza_nivelacion,
+                                    verificado_por: item.verificado_por, revisado_por: "",
+                                    observaciones: item.observaciones || "",
+                                  })
+                                  setBalanzaIsDirty(false); setShowBalanzaModal(true)
+                                })}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                 onClick={() => executeWithSafetyCheck(() => {
                                   setEditingBalanzaId(item.id)
@@ -903,436 +1053,14 @@ export function ControlAmbientalModule({ user }: ControlAmbientalModuleProps) {
                   </tbody>
                 </table>
               </div>
+              {/* Footer con conteo */}
+              {filteredBalanzaList.length > 0 && (
+                <div className="px-5 py-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground bg-muted/20">
+                  <span>Mostrando <span className="font-semibold text-foreground">{filteredBalanzaList.length}</span> de <span className="font-semibold text-foreground">{balanzaList.length}</span> registros</span>
+                  <span className="font-mono text-[10px]">F-LEM-IN-01.02 V03</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* ════════════════════════════════════════════════════════════════════
-          DIALOG 1 · F-LEM-P-05.01 V03
-          Control de Temperatura y Humedad Relativa
-      ════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={showTempModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowTempModal(false)); else setShowTempModal(true) }}>
-        <DialogContent className="sm:max-w-[740px] max-h-[90vh] overflow-y-auto">
-
-          {/* Header del dialog */}
-          <DialogHeader className="border-b border-border pb-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex-shrink-0">
-                <Thermometer className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
-                  LABORATORIO DE ENSAYO DE MATERIALES
-                </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
-                  {editingTempId ? "Editar registro · " : "Nuevo registro · "}
-                  F-LEM-P-05.01 V03 — Control de Temperatura y Humedad Relativa
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveTemp} className="space-y-5 py-2">
-
-            {/* ── Fila de cabecera del formato ── */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">MES-AÑO</label>
-                <Input
-                  placeholder="Ej: AGOSTO-2026"
-                  defaultValue={getMesAnio()}
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Aprobado Por</label>
-                <Input
-                  placeholder="Nombre del aprobador"
-                  value={tempForm.revisado_por}
-                  onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            {/* ── Área de control + tabla de parámetros ── */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-3">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Área de Control</p>
-                  <Select
-                    value={tempForm.area_ambiente}
-                    onValueChange={(v) => { setTempForm((p) => ({ ...p, area_ambiente: v })); setTempIsDirty(true) }}
-                  >
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione área" /></SelectTrigger>
-                    <SelectContent>
-                      {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Parámetros</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Registre temperatura y humedad según los rangos normativos indicados en la tabla de parámetros de las áreas del laboratorio.
-                  </p>
-                </div>
-              </div>
-
-              {/* Tabla de parámetros de referencia (F-LEM-P-05.01) */}
-              <div className="rounded-lg border border-border/60 overflow-hidden">
-                <div className="bg-muted/50 px-3 py-1.5 border-b border-border/60">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Parámetros de las Áreas</p>
-                </div>
-                <table className="w-full">
-                  <thead className="bg-muted/30">
-                    <tr>
-                      <th className="px-2 py-1 text-left text-[9px] text-muted-foreground font-semibold">Área</th>
-                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Temp.</th>
-                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Hum.</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {AREA_PARAMETROS.map((ap) => (
-                      <tr key={ap.area} className={ap.area.includes("Lavado") ? "font-semibold bg-amber-500/5" : ""}>
-                        <td className="px-2 py-1.5 text-[10px] text-foreground leading-tight">{ap.area}</td>
-                        <td className="px-2 py-1.5 text-center text-[10px] text-emerald-400 font-mono whitespace-nowrap">{ap.temp}</td>
-                        <td className="px-2 py-1.5 text-center text-[10px] text-blue-400 whitespace-nowrap">{ap.humedad}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* ── Datos del registro ── */}
-            <div className="border-t border-border/60 pt-4 space-y-4">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Datos del Registro</p>
-
-              {/* Fechas y hora */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Registro</label>
-                  <Input type="date" value={tempForm.fecha}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Hora de Toma</label>
-                  <Input type="time" value={tempForm.hora_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, hora_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Lectura</label>
-                  <Input type="date" value={tempForm.fecha_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-              </div>
-
-              {/* Temperatura + Humedad con Min/Max */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Temperatura */}
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
-                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Temperatura (°C)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Mínimo</label>
-                      <Input type="number" step="0.1" placeholder="Mín" value={tempForm.temp_min}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_min: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Máximo</label>
-                      <Input type="number" step="0.1" placeholder="Máx" value={tempForm.temp_max}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_max: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground">Lectura actual (°C)</label>
-                    <Input type="number" step="0.1" placeholder="°C" value={tempForm.temperatura_c}
-                      onChange={(e) => { setTempForm((p) => ({ ...p, temperatura_c: e.target.value })); setTempIsDirty(true) }}
-                      className="h-8 text-xs font-mono font-bold" required />
-                  </div>
-                </div>
-
-                {/* Humedad */}
-                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Humedad Relativa (%)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Mínimo</label>
-                      <Input type="number" step="0.1" placeholder="Mín" value={tempForm.hum_min}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_min: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Máximo</label>
-                      <Input type="number" step="0.1" placeholder="Máx" value={tempForm.hum_max}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_max: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground">Lectura actual (%)</label>
-                    <Input type="number" step="0.1" placeholder="%" value={tempForm.humedad_relativa_pct}
-                      onChange={(e) => { setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value })); setTempIsDirty(true) }}
-                      className="h-8 text-xs font-mono font-bold" required />
-                  </div>
-                </div>
-              </div>
-
-              {/* Responsables */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable del Registro</label>
-                  <Input placeholder="Nombre del responsable" value={tempForm.responsable_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, responsable_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable de la Revisión</label>
-                  <Input placeholder="Nombre del revisor" value={tempForm.revisado_por}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-              </div>
-
-              {/* Cumple especificación */}
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
-                <label className="text-xs font-semibold flex-1">¿Cumple Especificación?</label>
-                <div className="flex gap-2">
-                  {[true, false].map((val) => (
-                    <button key={String(val)} type="button"
-                      onClick={() => { setTempForm((p) => ({ ...p, cumple_especificacion: val })); setTempIsDirty(true) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
-                        tempForm.cumple_especificacion === val
-                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
-                          : "border-border text-muted-foreground"
-                      }`}>
-                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> SÍ</> : <><XCircle className="h-3.5 w-3.5" /> NO</>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}>Cancelar</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white">
-                {editingTempId ? "Actualizar Lectura" : "Guardar Lectura"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ════════════════════════════════════════════════════════════════════
-          DIALOG 2 · F-LEM-IN-01.02 V03
-          Formato de Verificación Diaria de Balanzas
-      ════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={showBalanzaModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowBalanzaModal(false)); else setShowBalanzaModal(true) }}>
-        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
-
-          <DialogHeader className="border-b border-border pb-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex-shrink-0">
-                <Scale className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
-                  FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
-                </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
-                  {editingBalanzaId ? "Editar verificación · " : "Nueva verificación · "}
-                  F-LEM-IN-01.02 V03
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveBalanza} className="space-y-4 py-2">
-
-            {/* ── Código balanza + Mes/Año ── */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Código de la Balanza</label>
-                <Select value={balanzaForm.codigo_balanza}
-                  onValueChange={(val) => {
-                    const p = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                    setBalanzaForm((prev) => ({
-                      ...prev, codigo_balanza: val,
-                      ubicacion:             p?.ubi  || prev.ubicacion,
-                      capacidad_g:           String(p?.cap  || prev.capacidad_g),
-                      masa_patron_g:         String(p?.masa || prev.masa_patron_g),
-                      lectura_balanza_g:     String(p?.masa || prev.masa_patron_g),
-                      error_max_permitido_g: String(p?.tol  || prev.error_max_permitido_g),
-                    }))
-                    setBalanzaIsDirty(true)
-                  }}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione código" /></SelectTrigger>
-                  <SelectContent>
-                    {DEFAULT_BALANZAS.map((b) => (
-                      <SelectItem key={b.codigo} value={b.codigo} className="text-xs">{b.codigo} — {b.ubi}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mes / Año</label>
-                <Input placeholder="Ej: AGOSTO-2026" value={balanzaForm.mes_anio}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, mes_anio: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs font-mono" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ubicación de la Balanza</label>
-              <Input value={balanzaForm.ubicacion}
-                onChange={(e) => { setBalanzaForm((p) => ({ ...p, ubicacion: e.target.value })); setBalanzaIsDirty(true) }}
-                className="h-8 text-xs" required />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Códigos de las Pesas Patrón</label>
-              <Input placeholder="Ej: PP-001, PP-002..." value={balanzaForm.codigos_pesas_patron}
-                onChange={(e) => { setBalanzaForm((p) => ({ ...p, codigos_pesas_patron: e.target.value })); setBalanzaIsDirty(true) }}
-                className="h-8 text-xs font-mono" />
-            </div>
-
-            {/* ── Registro de lectura ── */}
-            <div className="border-t border-border/60 pt-3 space-y-4">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Pesa Patrón Usado — Anotar Lecturas de la Balanza
-              </p>
-
-              {/* Fecha, Hora, Temp ambiental, Humedad ambiental */}
-              <div className="grid grid-cols-4 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha</label>
-                  <Input type="date" value={balanzaForm.fecha}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, fecha: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Hora</label>
-                  <Input type="time" value={balanzaForm.hora}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, hora: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Temp. (°C)</label>
-                  <Input type="number" step="0.1" placeholder="°C" className="h-8 text-xs font-mono" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Humedad (%)</label>
-                  <Input type="number" step="0.1" placeholder="%" className="h-8 text-xs font-mono" />
-                </div>
-              </div>
-
-              {/* Capacidad, Masa Patrón, Lectura */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Capacidad (g)</label>
-                  <Input type="number" value={balanzaForm.capacidad_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, capacidad_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Masa Patrón (g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.masa_patron_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, masa_patron_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Lectura Balanza (g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.lectura_balanza_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, lectura_balanza_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-              </div>
-
-              {/* Error máx + Resultado calculado automático */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Error Máx. Permitido ±(g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.error_max_permitido_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, error_max_permitido_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Resultado (calculado)</label>
-                  <div className={`h-8 flex items-center px-3 rounded-md border text-xs font-bold ${
-                    balanzaErrorCalc.conforme
-                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                      : "bg-red-500/10 border-red-500/40 text-red-400"
-                  }`}>
-                    {balanzaErrorCalc.conforme
-                      ? <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> OK — Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
-                      : <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> NO OK — Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              {/* Limpieza y nivelación */}
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
-                <label className="text-xs font-semibold flex-1">Limpieza y Nivelación</label>
-                <div className="flex gap-2">
-                  {[true, false].map((val) => (
-                    <button key={String(val)} type="button"
-                      onClick={() => { setBalanzaForm((p) => ({ ...p, limpieza_nivelacion: val })); setBalanzaIsDirty(true) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
-                        balanzaForm.limpieza_nivelacion === val
-                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
-                          : "border-border text-muted-foreground"
-                      }`}>
-                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> Conforme</> : <><XCircle className="h-3.5 w-3.5" /> No Conforme</>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ── Firmas ── */}
-            <div className="border-t border-border/60 pt-3 grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Realizado Por</label>
-                <Input placeholder="Nombre del responsable" value={balanzaForm.verificado_por}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, verificado_por: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Revisado Por</label>
-                <Input placeholder="Nombre del revisor" value={balanzaForm.revisado_por}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, revisado_por: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs" />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}>Cancelar</Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                {editingBalanzaId ? "Actualizar Verificación" : "Guardar Verificación"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Safety confirmation */}
-      <ModernConfirmDialog
-        open={showUnsavedDialog}
-        onOpenChange={setShowUnsavedDialog}
-        onConfirm={confirmExitWithoutSaving}
-        title="¿Desea salir sin guardar los cambios?"
-        description="Ha modificado datos en el formulario. Si sale ahora, se perderán los registros ingresados."
-        confirmText="Salir sin guardar"
-        cancelText="Continuar editando"
-        variant="destructive"
-      />
-    </div>
-  )
-}

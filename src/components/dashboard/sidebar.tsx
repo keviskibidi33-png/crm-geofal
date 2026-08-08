@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp, Thermometer, Scale } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -69,7 +69,6 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker, adminOnly: true },
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
-  { id: "control_ambiental", label: "Control Ambiental", icon: FlaskConical },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
@@ -99,12 +98,24 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     { id: "huanta_seguimiento", label: "Seguimiento Huanta", icon: Activity },
   ], [])
 
-  const isHuantaActive = React.useMemo(() => 
+  const isHuantaActive = React.useMemo(() =>
     ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule),
     [activeModule]
   )
 
   const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive)
+
+  const ambientalSubmodules = React.useMemo(() => [
+    { id: "control_ambiental",          label: "Temperatura / Humedad", icon: Thermometer },
+    { id: "control_ambiental_balanzas", label: "Balanzas",               icon: Scale },
+  ], [])
+
+  const isAmbientalActive = React.useMemo(() =>
+    ["control_ambiental", "control_ambiental_balanzas"].includes(activeModule),
+    [activeModule]
+  )
+
+  const [ambientalExpanded, setAmbientalExpanded] = React.useState(isAmbientalActive)
 
   const accessibleKpiModules = React.useMemo(
     () => kpiModules.filter((module) => canAccessDashboardModule(module.id, user.role, user.permissions, user.email)),
@@ -119,16 +130,16 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive)
 
   React.useEffect(() => {
-    if (isHuantaActive) {
-      setHuantaExpanded(true)
-    }
+    if (isHuantaActive) setHuantaExpanded(true)
   }, [isHuantaActive])
 
   React.useEffect(() => {
-    if (isKpiActive) {
-      setKpiExpanded(true)
-    }
+    if (isKpiActive) setKpiExpanded(true)
   }, [isKpiActive])
+
+  React.useEffect(() => {
+    if (isAmbientalActive) setAmbientalExpanded(true)
+  }, [isAmbientalActive])
 
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)
 
@@ -486,6 +497,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
         )}
 
         {filteredModules.map((module) => {
+          // ── Laboratorio Huanta (grupo colapsable) ──────────────────────
           if (module.id === "huanta_probetas") {
             const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions, user.email)
             if (!hasAccess) return null
@@ -508,9 +520,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                       <Beaker className="h-5 w-5 shrink-0 text-primary" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    <p>Laboratorio Huanta</p>
-                  </TooltipContent>
+                  <TooltipContent side="right" sideOffset={8}><p>Laboratorio Huanta</p></TooltipContent>
                 </Tooltip>
               )
             }
@@ -523,9 +533,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
             return (
               <div key="proyecto_huanta" className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => setHuantaExpanded(prev => !prev)}
+                <button type="button" onClick={() => setHuantaExpanded(prev => !prev)}
                   className={cn(
                     "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
                     isHuantaActive && !huantaExpanded
@@ -535,30 +543,19 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                 >
                   <Beaker className="h-5 w-5 shrink-0 text-primary" />
                   <span className="flex-1 text-left truncate font-semibold">Laboratorio Huanta</span>
-                  {huantaExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
+                  {huantaExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                 </button>
-
                 {huantaExpanded && (
                   <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
                     {filteredSubmodules.map((sub) => {
                       const SubIcon = sub.icon
                       const isSubActive = activeModule === sub.id
                       const readOnly = isModuleReadOnly(sub.id as any)
-
                       return (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          onClick={() => handleModuleClick(sub.id as any)}
+                        <button key={sub.id} type="button" onClick={() => handleModuleClick(sub.id as any)}
                           className={cn(
                             "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
-                            isSubActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
+                            isSubActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
                           )}
                         >
                           <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -571,6 +568,100 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   </div>
                 )}
               </div>
+            )
+          }
+
+          // ── Control Ambiental (grupo colapsable) ───────────────────────
+          if (module.id === "laboratorio") {
+            // render laboratorio normally first, then inject the ambiental group after it
+            const hasAmbientalAccess = canAccessDashboardModule("control_ambiental", user.role, user.permissions, user.email)
+            const Icon = module.icon
+            const isActive = activeModule === module.id
+            const readOnly = isModuleReadOnly(module.id)
+
+            const labButton = collapsed ? (
+              <Tooltip key={module.id}>
+                <TooltipTrigger asChild>
+                  <button onClick={() => handleModuleClick(module.id)}
+                    className={cn(
+                      "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                  ><Icon className="h-5 w-5 shrink-0" /></button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}><p>{module.label}</p></TooltipContent>
+              </Tooltip>
+            ) : (
+              <button key={module.id} onClick={() => handleModuleClick(module.id)}
+                className={cn(
+                  "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
+                  isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-left truncate">{module.label}</span>
+                {readOnly && <Eye className="h-3.5 w-3.5 text-amber-500/70 shrink-0" />}
+                {!readOnly && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
+              </button>
+            )
+
+            // If no ambiental access, render lab button alone
+            if (!hasAmbientalAccess) return labButton
+
+            // Render lab button + ambiental collapsible group
+            return (
+              <React.Fragment key="lab_and_ambiental">
+                {labButton}
+                {!collapsed && (
+                  <div className="space-y-1">
+                    <button type="button" onClick={() => setAmbientalExpanded(prev => !prev)}
+                      className={cn(
+                        "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
+                        isAmbientalActive && !ambientalExpanded
+                          ? "bg-sidebar-accent/40 text-sidebar-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                      )}
+                    >
+                      <FlaskConical className="h-5 w-5 shrink-0 text-emerald-500" />
+                      <span className="flex-1 text-left truncate font-semibold">Control Ambiental</span>
+                      {ambientalExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    </button>
+                    {ambientalExpanded && (
+                      <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
+                        {ambientalSubmodules.map((sub) => {
+                          const SubIcon = sub.icon
+                          const isSubActive = activeModule === sub.id
+                          return (
+                            <button key={sub.id} type="button" onClick={() => handleModuleClick(sub.id as any)}
+                              className={cn(
+                                "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
+                                isSubActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
+                              )}
+                            >
+                              <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                              <span className="flex-1 text-left truncate">{sub.label}</span>
+                              {isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {collapsed && (
+                  <Tooltip key="ambiental_collapsed">
+                    <TooltipTrigger asChild>
+                      <button onClick={() => handleModuleClick("control_ambiental")}
+                        className={cn(
+                          "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
+                          isAmbientalActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                        )}
+                      ><FlaskConical className="h-5 w-5 shrink-0 text-emerald-500" /></button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8}><p>Control Ambiental</p></TooltipContent>
+                  </Tooltip>
+                )}
+              </React.Fragment>
             )
           }
 
