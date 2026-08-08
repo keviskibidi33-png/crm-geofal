@@ -212,7 +212,9 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                                 role: updatedUser.role || s.role,
                                 phone: updatedUser.phone || s.phone,
                                 last_seen_at: updatedUser.last_seen_at,
-                                estado: updatedUser.deleted_at ? "inactivo" : "activo"
+                                estado: updatedUser.deleted_at ? "inactivo" : "activo",
+                                show_kpi: typeof updatedUser.show_kpi === 'boolean' ? updatedUser.show_kpi : s.show_kpi,
+                                tabla_seguimiento: updatedUser.tabla_seguimiento || s.tabla_seguimiento,
                             }
                             : s
                     ))
@@ -896,7 +898,9 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                                 email: safeEmail,
                                 phone,
                                 role,
-                                password
+                                password,
+                                show_kpi: editShowKpi,
+                                tabla_seguimiento: editTablaSeguimiento,
                             })
 
                             if (result.error) throw new Error(result.error)

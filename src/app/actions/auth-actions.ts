@@ -213,6 +213,8 @@ export async function updateUserAction(data: {
     password?: string
     phone?: string
     role?: string
+    show_kpi?: boolean
+    tabla_seguimiento?: string
 }) {
     if (!supabaseServiceKey) {
         return {
@@ -263,6 +265,8 @@ export async function updateUserAction(data: {
         if (canonicalRole) dbUpdates.role = canonicalRole
         if (data.phone !== undefined) dbUpdates.phone = data.phone
         if (data.email) dbUpdates.email = data.email
+        if (data.show_kpi !== undefined) dbUpdates.show_kpi = data.show_kpi
+        if (data.tabla_seguimiento !== undefined) dbUpdates.tabla_seguimiento = data.tabla_seguimiento
 
         const { error: dbError } = await supabaseAdmin
             .from('perfiles')

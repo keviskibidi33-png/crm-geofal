@@ -46,6 +46,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
     const RECEPCION_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_RECEPCION_MODE || "iframe") as "native" | "iframe"
+    console.log("[RecepcionModule] Mode loaded:", RECEPCION_MODE, "NEXT_PUBLIC_RECEPCION_MODE env:", process.env.NEXT_PUBLIC_RECEPCION_MODE)
     const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
 
     const getStoredAccessToken = useCallback((): string | null => {
