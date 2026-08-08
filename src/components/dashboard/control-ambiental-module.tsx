@@ -1,13 +1,13 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
+import Image from "next/image"
 import {
   Thermometer,
   Scale,
   Plus,
   RefreshCw,
   Search,
-  Clock,
   Edit2,
   Trash2,
   Eye,
@@ -16,10 +16,6 @@ import {
   ChevronRight,
   FileText,
   X,
-  User,
-  FlaskConical,
-  CheckCircle2,
-  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,6 +43,9 @@ import { authFetch } from "@/lib/api-auth"
 import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialog"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
+const denseInputClass =
+  "h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center font-mono text-xs text-slate-900 shadow-2xs focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
 
 interface ControlAmbientalModuleProps {
   defaultTab?: "dashboard" | "temperatura" | "balanza"
@@ -162,7 +161,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [areaFilter, setAreaFilter] = useState("TODAS")
   const [balanzaFilter, setBalanzaFilter] = useState("TODAS")
 
-  // ── Pagination states (matching Imagen 2) ──
+  // ── Pagination states ──
   const [tempPage, setTempPage] = useState(1)
   const [tempRowsPerPage, setTempRowsPerPage] = useState(25)
 
@@ -173,7 +172,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null)
 
-  // ── Modals & Document State (Pattern Imagen 5) ──
+  // ── Modals & Document State ──
   const [showTempModal, setShowTempModal] = useState(false)
   const [tempIsDirty, setTempIsDirty] = useState(false)
   const [tempDocHeader, setTempDocHeader] = useState({
@@ -270,7 +269,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }
   }
 
-  // ── Document Groupings for History List (Imagen 2 format) ──
+  // ── Document Groupings for History List ──
   const tempDocGroups = useMemo(() => {
     const map = new Map<string, {
       key: string
@@ -809,7 +808,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           )}
         </div>
 
-        {/* Modal Form Native Patron Imagen 5 */}
+        {/* Modal Form Nativo Estilo Corte Directo (Imagen 6) */}
         {renderTempModal()}
 
         <ModernConfirmDialog
@@ -1032,7 +1031,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         )}
       </div>
 
-      {/* Modal Form Native Patron Imagen 5 */}
+      {/* Modal Form Nativo Estilo Corte Directo (Imagen 6) */}
       {renderBalanzaModal()}
 
       <ModernConfirmDialog
@@ -1049,7 +1048,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   )
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // FORMULARIO NATIVO COMPLETO PATRÓN IMAGEN 5: F-LEM-P-05.01 V03
+  // FORMULARIO CON DISEÑO IDÉNTICO A CORTE DIRECTO (IMAGEN 6)
+  // F-LEM-P-05.01 V03 CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
   // ─────────────────────────────────────────────────────────────────────────────
   function renderTempModal() {
     return (
@@ -1060,21 +1060,19 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="max-w-[96vw] w-full max-h-[96vh] p-6 bg-slate-50/50 overflow-y-auto rounded-2xl border-none shadow-2xl [&>button]:hidden">
-          <form onSubmit={handleSaveTempDoc} className="space-y-5">
-            {/* Header Barra Superior Nativa (Imagen 5) */}
-            <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200">
+        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] p-4 sm:p-6 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
+          <form onSubmit={handleSaveTempDoc} className="space-y-4">
+            {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
+            <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-sky-100 border border-sky-200 text-sky-600">
-                  <Thermometer className="h-6 w-6 text-sky-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
+                  <Thermometer className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">
-                    Control de Temperatura y Humedad Relativa — F-LEM-P-05.01 V03
+                  <h1 className="text-lg font-bold text-slate-900">
+                    CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA — F-LEM-P-05.01 V03
                   </h1>
-                  <p className="text-xs text-muted-foreground">
-                    Formulario operativo alineado al formato de hoja oficial
-                  </p>
+                  <p className="text-xs text-slate-500">Módulo nativo del CRM</p>
                 </div>
               </div>
               <button
@@ -1087,77 +1085,86 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </button>
             </div>
 
-            {/* Seccion 1: Encabezado del Formato (Cajas de estilo Imagen 5) */}
-            <div className="border border-slate-200 rounded-xl bg-white p-4 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
-                <User className="h-4 w-4 text-sky-600" />
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Encabezado del Formato
-                </h3>
+            {/* Hoja de Excel Blanca Central (Document Paper Box idéntico a Corte Directo) */}
+            <div className="mx-auto max-w-6xl overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+              {/* Bloque Encabezado Oficial con Logo y Título Centrado */}
+              <div className="border-b border-slate-300 bg-slate-50 p-4 text-center">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
+                </div>
+                <p className="text-[20px] font-bold leading-tight text-slate-900 font-sans">
+                  LABORATORIO DE ENSAYO DE MATERIALES
+                </p>
+                <p className="text-sm font-bold text-slate-800 underline uppercase mt-0.5">
+                  F-LEM-P-05.01 V03 CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Registro
-                  </label>
-                  <Input
-                    value={tempDocHeader.registro}
-                    onChange={(e) => {
-                      setTempDocHeader((p) => ({ ...p, registro: e.target.value }))
-                      setTempIsDirty(true)
-                    }}
-                    className="h-9 text-xs font-mono bg-slate-50/50 border-slate-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Mes-Año *
-                  </label>
-                  <Input
-                    value={tempDocHeader.mes_anio}
-                    onChange={(e) => {
-                      setTempDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
-                      setTempIsDirty(true)
-                    }}
-                    className="h-9 text-xs font-mono uppercase bg-slate-50/50 border-slate-200 rounded-lg"
-                    placeholder="AGOSTO 2026"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Aprobado por
-                  </label>
-                  <Input
-                    value={tempDocHeader.aprobado_por}
-                    onChange={(e) => {
-                      setTempDocHeader((p) => ({ ...p, aprobado_por: e.target.value }))
-                      setTempIsDirty(true)
-                    }}
-                    className="h-9 text-xs uppercase bg-slate-50/50 border-slate-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Fecha de Aprobación
-                  </label>
-                  <Input
-                    type="date"
-                    value={tempDocHeader.fecha_aprobacion}
-                    onChange={(e) => {
-                      setTempDocHeader((p) => ({ ...p, fecha_aprobacion: e.target.value }))
-                      setTempIsDirty(true)
-                    }}
-                    className="h-9 text-xs font-mono bg-slate-50/50 border-slate-200 rounded-lg"
-                  />
-                </div>
+              {/* Tabla Encabezado Metadatos Superior */}
+              <div className="border-b border-slate-300 bg-white p-3">
+                <table className="w-full table-fixed border border-slate-300 text-sm">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+                    <tr>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>REGISTRO</th>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>MES - AÑO</th>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>APROBADO POR</th>
+                      <th className="py-1.5" colSpan={2}>FECHA APROBACIÓN</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={`${denseInputClass} text-center`}
+                          value={tempDocHeader.registro}
+                          onChange={(e) => {
+                            setTempDocHeader((p) => ({ ...p, registro: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          placeholder="REG-01"
+                        />
+                      </td>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={`${denseInputClass} text-center uppercase`}
+                          value={tempDocHeader.mes_anio}
+                          onChange={(e) => {
+                            setTempDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                          placeholder="AGOSTO 2026"
+                        />
+                      </td>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={`${denseInputClass} text-center uppercase`}
+                          value={tempDocHeader.aprobado_por}
+                          onChange={(e) => {
+                            setTempDocHeader((p) => ({ ...p, aprobado_por: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                        />
+                      </td>
+                      <td className="border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          type="date"
+                          className={`${denseInputClass} text-center`}
+                          value={tempDocHeader.fecha_aprobacion}
+                          onChange={(e) => {
+                            setTempDocHeader((p) => ({ ...p, fecha_aprobacion: e.target.value }))
+                            setTempIsDirty(true)
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Área de Control *
-                  </label>
+              {/* Sub-Banner DATOS Y PARÁMETROS */}
+              <div className="border-b border-slate-300 bg-slate-100 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-800">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <span className="shrink-0">ÁREA DE CONTROL:</span>
                   <Select
                     value={tempDocHeader.area_ambiente}
                     onValueChange={(val) => {
@@ -1165,65 +1172,56 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       setTempIsDirty(true)
                     }}
                   >
-                    <SelectTrigger className="h-9 text-xs font-semibold bg-white border-slate-200 rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs font-semibold bg-white border-slate-300 w-64"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Parámetros Normativos del Área
-                  </label>
-                  <Input
-                    readOnly
-                    value={
-                      tempDocHeader.area_ambiente.includes("compactación")
-                        ? "18 °C – 24 °C | Menor a 80 % H.R."
-                        : "10 °C – 30 °C | Menor a 80 % H.R."
-                    }
-                    className="h-9 text-xs font-mono font-bold text-sky-700 bg-sky-50/50 border-sky-200 rounded-lg"
-                  />
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span>PARÁMETROS:</span>
+                  <span className="bg-white border border-slate-300 px-3 py-1 rounded font-bold text-sky-700">
+                    {tempDocHeader.area_ambiente.includes("compactación")
+                      ? "18 °C – 24 °C | Menor a 80 % H.R."
+                      : "10 °C – 30 °C | Menor a 80 % H.R."}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            {/* Seccion 2: Table Card Grid Lecturas Diarias (Patron Imagen 5 con inputs integrados) */}
-            <div className="border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FlaskConical className="h-4 w-4 text-sky-600" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Lecturas de Temperatura y Humedad (Formulario Grid)
-                  </h3>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {tempDocRows.length} registros en esta hoja
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead className="bg-[#eef2f6] text-[11px] font-bold text-slate-800 border-b border-slate-200 text-center">
+              {/* Tabla Principal de Casillas Grid Estilo Corte Directo (Imagen 6) */}
+              <div className="p-3">
+                <table className="w-full table-fixed border border-slate-300 text-xs">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                     <tr>
-                      <th className="p-2.5 border-r border-slate-200 w-36">FECHA REGISTRO</th>
-                      <th className="p-2.5 border-r border-slate-200 w-28">HORA TOMA</th>
-                      <th className="p-2.5 border-r border-slate-200 w-36">FECHA LECTURA</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24 text-center">TEMP MÍN (°C)</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24 text-center">TEMP MÁX (°C)</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24 text-center">HUM MÍN (%)</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24 text-center">HUM MÁX (%)</th>
-                      <th className="p-2.5 border-r border-slate-200 min-w-[160px]">RESPONSABLE REGISTRO *</th>
-                      <th className="p-2.5 border-r border-slate-200 min-w-[160px]">RESPONSABLE REVISIÓN</th>
-                      <th className="p-2.5 w-12 text-center">ELIMINAR</th>
+                      <th className="border-r border-slate-300 py-2 w-32">FECHA REGISTRO</th>
+                      <th className="border-r border-slate-300 py-2 w-24">HORA TOMA</th>
+                      <th className="border-r border-slate-300 py-2 w-32">FECHA LECTURA</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>
+                        TEMPERATURA (°C)
+                        <div className="grid grid-cols-2 border-t border-slate-300 mt-1 text-[10px]">
+                          <div className="border-r border-slate-300 py-0.5">Mínimo</div>
+                          <div className="py-0.5">Máximo</div>
+                        </div>
+                      </th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>
+                        HUMEDAD RELATIVA (%)
+                        <div className="grid grid-cols-2 border-t border-slate-300 mt-1 text-[10px]">
+                          <div className="border-r border-slate-300 py-0.5">Mínimo</div>
+                          <div className="py-0.5">Máximo</div>
+                        </div>
+                      </th>
+                      <th className="border-r border-slate-300 py-2 w-36">RESPONSABLE REGISTRO</th>
+                      <th className="border-r border-slate-300 py-2 w-36">RESPONSABLE REVISIÓN</th>
+                      <th className="py-2 w-12 text-center">ACCION</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
                     {tempDocRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="date"
+                            className={denseInputClass}
                             value={row.fecha_registro}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1232,13 +1230,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                             required
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="time"
+                            className={denseInputClass}
                             value={row.hora_toma}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1247,13 +1245,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                             required
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="date"
+                            className={denseInputClass}
                             value={row.fecha_lectura}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1262,14 +1260,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="number"
                             step="0.1"
                             placeholder="10.0"
+                            className={denseInputClass}
                             value={row.temp_min}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1278,14 +1276,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="number"
                             step="0.1"
                             placeholder="30.0"
+                            className={`${denseInputClass} font-bold text-sky-700`}
                             value={row.temperatura_c}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1294,15 +1292,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono font-bold text-sky-700 text-center rounded-lg bg-white border-slate-200"
                             required
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="number"
                             step="0.1"
                             placeholder="20.0"
+                            className={denseInputClass}
                             value={row.hum_min}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1311,14 +1309,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
                             type="number"
                             step="0.1"
                             placeholder="80.0"
+                            className={`${denseInputClass} font-bold text-blue-700`}
                             value={row.humedad_relativa_pct}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1327,12 +1325,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs font-mono font-bold text-blue-700 text-center rounded-lg bg-white border-slate-200"
                             required
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
+                            className={denseInputClass}
                             value={row.responsable_registro}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1341,13 +1339,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs rounded-lg bg-white border-slate-200"
-                            placeholder="Operador"
+                            placeholder="Nombre operador"
                             required
                           />
                         </td>
-                        <td className="p-2 border-r border-slate-200">
-                          <Input
+                        <td className="border-t border-r border-slate-300 p-1">
+                          <input
+                            className={denseInputClass}
                             value={row.responsable_revision}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1356,11 +1354,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            className="h-9 text-xs rounded-lg bg-white border-slate-200"
-                            placeholder="Revisado por"
+                            placeholder="Nombre revisor"
                           />
                         </td>
-                        <td className="p-2 text-center">
+                        <td className="border-t border-slate-300 p-1 text-center">
                           <Button
                             type="button"
                             variant="ghost"
@@ -1370,9 +1367,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
                               setTempIsDirty(true)
                             }}
-                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </td>
                       </tr>
@@ -1381,7 +1378,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+              {/* Botón de Agregar Fila estilo Hoja Excel */}
+              <div className="p-3 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
                 <Button
                   type="button"
                   variant="outline"
@@ -1407,9 +1405,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     ])
                     setTempIsDirty(true)
                   }}
-                  className="gap-2 h-9 text-xs font-semibold bg-white border-slate-200 shadow-2xs rounded-lg"
+                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
                 >
-                  <Plus className="h-4 w-4 text-sky-600" />
+                  <Plus className="h-3.5 w-3.5 text-sky-600" />
                   Agregar Fila de Lectura Diaria
                 </Button>
                 <span className="text-xs font-semibold text-slate-600">
@@ -1418,45 +1416,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Seccion 3: Cumplimiento de Especificación */}
-            <div className="border border-slate-200 rounded-xl bg-white p-4 shadow-xs flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">
-                Cumplimiento de Especificaciones del Área
-              </span>
-              <div className="flex gap-2">
-                {[true, false].map((val) => (
-                  <button
-                    key={String(val)}
-                    type="button"
-                    onClick={() => {
-                      setTempDocHeader((p) => ({ ...p, cumple_global: val }))
-                      setTempIsDirty(true)
-                    }}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${
-                      tempDocHeader.cumple_global === val
-                        ? val
-                          ? "bg-sky-600 border-sky-600 text-white shadow-xs"
-                          : "bg-red-600 border-red-600 text-white shadow-xs"
-                        : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
-                    }`}
-                  >
-                    {val ? "SÍ CUMPLE (OK)" : "NO CUMPLE"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Footer Botones Guardar y Cancelar */}
-            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-200">
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-300">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
-                className="h-10 text-xs font-semibold rounded-lg bg-white border-slate-200 px-5"
+                className="h-9 text-xs font-semibold bg-white border-slate-300 px-5"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-10 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-6 shadow-xs">
+              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6">
                 💾 Guardar Formato F-LEM-P-05.01
               </Button>
             </div>
@@ -1467,7 +1437,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // FORMULARIO NATIVO COMPLETO PATRÓN IMAGEN 5: F-LEM-IN-01.02 V03
+  // FORMULARIO CON DISEÑO IDÉNTICO A CORTE DIRECTO (IMAGEN 6)
+  // F-LEM-IN-01.02 V03 FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
   // ─────────────────────────────────────────────────────────────────────────────
   function renderBalanzaModal() {
     return (
@@ -1478,21 +1449,19 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowBalanzaModal(true)
         }}
       >
-        <DialogContent className="max-w-[96vw] w-full max-h-[96vh] p-6 bg-slate-50/50 overflow-y-auto rounded-2xl border-none shadow-2xl [&>button]:hidden">
-          <form onSubmit={handleSaveBalanzaDoc} className="space-y-5">
-            {/* Header Barra Superior Nativa (Imagen 5) */}
-            <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-200">
+        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] p-4 sm:p-6 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
+          <form onSubmit={handleSaveBalanzaDoc} className="space-y-4">
+            {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
+            <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-sky-100 border border-sky-200 text-sky-600">
-                  <Scale className="h-6 w-6 text-sky-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
+                  <Scale className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">
-                    Verificación Diaria de Balanzas — F-LEM-IN-01.02 V03
+                  <h1 className="text-lg font-bold text-slate-900">
+                    FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS — F-LEM-IN-01.02 V03
                   </h1>
-                  <p className="text-xs text-muted-foreground">
-                    Formulario operativo alineado al formato de hoja oficial
-                  </p>
+                  <p className="text-xs text-slate-500">Módulo nativo del CRM</p>
                 </div>
               </div>
               <button
@@ -1505,123 +1474,122 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </button>
             </div>
 
-            {/* Seccion 1: Encabezado del Formato (Cajas de estilo Imagen 5) */}
-            <div className="border border-slate-200 rounded-xl bg-white p-4 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
-                <User className="h-4 w-4 text-sky-600" />
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Encabezado del Formato
-                </h3>
+            {/* Hoja de Excel Blanca Central (Document Paper Box idéntico a Corte Directo) */}
+            <div className="mx-auto max-w-6xl overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+              {/* Bloque Encabezado Oficial con Logo y Título Centrado */}
+              <div className="border-b border-slate-300 bg-slate-50 p-4 text-center">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
+                </div>
+                <p className="text-[20px] font-bold leading-tight text-slate-900 font-sans">
+                  FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
+                </p>
+                <p className="text-sm font-bold text-slate-800 underline uppercase mt-0.5">
+                  NORMA NTP / ASTM — F-LEM-IN-01.02 V03
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Código de la Balanza *
-                  </label>
-                  <Select
-                    value={balanzaDocHeader.codigo_balanza}
-                    onValueChange={(val) => {
-                      const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                      setBalanzaDocHeader((p) => ({
-                        ...p,
-                        codigo_balanza: val,
-                        ubicacion: found?.ubi || p.ubicacion,
-                        capacidad_g: found ? String(found.cap) : p.capacidad_g,
-                        masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
-                        error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
-                      }))
-                      setBalanzaIsDirty(true)
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-bold bg-white border-slate-200 rounded-lg"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {DEFAULT_BALANZAS.map((b) => (
-                        <SelectItem key={b.codigo} value={b.codigo}>
-                          {b.codigo} — {b.ubi} ({b.cap}g)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Mes / Año *
-                  </label>
-                  <Input
-                    value={balanzaDocHeader.mes_anio}
-                    onChange={(e) => {
-                      setBalanzaDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
-                      setBalanzaIsDirty(true)
-                    }}
-                    className="h-9 text-xs font-mono uppercase bg-slate-50/50 border-slate-200 rounded-lg"
-                    placeholder="AGOSTO 2026"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Ubicación
-                  </label>
-                  <Input
-                    value={balanzaDocHeader.ubicacion}
-                    onChange={(e) => {
-                      setBalanzaDocHeader((p) => ({ ...p, ubicacion: e.target.value }))
-                      setBalanzaIsDirty(true)
-                    }}
-                    className="h-9 text-xs bg-slate-50/50 border-slate-200 rounded-lg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
-                    Códigos de las Pesas Patrón
-                  </label>
-                  <Input
-                    value={balanzaDocHeader.codigos_pesas_patron}
-                    onChange={(e) => {
-                      setBalanzaDocHeader((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
-                      setBalanzaIsDirty(true)
-                    }}
-                    className="h-9 text-xs font-mono bg-slate-50/50 border-slate-200 rounded-lg"
-                    placeholder="PP-01, PP-02"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Seccion 2: Table Card Grid Pesa Patrón Usado (g) - Anotar Lecturas */}
-            <div className="border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Scale className="h-4 w-4 text-sky-600" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Pesa Patrón Usado (g) - Anotar Las Lecturas de la Balanza
-                  </h3>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {balanzaDocRows.length} verificaciones en esta hoja
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead className="bg-[#eef2f6] text-[11px] font-bold text-slate-800 border-b border-slate-200 text-center">
+              {/* Tabla Encabezado Metadatos Superior (Código Balanza | Mes-Año | Ubicación | Pesas Patrón) */}
+              <div className="border-b border-slate-300 bg-white p-3">
+                <table className="w-full table-fixed border border-slate-300 text-sm">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                     <tr>
-                      <th className="p-2.5 border-r border-slate-200 w-32">FECHA</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24">HORA</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24">TEMP (°C)</th>
-                      <th className="p-2.5 border-r border-slate-200 w-24">HUMEDAD (%)</th>
-                      <th className="p-2.5 border-r border-slate-200 w-32 text-right">MASA PATRÓN (g) *</th>
-                      <th className="p-2.5 border-r border-slate-200 w-32 text-right">LECTURA (g) *</th>
-                      <th className="p-2.5 border-r border-slate-200 w-36 text-center">ERROR / RESULT</th>
-                      <th className="p-2.5 border-r border-slate-200 min-w-[150px]">REALIZADO POR *</th>
-                      <th className="p-2.5 border-r border-slate-200 min-w-[150px]">REVISADO POR</th>
-                      <th className="p-2.5 w-12 text-center">ELIMINAR</th>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>CÓDIGO DE LA BALANZA</th>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>MES / AÑO</th>
+                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>UBICACIÓN</th>
+                      <th className="py-1.5" colSpan={2}>CÓDIGOS DE LAS PESAS PATRÓN</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <Select
+                          value={balanzaDocHeader.codigo_balanza}
+                          onValueChange={(val) => {
+                            const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
+                            setBalanzaDocHeader((p) => ({
+                              ...p,
+                              codigo_balanza: val,
+                              ubicacion: found?.ubi || p.ubicacion,
+                              capacidad_g: found ? String(found.cap) : p.capacidad_g,
+                              masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
+                              error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
+                            }))
+                            setBalanzaIsDirty(true)
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs font-bold bg-white border-slate-300"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {DEFAULT_BALANZAS.map((b) => (
+                              <SelectItem key={b.codigo} value={b.codigo}>
+                                {b.codigo} — {b.ubi} ({b.cap}g)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={`${denseInputClass} text-center uppercase`}
+                          value={balanzaDocHeader.mes_anio}
+                          onChange={(e) => {
+                            setBalanzaDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          placeholder="AGOSTO 2026"
+                        />
+                      </td>
+                      <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={denseInputClass}
+                          value={balanzaDocHeader.ubicacion}
+                          onChange={(e) => {
+                            setBalanzaDocHeader((p) => ({ ...p, ubicacion: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                        />
+                      </td>
+                      <td className="border-t border-slate-300 p-1" colSpan={2}>
+                        <input
+                          className={denseInputClass}
+                          value={balanzaDocHeader.codigos_pesas_patron}
+                          onChange={(e) => {
+                            setBalanzaDocHeader((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          placeholder="PP-01, PP-02"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Banner Encabezado de Sección Tabla */}
+              <div className="border-b border-slate-300 bg-slate-100 px-4 py-2.5 text-center">
+                <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
+                </p>
+              </div>
+
+              {/* Tabla Principal de Casillas Grid Estilo Corte Directo (Imagen 6) */}
+              <div className="p-3">
+                <table className="w-full table-fixed border border-slate-300 text-xs">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+                    <tr>
+                      <th className="border-r border-slate-300 py-2 w-28">FECHA</th>
+                      <th className="border-r border-slate-300 py-2 w-20">HORA</th>
+                      <th className="border-r border-slate-300 py-2 w-24">TEMP (°C)</th>
+                      <th className="border-r border-slate-300 py-2 w-24">HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-slate-300 py-2 w-32 text-right">MASA PATRÓN (g)</th>
+                      <th className="border-r border-slate-300 py-2 w-32 text-right">LECTURA (g)</th>
+                      <th className="border-r border-slate-300 py-2 w-32 text-center">ERROR / RESULT</th>
+                      <th className="border-r border-slate-300 py-2 w-36">REALIZADO POR</th>
+                      <th className="border-r border-slate-300 py-2 w-36">REVISADO POR</th>
+                      <th className="py-2 w-12 text-center">ACCION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {balanzaDocRows.map((row, idx) => {
                       const m = parseFloat(row.masa_patron_g) || 0
                       const l = parseFloat(row.lectura_balanza_g) || 0
@@ -1630,10 +1598,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       const conforme = Math.abs(err) <= tol
 
                       return (
-                        <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="date"
+                              className={denseInputClass}
                               value={row.fecha}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1642,13 +1611,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                               required
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="time"
+                              className={denseInputClass}
                               value={row.hora}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1657,14 +1626,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                               required
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="number"
                               step="0.1"
+                              className={denseInputClass}
                               value={row.temp_c}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1673,13 +1642,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="number"
                               step="0.1"
+                              className={denseInputClass}
                               value={row.humedad_pct}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1688,13 +1657,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono text-center rounded-lg bg-white border-slate-200"
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="number"
                               step="0.001"
+                              className={`${denseInputClass} text-right font-bold`}
                               value={row.masa_patron_g}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1703,14 +1672,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono font-bold text-right rounded-lg bg-white border-slate-200"
                               required
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
                               type="number"
                               step="0.001"
+                              className={`${denseInputClass} text-right font-bold text-sky-700`}
                               value={row.lectura_balanza_g}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1719,13 +1688,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs font-mono font-bold text-sky-700 text-right rounded-lg bg-white border-slate-200"
                               required
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200 text-center">
+                          <td className="border-t border-r border-slate-300 p-1 text-center">
                             <div
-                              className={`h-9 flex items-center justify-center rounded-lg px-2 text-xs font-bold ${
+                              className={`h-8 flex items-center justify-center rounded px-1 text-[11px] font-bold ${
                                 conforme
                                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : "bg-red-50 text-red-700 border border-red-200"
@@ -1735,8 +1703,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               {err.toFixed(2)}g)
                             </div>
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              className={denseInputClass}
                               value={row.verificado_por}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1745,13 +1714,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs rounded-lg bg-white border-slate-200"
                               placeholder="Operador"
                               required
                             />
                           </td>
-                          <td className="p-2 border-r border-slate-200">
-                            <Input
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              className={denseInputClass}
                               value={row.revisado_por}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1760,11 +1729,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-9 text-xs rounded-lg bg-white border-slate-200"
                               placeholder="Revisado por"
                             />
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="border-t border-slate-300 p-1 text-center">
                             <Button
                               type="button"
                               variant="ghost"
@@ -1774,9 +1742,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </td>
                         </tr>
@@ -1786,7 +1754,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+              {/* Botón de Agregar Fila estilo Hoja Excel */}
+              <div className="p-3 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
                 <Button
                   type="button"
                   variant="outline"
@@ -1808,9 +1777,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     ])
                     setBalanzaIsDirty(true)
                   }}
-                  className="gap-2 h-9 text-xs font-semibold bg-white border-slate-200 shadow-2xs rounded-lg"
+                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
                 >
-                  <Plus className="h-4 w-4 text-sky-600" />
+                  <Plus className="h-3.5 w-3.5 text-sky-600" />
                   Agregar Fila de Verificación Diaria
                 </Button>
                 <span className="text-xs font-semibold text-slate-600">
@@ -1819,10 +1788,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Seccion 3: Limpieza y Nivelación */}
-            <div className="border border-slate-200 rounded-xl bg-white p-4 shadow-xs flex items-center justify-between">
+            {/* Sub-Card Limpieza y Nivelación */}
+            <div className="mx-auto max-w-6xl flex items-center justify-between p-3 rounded-lg border border-slate-300 bg-white">
               <span className="text-xs font-bold text-slate-800">
-                Limpieza y Nivelación de la Balanza
+                LIMPIEZA Y NIVELACIÓN DE LA BALANZA
               </span>
               <div className="flex gap-2">
                 {[true, false].map((val) => (
@@ -1833,12 +1802,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       setBalanzaDocHeader((p) => ({ ...p, limpieza_nivelacion: val }))
                       setBalanzaIsDirty(true)
                     }}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${
+                    className={`px-4 py-1.5 rounded text-xs font-bold border transition-all ${
                       balanzaDocHeader.limpieza_nivelacion === val
                         ? val
-                          ? "bg-sky-600 border-sky-600 text-white shadow-xs"
-                          : "bg-red-600 border-red-600 text-white shadow-xs"
-                        : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
+                          ? "bg-sky-600 border-sky-600 text-white"
+                          : "bg-red-600 border-red-600 text-white"
+                        : "border-slate-300 text-slate-600 bg-white hover:bg-slate-50"
                     }`}
                   >
                     {val ? "CONFORME (OK)" : "NO CONFORME"}
@@ -1848,16 +1817,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </div>
 
             {/* Footer Botones Guardar y Cancelar */}
-            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-200">
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-300">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
-                className="h-10 text-xs font-semibold rounded-lg bg-white border-slate-200 px-5"
+                className="h-9 text-xs font-semibold bg-white border-slate-300 px-5"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-10 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-6 shadow-xs">
+              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6">
                 💾 Guardar Formato F-LEM-IN-01.02
               </Button>
             </div>
