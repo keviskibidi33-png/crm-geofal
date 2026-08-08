@@ -1039,7 +1039,7 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
             />
 
             <Dialog open={isGranularDialogOpen} onOpenChange={setIsGranularDialogOpen}>
-                <DialogContent className="sm:max-w-[920px] max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogContent className="sm:max-w-230 max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle>Permisos granulares por usuario</DialogTitle>
                         <DialogDescription>
