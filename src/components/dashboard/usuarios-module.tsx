@@ -1,9 +1,9 @@
 "use client"
 
-import { createUserAction, updateUserAction, deleteUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
+import { createUserAction, updateUserAction, forceLogoutAction } from "@/app/actions/auth-actions"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useForm } from "react-hook-form"
-import { Shield, Plus, Trash2, Loader2, Users, User as UserIcon, Mail, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { Shield, Plus, Trash2, Loader2, Users, CheckCircle2, XCircle, AlertTriangle, MoreVertical, Lock, Pencil, RefreshCw, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger // Ensure this is imported if needed, or remove
 } from "@/components/ui/dialog"
 import {
     DropdownMenu,
@@ -423,7 +422,6 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
         register,
         handleSubmit,
         reset,
-        formState: { errors },
     } = useForm<SellerFormData>({
         defaultValues: {
             nombre: "",
@@ -471,46 +469,6 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
         }
     }
 
-
-
-    const handleEditSubmit = async (data: { nombre: string, role: string }) => {
-        if (!editingSeller) return
-        setIsLoading(true)
-        try {
-            const { error } = await supabase
-                .from("perfiles")
-                .update({
-                    full_name: data.nombre,
-                    role: data.role,
-                    show_kpi: editShowKpi,
-                    tabla_seguimiento: editTablaSeguimiento,
-                })
-                .eq("id", editingSeller.id)
-
-            if (error) throw error
-
-            setSellers(sellers.map(s => s.id === editingSeller.id ? { ...s, nombre: data.nombre, role: data.role, show_kpi: editShowKpi, tabla_seguimiento: editTablaSeguimiento } : s))
-
-            toast.success("Usuario actualizado", {
-                description: "Los datos del usuario han sido actualizados.",
-            })
-
-            // Log action
-            logAction({
-                user_id: user?.id,
-                user_name: user?.name,
-                action: `Editó usuario: ${data.nombre}`,
-                module: "USUARIOS",
-            })
-            setEditingSeller(null)
-        } catch (err: any) {
-            toast.error("Error", {
-                description: err.message,
-            })
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     const handleStatusChange = async () => {
         if (!selectedSeller || !targetStatus) return
