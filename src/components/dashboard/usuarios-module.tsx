@@ -963,11 +963,11 @@ export function UsuariosModule({ focusUserId, onFocusHandled }: UsuariosModulePr
                                         onChange={(e) => setEditTablaSeguimiento(e.target.value)}
                                         className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                     >
-                                        <option value="tabla2">Tabla 2 - Seguimiento B2B (Nuevos / Acompañante)</option>
-                                        <option value="tabla1">Tabla 1 - Seguimiento Yerly / Silvia</option>
+                                        <option value="tabla2">Seguimiento B</option>
+                                        <option value="tabla1">Seguimiento A</option>
                                     </select>
                                     <p className="text-[11px] text-muted-foreground">
-                                        Permite cambiar si el usuario opera en Tabla 1 o Tabla 2.
+                                        Permite cambiar si el usuario opera en Seguimiento A o B.
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
