@@ -69,6 +69,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker, adminOnly: true },
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker, adminOnly: true },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
+  { id: "control_ambiental", label: "Control Ambiental", icon: FlaskConical },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield, adminOnly: true },
