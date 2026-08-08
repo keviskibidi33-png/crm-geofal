@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, startTransition } from "react"
-import { Search, Users, FolderKanban, FileText, TestTube, ClipboardList, Beaker, Shield, Activity, Settings, FlaskConical, TrendingUp, BarChart3, Calendar, Loader2 } from "lucide-react"
+import { Search, Users, FolderKanban, FileText, TestTube, ClipboardList, Beaker, Shield, Activity, Settings, FlaskConical, TrendingUp, BarChart3, Calendar, Loader2, Thermometer, Scale } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { type ModuleType, type User } from "@/hooks/use-auth"
 import { canAccessDashboardModule, isAdminDashboardRole, isComercialDashboardRole } from "@/lib/control-module-access"
@@ -59,6 +59,8 @@ const ALL_MODULES: { id: ModuleType; label: string; icon: React.ElementType }[] 
   { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker },
   { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
+  { id: "control_ambiental",          label: "Control Ambiental — Temperatura y Humedad", icon: Thermometer },
+  { id: "control_ambiental_balanzas", label: "Control Ambiental — Verificación Balanzas",  icon: Scale },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
   { id: "administracion", label: "Control Administración", icon: Shield },
   { id: "usuarios", label: "Usuarios", icon: Shield },

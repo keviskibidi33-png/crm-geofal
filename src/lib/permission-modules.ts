@@ -45,7 +45,9 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "compresion_no_confinada", label: "Compresión No Confinada" },
   { id: "laboratorio", label: "Control Laboratorio" },
   { id: "control_ambiental", label: "Control Ambiental de Laboratorio" },
+  { id: "control_ambiental_balanzas", label: "Control Ambiental — Balanzas" },
   { id: "comercial", label: "Control Comercial" },
+
   { id: "administracion", label: "Control Administración" },
   { id: "estadistica_laboratorio", label: "Estadística Laboratorio" },
   { id: "estadistica_comercial", label: "Estadística Comercial" },

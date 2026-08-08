@@ -140,7 +140,7 @@ function isKpiAuthorizedEmail(email?: string) {
     return true
   }
 
-  if (activeCheckModule === "control_ambiental") {
+  if (activeCheckModule === "control_ambiental" || activeCheckModule === "control_ambiental_balanzas") {
     const normalizedRole = normalizeRole(role)
     return normalizedRole === "admin" || normalizedRole === "admin_general" || normalizedRole === "jefe_laboratorio"
   }

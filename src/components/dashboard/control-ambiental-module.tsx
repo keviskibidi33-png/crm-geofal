@@ -49,6 +49,7 @@ import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialo
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 interface ControlAmbientalModuleProps {
+  defaultTab?: "dashboard" | "temperatura" | "balanza"
   user: {
     id: string
     name: string
@@ -147,8 +148,8 @@ function getMesAnio() {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-export function ControlAmbientalModule({ user }: ControlAmbientalModuleProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "temperatura" | "balanza">("dashboard")
+export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: ControlAmbientalModuleProps) {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "temperatura" | "balanza">(defaultTab)
   const [loading, setLoading]   = useState(false)
   const [seeding, setSeeding]   = useState(false)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -1064,3 +1065,431 @@ export function ControlAmbientalModule({ user }: ControlAmbientalModuleProps) {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* ════════════════════════════════════════════════════════════════
+          DIALOG 1 · F-LEM-P-05.01 V03
+          Control de Temperatura y Humedad Relativa
+      ════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={showTempModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowTempModal(false)); else setShowTempModal(true) }}>
+        <DialogContent className="sm:max-w-[740px] max-h-[90vh] overflow-y-auto">
+
+          {/* Header del dialog */}
+          <DialogHeader className="border-b border-border pb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex-shrink-0">
+                <Thermometer className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
+                  LABORATORIO DE ENSAYO DE MATERIALES
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  {editingTempId ? "Editar registro -� " : "Nuevo registro -� "}
+                  F-LEM-P-05.01 V03 ��� Control de Temperatura y Humedad Relativa
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveTemp} className="space-y-5 py-2">
+
+            {/* ������ Fila de cabecera del formato ������ */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">MES-A+�O</label>
+                <Input
+                  placeholder="Ej: AGOSTO-2026"
+                  defaultValue={getMesAnio()}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Aprobado Por</label>
+                <Input
+                  placeholder="Nombre del aprobador"
+                  value={tempForm.revisado_por}
+                  onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* ������ +�rea de control + tabla de par+�metros ������ */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">+�rea de Control</p>
+                  <Select
+                    value={tempForm.area_ambiente}
+                    onValueChange={(v) => { setTempForm((p) => ({ ...p, area_ambiente: v })); setTempIsDirty(true) }}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione +�rea" /></SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Par+�metros</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Registre temperatura y humedad seg+�n los rangos normativos indicados en la tabla de par+�metros de las +�reas del laboratorio.
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabla de par+�metros de referencia (F-LEM-P-05.01) */}
+              <div className="rounded-lg border border-border/60 overflow-hidden">
+                <div className="bg-muted/50 px-3 py-1.5 border-b border-border/60">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Par+�metros de las +�reas</p>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-muted/30">
+                    <tr>
+                      <th className="px-2 py-1 text-left text-[9px] text-muted-foreground font-semibold">+�rea</th>
+                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Temp.</th>
+                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Hum.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {AREA_PARAMETROS.map((ap) => (
+                      <tr key={ap.area} className={ap.area.includes("Lavado") ? "font-semibold bg-amber-500/5" : ""}>
+                        <td className="px-2 py-1.5 text-[10px] text-foreground leading-tight">{ap.area}</td>
+                        <td className="px-2 py-1.5 text-center text-[10px] text-emerald-400 font-mono whitespace-nowrap">{ap.temp}</td>
+                        <td className="px-2 py-1.5 text-center text-[10px] text-blue-400 whitespace-nowrap">{ap.humedad}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ������ Datos del registro ������ */}
+            <div className="border-t border-border/60 pt-4 space-y-4">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Datos del Registro</p>
+
+              {/* Fechas y hora */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Registro</label>
+                  <Input type="date" value={tempForm.fecha}
+                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha: e.target.value })); setTempIsDirty(true) }}
+                    className="h-8 text-xs" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Hora de Toma</label>
+                  <Input type="time" value={tempForm.hora_lectura}
+                    onChange={(e) => { setTempForm((p) => ({ ...p, hora_lectura: e.target.value })); setTempIsDirty(true) }}
+                    className="h-8 text-xs" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Lectura</label>
+                  <Input type="date" value={tempForm.fecha_lectura}
+                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha_lectura: e.target.value })); setTempIsDirty(true) }}
+                    className="h-8 text-xs" />
+                </div>
+              </div>
+
+              {/* Temperatura + Humedad con Min/Max */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Temperatura */}
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
+                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Temperatura (-�C)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">M+�nimo</label>
+                      <Input type="number" step="0.1" placeholder="M+�n" value={tempForm.temp_min}
+                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_min: e.target.value })); setTempIsDirty(true) }}
+                        className="h-8 text-xs font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">M+�ximo</label>
+                      <Input type="number" step="0.1" placeholder="M+�x" value={tempForm.temp_max}
+                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_max: e.target.value })); setTempIsDirty(true) }}
+                        className="h-8 text-xs font-mono" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Lectura actual (-�C)</label>
+                    <Input type="number" step="0.1" placeholder="-�C" value={tempForm.temperatura_c}
+                      onChange={(e) => { setTempForm((p) => ({ ...p, temperatura_c: e.target.value })); setTempIsDirty(true) }}
+                      className="h-8 text-xs font-mono font-bold" required />
+                  </div>
+                </div>
+
+                {/* Humedad */}
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Humedad Relativa (%)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">M+�nimo</label>
+                      <Input type="number" step="0.1" placeholder="M+�n" value={tempForm.hum_min}
+                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_min: e.target.value })); setTempIsDirty(true) }}
+                        className="h-8 text-xs font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">M+�ximo</label>
+                      <Input type="number" step="0.1" placeholder="M+�x" value={tempForm.hum_max}
+                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_max: e.target.value })); setTempIsDirty(true) }}
+                        className="h-8 text-xs font-mono" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Lectura actual (%)</label>
+                    <Input type="number" step="0.1" placeholder="%" value={tempForm.humedad_relativa_pct}
+                      onChange={(e) => { setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value })); setTempIsDirty(true) }}
+                      className="h-8 text-xs font-mono font-bold" required />
+                  </div>
+                </div>
+              </div>
+
+              {/* Responsables */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable del Registro</label>
+                  <Input placeholder="Nombre del responsable" value={tempForm.responsable_lectura}
+                    onChange={(e) => { setTempForm((p) => ({ ...p, responsable_lectura: e.target.value })); setTempIsDirty(true) }}
+                    className="h-8 text-xs" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable de la Revisi+�n</label>
+                  <Input placeholder="Nombre del revisor" value={tempForm.revisado_por}
+                    onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
+                    className="h-8 text-xs" />
+                </div>
+              </div>
+
+              {/* Cumple especificaci+�n */}
+              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
+                <label className="text-xs font-semibold flex-1">-+Cumple Especificaci+�n?</label>
+                <div className="flex gap-2">
+                  {[true, false].map((val) => (
+                    <button key={String(val)} type="button"
+                      onClick={() => { setTempForm((p) => ({ ...p, cumple_especificacion: val })); setTempIsDirty(true) }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
+                        tempForm.cumple_especificacion === val
+                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
+                          : "border-border text-muted-foreground"
+                      }`}>
+                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> S+�</> : <><XCircle className="h-3.5 w-3.5" /> NO</>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}>Cancelar</Button>
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white">
+                {editingTempId ? "Actualizar Lectura" : "Guardar Lectura"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+          DIALOG 2 -� F-LEM-IN-01.02 V03
+          Formato de Verificaci+�n Diaria de Balanzas
+      ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������ */}
+      <Dialog open={showBalanzaModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowBalanzaModal(false)); else setShowBalanzaModal(true) }}>
+        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
+
+          <DialogHeader className="border-b border-border pb-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex-shrink-0">
+                <Scale className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
+                  FORMATO DE VERIFICACI+�N DIARIA DE BALANZAS
+                </DialogTitle>
+                <DialogDescription className="text-xs mt-0.5">
+                  {editingBalanzaId ? "Editar verificaci+�n -� " : "Nueva verificaci+�n -� "}
+                  F-LEM-IN-01.02 V03
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveBalanza} className="space-y-4 py-2">
+
+            {/* ������ C+�digo balanza + Mes/A+�o ������ */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">C+�digo de la Balanza</label>
+                <Select value={balanzaForm.codigo_balanza}
+                  onValueChange={(val) => {
+                    const p = DEFAULT_BALANZAS.find((b) => b.codigo === val)
+                    setBalanzaForm((prev) => ({
+                      ...prev, codigo_balanza: val,
+                      ubicacion:             p?.ubi  || prev.ubicacion,
+                      capacidad_g:           String(p?.cap  || prev.capacidad_g),
+                      masa_patron_g:         String(p?.masa || prev.masa_patron_g),
+                      lectura_balanza_g:     String(p?.masa || prev.masa_patron_g),
+                      error_max_permitido_g: String(p?.tol  || prev.error_max_permitido_g),
+                    }))
+                    setBalanzaIsDirty(true)
+                  }}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione c+�digo" /></SelectTrigger>
+                  <SelectContent>
+                    {DEFAULT_BALANZAS.map((b) => (
+                      <SelectItem key={b.codigo} value={b.codigo} className="text-xs">{b.codigo} ��� {b.ubi}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mes / A+�o</label>
+                <Input placeholder="Ej: AGOSTO-2026" value={balanzaForm.mes_anio}
+                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, mes_anio: e.target.value })); setBalanzaIsDirty(true) }}
+                  className="h-8 text-xs font-mono" />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ubicaci+�n de la Balanza</label>
+              <Input value={balanzaForm.ubicacion}
+                onChange={(e) => { setBalanzaForm((p) => ({ ...p, ubicacion: e.target.value })); setBalanzaIsDirty(true) }}
+                className="h-8 text-xs" required />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">C+�digos de las Pesas Patr+�n</label>
+              <Input placeholder="Ej: PP-001, PP-002..." value={balanzaForm.codigos_pesas_patron}
+                onChange={(e) => { setBalanzaForm((p) => ({ ...p, codigos_pesas_patron: e.target.value })); setBalanzaIsDirty(true) }}
+                className="h-8 text-xs font-mono" />
+            </div>
+
+            {/* ������ Registro de lectura ������ */}
+            <div className="border-t border-border/60 pt-3 space-y-4">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Pesa Patr+�n Usado ��� Anotar Lecturas de la Balanza
+              </p>
+
+              {/* Fecha, Hora, Temp ambiental, Humedad ambiental */}
+              <div className="grid grid-cols-4 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha</label>
+                  <Input type="date" value={balanzaForm.fecha}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, fecha: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Hora</label>
+                  <Input type="time" value={balanzaForm.hora}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, hora: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Temp. (-�C)</label>
+                  <Input type="number" step="0.1" placeholder="-�C" className="h-8 text-xs font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground">Humedad (%)</label>
+                  <Input type="number" step="0.1" placeholder="%" className="h-8 text-xs font-mono" />
+                </div>
+              </div>
+
+              {/* Capacidad, Masa Patr+�n, Lectura */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground font-semibold">Capacidad (g)</label>
+                  <Input type="number" value={balanzaForm.capacidad_g}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, capacidad_g: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs font-mono" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground font-semibold">Masa Patr+�n (g)</label>
+                  <Input type="number" step="0.001" value={balanzaForm.masa_patron_g}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, masa_patron_g: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs font-mono" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground font-semibold">Lectura Balanza (g)</label>
+                  <Input type="number" step="0.001" value={balanzaForm.lectura_balanza_g}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, lectura_balanza_g: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs font-mono" required />
+                </div>
+              </div>
+
+              {/* Error m+�x + Resultado calculado autom+�tico */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground font-semibold">Error M+�x. Permitido -�(g)</label>
+                  <Input type="number" step="0.001" value={balanzaForm.error_max_permitido_g}
+                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, error_max_permitido_g: e.target.value })); setBalanzaIsDirty(true) }}
+                    className="h-8 text-xs font-mono" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground font-semibold">Resultado (calculado)</label>
+                  <div className={`h-8 flex items-center px-3 rounded-md border text-xs font-bold ${
+                    balanzaErrorCalc.conforme
+                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                      : "bg-red-500/10 border-red-500/40 text-red-400"
+                  }`}>
+                    {balanzaErrorCalc.conforme
+                      ? <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> OK ��� Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
+                      : <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> NO OK ��� Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Limpieza y nivelaci+�n */}
+              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
+                <label className="text-xs font-semibold flex-1">Limpieza y Nivelaci+�n</label>
+                <div className="flex gap-2">
+                  {[true, false].map((val) => (
+                    <button key={String(val)} type="button"
+                      onClick={() => { setBalanzaForm((p) => ({ ...p, limpieza_nivelacion: val })); setBalanzaIsDirty(true) }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
+                        balanzaForm.limpieza_nivelacion === val
+                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
+                          : "border-border text-muted-foreground"
+                      }`}>
+                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> Conforme</> : <><XCircle className="h-3.5 w-3.5" /> No Conforme</>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ������ Firmas ������ */}
+            <div className="border-t border-border/60 pt-3 grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Realizado Por</label>
+                <Input placeholder="Nombre del responsable" value={balanzaForm.verificado_por}
+                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, verificado_por: e.target.value })); setBalanzaIsDirty(true) }}
+                  className="h-8 text-xs" required />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Revisado Por</label>
+                <Input placeholder="Nombre del revisor" value={balanzaForm.revisado_por}
+                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, revisado_por: e.target.value })); setBalanzaIsDirty(true) }}
+                  className="h-8 text-xs" />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border">
+              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}>Cancelar</Button>
+              <Button type="submit" className="bg-primary hover:bg-primary/90">
+                {editingBalanzaId ? "Actualizar Verificaci+�n" : "Guardar Verificaci+�n"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Safety confirmation */}
+      <ModernConfirmDialog
+        open={showUnsavedDialog}
+        onOpenChange={setShowUnsavedDialog}
+        onConfirm={confirmExitWithoutSaving}
+        title="-+Desea salir sin guardar los cambios?"
+        description="Ha modificado datos en el formulario. Si sale ahora, se perder+�n los registros ingresados."
+        confirmText="Salir sin guardar"
+        cancelText="Continuar editando"
+        variant="destructive"
+      />
+    </div>
+  )
+}
