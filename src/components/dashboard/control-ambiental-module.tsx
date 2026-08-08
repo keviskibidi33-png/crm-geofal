@@ -1,32 +1,35 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
+import Image from "next/image"
 import {
-
   Thermometer,
   Scale,
-  Activity,
   Plus,
   RefreshCw,
-  Download,
-  Database,
   Search,
   Clock,
   Edit2,
   Trash2,
-  FlaskConical,
-  ShieldCheck,
-  History,
   CheckCircle2,
   XCircle,
-  User,
   Eye,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  FlaskConical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -88,36 +91,12 @@ interface ControlBalanzaItem {
   observaciones?: string | null
 }
 
-interface AreaStatus {
-  area: string
-  temperatura_actual: number
-  humedad_actual: number
-  norma: string
-  rango_temperatura: string
-  rango_humedad: string
-  conforme: boolean
-  ultima_lectura: string
-}
-
-interface DashboardData {
-  total_lecturas_temperatura: number
-  promedio_temperatura_c: number
-  promedio_humedad_pct: number
-  tasa_cumplimiento_temp_pct: number
-  total_balanzas_registradas: number
-  balanzas_verificadas_hoy: number
-  tasa_conformidad_balanzas_pct: number
-  alertas_activas: number
-  areas_resumen: AreaStatus[]
-}
-
-// ─── Catálogos ────────────────────────────────────────────────────────────────
-
 const DEFAULT_AREAS = [
   "CÁMARA HÚMEDA",
   "LABORATORIO SUELOS",
   "LABORATORIO CONCRETO",
   "ENSAYOS QUÍMICOS",
+  "ÁREA DE LAVADO Y COMPACTACIÓN",
 ]
 
 const DEFAULT_BALANZAS = [
@@ -129,7 +108,6 @@ const DEFAULT_BALANZAS = [
   { codigo: "BAL-06", ubi: "Laboratorio Huanta",       cap: 15000, masa: 2000, tol: 0.5   },
 ]
 
-/** Tabla de referencia normativa — F-LEM-P-05.01 */
 const AREA_PARAMETROS = [
   { area: "Área de Recepción de muestras",   temp: "10°C – 30°C",  humedad: "Menor a 80%" },
   { area: "Área de Ensayos Físicos",          temp: "10°C – 30°C",  humedad: "Menor a 80%" },
@@ -138,89 +116,104 @@ const AREA_PARAMETROS = [
   { area: "Área de Lavado y compactación",    temp: "10°C – 24°C",  humedad: "Menor a 80%" },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function getMesAnio() {
   return new Date()
     .toLocaleString("es-PE", { month: "long", year: "numeric" })
     .toUpperCase()
 }
 
-// ─── Componente principal ────────────────────────────────────────────────────
+export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: ControlAmbientalModuleProps) {
+  const [currentModuleMode, setCurrentModuleMode] = useState<"temperatura" | "balanza">(
+    defaultTab === "balanza" ? "balanza" : "temperatura"
+  )
 
-export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: ControlAmbientalModuleProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "temperatura" | "balanza">(defaultTab)
-  const [loading, setLoading]   = useState(false)
-  const [seeding, setSeeding]   = useState(false)
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  useEffect(() => {
+    if (defaultTab === "balanza") {
+      setCurrentModuleMode("balanza")
+    } else if (defaultTab === "temperatura") {
+      setCurrentModuleMode("temperatura")
+    }
+  }, [defaultTab])
+
+  const [loading, setLoading] = useState(false)
   const [temperaturaList, setTemperaturaList] = useState<ControlTemperaturaItem[]>([])
-  const [balanzaList, setBalanzaList]         = useState<ControlBalanzaItem[]>([])
+  const [balanzaList, setBalanzaList] = useState<ControlBalanzaItem[]>([])
 
-  // ── Filtros ──
-  const [searchTemp,    setSearchTemp]    = useState("")
+  // ── Search and Filters ──
+  const [searchTemp, setSearchTemp] = useState("")
   const [searchBalanza, setSearchBalanza] = useState("")
-  const [areaFilter,    setAreaFilter]    = useState("TODAS")
+  const [areaFilter, setAreaFilter] = useState("TODAS")
   const [balanzaFilter, setBalanzaFilter] = useState("TODAS")
 
-  // ── Modal temperatura ──
-  const [showTempModal,   setShowTempModal]   = useState(false)
-  const [editingTempId,   setEditingTempId]   = useState<number | null>(null)
-  const [tempIsDirty,     setTempIsDirty]     = useState(false)
+  // ── Pagination states (matching Imagen 2) ──
+  const [tempPage, setTempPage] = useState(1)
+  const [tempRowsPerPage, setTempRowsPerPage] = useState(25)
+
+  const [balanzaPage, setBalanzaPage] = useState(1)
+  const [balanzaRowsPerPage, setBalanzaRowsPerPage] = useState(25)
+
+  // ── Modals ──
+  const [showTempModal, setShowTempModal] = useState(false)
+  const [editingTempId, setEditingTempId] = useState<number | null>(null)
+  const [tempIsDirty, setTempIsDirty] = useState(false)
   const [tempForm, setTempForm] = useState({
-    fecha:                new Date().toISOString().split("T")[0],
-    hora_lectura:         "08:00",
-    fecha_lectura:        new Date().toISOString().split("T")[0],
-    area_ambiente:        "CÁMARA HÚMEDA",
-    temperatura_c:        "23.0",
+    fecha: new Date().toISOString().split("T")[0],
+    hora_lectura: "08:00",
+    fecha_lectura: new Date().toISOString().split("T")[0],
+    area_ambiente: "CÁMARA HÚMEDA",
+    temperatura_c: "23.0",
     humedad_relativa_pct: "95.0",
-    temp_min:             "",
-    temp_max:             "",
-    hum_min:              "",
-    hum_max:              "",
+    temp_min: "",
+    temp_max: "",
+    hum_min: "",
+    hum_max: "",
     cumple_especificacion: true,
-    responsable_lectura:  user.name || "LABORATORIO",
-    revisado_por:         "",
-    observaciones:        "",
+    responsable_lectura: user.name || "LABORATORIO",
+    revisado_por: "",
+    observaciones: "",
   })
 
-  // ── Modal balanza ──
-  const [showBalanzaModal,  setShowBalanzaModal]  = useState(false)
-  const [editingBalanzaId,  setEditingBalanzaId]  = useState<number | null>(null)
-  const [balanzaIsDirty,    setBalanzaIsDirty]    = useState(false)
+  const [showBalanzaModal, setShowBalanzaModal] = useState(false)
+  const [editingBalanzaId, setEditingBalanzaId] = useState<number | null>(null)
+  const [balanzaIsDirty, setBalanzaIsDirty] = useState(false)
   const [balanzaForm, setBalanzaForm] = useState({
-    fecha:                 new Date().toISOString().split("T")[0],
-    hora:                  "08:00",
-    mes_anio:              getMesAnio(),
-    codigo_balanza:        "BAL-01",
-    ubicacion:             "Muestras / Cám. Húmeda",
-    codigos_pesas_patron:  "",
-    capacidad_g:           "30000",
-    masa_patron_g:         "5000",
-    lectura_balanza_g:     "5000.0",
+    fecha: new Date().toISOString().split("T")[0],
+    hora: "08:00",
+    mes_anio: getMesAnio(),
+    codigo_balanza: "BAL-01",
+    ubicacion: "Muestras / Cám. Húmeda",
+    codigos_pesas_patron: "PP-01, PP-02, PP-05",
+    capacidad_g: "30000",
+    masa_patron_g: "5000",
+    lectura_balanza_g: "5000.0",
     error_max_permitido_g: "1.0",
-    limpieza_nivelacion:   true,
-    verificado_por:        user.name || "LABORATORIO",
-    revisado_por:          "",
-    observaciones:         "",
+    limpieza_nivelacion: true,
+    verificado_por: user.name || "LABORATORIO",
+    revisado_por: "",
+    observaciones: "",
+    readings: [
+      { weight: "50g", ok: true, value: "50.0" },
+      { weight: "100g", ok: true, value: "100.0" },
+      { weight: "200g", ok: true, value: "200.0" },
+      { weight: "500g", ok: true, value: "500.0" },
+      { weight: "1000g", ok: true, value: "1000.0" },
+    ],
   })
 
   // ── Safety exit ──
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
-  const [pendingExitAction,  setPendingExitAction] = useState<(() => void) | null>(null)
+  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null)
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
+  // ── Fetch ──
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [resDash, resTemp, resBal] = await Promise.all([
-        authFetch(`${API_URL}/api/control-ambiental/dashboard`),
+      const [resTemp, resBal] = await Promise.all([
         authFetch(`${API_URL}/api/control-ambiental/temperatura?limit=200`),
         authFetch(`${API_URL}/api/control-ambiental/balanza?limit=200`),
       ])
-      if (resDash.ok) setDashboardData(await resDash.json())
       if (resTemp.ok) setTemperaturaList(await resTemp.json())
-      if (resBal.ok)  setBalanzaList(await resBal.json())
+      if (resBal.ok) setBalanzaList(await resBal.json())
     } catch (error) {
       console.error("Error loading Control Ambiental data:", error)
       toast.error("Error al cargar datos del servidor")
@@ -229,42 +222,11 @@ export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: Contr
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  // ── Acciones de cabecera ───────────────────────────────────────────────────
-
-  const handleSeedData = async () => {
-    setSeeding(true)
-    try {
-      const res = await authFetch(`${API_URL}/api/control-ambiental/seed`, { method: "POST" })
-      if (res.ok) {
-        const payload = await res.json()
-        toast.success("Inyección completada", {
-          description: payload.message || `Se sembraron ${payload.registros_creados} registros.`,
-        })
-        fetchData()
-      } else {
-        toast.error("No se pudo sembrar los datos reales")
-      }
-    } catch {
-      toast.error("Error en la solicitud de siembra de datos")
-    } finally {
-      setSeeding(false)
-    }
-  }
-
-  const handleExportTempExcel = () => {
-    window.open(`${API_URL}/api/control-ambiental/temperatura/excel`, "_blank")
-    toast.info("Descargando reporte F-LEM-P-05.01...")
-  }
-
-  const handleExportBalanzaExcel = () => {
-    window.open(`${API_URL}/api/control-ambiental/balanza/excel`, "_blank")
-    toast.info("Descargando reporte F-LEM-IN-01.02...")
-  }
-
-  // ── Safety exit ────────────────────────────────────────────────────────────
-
+  // ── Safety exit ──
   const executeWithSafetyCheck = (action: () => void) => {
     if (tempIsDirty || balanzaIsDirty) {
       setPendingExitAction(() => action)
@@ -280,29 +242,37 @@ export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: Contr
     setShowTempModal(false)
     setShowBalanzaModal(false)
     setShowUnsavedDialog(false)
-    if (pendingExitAction) { pendingExitAction(); setPendingExitAction(null) }
+    if (pendingExitAction) {
+      pendingExitAction()
+      setPendingExitAction(null)
+    }
   }
 
-  // ── Guardar temperatura ────────────────────────────────────────────────────
-
+  // ── Guardar temperatura ──
   const handleSaveTemp = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const payload = {
-        fecha:                tempForm.fecha,
-        hora_lectura:         tempForm.hora_lectura,
-        area_ambiente:        tempForm.area_ambiente,
-        temperatura_c:        parseFloat(tempForm.temperatura_c) || 0.0,
+        fecha: tempForm.fecha,
+        hora_lectura: tempForm.hora_lectura,
+        area_ambiente: tempForm.area_ambiente,
+        temperatura_c: parseFloat(tempForm.temperatura_c) || 0.0,
         humedad_relativa_pct: parseFloat(tempForm.humedad_relativa_pct) || 0.0,
-        temp_min:             tempForm.temp_min ? parseFloat(tempForm.temp_min) : null,
-        temp_max:             tempForm.temp_max ? parseFloat(tempForm.temp_max) : null,
+        temp_min: tempForm.temp_min ? parseFloat(tempForm.temp_min) : null,
+        temp_max: tempForm.temp_max ? parseFloat(tempForm.temp_max) : null,
         cumple_especificacion: tempForm.cumple_especificacion,
-        responsable_lectura:  tempForm.responsable_lectura,
-        observaciones:        tempForm.observaciones,
+        responsable_lectura: tempForm.responsable_lectura,
+        observaciones: tempForm.observaciones,
       }
-      const url    = editingTempId ? `${API_URL}/api/control-ambiental/temperatura/${editingTempId}` : `${API_URL}/api/control-ambiental/temperatura`
+      const url = editingTempId
+        ? `${API_URL}/api/control-ambiental/temperatura/${editingTempId}`
+        : `${API_URL}/api/control-ambiental/temperatura`
       const method = editingTempId ? "PUT" : "POST"
-      const res    = await authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
       if (res.ok) {
         toast.success(editingTempId ? "Lectura actualizada" : "Lectura registrada con éxito")
         setTempIsDirty(false)
@@ -317,26 +287,31 @@ export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: Contr
     }
   }
 
-  // ── Guardar balanza ────────────────────────────────────────────────────────
-
+  // ── Guardar balanza ──
   const handleSaveBalanza = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       const payload = {
-        fecha:                 balanzaForm.fecha,
-        codigo_balanza:        balanzaForm.codigo_balanza,
-        ubicacion:             balanzaForm.ubicacion,
-        capacidad_g:           parseFloat(balanzaForm.capacidad_g) || 0.0,
-        masa_patron_g:         parseFloat(balanzaForm.masa_patron_g) || 0.0,
-        lectura_balanza_g:     parseFloat(balanzaForm.lectura_balanza_g) || 0.0,
+        fecha: balanzaForm.fecha,
+        codigo_balanza: balanzaForm.codigo_balanza,
+        ubicacion: balanzaForm.ubicacion,
+        capacidad_g: parseFloat(balanzaForm.capacidad_g) || 0.0,
+        masa_patron_g: parseFloat(balanzaForm.masa_patron_g) || 0.0,
+        lectura_balanza_g: parseFloat(balanzaForm.lectura_balanza_g) || 0.0,
         error_max_permitido_g: parseFloat(balanzaForm.error_max_permitido_g) || 0.5,
-        limpieza_nivelacion:   balanzaForm.limpieza_nivelacion,
-        verificado_por:        balanzaForm.verificado_por,
-        observaciones:         balanzaForm.observaciones,
+        limpieza_nivelacion: balanzaForm.limpieza_nivelacion,
+        verificado_por: balanzaForm.verificado_por,
+        observaciones: balanzaForm.observaciones,
       }
-      const url    = editingBalanzaId ? `${API_URL}/api/control-ambiental/balanza/${editingBalanzaId}` : `${API_URL}/api/control-ambiental/balanza`
+      const url = editingBalanzaId
+        ? `${API_URL}/api/control-ambiental/balanza/${editingBalanzaId}`
+        : `${API_URL}/api/control-ambiental/balanza`
       const method = editingBalanzaId ? "PUT" : "POST"
-      const res    = await authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
       if (res.ok) {
         toast.success(editingBalanzaId ? "Verificación actualizada" : "Verificación registrada con éxito")
         setBalanzaIsDirty(false)
@@ -351,31 +326,42 @@ export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: Contr
     }
   }
 
-  // ── Eliminar ───────────────────────────────────────────────────────────────
-
+  // ── Eliminar ──
   const handleDeleteTemp = async (id: number) => {
     if (!confirm("¿Está seguro de eliminar esta lectura de temperatura?")) return
     try {
       const res = await authFetch(`${API_URL}/api/control-ambiental/temperatura/${id}`, { method: "DELETE" })
-      if (res.ok) { toast.success("Lectura eliminada"); fetchData() }
-    } catch { toast.error("Error eliminando registro") }
+      if (res.ok) {
+        toast.success("Lectura eliminada")
+        fetchData()
+      }
+    } catch {
+      toast.error("Error eliminando registro")
+    }
   }
 
   const handleDeleteBalanza = async (id: number) => {
     if (!confirm("¿Está seguro de eliminar esta verificación de balanza?")) return
     try {
       const res = await authFetch(`${API_URL}/api/control-ambiental/balanza/${id}`, { method: "DELETE" })
-      if (res.ok) { toast.success("Verificación eliminada"); fetchData() }
-    } catch { toast.error("Error eliminando registro") }
+      if (res.ok) {
+        toast.success("Verificación eliminada")
+        fetchData()
+      }
+    } catch {
+      toast.error("Error eliminando registro")
+    }
   }
 
-  // ── Listas filtradas ───────────────────────────────────────────────────────
-
+  // ── Listas filtradas ──
   const filteredTempList = useMemo(() =>
     temperaturaList.filter((item) => {
       const q = searchTemp.toLowerCase()
-      const matchSearch = item.area_ambiente.toLowerCase().includes(q) || item.responsable_lectura.toLowerCase().includes(q) || item.fecha.includes(q)
-      const matchArea   = areaFilter === "TODAS" || item.area_ambiente.toUpperCase().includes(areaFilter.toUpperCase())
+      const matchSearch =
+        item.area_ambiente.toLowerCase().includes(q) ||
+        item.responsable_lectura.toLowerCase().includes(q) ||
+        item.fecha.includes(q)
+      const matchArea = areaFilter === "TODAS" || item.area_ambiente.toUpperCase().includes(areaFilter.toUpperCase())
       return matchSearch && matchArea
     }),
   [temperaturaList, searchTemp, areaFilter])
@@ -383,1113 +369,1139 @@ export function ControlAmbientalModule({ user, defaultTab = "dashboard" }: Contr
   const filteredBalanzaList = useMemo(() =>
     balanzaList.filter((item) => {
       const q = searchBalanza.toLowerCase()
-      const matchSearch  = item.codigo_balanza.toLowerCase().includes(q) || item.ubicacion.toLowerCase().includes(q) || item.verificado_por.toLowerCase().includes(q) || item.fecha.includes(q)
+      const matchSearch =
+        item.codigo_balanza.toLowerCase().includes(q) ||
+        item.ubicacion.toLowerCase().includes(q) ||
+        item.verificado_por.toLowerCase().includes(q) ||
+        item.fecha.includes(q)
       const matchBalanza = balanzaFilter === "TODAS" || item.codigo_balanza === balanzaFilter
       return matchSearch && matchBalanza
     }),
   [balanzaList, searchBalanza, balanzaFilter])
 
-  // ── Últimos registros combinados ───────────────────────────────────────────
+  // ── Paginated data calculation ──
+  const tempTotalPages = Math.ceil(filteredTempList.length / tempRowsPerPage) || 1
+  const paginatedTempList = useMemo(() => {
+    const start = (tempPage - 1) * tempRowsPerPage
+    return filteredTempList.slice(start, start + tempRowsPerPage)
+  }, [filteredTempList, tempPage, tempRowsPerPage])
 
-  const ultimosRegistros = useMemo(() => {
-    const tempItems = temperaturaList.map((item) => ({
-      tipo:        "temperatura" as const,
-      fecha:       item.fecha,
-      hora:        item.hora_lectura,
-      descripcion: item.area_ambiente,
-      valor:       `${item.temperatura_c.toFixed(1)}°C / ${item.humedad_relativa_pct.toFixed(1)}%`,
-      usuario:     item.responsable_lectura,
-      conforme:    item.cumple_especificacion,
-      id:          item.id,
-    }))
-    const balItems = balanzaList.map((item) => ({
-      tipo:        "balanza" as const,
-      fecha:       item.fecha,
-      hora:        "",
-      descripcion: `${item.codigo_balanza} — ${item.ubicacion}`,
-      valor:       `Lectura: ${item.lectura_balanza_g}g | Patrón: ${item.masa_patron_g}g`,
-      usuario:     item.verificado_por,
-      conforme:    item.estado_conforme,
-      id:          item.id,
-    }))
-    return [...tempItems, ...balItems]
-      .sort((a, b) => {
-        const d = b.fecha.localeCompare(a.fecha)
-        return d !== 0 ? d : b.hora.localeCompare(a.hora)
-      })
-      .slice(0, 15)
-  }, [temperaturaList, balanzaList])
+  const balanzaTotalPages = Math.ceil(filteredBalanzaList.length / balanzaRowsPerPage) || 1
+  const paginatedBalanzaList = useMemo(() => {
+    const start = (balanzaPage - 1) * balanzaRowsPerPage
+    return filteredBalanzaList.slice(start, start + balanzaRowsPerPage)
+  }, [filteredBalanzaList, balanzaPage, balanzaRowsPerPage])
 
-  // ── Error calculado en tiempo real (balanza) ───────────────────────────────
-
+  // ── Balanza calculation error helper ──
   const balanzaErrorCalc = useMemo(() => {
-    const masa    = parseFloat(balanzaForm.masa_patron_g) || 0
-    const lectura = parseFloat(balanzaForm.lectura_balanza_g) || 0
-    const tol     = parseFloat(balanzaForm.error_max_permitido_g) || 0
-    const error   = lectura - masa
-    return { error, absError: Math.abs(error), conforme: Math.abs(error) <= tol }
+    const m = parseFloat(balanzaForm.masa_patron_g) || 0
+    const l = parseFloat(balanzaForm.lectura_balanza_g) || 0
+    const tol = parseFloat(balanzaForm.error_max_permitido_g) || 0.5
+    const err = l - m
+    const conforme = Math.abs(err) <= tol
+    return { error: err, conforme }
   }, [balanzaForm.masa_patron_g, balanzaForm.lectura_balanza_g, balanzaForm.error_max_permitido_g])
 
-  // ── Helpers de reset de formularios ───────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: MODULE 1 · CONTROL DE TEMPERATURA Y HUMEDAD
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (currentModuleMode === "temperatura") {
+    return (
+      <div className="space-y-6">
+        {/* Header estilo Imagen 2 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl bg-sky-100 border border-sky-200 text-sky-600 flex items-center justify-center shrink-0 shadow-xs">
+              <Thermometer className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Control de Temperatura y Humedad
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Control de temperatura y humedad relativa (F-LEM-P-05.01 V03).
+              </p>
+            </div>
+          </div>
 
-  const resetTempForm = () => ({
-    fecha:                new Date().toISOString().split("T")[0],
-    hora_lectura:         "08:00",
-    fecha_lectura:        new Date().toISOString().split("T")[0],
-    area_ambiente:        "CÁMARA HÚMEDA",
-    temperatura_c:        "23.0",
-    humedad_relativa_pct: "95.0",
-    temp_min:             "21.5",
-    temp_max:             "24.0",
-    hum_min:              "",
-    hum_max:              "",
-    cumple_especificacion: true,
-    responsable_lectura:  user.name || "LABORATORIO",
-    revisado_por:         "",
-    observaciones:        "",
-  })
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-72">
+              <Input
+                placeholder="Buscar por área, fecha, usuario..."
+                value={searchTemp}
+                onChange={(e) => {
+                  setSearchTemp(e.target.value)
+                  setTempPage(1)
+                }}
+                className="pl-9 h-9 text-xs bg-white"
+              />
+              <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 h-9 bg-white"
+              onClick={() => void fetchData()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Actualizar
+            </Button>
+            <Button
+              size="sm"
+              onClick={() =>
+                executeWithSafetyCheck(() => {
+                  setEditingTempId(null)
+                  setTempIsDirty(false)
+                  setShowTempModal(true)
+                })
+              }
+              className="gap-2 h-9 bg-sky-600 hover:bg-sky-700 text-white font-medium shadow-xs"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Registro
+            </Button>
+          </div>
+        </div>
 
-  const resetBalanzaForm = () => ({
-    fecha:                 new Date().toISOString().split("T")[0],
-    hora:                  "08:00",
-    mes_anio:              getMesAnio(),
-    codigo_balanza:        "BAL-01",
-    ubicacion:             "Muestras / Cám. Húmeda",
-    codigos_pesas_patron:  "",
-    capacidad_g:           "30000",
-    masa_patron_g:         "5000",
-    lectura_balanza_g:     "5000.0",
-    error_max_permitido_g: "1.0",
-    limpieza_nivelacion:   true,
-    verificado_por:        user.name || "LABORATORIO",
-    revisado_por:          "",
-    observaciones:         "",
-  })
+        {/* Card Historial estilo Imagen 2 */}
+        <div className="border rounded-xl shadow-xs bg-white overflow-hidden">
+          <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Historial Control de Temperatura
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Registros guardados con acceso a detalle y edición.
+              </p>
+            </div>
+            <Select value={areaFilter} onValueChange={(val) => { setAreaFilter(val); setTempPage(1) }}>
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODAS">Todas las áreas</SelectItem>
+                {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  RENDER
-  // ─────────────────────────────────────────────────────────────────────────
+          <Table className="w-full text-xs">
+            <TableHeader className="bg-slate-50/80">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-slate-700">Fecha / Hora</TableHead>
+                <TableHead className="font-semibold text-slate-700">Área / Ambiente</TableHead>
+                <TableHead className="text-center font-semibold text-slate-700">Temp (°C)</TableHead>
+                <TableHead className="text-center font-semibold text-slate-700">Humedad (%)</TableHead>
+                <TableHead className="text-center font-semibold text-slate-700">Estado</TableHead>
+                <TableHead className="text-right font-semibold text-slate-700 pr-6">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" />
+                    Cargando registros...
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filteredTempList.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                    Sin resultados.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading &&
+                paginatedTempList.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <TableCell className="font-medium">
+                      <div className="font-semibold text-slate-900">{item.fecha}</div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {item.hora_lectura}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-slate-800">{item.area_ambiente}</TableCell>
+                    <TableCell className="text-center font-mono font-bold text-sky-600 text-sm">
+                      {item.temperatura_c.toFixed(1)}°C
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-bold text-blue-600 text-sm">
+                      {item.humedad_relativa_pct.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                        item.cumple_especificacion
+                          ? "bg-blue-50 text-blue-600 border-blue-100"
+                          : "bg-red-50 text-red-600 border-red-100"
+                      }`}>
+                        {item.cumple_especificacion ? "CUMPLE" : "NO CUMPLE"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                          onClick={() =>
+                            executeWithSafetyCheck(() => {
+                              setEditingTempId(item.id)
+                              setTempForm({
+                                fecha: item.fecha,
+                                hora_lectura: item.hora_lectura,
+                                fecha_lectura: item.fecha,
+                                area_ambiente: item.area_ambiente,
+                                temperatura_c: String(item.temperatura_c),
+                                humedad_relativa_pct: String(item.humedad_relativa_pct),
+                                temp_min: item.temp_min ? String(item.temp_min) : "",
+                                temp_max: item.temp_max ? String(item.temp_max) : "",
+                                hum_min: "",
+                                hum_max: "",
+                                cumple_especificacion: item.cumple_especificacion,
+                                responsable_lectura: item.responsable_lectura,
+                                revisado_por: "",
+                                observaciones: item.observaciones || "",
+                              })
+                              setTempIsDirty(false)
+                              setShowTempModal(true)
+                            })
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                          onClick={() =>
+                            executeWithSafetyCheck(() => {
+                              setEditingTempId(item.id)
+                              setTempForm({
+                                fecha: item.fecha,
+                                hora_lectura: item.hora_lectura,
+                                fecha_lectura: item.fecha,
+                                area_ambiente: item.area_ambiente,
+                                temperatura_c: String(item.temperatura_c),
+                                humedad_relativa_pct: String(item.humedad_relativa_pct),
+                                temp_min: item.temp_min ? String(item.temp_min) : "",
+                                temp_max: item.temp_max ? String(item.temp_max) : "",
+                                hum_min: "",
+                                hum_max: "",
+                                cumple_especificacion: item.cumple_especificacion,
+                                responsable_lectura: item.responsable_lectura,
+                                revisado_por: "",
+                                observaciones: item.observaciones || "",
+                              })
+                              setTempIsDirty(false)
+                              setShowTempModal(true)
+                            })
+                          }
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteTemp(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
 
+          {/* Pagination Footer estilo Imagen 2 */}
+          {!loading && filteredTempList.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between border-t px-5 py-3 text-xs gap-3">
+              <span className="text-muted-foreground">
+                Mostrando {(tempPage - 1) * tempRowsPerPage + 1} a{" "}
+                {Math.min(tempPage * tempRowsPerPage, filteredTempList.length)} de{" "}
+                {filteredTempList.length} registros
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Filas por página:</span>
+                  <Select
+                    value={String(tempRowsPerPage)}
+                    onValueChange={(val) => {
+                      setTempRowsPerPage(Number(val))
+                      setTempPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-16 h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 bg-white"
+                    disabled={tempPage <= 1}
+                    onClick={() => setTempPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="min-w-[90px] text-center font-medium px-2">
+                    Página {tempPage} de {tempTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 bg-white"
+                    disabled={tempPage >= tempTotalPages}
+                    onClick={() => setTempPage((p) => Math.min(tempTotalPages, p + 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Form F-LEM-P-05.01 */}
+        {renderTempModal()}
+
+        <ModernConfirmDialog
+          open={showUnsavedDialog}
+          onOpenChange={setShowUnsavedDialog}
+          onConfirm={confirmExitWithoutSaving}
+          title="¿Desea salir sin guardar los cambios?"
+          description="Ha modificado datos en el formulario. Si sale ahora, se perderán los registros ingresados."
+          confirmText="Salir sin guardar"
+          cancelText="Continuar editando"
+          variant="destructive"
+        />
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: MODULE 2 · VERIFICACIÓN DE BALANZAS
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto">
-
-      {/* ── Cabecera ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-            <FlaskConical className="h-6 w-6" />
+    <div className="space-y-6">
+      {/* Header estilo Imagen 2 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-xl bg-sky-100 border border-sky-200 text-sky-600 flex items-center justify-center shrink-0 shadow-xs">
+            <Scale className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Control Ambiental de Laboratorio</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Temperatura/Humedad (F-LEM-P-05.01) · Verificación de Balanzas (F-LEM-IN-01.02)
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Verificación de Balanzas
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Formato de verificación diaria de balanzas (F-LEM-IN-01.02 V03).
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-72">
+            <Input
+              placeholder="Buscar por código de balanza, ubicación..."
+              value={searchBalanza}
+              onChange={(e) => {
+                setSearchBalanza(e.target.value)
+                setBalanzaPage(1)
+              }}
+              className="pl-9 h-9 text-xs bg-white"
+            />
+            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 bg-white"
+            onClick={() => void fetchData()}
+            disabled={loading}
+          >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Recargar
+            Actualizar
           </Button>
-
-          <Button
-            variant="outline" size="sm" onClick={handleSeedData} disabled={seeding}
-            className="h-9 gap-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/30 text-blue-400 hover:text-blue-300"
-          >
-            <Database className={`h-4 w-4 ${seeding ? "animate-spin" : ""}`} />
-            Sembrar Datos
-          </Button>
-
-          <Select onValueChange={(val) => { if (val === "temp") handleExportTempExcel(); if (val === "balanza") handleExportBalanzaExcel() }}>
-            <SelectTrigger className="w-[170px] h-9 gap-2">
-              <Download className="h-4 w-4" />
-              <SelectValue placeholder="Exportar Excel" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="temp">Temp. F-LEM-P-05.01</SelectItem>
-              <SelectItem value="balanza">Balanzas F-LEM-IN-01.02</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Button
             size="sm"
-            onClick={() => executeWithSafetyCheck(() => { setEditingTempId(null); setTempForm(resetTempForm()); setTempIsDirty(false); setShowTempModal(true) })}
-            className="h-9 gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20"
+            onClick={() =>
+              executeWithSafetyCheck(() => {
+                setEditingBalanzaId(null)
+                setBalanzaIsDirty(false)
+                setShowBalanzaModal(true)
+              })
+            }
+            className="gap-2 h-9 bg-sky-600 hover:bg-sky-700 text-white font-medium shadow-xs"
           >
-            <Plus className="h-4 w-4" /> + Temperatura
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => executeWithSafetyCheck(() => { setEditingBalanzaId(null); setBalanzaForm(resetBalanzaForm()); setBalanzaIsDirty(false); setShowBalanzaModal(true) })}
-            className="h-9 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
-          >
-            <Plus className="h-4 w-4" /> + Balanza
+            <Plus className="h-4 w-4" />
+            Nueva Verificación
           </Button>
         </div>
       </div>
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-card/70 border-border/80 shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Temp. Promedio</CardTitle>
-            <Thermometer className="h-4 w-4 text-emerald-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData ? `${dashboardData.promedio_temperatura_c}°C` : "—"}</div>
-            <p className="text-xs text-muted-foreground mt-1"><span className="text-emerald-400 font-medium">NTP 339</span> · 20°C – 23°C</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/70 border-border/80 shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Humedad Promedio</CardTitle>
-            <Activity className="h-4 w-4 text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData ? `${dashboardData.promedio_humedad_pct}%` : "—"}</div>
-            <p className="text-xs text-muted-foreground mt-1"><span className="text-blue-400 font-medium">Cám. Húmeda ≥ 95%</span> · Lab &lt;80%</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/70 border-border/80 shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Balanzas Verificadas Hoy</CardTitle>
-            <Scale className="h-4 w-4 text-amber-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData ? `${dashboardData.balanzas_verificadas_hoy} / ${dashboardData.total_balanzas_registradas}` : "— / 6"}</div>
-            <p className="text-xs text-muted-foreground mt-1"><span className="text-emerald-400 font-medium">Calibración diaria</span></p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/70 border-border/80 shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conformidad Global</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold flex items-center justify-between">
-              <span>{dashboardData ? `${dashboardData.tasa_cumplimiento_temp_pct}%` : "—"}</span>
-              <Badge variant={dashboardData && dashboardData.alertas_activas > 0 ? "destructive" : "default"}>
-                {dashboardData?.alertas_activas || 0} Alertas
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">{dashboardData?.alertas_activas === 0 ? "Sin desviaciones" : "Atención requerida"}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={(v) => executeWithSafetyCheck(() => setActiveTab(v as any))} className="space-y-6">
-        <TabsList className="grid grid-cols-3 max-w-md bg-muted/60 p-1">
-          <TabsTrigger value="dashboard"   className="gap-2 font-medium"><History    className="h-4 w-4" />Registros</TabsTrigger>
-          <TabsTrigger value="temperatura" className="gap-2 font-medium"><Thermometer className="h-4 w-4" />Temperatura</TabsTrigger>
-          <TabsTrigger value="balanza"     className="gap-2 font-medium"><Scale       className="h-4 w-4" />Balanzas</TabsTrigger>
-        </TabsList>
-
-        {/* ════════════════════════════════════════════════════════════════
-            TAB 1 · DASHBOARD — Estado de áreas + Últimos registros
-        ════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="dashboard" className="space-y-6">
-
-          {/* Estado por áreas (solo si hay datos reales) */}
-          {dashboardData && dashboardData.areas_resumen?.length > 0 && (
-            <div>
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Activity className="h-3.5 w-3.5 text-emerald-400" /> Estado Actual por Área
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                {dashboardData.areas_resumen.map((area) => (
-                  <Card key={area.area} className="border-border/60 hover:border-border transition-all">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold truncate">{area.area}</span>
-                        <Badge variant={area.conforme ? "default" : "destructive"} className="text-[10px]">
-                          {area.conforme ? "OK" : "ALERTA"}
-                        </Badge>
-                      </div>
-                      <div className="flex gap-3 text-sm font-bold">
-                        <span className="text-emerald-400">{area.temperatura_actual}°C</span>
-                        <span className="text-blue-400">{area.humedad_actual}%</span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">{area.rango_temperatura} · {area.rango_humedad}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Últimos registros */}
-          <Card className="border-border/80">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <History className="h-4 w-4 text-purple-400" />
-                    Últimos Registros
-                  </CardTitle>
-                  <CardDescription>Temperatura y balanzas — más recientes primero</CardDescription>
-                </div>
-                <Badge variant="outline" className="text-xs">{ultimosRegistros.length} registros</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {ultimosRegistros.length === 0 ? (
-                <div className="py-14 text-center text-muted-foreground">
-                  <History className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Sin registros aún. Use los botones de arriba para ingresar datos.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border/40">
-                  {ultimosRegistros.map((reg, idx) => (
-                    <div
-                      key={`${reg.tipo}-${reg.id}-${idx}`}
-                      className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/20 transition-colors"
-                    >
-                      {/* Icono tipo */}
-                      <div className={`flex-shrink-0 p-2 rounded-lg ${reg.tipo === "temperatura" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
-                        {reg.tipo === "temperatura" ? <Thermometer className="h-4 w-4" /> : <Scale className="h-4 w-4" />}
-                      </div>
-
-                      {/* Fecha + Hora */}
-                      <div className="flex-shrink-0 w-28">
-                        <div className="text-xs font-semibold font-mono text-foreground">{reg.fecha}</div>
-                        {reg.hora && (
-                          <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Clock className="h-2.5 w-2.5" />{reg.hora}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Descripción + Valor */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{reg.descripcion}</p>
-                        <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{reg.valor}</p>
-                      </div>
-
-                      {/* Usuario */}
-                      <div className="flex-shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground w-36 truncate">
-                        <User className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate font-medium">{reg.usuario}</span>
-                      </div>
-
-                      {/* Estado */}
-                      <div className="flex-shrink-0">
-                        {reg.conforme ? (
-                          <span className="flex items-center gap-1 text-emerald-400 text-xs font-semibold">
-                            <CheckCircle2 className="h-4 w-4" />Conforme
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-red-400 text-xs font-semibold">
-                            <XCircle className="h-4 w-4" />No Conforme
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ════════════════════════════════════════════════════════════════
-            TAB 2 · TEMPERATURA Y HUMEDAD RELATIVA
-        ════════════════════════════════════════════════════════════════ */}
-        {/* ════════════════════════════════════════════════════════════════
-            TAB 2 · TEMPERATURA Y HUMEDAD RELATIVA — F-LEM-P-05.01
-        ════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="temperatura" className="space-y-0">
-
-          {/* Header estilo F. Probetas */}
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <Thermometer className="h-6 w-6 text-emerald-400" />
-                Temperatura / Humedad
-              </h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Gestión y control de registros de temperatura y humedad relativa
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 gap-1.5">
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              </Button>
-              <Button size="sm"
-                onClick={() => executeWithSafetyCheck(() => { setEditingTempId(null); setTempForm(resetTempForm()); setTempIsDirty(false); setShowTempModal(true) })}
-                className="h-9 gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
-              >
-                <Plus className="h-4 w-4" /> Nueva Lectura
-              </Button>
-            </div>
+      {/* Card Historial estilo Imagen 2 */}
+      <div className="border rounded-xl shadow-xs bg-white overflow-hidden">
+        <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">
+              Historial Verificación de Balanzas
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Registros guardados con acceso a detalle y edición.
+            </p>
           </div>
+          <Select value={balanzaFilter} onValueChange={(val) => { setBalanzaFilter(val); setBalanzaPage(1) }}>
+            <SelectTrigger className="w-[180px] h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TODAS">Todas las balanzas</SelectItem>
+              {DEFAULT_BALANZAS.map((b) => <SelectItem key={b.codigo} value={b.codigo}>{b.codigo} — {b.ubi}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {/* Barra de búsqueda y filtro */}
-          <Card className="border-border/60 mb-0 rounded-b-none border-b-0">
-            <CardContent className="p-4 flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[220px] max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por área, responsable, fecha..."
-                  value={searchTemp}
-                  onChange={(e) => setSearchTemp(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <Select value={areaFilter} onValueChange={setAreaFilter}>
-                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODAS">Todas las áreas</SelectItem>
-                  {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Tabla estilo F. Probetas */}
-          <Card className="border-border/60 rounded-t-none">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/60">
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Fecha</th>
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Hora</th>
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Área / Ambiente</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Temperatura</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Humedad</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Min / Max °C</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Estado</th>
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Responsable</th>
-                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTempList.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="py-14 text-center text-muted-foreground">
-                          <Thermometer className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                          <p className="text-sm">No se encontraron registros de temperatura.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredTempList.map((item) => (
-                        <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
-                          {/* Fecha en badge azul */}
-                          <td className="py-3.5 px-5">
-                            <span className="inline-flex items-center rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 text-xs font-semibold font-mono">
-                              {item.fecha}
-                            </span>
-                          </td>
-                          {/* Hora */}
-                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono flex items-center gap-1 pt-5">
-                            <Clock className="h-3 w-3" />{item.hora_lectura}
-                          </td>
-                          {/* Área */}
-                          <td className="py-3.5 px-5 font-medium text-sm">{item.area_ambiente}</td>
-                          {/* Temperatura */}
-                          <td className="py-3.5 px-5 text-center">
-                            <span className="font-bold text-emerald-400 text-sm">{item.temperatura_c.toFixed(1)}°C</span>
-                          </td>
-                          {/* Humedad */}
-                          <td className="py-3.5 px-5 text-center">
-                            <span className="font-bold text-blue-400 text-sm">{item.humedad_relativa_pct.toFixed(1)}%</span>
-                          </td>
-                          {/* Min / Max */}
-                          <td className="py-3.5 px-5 text-center text-xs text-muted-foreground font-mono">
-                            {item.temp_min ? `${item.temp_min}°C` : "—"} / {item.temp_max ? `${item.temp_max}°C` : "—"}
-                          </td>
-                          {/* Estado badge coloreado */}
-                          <td className="py-3.5 px-5 text-center">
-                            {item.cumple_especificacion ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 text-[11px] font-semibold">
-                                <CheckCircle2 className="h-3 w-3" />Cumple
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 px-2.5 py-1 text-[11px] font-semibold">
-                                <XCircle className="h-3 w-3" />No Cumple
-                              </span>
-                            )}
-                          </td>
-                          {/* Responsable */}
-                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono max-w-[140px] truncate">
-                            {item.responsable_lectura}
-                          </td>
-                          {/* Acciones: ojo, lápiz, basura */}
-                          <td className="py-3.5 px-5 text-right">
-                            <div className="flex items-center justify-end gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => executeWithSafetyCheck(() => {
-                                  setEditingTempId(item.id)
-                                  setTempForm({
-                                    fecha: item.fecha, hora_lectura: item.hora_lectura, fecha_lectura: item.fecha,
-                                    area_ambiente: item.area_ambiente, temperatura_c: String(item.temperatura_c),
-                                    humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                    temp_min: item.temp_min ? String(item.temp_min) : "",
-                                    temp_max: item.temp_max ? String(item.temp_max) : "",
-                                    hum_min: "", hum_max: "",
-                                    cumple_especificacion: item.cumple_especificacion,
-                                    responsable_lectura: item.responsable_lectura,
-                                    revisado_por: "", observaciones: item.observaciones || "",
-                                  })
-                                  setTempIsDirty(false); setShowTempModal(true)
-                                })}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => executeWithSafetyCheck(() => {
-                                  setEditingTempId(item.id)
-                                  setTempForm({
-                                    fecha: item.fecha, hora_lectura: item.hora_lectura, fecha_lectura: item.fecha,
-                                    area_ambiente: item.area_ambiente, temperatura_c: String(item.temperatura_c),
-                                    humedad_relativa_pct: String(item.humedad_relativa_pct),
-                                    temp_min: item.temp_min ? String(item.temp_min) : "",
-                                    temp_max: item.temp_max ? String(item.temp_max) : "",
-                                    hum_min: "", hum_max: "",
-                                    cumple_especificacion: item.cumple_especificacion,
-                                    responsable_lectura: item.responsable_lectura,
-                                    revisado_por: "", observaciones: item.observaciones || "",
-                                  })
-                                  setTempIsDirty(false); setShowTempModal(true)
-                                })}>
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                                onClick={() => handleDeleteTemp(item.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Footer con conteo */}
-              {filteredTempList.length > 0 && (
-                <div className="px-5 py-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground bg-muted/20">
-                  <span>Mostrando <span className="font-semibold text-foreground">{filteredTempList.length}</span> de <span className="font-semibold text-foreground">{temperaturaList.length}</span> registros</span>
-                  <span className="font-mono text-[10px]">F-LEM-P-05.01 V03</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ════════════════════════════════════════════════════════════════
-            TAB 3 · CONTROL DE BALANZAS — F-LEM-IN-01.02
-        ════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="balanza" className="space-y-0">
-
-          {/* Header estilo F. Probetas */}
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <Scale className="h-6 w-6 text-amber-400" />
-                Verificación de Balanzas
-              </h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Gestión y control de formatos de verificación diaria de balanzas
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="h-9 gap-1.5">
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              </Button>
-              <Button size="sm"
-                onClick={() => executeWithSafetyCheck(() => { setEditingBalanzaId(null); setBalanzaForm(resetBalanzaForm()); setBalanzaIsDirty(false); setShowBalanzaModal(true) })}
-                className="h-9 gap-2 bg-amber-600 hover:bg-amber-500 text-white"
-              >
-                <Plus className="h-4 w-4" /> Nueva Verificación
-              </Button>
-            </div>
-          </div>
-
-          {/* Barra de búsqueda y filtro */}
-          <Card className="border-border/60 mb-0 rounded-b-none border-b-0">
-            <CardContent className="p-4 flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[220px] max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por código, ubicación, responsable..."
-                  value={searchBalanza}
-                  onChange={(e) => setSearchBalanza(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <Select value={balanzaFilter} onValueChange={setBalanzaFilter}>
-                <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODAS">Todas las balanzas</SelectItem>
-                  {DEFAULT_BALANZAS.map((b) => <SelectItem key={b.codigo} value={b.codigo}>{b.codigo} — {b.ubi}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Tabla estilo F. Probetas */}
-          <Card className="border-border/60 rounded-t-none">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/60">
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Fecha</th>
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Código / Ubicación</th>
-                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Capacidad</th>
-                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Masa Patrón</th>
-                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Lectura</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Error / Tol.</th>
-                      <th className="py-3 px-5 text-center text-xs font-semibold text-muted-foreground">Estado</th>
-                      <th className="py-3 px-5 text-left text-xs font-semibold text-muted-foreground">Verificado Por</th>
-                      <th className="py-3 px-5 text-right text-xs font-semibold text-muted-foreground">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBalanzaList.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="py-14 text-center text-muted-foreground">
-                          <Scale className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                          <p className="text-sm">No se encontraron verificaciones de balanza.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredBalanzaList.map((item) => (
-                        <tr key={item.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
-                          {/* Fecha en badge azul */}
-                          <td className="py-3.5 px-5">
-                            <span className="inline-flex items-center rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 text-xs font-semibold font-mono">
-                              {item.fecha}
-                            </span>
-                          </td>
-                          {/* Código resaltado + ubicación */}
-                          <td className="py-3.5 px-5">
-                            <div className="font-bold text-primary text-sm">{item.codigo_balanza}</div>
-                            <div className="text-xs text-muted-foreground">{item.ubicacion}</div>
-                          </td>
-                          <td className="py-3.5 px-5 text-right font-mono text-xs">{item.capacidad_g}g</td>
-                          <td className="py-3.5 px-5 text-right font-mono text-xs font-semibold">{item.masa_patron_g}g</td>
-                          <td className="py-3.5 px-5 text-right font-mono text-xs font-bold">{item.lectura_balanza_g}g</td>
-                          {/* Error + tolerancia */}
-                          <td className="py-3.5 px-5 text-center">
-                            <span className={`font-mono text-xs font-bold block ${item.error_g === 0 ? "text-emerald-400" : "text-amber-400"}`}>
-                              {item.error_g > 0 ? `+${item.error_g}` : item.error_g}g
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">Tol: ±{item.error_max_permitido_g}g</span>
-                          </td>
-                          {/* Estado con badge coloreado */}
-                          <td className="py-3.5 px-5 text-center">
-                            {item.estado_conforme ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 px-2.5 py-1 text-[11px] font-semibold">
-                                <CheckCircle2 className="h-3 w-3" />Conforme
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 px-2.5 py-1 text-[11px] font-semibold">
-                                <XCircle className="h-3 w-3" />No Conforme
-                              </span>
-                            )}
-                          </td>
-                          {/* Verificado por */}
-                          <td className="py-3.5 px-5 text-xs text-muted-foreground font-mono max-w-[140px] truncate">
-                            {item.verificado_por}
-                          </td>
-                          {/* Acciones: ojo, lápiz, basura */}
-                          <td className="py-3.5 px-5 text-right">
-                            <div className="flex items-center justify-end gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => executeWithSafetyCheck(() => {
-                                  setEditingBalanzaId(item.id)
-                                  const fechaObj = new Date(item.fecha + "T00:00:00")
-                                  setBalanzaForm({
-                                    fecha: item.fecha, hora: "08:00",
-                                    mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-                                    codigo_balanza: item.codigo_balanza, ubicacion: item.ubicacion,
-                                    codigos_pesas_patron: "",
-                                    capacidad_g: String(item.capacidad_g), masa_patron_g: String(item.masa_patron_g),
-                                    lectura_balanza_g: String(item.lectura_balanza_g),
-                                    error_max_permitido_g: String(item.error_max_permitido_g),
-                                    limpieza_nivelacion: item.limpieza_nivelacion,
-                                    verificado_por: item.verificado_por, revisado_por: "",
-                                    observaciones: item.observaciones || "",
-                                  })
-                                  setBalanzaIsDirty(false); setShowBalanzaModal(true)
-                                })}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => executeWithSafetyCheck(() => {
-                                  setEditingBalanzaId(item.id)
-                                  const fechaObj = new Date(item.fecha + "T00:00:00")
-                                  setBalanzaForm({
-                                    fecha: item.fecha, hora: "08:00",
-                                    mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-                                    codigo_balanza: item.codigo_balanza, ubicacion: item.ubicacion,
-                                    codigos_pesas_patron: "",
-                                    capacidad_g: String(item.capacidad_g), masa_patron_g: String(item.masa_patron_g),
-                                    lectura_balanza_g: String(item.lectura_balanza_g),
-                                    error_max_permitido_g: String(item.error_max_permitido_g),
-                                    limpieza_nivelacion: item.limpieza_nivelacion,
-                                    verificado_por: item.verificado_por, revisado_por: "",
-                                    observaciones: item.observaciones || "",
-                                  })
-                                  setBalanzaIsDirty(false); setShowBalanzaModal(true)
-                                })}>
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                                onClick={() => handleDeleteBalanza(item.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Footer con conteo */}
-              {filteredBalanzaList.length > 0 && (
-                <div className="px-5 py-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground bg-muted/20">
-                  <span>Mostrando <span className="font-semibold text-foreground">{filteredBalanzaList.length}</span> de <span className="font-semibold text-foreground">{balanzaList.length}</span> registros</span>
-                  <span className="font-mono text-[10px]">F-LEM-IN-01.02 V03</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      {/* ════════════════════════════════════════════════════════════════
-          DIALOG 1 · F-LEM-P-05.01 V03
-          Control de Temperatura y Humedad Relativa
-      ════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={showTempModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowTempModal(false)); else setShowTempModal(true) }}>
-        <DialogContent className="sm:max-w-[740px] max-h-[90vh] overflow-y-auto">
-
-          {/* Header del dialog */}
-          <DialogHeader className="border-b border-border pb-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex-shrink-0">
-                <Thermometer className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
-                  LABORATORIO DE ENSAYO DE MATERIALES
-                </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
-                  {editingTempId ? "Editar registro -� " : "Nuevo registro -� "}
-                  F-LEM-P-05.01 V03 ��� Control de Temperatura y Humedad Relativa
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveTemp} className="space-y-5 py-2">
-
-            {/* ������ Fila de cabecera del formato ������ */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">MES-A+�O</label>
-                <Input
-                  placeholder="Ej: AGOSTO-2026"
-                  defaultValue={getMesAnio()}
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Aprobado Por</label>
-                <Input
-                  placeholder="Nombre del aprobador"
-                  value={tempForm.revisado_por}
-                  onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            {/* ������ +�rea de control + tabla de par+�metros ������ */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-border/60 p-3 bg-muted/20 space-y-3">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">+�rea de Control</p>
-                  <Select
-                    value={tempForm.area_ambiente}
-                    onValueChange={(v) => { setTempForm((p) => ({ ...p, area_ambiente: v })); setTempIsDirty(true) }}
-                  >
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione +�rea" /></SelectTrigger>
-                    <SelectContent>
-                      {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Par+�metros</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Registre temperatura y humedad seg+�n los rangos normativos indicados en la tabla de par+�metros de las +�reas del laboratorio.
-                  </p>
-                </div>
-              </div>
-
-              {/* Tabla de par+�metros de referencia (F-LEM-P-05.01) */}
-              <div className="rounded-lg border border-border/60 overflow-hidden">
-                <div className="bg-muted/50 px-3 py-1.5 border-b border-border/60">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Par+�metros de las +�reas</p>
-                </div>
-                <table className="w-full">
-                  <thead className="bg-muted/30">
-                    <tr>
-                      <th className="px-2 py-1 text-left text-[9px] text-muted-foreground font-semibold">+�rea</th>
-                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Temp.</th>
-                      <th className="px-2 py-1 text-center text-[9px] text-muted-foreground font-semibold">Hum.</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {AREA_PARAMETROS.map((ap) => (
-                      <tr key={ap.area} className={ap.area.includes("Lavado") ? "font-semibold bg-amber-500/5" : ""}>
-                        <td className="px-2 py-1.5 text-[10px] text-foreground leading-tight">{ap.area}</td>
-                        <td className="px-2 py-1.5 text-center text-[10px] text-emerald-400 font-mono whitespace-nowrap">{ap.temp}</td>
-                        <td className="px-2 py-1.5 text-center text-[10px] text-blue-400 whitespace-nowrap">{ap.humedad}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* ������ Datos del registro ������ */}
-            <div className="border-t border-border/60 pt-4 space-y-4">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Datos del Registro</p>
-
-              {/* Fechas y hora */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Registro</label>
-                  <Input type="date" value={tempForm.fecha}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Hora de Toma</label>
-                  <Input type="time" value={tempForm.hora_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, hora_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha de Lectura</label>
-                  <Input type="date" value={tempForm.fecha_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, fecha_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-              </div>
-
-              {/* Temperatura + Humedad con Min/Max */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Temperatura */}
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
-                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Temperatura (-�C)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">M+�nimo</label>
-                      <Input type="number" step="0.1" placeholder="M+�n" value={tempForm.temp_min}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_min: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
+        <Table className="w-full text-xs">
+          <TableHeader className="bg-slate-50/80">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="font-semibold text-slate-700">Código Balanza</TableHead>
+              <TableHead className="font-semibold text-slate-700">Ubicación / Fecha</TableHead>
+              <TableHead className="text-right font-semibold text-slate-700">Masa Patrón (g)</TableHead>
+              <TableHead className="text-right font-semibold text-slate-700">Lectura (g)</TableHead>
+              <TableHead className="text-center font-semibold text-slate-700">Error (g)</TableHead>
+              <TableHead className="text-center font-semibold text-slate-700">Estado</TableHead>
+              <TableHead className="text-right font-semibold text-slate-700 pr-6">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" />
+                  Cargando verificaciones...
+                </TableCell>
+              </TableRow>
+            )}
+            {!loading && filteredBalanzaList.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                  Sin resultados.
+                </TableCell>
+              </TableRow>
+            )}
+            {!loading &&
+              paginatedBalanzaList.map((item) => (
+                <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell className="font-bold text-sky-600 text-sm">
+                    {item.codigo_balanza}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <div className="font-semibold text-slate-900">{item.ubicacion}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono">{item.fecha}</div>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs">{item.masa_patron_g}g</TableCell>
+                  <TableCell className="text-right font-mono text-xs font-bold">{item.lectura_balanza_g}g</TableCell>
+                  <TableCell className="text-center font-mono text-xs">
+                    <span className={item.error_g === 0 ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                      {item.error_g > 0 ? `+${item.error_g}` : item.error_g}g
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                      item.estado_conforme
+                        ? "bg-blue-50 text-blue-600 border-blue-100"
+                        : "bg-red-50 text-red-600 border-red-100"
+                    }`}>
+                      {item.estado_conforme ? "CONFORME" : "NO CONFORME"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                        onClick={() =>
+                          executeWithSafetyCheck(() => {
+                            setEditingBalanzaId(item.id)
+                            const fechaObj = new Date(item.fecha + "T00:00:00")
+                            setBalanzaForm({
+                              fecha: item.fecha,
+                              hora: "08:00",
+                              mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+                              codigo_balanza: item.codigo_balanza,
+                              ubicacion: item.ubicacion,
+                              codigos_pesas_patron: "PP-01, PP-02, PP-05",
+                              capacidad_g: String(item.capacidad_g),
+                              masa_patron_g: String(item.masa_patron_g),
+                              lectura_balanza_g: String(item.lectura_balanza_g),
+                              error_max_permitido_g: String(item.error_max_permitido_g),
+                              limpieza_nivelacion: item.limpieza_nivelacion,
+                              verificado_por: item.verificado_por,
+                              revisado_por: "",
+                              observaciones: item.observaciones || "",
+                              readings: [
+                                { weight: "50g", ok: true, value: "50.0" },
+                                { weight: "100g", ok: true, value: "100.0" },
+                                { weight: "200g", ok: true, value: "200.0" },
+                                { weight: "500g", ok: true, value: "500.0" },
+                                { weight: "1000g", ok: true, value: "1000.0" },
+                              ],
+                            })
+                            setBalanzaIsDirty(false)
+                            setShowBalanzaModal(true)
+                          })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                        onClick={() =>
+                          executeWithSafetyCheck(() => {
+                            setEditingBalanzaId(item.id)
+                            const fechaObj = new Date(item.fecha + "T00:00:00")
+                            setBalanzaForm({
+                              fecha: item.fecha,
+                              hora: "08:00",
+                              mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+                              codigo_balanza: item.codigo_balanza,
+                              ubicacion: item.ubicacion,
+                              codigos_pesas_patron: "PP-01, PP-02, PP-05",
+                              capacidad_g: String(item.capacidad_g),
+                              masa_patron_g: String(item.masa_patron_g),
+                              lectura_balanza_g: String(item.lectura_balanza_g),
+                              error_max_permitido_g: String(item.error_max_permitido_g),
+                              limpieza_nivelacion: item.limpieza_nivelacion,
+                              verificado_por: item.verificado_por,
+                              revisado_por: "",
+                              observaciones: item.observaciones || "",
+                              readings: [
+                                { weight: "50g", ok: true, value: "50.0" },
+                                { weight: "100g", ok: true, value: "100.0" },
+                                { weight: "200g", ok: true, value: "200.0" },
+                                { weight: "500g", ok: true, value: "500.0" },
+                                { weight: "1000g", ok: true, value: "1000.0" },
+                              ],
+                            })
+                            setBalanzaIsDirty(false)
+                            setShowBalanzaModal(true)
+                          })
+                        }
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeleteBalanza(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">M+�ximo</label>
-                      <Input type="number" step="0.1" placeholder="M+�x" value={tempForm.temp_max}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, temp_max: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground">Lectura actual (-�C)</label>
-                    <Input type="number" step="0.1" placeholder="-�C" value={tempForm.temperatura_c}
-                      onChange={(e) => { setTempForm((p) => ({ ...p, temperatura_c: e.target.value })); setTempIsDirty(true) }}
-                      className="h-8 text-xs font-mono font-bold" required />
-                  </div>
-                </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
 
-                {/* Humedad */}
-                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Humedad Relativa (%)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">M+�nimo</label>
-                      <Input type="number" step="0.1" placeholder="M+�n" value={tempForm.hum_min}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_min: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">M+�ximo</label>
-                      <Input type="number" step="0.1" placeholder="M+�x" value={tempForm.hum_max}
-                        onChange={(e) => { setTempForm((p) => ({ ...p, hum_max: e.target.value })); setTempIsDirty(true) }}
-                        className="h-8 text-xs font-mono" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground">Lectura actual (%)</label>
-                    <Input type="number" step="0.1" placeholder="%" value={tempForm.humedad_relativa_pct}
-                      onChange={(e) => { setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value })); setTempIsDirty(true) }}
-                      className="h-8 text-xs font-mono font-bold" required />
-                  </div>
-                </div>
-              </div>
-
-              {/* Responsables */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable del Registro</label>
-                  <Input placeholder="Nombre del responsable" value={tempForm.responsable_lectura}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, responsable_lectura: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">[ ] Responsable de la Revisi+�n</label>
-                  <Input placeholder="Nombre del revisor" value={tempForm.revisado_por}
-                    onChange={(e) => { setTempForm((p) => ({ ...p, revisado_por: e.target.value })); setTempIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-              </div>
-
-              {/* Cumple especificaci+�n */}
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
-                <label className="text-xs font-semibold flex-1">-+Cumple Especificaci+�n?</label>
-                <div className="flex gap-2">
-                  {[true, false].map((val) => (
-                    <button key={String(val)} type="button"
-                      onClick={() => { setTempForm((p) => ({ ...p, cumple_especificacion: val })); setTempIsDirty(true) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
-                        tempForm.cumple_especificacion === val
-                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
-                          : "border-border text-muted-foreground"
-                      }`}>
-                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> S+�</> : <><XCircle className="h-3.5 w-3.5" /> NO</>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}>Cancelar</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white">
-                {editingTempId ? "Actualizar Lectura" : "Guardar Lectura"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
-          DIALOG 2 -� F-LEM-IN-01.02 V03
-          Formato de Verificaci+�n Diaria de Balanzas
-      ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������ */}
-      <Dialog open={showBalanzaModal} onOpenChange={(o) => { if (!o) executeWithSafetyCheck(() => setShowBalanzaModal(false)); else setShowBalanzaModal(true) }}>
-        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
-
-          <DialogHeader className="border-b border-border pb-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex-shrink-0">
-                <Scale className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-sm font-bold uppercase tracking-wide">
-                  FORMATO DE VERIFICACI+�N DIARIA DE BALANZAS
-                </DialogTitle>
-                <DialogDescription className="text-xs mt-0.5">
-                  {editingBalanzaId ? "Editar verificaci+�n -� " : "Nueva verificaci+�n -� "}
-                  F-LEM-IN-01.02 V03
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveBalanza} className="space-y-4 py-2">
-
-            {/* ������ C+�digo balanza + Mes/A+�o ������ */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">C+�digo de la Balanza</label>
-                <Select value={balanzaForm.codigo_balanza}
+        {/* Pagination Footer estilo Imagen 2 */}
+        {!loading && filteredBalanzaList.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t px-5 py-3 text-xs gap-3">
+            <span className="text-muted-foreground">
+              Mostrando {(balanzaPage - 1) * balanzaRowsPerPage + 1} a{" "}
+              {Math.min(balanzaPage * balanzaRowsPerPage, filteredBalanzaList.length)} de{" "}
+              {filteredBalanzaList.length} registros
+            </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Filas por página:</span>
+                <Select
+                  value={String(balanzaRowsPerPage)}
                   onValueChange={(val) => {
-                    const p = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                    setBalanzaForm((prev) => ({
-                      ...prev, codigo_balanza: val,
-                      ubicacion:             p?.ubi  || prev.ubicacion,
-                      capacidad_g:           String(p?.cap  || prev.capacidad_g),
-                      masa_patron_g:         String(p?.masa || prev.masa_patron_g),
-                      lectura_balanza_g:     String(p?.masa || prev.masa_patron_g),
-                      error_max_permitido_g: String(p?.tol  || prev.error_max_permitido_g),
-                    }))
-                    setBalanzaIsDirty(true)
-                  }}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccione c+�digo" /></SelectTrigger>
+                    setBalanzaRowsPerPage(Number(val))
+                    setBalanzaPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-16 h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {DEFAULT_BALANZAS.map((b) => (
-                      <SelectItem key={b.codigo} value={b.codigo} className="text-xs">{b.codigo} ��� {b.ubi}</SelectItem>
-                    ))}
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mes / A+�o</label>
-                <Input placeholder="Ej: AGOSTO-2026" value={balanzaForm.mes_anio}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, mes_anio: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs font-mono" />
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 bg-white"
+                  disabled={balanzaPage <= 1}
+                  onClick={() => setBalanzaPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[90px] text-center font-medium px-2">
+                  Página {balanzaPage} de {balanzaTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 bg-white"
+                  disabled={balanzaPage >= balanzaTotalPages}
+                  onClick={() => setBalanzaPage((p) => Math.min(balanzaTotalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
+          </div>
+        )}
+      </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ubicaci+�n de la Balanza</label>
-              <Input value={balanzaForm.ubicacion}
-                onChange={(e) => { setBalanzaForm((p) => ({ ...p, ubicacion: e.target.value })); setBalanzaIsDirty(true) }}
-                className="h-8 text-xs" required />
-            </div>
+      {/* Modal Form F-LEM-IN-01.02 */}
+      {renderBalanzaModal()}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">C+�digos de las Pesas Patr+�n</label>
-              <Input placeholder="Ej: PP-001, PP-002..." value={balanzaForm.codigos_pesas_patron}
-                onChange={(e) => { setBalanzaForm((p) => ({ ...p, codigos_pesas_patron: e.target.value })); setBalanzaIsDirty(true) }}
-                className="h-8 text-xs font-mono" />
-            </div>
-
-            {/* ������ Registro de lectura ������ */}
-            <div className="border-t border-border/60 pt-3 space-y-4">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Pesa Patr+�n Usado ��� Anotar Lecturas de la Balanza
-              </p>
-
-              {/* Fecha, Hora, Temp ambiental, Humedad ambiental */}
-              <div className="grid grid-cols-4 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Fecha</label>
-                  <Input type="date" value={balanzaForm.fecha}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, fecha: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Hora</label>
-                  <Input type="time" value={balanzaForm.hora}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, hora: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Temp. (-�C)</label>
-                  <Input type="number" step="0.1" placeholder="-�C" className="h-8 text-xs font-mono" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground">Humedad (%)</label>
-                  <Input type="number" step="0.1" placeholder="%" className="h-8 text-xs font-mono" />
-                </div>
-              </div>
-
-              {/* Capacidad, Masa Patr+�n, Lectura */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Capacidad (g)</label>
-                  <Input type="number" value={balanzaForm.capacidad_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, capacidad_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Masa Patr+�n (g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.masa_patron_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, masa_patron_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Lectura Balanza (g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.lectura_balanza_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, lectura_balanza_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-              </div>
-
-              {/* Error m+�x + Resultado calculado autom+�tico */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Error M+�x. Permitido -�(g)</label>
-                  <Input type="number" step="0.001" value={balanzaForm.error_max_permitido_g}
-                    onChange={(e) => { setBalanzaForm((p) => ({ ...p, error_max_permitido_g: e.target.value })); setBalanzaIsDirty(true) }}
-                    className="h-8 text-xs font-mono" required />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-muted-foreground font-semibold">Resultado (calculado)</label>
-                  <div className={`h-8 flex items-center px-3 rounded-md border text-xs font-bold ${
-                    balanzaErrorCalc.conforme
-                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                      : "bg-red-500/10 border-red-500/40 text-red-400"
-                  }`}>
-                    {balanzaErrorCalc.conforme
-                      ? <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> OK ��� Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
-                      : <span className="flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> NO OK ��� Error: {balanzaErrorCalc.error >= 0 ? "+" : ""}{balanzaErrorCalc.error.toFixed(3)}g</span>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              {/* Limpieza y nivelaci+�n */}
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-border/40 bg-muted/20">
-                <label className="text-xs font-semibold flex-1">Limpieza y Nivelaci+�n</label>
-                <div className="flex gap-2">
-                  {[true, false].map((val) => (
-                    <button key={String(val)} type="button"
-                      onClick={() => { setBalanzaForm((p) => ({ ...p, limpieza_nivelacion: val })); setBalanzaIsDirty(true) }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
-                        balanzaForm.limpieza_nivelacion === val
-                          ? val ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" : "bg-red-500/20 border-red-500/50 text-red-400"
-                          : "border-border text-muted-foreground"
-                      }`}>
-                      {val ? <><CheckCircle2 className="h-3.5 w-3.5" /> Conforme</> : <><XCircle className="h-3.5 w-3.5" /> No Conforme</>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ������ Firmas ������ */}
-            <div className="border-t border-border/60 pt-3 grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Realizado Por</label>
-                <Input placeholder="Nombre del responsable" value={balanzaForm.verificado_por}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, verificado_por: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs" required />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Revisado Por</label>
-                <Input placeholder="Nombre del revisor" value={balanzaForm.revisado_por}
-                  onChange={(e) => { setBalanzaForm((p) => ({ ...p, revisado_por: e.target.value })); setBalanzaIsDirty(true) }}
-                  className="h-8 text-xs" />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}>Cancelar</Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                {editingBalanzaId ? "Actualizar Verificaci+�n" : "Guardar Verificaci+�n"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Safety confirmation */}
       <ModernConfirmDialog
         open={showUnsavedDialog}
         onOpenChange={setShowUnsavedDialog}
         onConfirm={confirmExitWithoutSaving}
-        title="-+Desea salir sin guardar los cambios?"
-        description="Ha modificado datos en el formulario. Si sale ahora, se perder+�n los registros ingresados."
+        title="¿Desea salir sin guardar los cambios?"
+        description="Ha modificado datos en el formulario. Si sale ahora, se perderán los registros ingresados."
         confirmText="Salir sin guardar"
         cancelText="Continuar editando"
         variant="destructive"
       />
     </div>
   )
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FORMULARIO SHEET EXCEL EXACTO: F-LEM-P-05.01 V03
+  // ─────────────────────────────────────────────────────────────────────────────
+  function renderTempModal() {
+    return (
+      <Dialog
+        open={showTempModal}
+        onOpenChange={(o) => {
+          if (!o) executeWithSafetyCheck(() => setShowTempModal(false))
+          else setShowTempModal(true)
+        }}
+      >
+        <DialogContent className="sm:max-w-[780px] max-h-[92vh] overflow-y-auto p-6 bg-white">
+          <form onSubmit={handleSaveTemp} className="space-y-4">
+            {/* Header Formato Oficial */}
+            <div className="border border-slate-300 rounded-md p-3 bg-slate-50 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-8 w-auto" />
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wide text-slate-900">
+                    LABORATORIO DE ENSAYO DE MATERIALES
+                  </h3>
+                  <p className="text-[11px] font-semibold text-slate-700">
+                    CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
+                  </p>
+                </div>
+              </div>
+              <div className="border border-slate-300 rounded bg-white p-2 text-[10px] space-y-0.5 text-slate-600 font-mono">
+                <div><span className="font-bold">CÓDIGO:</span> F-LEM-P-05.01</div>
+                <div><span className="font-bold">VERSIÓN:</span> 03</div>
+                <div><span className="font-bold">FECHA:</span> 02-01-2024</div>
+                <div><span className="font-bold">PÁGINA:</span> 1 de 1</div>
+              </div>
+            </div>
+
+            {/* Referencia de Parámetros Normativos */}
+            <div className="border border-slate-200 rounded-md p-3 bg-slate-50/50">
+              <p className="text-[11px] font-bold text-slate-700 mb-1.5 uppercase">
+                PARÁMETROS DE LAS ÁREAS (REFERENCIA NORMATIVA)
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                {AREA_PARAMETROS.map((p, i) => (
+                  <div key={i} className="flex justify-between border-b border-slate-200 pb-0.5">
+                    <span className="text-slate-600 font-medium">{p.area}:</span>
+                    <span className="font-semibold text-slate-800">{p.temp} | {p.humedad}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Campos del Formulario */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Área / Ambiente</label>
+                <Select
+                  value={tempForm.area_ambiente}
+                  onValueChange={(val) => {
+                    setTempForm((p) => ({ ...p, area_ambiente: val }))
+                    setTempIsDirty(true)
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Fecha de Lectura</label>
+                <Input
+                  type="date"
+                  value={tempForm.fecha}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, fecha: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Hora de Lectura</label>
+                <Input
+                  type="time"
+                  value={tempForm.hora_lectura}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, hora_lectura: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3 border-t border-slate-200 pt-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-sky-700">Temperatura (°C)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempForm.temperatura_c}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, temperatura_c: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono font-bold text-sky-700"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-blue-700">Humedad (%H.R.)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempForm.humedad_relativa_pct}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, humedad_relativa_pct: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono font-bold text-blue-700"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Temp. Mín (°C)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempForm.temp_min}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, temp_min: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">Temp. Máx (°C)</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempForm.temp_max}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, temp_max: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Cumple especificación toggle */}
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 bg-slate-50">
+              <label className="text-xs font-semibold text-slate-800 flex-1">
+                Cumple Especificaciones del Área
+              </label>
+              <div className="flex gap-2">
+                {[true, false].map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => {
+                      setTempForm((p) => ({ ...p, cumple_especificacion: val }))
+                      setTempIsDirty(true)
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
+                      tempForm.cumple_especificacion === val
+                        ? val
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-red-600 border-red-600 text-white"
+                        : "border-slate-300 text-slate-600 bg-white"
+                    }`}
+                  >
+                    {val ? "SÍ CUMPLE" : "NO CUMPLE"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Firmas / Responsables */}
+            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Realizado Por</label>
+                <Input
+                  placeholder="Nombre del operador"
+                  value={tempForm.responsable_lectura}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, responsable_lectura: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 uppercase">Revisado Por</label>
+                <Input
+                  placeholder="Jefe de laboratorio / Revisor"
+                  value={tempForm.revisado_por}
+                  onChange={(e) => {
+                    setTempForm((p) => ({ ...p, revisado_por: e.target.value }))
+                    setTempIsDirty(true)
+                  }}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white">
+                {editingTempId ? "Actualizar Registro" : "Guardar Registro"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FORMULARIO SHEET EXACTO ILUSTRADO EN LA IMAGEN 1: F-LEM-IN-01.02 V03
+  // ─────────────────────────────────────────────────────────────────────────────
+  function renderBalanzaModal() {
+    return (
+      <Dialog
+        open={showBalanzaModal}
+        onOpenChange={(o) => {
+          if (!o) executeWithSafetyCheck(() => setShowBalanzaModal(false))
+          else setShowBalanzaModal(true)
+        }}
+      >
+        <DialogContent className="max-w-[95vw] sm:max-w-[1000px] max-h-[92vh] overflow-y-auto p-6 bg-white">
+          <form onSubmit={handleSaveBalanza} className="space-y-4">
+            {/* Header Formato Oficial idéntico a Imagen 1 */}
+            <div className="border border-slate-400 rounded-md p-3 bg-white flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-8 w-auto" />
+              </div>
+              <div className="flex-1 text-center">
+                <h2 className="font-bold text-sm sm:text-base uppercase text-slate-900 tracking-wide">
+                  FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
+                </h2>
+              </div>
+              <div className="border border-slate-400 rounded bg-slate-50 p-2 text-[10px] space-y-0.5 text-slate-700 font-mono">
+                <div><span className="font-bold">CÓDIGO:</span> F-LEM-IN-01.02</div>
+                <div><span className="font-bold">VERSIÓN:</span> 03</div>
+                <div><span className="font-bold">FECHA:</span> 02-01-2024</div>
+                <div><span className="font-bold">PÁGINA:</span> 1 de 1</div>
+              </div>
+            </div>
+
+            {/* Cabecera del Formato (Imagen 1): CÓDIGO DE LA BALANZA | MES/AÑO | PESAS PATRÓN */}
+            <div className="border border-slate-400 rounded-md p-3 space-y-3 bg-slate-50/50">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-900 uppercase">
+                    CÓDIGO DE LA BALANZA:
+                  </label>
+                  <Select
+                    value={balanzaForm.codigo_balanza}
+                    onValueChange={(val) => {
+                      const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
+                      setBalanzaForm((p) => ({
+                        ...p,
+                        codigo_balanza: val,
+                        ubicacion: found?.ubi || p.ubicacion,
+                        capacidad_g: found ? String(found.cap) : p.capacidad_g,
+                        masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
+                        error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
+                      }))
+                      setBalanzaIsDirty(true)
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs font-bold bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_BALANZAS.map((b) => (
+                        <SelectItem key={b.codigo} value={b.codigo}>
+                          {b.codigo} — {b.ubi} ({b.cap}g)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-900 uppercase">
+                    MES / AÑO:
+                  </label>
+                  <Input
+                    value={balanzaForm.mes_anio}
+                    onChange={(e) => {
+                      setBalanzaForm((p) => ({ ...p, mes_anio: e.target.value }))
+                      setBalanzaIsDirty(true)
+                    }}
+                    className="h-8 text-xs font-mono uppercase bg-white"
+                    placeholder="AGOSTO 2026"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-900 uppercase">
+                    UBICACIÓN:
+                  </label>
+                  <Input
+                    value={balanzaForm.ubicacion}
+                    onChange={(e) => {
+                      setBalanzaForm((p) => ({ ...p, ubicacion: e.target.value }))
+                      setBalanzaIsDirty(true)
+                    }}
+                    className="h-8 text-xs bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-900 uppercase">
+                  CÓDIGOS DE LAS PESAS PATRÓN:
+                </label>
+                <Input
+                  value={balanzaForm.codigos_pesas_patron}
+                  onChange={(e) => {
+                    setBalanzaForm((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
+                    setBalanzaIsDirty(true)
+                  }}
+                  className="h-8 text-xs font-mono bg-white"
+                  placeholder="Ej: PP-50G, PP-100G, PP-500G, PP-2000G"
+                />
+              </div>
+            </div>
+
+            {/* Grid Formulario Sheet Interactivo (F-LEM-IN-01.02 de Imagen 1) */}
+            <div className="border border-slate-400 rounded-md overflow-hidden bg-white">
+              <div className="bg-slate-200 px-3 py-1.5 text-center font-bold text-xs uppercase border-b border-slate-400 text-slate-800">
+                PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="bg-slate-100 font-bold text-[11px] text-slate-800 border-b border-slate-400">
+                    <tr>
+                      <th className="border-r border-slate-300 p-2 w-28">FECHA</th>
+                      <th className="border-r border-slate-300 p-2 w-20">HORA</th>
+                      <th className="border-r border-slate-300 p-2 w-28">Temp (°C)</th>
+                      <th className="border-r border-slate-300 p-2 w-28">Humedad (%H.R.)</th>
+                      <th className="border-r border-slate-300 p-2 text-right">Masa Patrón (g)</th>
+                      <th className="border-r border-slate-300 p-2 text-right">Lectura (g)</th>
+                      <th className="border-r border-slate-300 p-2 text-center w-28">Error / Result</th>
+                      <th className="border-r border-slate-300 p-2 w-36">Realizado por:</th>
+                      <th className="p-2 w-36">Revisado por:</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="date"
+                          value={balanzaForm.fecha}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, fecha: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="time"
+                          value={balanzaForm.hora}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, hora: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="23.0"
+                          defaultValue="23.0"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="50.0"
+                          defaultValue="50.0"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={balanzaForm.masa_patron_g}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, masa_patron_g: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono font-bold text-right"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={balanzaForm.lectura_balanza_g}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, lectura_balanza_g: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs font-mono font-bold text-sky-700 text-right"
+                          required
+                        />
+                      </td>
+                      <td className="border-r border-slate-300 p-2 text-center">
+                        <div
+                          className={`h-8 flex items-center justify-center rounded px-2 text-xs font-bold ${
+                            balanzaErrorCalc.conforme
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-red-50 text-red-700 border border-red-200"
+                          }`}
+                        >
+                          {balanzaErrorCalc.conforme ? "OK" : "NO OK"} (
+                          {balanzaErrorCalc.error >= 0 ? "+" : ""}
+                          {balanzaErrorCalc.error.toFixed(2)}g)
+                        </div>
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <Input
+                          value={balanzaForm.verificado_por}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, verificado_por: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs"
+                          placeholder="Operador"
+                          required
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          value={balanzaForm.revisado_por}
+                          onChange={(e) => {
+                            setBalanzaForm((p) => ({ ...p, revisado_por: e.target.value }))
+                            setBalanzaIsDirty(true)
+                          }}
+                          className="h-8 text-xs"
+                          placeholder="Revisado por"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Limpieza y nivelación */}
+            <div className="flex items-center justify-between p-3 rounded-md border border-slate-300 bg-slate-50">
+              <span className="text-xs font-bold text-slate-800">
+                Limpieza y Nivelación de la Balanza
+              </span>
+              <div className="flex gap-2">
+                {[true, false].map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => {
+                      setBalanzaForm((p) => ({ ...p, limpieza_nivelacion: val }))
+                      setBalanzaIsDirty(true)
+                    }}
+                    className={`px-3 py-1.5 rounded text-xs font-bold border transition-all ${
+                      balanzaForm.limpieza_nivelacion === val
+                        ? val
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-red-600 border-red-600 text-white"
+                        : "border-slate-300 text-slate-600 bg-white"
+                    }`}
+                  >
+                    {val ? "CONFORME (OK)" : "NO CONFORME"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white">
+                {editingBalanzaId ? "Actualizar Verificación" : "Guardar Verificación"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 }
