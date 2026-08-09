@@ -23,6 +23,7 @@ import {
   Video,
   Info,
   UserPlus,
+  SquarePen,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -101,6 +102,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [isMembersOpen, setIsMembersOpen] = useState(false)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const [isNewDMOpen, setIsNewDMOpen] = useState(false)
+  const [dmSearchQuery, setDmSearchQuery] = useState("")
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
 
   // Form para crear canal
@@ -541,7 +544,18 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           <div className="mt-4">
             <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               <span>Chats Privados (DMs)</span>
-              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{teamUsers.length}</span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                  onClick={() => setIsNewDMOpen(true)}
+                  title="Nuevo Chat Privado (DM)"
+                >
+                  <SquarePen className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{teamUsers.length}</span>
+              </div>
             </div>
 
             <div className="mt-1 space-y-0.5">
@@ -953,6 +967,105 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           <DialogFooter>
             <Button size="sm" onClick={() => setIsInfoOpen(false)}>
               Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Nuevo Chat Privado (DM) ── */}
+      <Dialog open={isNewDMOpen} onOpenChange={setIsNewDMOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <SquarePen className="h-5 w-5 text-primary" />
+              Nuevo Chat Privado (DM)
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Selecciona un usuario de la lista para iniciar una conversación 1-a-1.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, email o rol..."
+                className="pl-8 h-9 text-xs"
+                value={dmSearchQuery}
+                onChange={(e) => setDmSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+              {teamUsers.length === 0 ? (
+                <div className="py-6 text-center text-xs text-muted-foreground">
+                  Cargando usuarios del sistema...
+                </div>
+              ) : (
+                teamUsers
+                  .filter(
+                    (u) =>
+                      u.name.toLowerCase().includes(dmSearchQuery.toLowerCase()) ||
+                      u.email.toLowerCase().includes(dmSearchQuery.toLowerCase()) ||
+                      u.role.toLowerCase().includes(dmSearchQuery.toLowerCase())
+                  )
+                  .map((targetUser) => {
+                    const isComercialUser = user.role === "comercial" || user.role === "auxiliar_comercial"
+                    const isLabTarget =
+                      targetUser.role === "jefe_laboratorio" ||
+                      targetUser.role === "tecnico" ||
+                      targetUser.role === "laboratorio"
+                    const isBlocked = !isAdminUser && isComercialUser && isLabTarget
+
+                    return (
+                      <div
+                        key={targetUser.id}
+                        onClick={() => {
+                          if (!isBlocked) {
+                            handleOpenDM(targetUser)
+                            setIsNewDMOpen(false)
+                          }
+                        }}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border border-border transition-colors cursor-pointer ${
+                          isBlocked
+                            ? "opacity-50 cursor-not-allowed bg-muted/30"
+                            : "hover:bg-accent/60 hover:border-primary/30 bg-card"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            <Avatar className="h-8 w-8 border border-border">
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                                {targetUser.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span
+                              className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background ${
+                                targetUser.status === "online" ? "bg-emerald-500" : "bg-slate-400"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                              {targetUser.name}
+                              {isBlocked && <Lock className="h-3 w-3 text-amber-500" />}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{targetUser.email}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] uppercase font-bold px-2 py-0.5">
+                          {targetUser.role.replace("_", " ")}
+                        </Badge>
+                      </div>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setIsNewDMOpen(false)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>

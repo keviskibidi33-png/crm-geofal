@@ -651,8 +651,10 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Widget Flotante de Chat Facebook Messenger Mode */}
-      <FloatingChatWidget user={dashboardUser} onOpenFullModule={() => setActiveModule("comunicaciones")} />
+      {/* Widget Flotante de Chat Facebook Messenger Mode (Oculto en módulo de Comunicaciones) */}
+      {activeModule !== "comunicaciones" && (
+        <FloatingChatWidget user={dashboardUser} onOpenFullModule={() => setActiveModule("comunicaciones")} />
+      )}
 
       {/* Loading Screen Overlay */}
       {showLoadingScreen && <LoadingScreen message="Iniciando sesión..." />}
