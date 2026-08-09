@@ -86,9 +86,17 @@ const DEFAULT_CHANNELS: ChatChannel[] = [
   { id: "alertas", name: "alertas-gerencia", description: "Notificaciones y clientes prioritarios", isPrivate: true, category: "area" },
 ]
 
+const DEFAULT_TEAM_USERS: TeamUser[] = [
+  { id: "u-1", name: "Dra. Ana López (Laboratorio)", email: "ana.lopez@geofal.com.pe", role: "jefe_laboratorio", status: "online" },
+  { id: "u-2", name: "Ing. Carlos Mendoza (Gerencia)", email: "carlos.mendoza@geofal.com.pe", role: "gerencia", status: "online" },
+  { id: "u-3", name: "Lic. Miguel Torres (Ventas)", email: "miguel.torres@geofal.com.pe", role: "comercial", status: "online" },
+  { id: "u-4", name: "Téc. David Miller (Suelos)", email: "david.miller@geofal.com.pe", role: "tecnico", status: "offline" },
+]
+
 export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesModuleProps) {
   const [channels, setChannels] = useState<ChatChannel[]>(DEFAULT_CHANNELS)
   const [activeChannelId, setActiveChannelId] = useState<string>(initialChannelId || "general")
+  const [teamUsers, setTeamUsers] = useState<TeamUser[]>(DEFAULT_TEAM_USERS)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "m-1",
@@ -111,6 +119,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [inputMessage, setInputMessage] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
+  const [isMembersOpen, setIsMembersOpen] = useState(false)
+  const [isInfoOpen, setIsInfoOpen] = useState(false)
 
   // Form para crear canal
   const [newChannelName, setNewChannelName] = useState("")
@@ -296,6 +306,57 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                 })}
             </div>
           </div>
+
+          {/* Chats Privados (DMs) */}
+          <div className="mt-4">
+            <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <span>Chats Privados (DMs)</span>
+              <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{teamUsers.length}</span>
+            </div>
+
+            <div className="mt-1 space-y-0.5">
+              {teamUsers.map((u) => {
+                const isComercialUser = user.role === "comercial" || user.role === "auxiliar_comercial"
+                const isLabTarget = u.role === "jefe_laboratorio" || u.role === "tecnico" || u.role === "laboratorio"
+                const isBlocked = isComercialUser && isLabTarget
+
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      if (isBlocked) {
+                        toast.warning("Restricción de Gobernanza CRM", {
+                          description: "Los mensajes directos entre Comercial y Laboratorio están restringidos. Coordinar en Canales de Proyecto.",
+                        })
+                      } else {
+                        toast.info(`Iniciando chat directo con ${u.name}`)
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left text-muted-foreground hover:bg-accent/60 hover:text-foreground ${
+                      isBlocked ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <div className="relative shrink-0">
+                      <Avatar className="h-6 w-6 border border-border">
+                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
+                          {u.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card ${
+                          u.status === "online" ? "bg-emerald-500" : "bg-slate-400"
+                        }`}
+                      />
+                    </div>
+                    <span className="truncate flex-1">{u.name}</span>
+                    {isBlocked && (
+                      <Lock className="h-3 w-3 text-amber-500 shrink-0" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </ScrollArea>
       </div>
 
@@ -320,10 +381,22 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-accent"
+              onClick={() => setIsMembersOpen(true)}
+              title="Ver Miembros del Grupo"
+            >
               <Users className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-accent"
+              onClick={() => setIsInfoOpen(true)}
+              title="Información del Canal"
+            >
               <Info className="h-4 w-4" />
             </Button>
           </div>
@@ -524,6 +597,106 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             </Button>
             <Button size="sm" onClick={handleCreateChannel}>
               Crear Canal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Miembros del Grupo ── */}
+      <Dialog open={isMembersOpen} onOpenChange={setIsMembersOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Miembros de # {activeChannel.name}
+            </DialogTitle>
+            <DialogDescription>
+              Integrantes asignados y roles autorizados en este canal de trabajo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 max-h-80 overflow-y-auto">
+            {teamUsers.map((member) => (
+              <div key={member.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Avatar className="h-8 w-8 border border-border">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                        {member.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-card ${
+                        member.status === "online" ? "bg-emerald-500" : "bg-slate-400"
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{member.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{member.email}</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                  {member.role.replace("_", " ")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setIsMembersOpen(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Información del Canal ── */}
+      <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              Información de # {activeChannel.name}
+            </DialogTitle>
+            <DialogDescription>
+              Detalles de gobernanza, privacidad y configuración del canal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 rounded-lg border border-border bg-card space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-muted-foreground">Tipo de Canal:</span>
+                <Badge variant={activeChannel.isPrivate ? "destructive" : "secondary"}>
+                  {activeChannel.isPrivate ? "Privado / Grupo Proyecto" : "Público General"}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-muted-foreground">Categoría:</span>
+                <span className="capitalize font-medium">{activeChannel.category}</span>
+              </div>
+              <div className="space-y-1 pt-1">
+                <span className="font-semibold text-muted-foreground">Descripción:</span>
+                <p className="text-foreground leading-relaxed bg-muted/30 p-2 rounded border border-border">
+                  {activeChannel.description || "Sin descripción asignada."}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Shield className="h-4 w-4" /> Política de Seguridad CRM
+              </p>
+              <p className="leading-tight">
+                Reconfiguración exclusiva por la Jefatura de Laboratorio y Gerencia. No se permite la comunicación informal fuera de grupos asignados.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setIsInfoOpen(false)}>
+              Entendido
             </Button>
           </DialogFooter>
         </DialogContent>

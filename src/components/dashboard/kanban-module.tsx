@@ -226,12 +226,23 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
         </div>
       </div>
 
-      {/* ── TABLERO DE COLUMNAS KANBAN (ClickUp/Monday Style) ── */}
+      {/* ── TABLERO DE COLUMNAS KANBAN (ClickUp/Monday Style con Drag and Drop) ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1 overflow-x-auto min-h-0">
         {columns.map((col) => {
           const columnCards = filteredCards.filter((c) => c.columnId === col.id)
           return (
-            <div key={col.id} className={`flex flex-col rounded-xl border p-3 bg-card/40 ${col.color} min-h-0`}>
+            <div
+              key={col.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const cardId = e.dataTransfer.getData("cardId")
+                if (cardId) {
+                  moveCard(cardId, col.id)
+                }
+              }}
+              className={`flex flex-col rounded-xl border p-3 bg-card/40 ${col.color} transition-all duration-150 min-h-0 hover:border-primary/40`}
+            >
               {/* Encabezado de Columna */}
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
                 <h3 className="font-bold text-xs tracking-wide uppercase text-foreground">{col.label}</h3>
@@ -245,7 +256,11 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                 {columnCards.map((card) => (
                   <Card
                     key={card.id}
-                    className="border border-border/80 shadow-xs hover:shadow-md transition-all duration-200 group bg-card"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("cardId", card.id)
+                    }}
+                    className="border border-border/80 shadow-xs hover:shadow-md transition-all duration-200 group bg-card cursor-grab active:cursor-grabbing"
                   >
                     <CardHeader className="p-3 pb-1 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
