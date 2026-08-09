@@ -87,35 +87,11 @@ const DEFAULT_CHANNELS: ChatChannel[] = [
   { id: "alertas", name: "alertas-gerencia", description: "Notificaciones y clientes prioritarios", isPrivate: true, category: "area" },
 ]
 
-const DEFAULT_TEAM_USERS: TeamUser[] = [
-  { id: "u-1", name: "Dra. Ana López (Laboratorio)", email: "ana.lopez@geofal.com.pe", role: "jefe_laboratorio", status: "online" },
-  { id: "u-2", name: "Ing. Carlos Mendoza (Gerencia)", email: "carlos.mendoza@geofal.com.pe", role: "gerencia", status: "online" },
-  { id: "u-3", name: "Lic. Miguel Torres (Ventas)", email: "miguel.torres@geofal.com.pe", role: "comercial", status: "online" },
-  { id: "u-4", name: "Téc. David Miller (Suelos)", email: "david.miller@geofal.com.pe", role: "tecnico", status: "offline" },
-]
-
 export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesModuleProps) {
   const [channels, setChannels] = useState<ChatChannel[]>(DEFAULT_CHANNELS)
   const [activeChannelId, setActiveChannelId] = useState<string>(initialChannelId || "general")
-  const [teamUsers, setTeamUsers] = useState<TeamUser[]>(DEFAULT_TEAM_USERS)
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "m-1",
-      channelId: "general",
-      senderId: "sys-1",
-      senderName: "Ing. Carlos Mendoza (Gerencia)",
-      content: "¡Bienvenidos al nuevo canal de comunicación interna de Geofal! Aquí podemos coordinar proyectos, enviar avances de laboratorio y archivos sin depender de aplicaciones externas.",
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: "m-2",
-      channelId: "general",
-      senderId: "sys-2",
-      senderName: "Dra. Ana López (Laboratorio)",
-      content: "Excelente actualización. Ya tenemos listas las muestras de la minera Antamina para el ensayo de Proctor y CBR.",
-      createdAt: new Date(Date.now() - 1800000).toISOString(),
-    },
-  ])
+  const [teamUsers, setTeamUsers] = useState<TeamUser[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -167,9 +143,9 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           const data = await usersRes.json()
           if (data.users && data.users.length > 0) {
             const apiUsers: TeamUser[] = data.users.map((u: any) => ({
-              id: u.id,
-              name: u.nombre || u.email || "Usuario CRM",
-              email: u.email,
+              id: String(u.id),
+              name: u.nombre || u.full_name || u.email || "Usuario CRM",
+              email: u.email || "",
               role: u.rol || u.role || "usuario",
               avatar: u.avatar_url,
               status: "online",
