@@ -35,31 +35,85 @@ interface FloatingMessage {
   attachmentUrl?: string
 }
 
+import { authFetch } from "@/lib/api-auth"
+import { supabase } from "@/lib/supabaseClient"
+
 export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidgetProps) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(1)
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  const [activeChatName, setActiveChatName] = useState("Ana López (Laboratorio)")
-  const [messages, setMessages] = useState<FloatingMessage[]>([
-    {
-      id: "fm-1",
-      senderName: "Ana López",
-      content: "Hola! ¿Ya tienes el reporte de la muestra de Proctor lista?",
-      isMe: false,
-      timestamp: "18:42",
-    },
-    {
-      id: "fm-2",
-      senderName: user.name || "Tú",
-      content: "Sí, acabamos de terminar los cálculos en la planilla.",
-      isMe: true,
-      timestamp: "18:43",
-    },
-  ])
+  const [activeChannelId, setActiveChannelId] = useState("laboratorio")
+  const [activeChatName, setActiveChatName] = useState("# laboratorio-ensayos")
+  const [messages, setMessages] = useState<FloatingMessage[]>([])
 
   const [inputText, setInputText] = useState("")
   const chatEndRef = useRef<HTMLDivElement | null>(null)
+
+  // 1. Cargar mensajes reales de API para el widget flotante
+  useEffect(() => {
+    async function loadWidgetMessages() {
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/messages/${activeChannelId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.messages) {
+            const apiMsgs: FloatingMessage[] = data.messages.map((m: any) => ({
+              id: m.id,
+              senderName: m.sender_name || "Usuario",
+              senderAvatar: m.sender_avatar,
+              content: m.content,
+              isMe: m.sender_id === user.id,
+              timestamp: new Date(m.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              attachmentUrl: m.attachments?.[0]?.url,
+            }))
+            setMessages(apiMsgs)
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch floating chat messages:", err)
+      }
+    }
+    loadWidgetMessages()
+  }, [activeChannelId])
+
+  // 2. Escuchar Supabase Realtime para notificar al widget en vivo
+  useEffect(() => {
+    const channel = supabase
+      .channel("floating_widget_realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const newMsg = payload.new as any
+          if (newMsg && newMsg.sender_id !== user.id) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: newMsg.id,
+                senderName: newMsg.sender_name || "Alerta Sistema",
+                senderAvatar: newMsg.sender_avatar,
+                content: newMsg.content,
+                isMe: false,
+                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                attachmentUrl: newMsg.attachments?.[0]?.url,
+              },
+            ])
+
+            if (!isOpen || isMinimized) {
+              setUnreadCount((c) => c + 1)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [isOpen, isMinimized, user.id])
 
   useEffect(() => {
     if (isOpen && !isMinimized) {
@@ -67,39 +121,77 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
     }
   }, [messages, isOpen, isMinimized])
 
-  const handleSend = () => {
+  // 3. Enviar mensaje real
+  const handleSend = async () => {
     if (!inputText.trim()) return
 
-    const newMsg: FloatingMessage = {
+    const textToSend = inputText.trim()
+    setInputText("")
+
+    const tempMsg: FloatingMessage = {
       id: `fm-${Date.now()}`,
       senderName: user.name || "Usuario CRM",
       senderAvatar: user.avatar,
-      content: inputText.trim(),
+      content: textToSend,
       isMe: true,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     }
 
-    setMessages((prev) => [...prev, newMsg])
-    setInputText("")
+    setMessages((prev) => [...prev, tempMsg])
+
+    try {
+      await authFetch(`${API_URL}/api/chat/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel_id: activeChannelId,
+          content: textToSend,
+        }),
+      })
+    } catch (err) {
+      console.warn("Failed to send floating widget message:", err)
+    }
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 4. Enviar imagen real
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
     const file = files[0]
     const objectUrl = URL.createObjectURL(file)
 
-    const newMsg: FloatingMessage = {
+    const attachmentObj = {
+      url: objectUrl,
+      type: "image",
+      name: file.name,
+      size: `${(file.size / 1024).toFixed(1)} KB`,
+    }
+
+    const contentText = `📷 Imagen enviada: ${file.name}`
+
+    const tempMsg: FloatingMessage = {
       id: `fm-${Date.now()}`,
       senderName: user.name || "Usuario CRM",
-      content: `📷 Imagen enviada: ${file.name}`,
+      content: contentText,
       isMe: true,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       attachmentUrl: objectUrl,
     }
 
-    setMessages((prev) => [...prev, newMsg])
-    toast.success("Foto enviada en el chat", { description: file.name })
+    setMessages((prev) => [...prev, tempMsg])
+
+    try {
+      await authFetch(`${API_URL}/api/chat/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel_id: activeChannelId,
+          content: contentText,
+          attachments: [attachmentObj],
+        }),
+      })
+      toast.success("Foto enviada en el chat", { description: file.name })
+    } catch (err) {
+      console.warn("Error uploading file in floating widget:", err)
+    }
   }
 
   return (

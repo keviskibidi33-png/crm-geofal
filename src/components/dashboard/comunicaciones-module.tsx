@@ -42,6 +42,7 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { type User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
+import { authFetch } from "@/lib/api-auth"
 
 interface ChatMessage {
   id: string
@@ -116,11 +117,14 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     },
   ])
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
   const [inputMessage, setInputMessage] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [isMembersOpen, setIsMembersOpen] = useState(false)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
 
   // Form para crear canal
   const [newChannelName, setNewChannelName] = useState("")
@@ -136,6 +140,123 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  // 1. Cargar canales y usuarios reales del Backend
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        const [channelsRes, usersRes] = await Promise.all([
+          authFetch(`${API_URL}/api/chat/channels`),
+          authFetch(`${API_URL}/api/chat/users`),
+        ])
+
+        if (channelsRes.ok) {
+          const data = await channelsRes.json()
+          if (data.channels && data.channels.length > 0) {
+            const apiChannels: ChatChannel[] = data.channels.map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              description: c.description || "",
+              isPrivate: Boolean(c.is_private),
+              category: c.category || "general",
+            }))
+            setChannels(apiChannels)
+          }
+        }
+
+        if (usersRes.ok) {
+          const data = await usersRes.json()
+          if (data.users && data.users.length > 0) {
+            const apiUsers: TeamUser[] = data.users.map((u: any) => ({
+              id: u.id,
+              name: u.nombre || u.email || "Usuario CRM",
+              email: u.email,
+              role: u.rol || u.role || "usuario",
+              avatar: u.avatar_url,
+              status: "online",
+            }))
+            setTeamUsers(apiUsers)
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch chat data from API:", err)
+      }
+    }
+    loadInitialData()
+  }, [])
+
+  // 2. Cargar mensajes reales del canal/DM activo
+  useEffect(() => {
+    async function fetchChannelMessages() {
+      setIsLoadingMessages(true)
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/messages/${activeChannelId}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.messages) {
+            const loadedMessages: ChatMessage[] = data.messages.map((m: any) => ({
+              id: m.id,
+              channelId: m.channel_id,
+              senderId: m.sender_id,
+              senderName: m.sender_name || "Usuario",
+              senderAvatar: m.sender_avatar,
+              content: m.content,
+              attachments: m.attachments || [],
+              createdAt: m.created_at,
+            }))
+            setMessages(loadedMessages)
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching channel messages:", err)
+      } finally {
+        setIsLoadingMessages(false)
+      }
+    }
+
+    fetchChannelMessages()
+  }, [activeChannelId])
+
+  // 3. Supabase Realtime Subscription para recibir mensajes en vivo
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chat_realtime_${activeChannelId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `channel_id=eq.${activeChannelId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as any
+          if (newMsg) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev
+              return [
+                ...prev,
+                {
+                  id: newMsg.id,
+                  channelId: newMsg.channel_id,
+                  senderId: newMsg.sender_id,
+                  senderName: newMsg.sender_name || "Usuario CRM",
+                  senderAvatar: newMsg.sender_avatar,
+                  content: newMsg.content,
+                  attachments: newMsg.attachments || [],
+                  createdAt: newMsg.created_at,
+                },
+              ]
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [activeChannelId])
+
   useEffect(() => {
     scrollToBottom()
   }, [messages, activeChannelId])
@@ -148,26 +269,50 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     user.role === "jefe_laboratorio" ||
     user.email === "gerencia@geofal.com.pe"
 
-  const activeChannel = channels.find((c) => c.id === activeChannelId) || channels[0]
+  const activeChannel = channels.find((c) => c.id === activeChannelId) || {
+    id: activeChannelId,
+    name: activeChannelId.startsWith("dm-") ? "Chat Privado" : activeChannelId,
+    description: "Conversación en tiempo real",
+    isPrivate: true,
+    category: "dm",
+  }
 
-  const handleSendMessage = () => {
+  // 4. Enviar mensaje real a API Backend
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
 
-    const newMessage: ChatMessage = {
-      id: `m-${Date.now()}`,
+    const textToSend = inputMessage.trim()
+    setInputMessage("")
+
+    const tempMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
       channelId: activeChannelId,
       senderId: user.id,
       senderName: user.name || "Usuario CRM",
       senderAvatar: user.avatar,
-      content: inputMessage.trim(),
+      content: textToSend,
       createdAt: new Date().toISOString(),
     }
+    setMessages((prev) => [...prev, tempMessage])
 
-    setMessages((prev) => [...prev, newMessage])
-    setInputMessage("")
+    try {
+      const res = await authFetch(`${API_URL}/api/chat/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel_id: activeChannelId,
+          content: textToSend,
+        }),
+      })
+      if (!res.ok) {
+        toast.error("No se pudo enviar el mensaje")
+      }
+    } catch (err) {
+      console.warn("Failed to send chat message:", err)
+    }
   }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // 5. Enviar adjuntos reales
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
 
@@ -175,29 +320,45 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     const isImage = file.type.startsWith("image/")
     const objectUrl = URL.createObjectURL(file)
 
-    const newMessage: ChatMessage = {
-      id: `m-${Date.now()}`,
+    const attachmentObj = {
+      url: objectUrl,
+      type: isImage ? ("image" as const) : ("file" as const),
+      name: file.name,
+      size: `${(file.size / 1024).toFixed(1)} KB`,
+    }
+
+    const contentText = isImage ? `📷 Imagen adjunta: ${file.name}` : `📎 Archivo adjunto: ${file.name}`
+
+    const tempMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
       channelId: activeChannelId,
       senderId: user.id,
       senderName: user.name || "Usuario CRM",
       senderAvatar: user.avatar,
-      content: isImage ? `📷 Imagen adjunta: ${file.name}` : `📎 Archivo adjunto: ${file.name}`,
-      attachments: [
-        {
-          url: objectUrl,
-          type: isImage ? "image" : "file",
-          name: file.name,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
-        },
-      ],
+      content: contentText,
+      attachments: [attachmentObj],
       createdAt: new Date().toISOString(),
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    toast.success("Archivo subido correctamente", { description: file.name })
+    setMessages((prev) => [...prev, tempMessage])
+
+    try {
+      await authFetch(`${API_URL}/api/chat/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          channel_id: activeChannelId,
+          content: contentText,
+          attachments: [attachmentObj],
+        }),
+      })
+      toast.success("Archivo enviado en el chat", { description: file.name })
+    } catch (err) {
+      console.warn("Error uploading chat file attachment:", err)
+    }
   }
 
-  const handleCreateChannel = () => {
+  // 6. Crear canal real en Backend
+  const handleCreateChannel = async () => {
     if (!newChannelName.trim()) {
       toast.error("Ingresa un nombre para el canal")
       return
@@ -205,22 +366,80 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
     const formattedName = newChannelName.toLowerCase().replace(/\s+/g, "-")
 
-    const newChannel: ChatChannel = {
-      id: `ch-${Date.now()}`,
-      name: formattedName,
-      description: newChannelDesc,
-      isPrivate: newChannelIsPrivate,
-      category: "area",
+    try {
+      const res = await authFetch(`${API_URL}/api/chat/channels`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: formattedName,
+          description: newChannelDesc,
+          is_private: newChannelIsPrivate,
+          category: "area",
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const created = data.channel || {
+          id: `ch-${Date.now()}`,
+          name: formattedName,
+          description: newChannelDesc,
+          is_private: newChannelIsPrivate,
+          category: "area",
+        }
+
+        const newChannel: ChatChannel = {
+          id: created.id,
+          name: created.name,
+          description: created.description,
+          isPrivate: Boolean(created.is_private),
+          category: created.category || "area",
+        }
+
+        setChannels((prev) => [...prev, newChannel])
+        setActiveChannelId(newChannel.id)
+        setIsCreateChannelOpen(false)
+        setNewChannelName("")
+        setNewChannelDesc("")
+        setNewChannelIsPrivate(false)
+        toast.success("Canal creado con éxito", { description: `#${formattedName}` })
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        toast.error("Error al crear el canal", { description: errData.detail || "Permisos insuficientes" })
+      }
+    } catch (err) {
+      console.warn("Failed to create chat channel:", err)
+    }
+  }
+
+  // 7. Abrir Chat Privado (DM) con un usuario real
+  const handleOpenDM = (targetUser: TeamUser) => {
+    const isComercialUser = user.role === "comercial" || user.role === "auxiliar_comercial"
+    const isLabTarget = targetUser.role === "jefe_laboratorio" || targetUser.role === "tecnico" || targetUser.role === "laboratorio"
+    const isBlocked = isComercialUser && isLabTarget
+
+    if (isBlocked) {
+      toast.warning("Restricción de Gobernanza CRM", {
+        description: "Los mensajes directos entre Comercial y Laboratorio están restringidos. Coordinar en Canales de Proyecto.",
+      })
+      return
     }
 
-    setChannels((prev) => [...prev, newChannel])
-    setActiveChannelId(newChannel.id)
-    setIsCreateChannelOpen(false)
-    setNewChannelName("")
-    setNewChannelDesc("")
-    setNewChannelIsPrivate(false)
+    const dmId = user.id < targetUser.id ? `dm-${user.id}-${targetUser.id}` : `dm-${targetUser.id}-${user.id}`
+    const existingChannel = channels.find((c) => c.id === dmId)
 
-    toast.success("Canal creado con éxito", { description: `#${formattedName}` })
+    if (!existingChannel) {
+      const newDmChannel: ChatChannel = {
+        id: dmId,
+        name: targetUser.name,
+        description: `Chat privado con ${targetUser.name}`,
+        isPrivate: true,
+        category: "dm",
+      }
+      setChannels((prev) => [...prev, newDmChannel])
+    }
+
+    setActiveChannelId(dmId)
+    toast.info(`Conversación abierta con ${targetUser.name}`)
   }
 
   const activeMessages = messages.filter((m) => m.channelId === activeChannelId)
@@ -323,15 +542,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                 return (
                   <button
                     key={u.id}
-                    onClick={() => {
-                      if (isBlocked) {
-                        toast.warning("Restricción de Gobernanza CRM", {
-                          description: "Los mensajes directos entre Comercial y Laboratorio están restringidos. Coordinar en Canales de Proyecto.",
-                        })
-                      } else {
-                        toast.info(`Iniciando chat directo con ${u.name}`)
-                      }
-                    }}
+                    onClick={() => handleOpenDM(u)}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left text-muted-foreground hover:bg-accent/60 hover:text-foreground ${
                       isBlocked ? "opacity-60 cursor-not-allowed" : ""
                     }`}
