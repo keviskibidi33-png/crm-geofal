@@ -22,6 +22,7 @@ import {
   Phone,
   Video,
   Info,
+  UserPlus,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -104,8 +105,9 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
   // Form para crear canal
   const [newChannelName, setNewChannelName] = useState("")
-  const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
+  const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
 
   // Visor de fotos (Lightbox)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -353,6 +355,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           name: formattedName,
           description: newChannelDesc,
           is_private: newChannelIsPrivate,
+          allowed_emails: selectedUserEmails,
           category: "area",
         }),
       })
@@ -381,6 +384,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         setNewChannelName("")
         setNewChannelDesc("")
         setNewChannelIsPrivate(false)
+        setSelectedUserEmails([])
         toast.success("Canal creado con éxito", { description: `#${formattedName}` })
       } else {
         const errData = await res.json().catch(() => ({}))
@@ -388,6 +392,32 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
       }
     } catch (err) {
       console.warn("Failed to create chat channel:", err)
+    }
+  }
+
+  // Añadir integrante al grupo activo
+  const handleAddMemberToChannel = async () => {
+    if (!selectedUserToAdd) {
+      toast.error("Selecciona un integrante para añadir")
+      return
+    }
+    try {
+      const selectedUser = teamUsers.find(u => u.email === selectedUserToAdd || u.id === selectedUserToAdd)
+      const res = await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members`, {
+        method: "POST",
+        body: JSON.stringify({
+          user_id: selectedUser?.id || selectedUserToAdd,
+          user_email: selectedUser?.email || selectedUserToAdd,
+        }),
+      })
+      if (res.ok) {
+        toast.success(`Integrante ${selectedUser?.name || ''} añadido al grupo #${activeChannel.name}`)
+        setSelectedUserToAdd("")
+      } else {
+        toast.error("Error al añadir integrante al grupo")
+      }
+    } catch (err) {
+      console.warn("Failed to add member:", err)
     }
   }
 
@@ -758,25 +788,34 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             {newChannelIsPrivate && (
               <div className="p-3 rounded-lg border border-border bg-muted/40 space-y-2">
                 <Label className="text-[11px] font-bold text-foreground uppercase tracking-wider">
-                  Asignación de Integrantes (Roles Autorizados)
+                  Seleccionar Integrantes Autorizados del CRM
                 </Label>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-border" />
-                    <span>Jefe de Laboratorio</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-border" />
-                    <span>Gerencia / Admin</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-border" />
-                    <span>Técnicos de Lab</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded border-border" />
-                    <span>Asesor Comercial</span>
-                  </label>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                  {teamUsers.map((u) => {
+                    const isSelected = selectedUserEmails.includes(u.email)
+                    return (
+                      <label key={u.id} className="flex items-center justify-between p-1.5 rounded hover:bg-card cursor-pointer border border-transparent hover:border-border text-xs">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedUserEmails((prev) => [...prev, u.email])
+                              } else {
+                                setSelectedUserEmails((prev) => prev.filter((email) => email !== u.email))
+                              }
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className="font-semibold text-foreground">{u.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] uppercase font-bold">
+                          {u.role.replace("_", " ")}
+                        </Badge>
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -805,6 +844,31 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               Integrantes asignados y roles autorizados en este canal de trabajo.
             </DialogDescription>
           </DialogHeader>
+
+          {canCreateChannel && (
+            <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+              <Label className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <UserPlus className="h-3.5 w-3.5" /> Agregar Integrante al Grupo
+              </Label>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={selectedUserToAdd}
+                  onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                >
+                  <option value="">-- Seleccionar Usuario del CRM --</option>
+                  {teamUsers.map((u) => (
+                    <option key={u.id} value={u.email}>
+                      {u.name} ({u.role.replace("_", " ")})
+                    </option>
+                  ))}
+                </select>
+                <Button size="sm" className="h-8 text-xs gap-1" onClick={handleAddMemberToChannel}>
+                  <Plus className="h-3.5 w-3.5" /> Agregar
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3 py-2 max-h-80 overflow-y-auto">
             {teamUsers.map((member) => (
