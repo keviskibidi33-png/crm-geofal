@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp, Thermometer, Scale } from "lucide-react"
+import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp, Thermometer, Scale, MessageSquare } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -30,6 +30,8 @@ interface SidebarProps {
 
 const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { id: "tracing", label: "Seguimiento", icon: Activity },
+  { id: "comunicaciones", label: "Comunicaciones", icon: MessageSquare },
+  { id: "kanban", label: "Tableros Kanban", icon: FolderKanban },
   { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },

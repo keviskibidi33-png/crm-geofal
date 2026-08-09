@@ -203,11 +203,11 @@ const mapDbProjectToUi = (row: DbProjectRow): Project => {
     descripcion: row.descripcion || "",
     ubicacion: row.ubicacion || row.direccion || "",
     // Datos del contacto
-    contactoNombre: contacto?.nombre,
-    contactoCargo: contacto?.cargo,
-    contactoEmail: contacto?.email,
-    contactoTelefono: contacto?.telefono,
-    contactoPrincipalId: row.contacto_principal_id,
+    contactoNombre: contacto?.nombre || undefined,
+    contactoCargo: contacto?.cargo || undefined,
+    contactoEmail: contacto?.email || undefined,
+    contactoTelefono: contacto?.telefono || undefined,
+    contactoPrincipalId: row.contacto_principal_id || undefined,
     ruc: row.clientes?.ruc || "",
   }
 }
@@ -296,7 +296,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      setProjects(((data as DbProjectRow[] | null) || []).map(mapDbProjectToUi))
+      setProjects(((data as unknown as DbProjectRow[] | null) || []).map(mapDbProjectToUi))
     } catch (err: any) {
       toast.error("Error al cargar proyectos", {
         description: getSafeErrorMessage(err, "No se pudo cargar el progreso"),

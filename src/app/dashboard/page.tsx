@@ -98,6 +98,9 @@ const ComercialStatsModule = dashboardDynamic(async () => (await import("@/compo
 const GerenciaStatsModule = dashboardDynamic(async () => (await import("@/components/dashboard/gerencia-stats-module")).GerenciaStatsModule)
 const AdministracionKpisDevelopment = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-kpis-development")).AdministracionKpisDevelopment)
 const DashboardHomeModule = dashboardDynamic(async () => (await import("@/components/dashboard/dashboard-home-module")).DashboardHomeModule)
+const ComunicacionesModule = dashboardDynamic(async () => (await import("@/components/dashboard/comunicaciones-module")).ComunicacionesModule)
+const KanbanModule = dashboardDynamic(async () => (await import("@/components/dashboard/kanban-module")).KanbanModule)
+import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
@@ -401,6 +404,10 @@ export default function DashboardPage() {
     switch (activeModule) {
       case "clientes":
         return <ClientesModule user={dashboardUser} />
+      case "comunicaciones":
+        return <ComunicacionesModule user={dashboardUser} />
+      case "kanban":
+        return <KanbanModule user={dashboardUser} onOpenChatWithCard={() => setActiveModule("comunicaciones")} />
       case "home":
         return <DashboardHomeModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "proyectos":
@@ -643,6 +650,9 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Widget Flotante de Chat Facebook Messenger Mode */}
+      <FloatingChatWidget user={dashboardUser} onOpenFullModule={() => setActiveModule("comunicaciones")} />
 
       {/* Loading Screen Overlay */}
       {showLoadingScreen && <LoadingScreen message="Iniciando sesión..." />}

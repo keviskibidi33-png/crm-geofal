@@ -1,6 +1,8 @@
 export const PERMISSION_MODULE_CATALOG = [
   { id: "home", label: "Inicio" },
   { id: "tracing", label: "Seguimiento" },
+  { id: "comunicaciones", label: "Comunicaciones" },
+  { id: "kanban", label: "Tableros Kanban" },
   { id: "ingenieria_archivos", label: "Control Informes" },
   { id: "clientes", label: "Clientes" },
   { id: "proyectos", label: "Proyectos" },
