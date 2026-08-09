@@ -262,12 +262,16 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   }, [messages, activeChannelId])
 
   // Verificar si el usuario actual tiene rol/email permitido para crear canales
-  const canCreateChannel =
+  const isAdminUser =
     user.role === "admin" ||
     user.role === "admin_general" ||
     user.role === "gerencia" ||
-    user.role === "jefe_laboratorio" ||
+    user.role === "super_admin" ||
     user.email === "gerencia@geofal.com.pe"
+
+  const canCreateChannel =
+    isAdminUser ||
+    user.role === "jefe_laboratorio"
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) || {
     id: activeChannelId,
@@ -415,7 +419,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const handleOpenDM = (targetUser: TeamUser) => {
     const isComercialUser = user.role === "comercial" || user.role === "auxiliar_comercial"
     const isLabTarget = targetUser.role === "jefe_laboratorio" || targetUser.role === "tecnico" || targetUser.role === "laboratorio"
-    const isBlocked = isComercialUser && isLabTarget
+    const isBlocked = !isAdminUser && isComercialUser && isLabTarget
 
     if (isBlocked) {
       toast.warning("Restricción de Gobernanza CRM", {
@@ -537,7 +541,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               {teamUsers.map((u) => {
                 const isComercialUser = user.role === "comercial" || user.role === "auxiliar_comercial"
                 const isLabTarget = u.role === "jefe_laboratorio" || u.role === "tecnico" || u.role === "laboratorio"
-                const isBlocked = isComercialUser && isLabTarget
+                const isBlocked = !isAdminUser && isComercialUser && isLabTarget
 
                 return (
                   <button
