@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import {
   MessageSquare,
   Hash,
@@ -24,6 +24,10 @@ import {
   Info,
   UserPlus,
   SquarePen,
+  MessageSquareDashed,
+  Sparkles,
+  UserCheck,
+  Loader2,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -74,6 +78,7 @@ interface TeamUser {
   role: string
   avatar?: string
   status: "online" | "offline"
+  last_seen_at?: string | null
 }
 
 interface ComunicacionesModuleProps {
@@ -122,6 +127,12 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  const isOnline = (lastSeen?: string | null) => {
+    if (!lastSeen) return false
+    const diff = new Date().getTime() - new Date(lastSeen).getTime()
+    return diff < 5 * 60 * 1000 // 5 minutos de inactividad
+  }
+
   // 1. Cargar canales y usuarios reales del Backend
   useEffect(() => {
     async function loadInitialData() {
@@ -154,7 +165,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               email: u.email || "",
               role: u.rol || u.role || "usuario",
               avatar: u.avatar_url,
-              status: "online",
+              last_seen_at: u.last_seen_at,
+              status: isOnline(u.last_seen_at) ? "online" : "offline",
             }))
             setTeamUsers(apiUsers)
           }
@@ -255,13 +267,28 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     isAdminUser ||
     user.role === "jefe_laboratorio"
 
-  const activeChannel = channels.find((c) => c.id === activeChannelId) || {
-    id: activeChannelId,
-    name: activeChannelId.startsWith("dm-") ? "Chat Privado" : activeChannelId,
-    description: "Conversación en tiempo real",
-    isPrivate: true,
-    category: "dm",
-  }
+  const activeChannel: ChatChannel = useMemo(() => {
+    const found = channels.find((c) => c.id === activeChannelId)
+    if (found) return found
+
+    if (activeChannelId.startsWith("dm-")) {
+      const parts = activeChannelId.replace("dm-", "").split("-")
+      const targetUser = teamUsers.find((u) => parts.includes(String(u.id)) && String(u.id) !== String(user.id))
+      const targetName = targetUser ? targetUser.name : "Chat Privado"
+      return {
+        id: activeChannelId,
+        name: targetName,
+        description: `Chat privado con ${targetName}`,
+        isPrivate: true,
+        category: "dm",
+      }
+    }
+
+    return channels[0] || DEFAULT_CHANNELS[0]
+  }, [channels, activeChannelId, teamUsers, user.id])
+
+  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
+  const channelPrefix = isDM ? "@" : "#"
 
   // 4. Enviar mensaje real a API Backend
   const handleSendMessage = async () => {
@@ -564,29 +591,38 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                 const isLabTarget = u.role === "jefe_laboratorio" || u.role === "tecnico" || u.role === "laboratorio"
                 const isBlocked = !isAdminUser && isComercialUser && isLabTarget
 
+                const targetDmId = user.id < u.id ? `dm-${user.id}-${u.id}` : `dm-${u.id}-${user.id}`
+                const isActive = activeChannelId === targetDmId
+                const isUserOnline = isOnline(u.last_seen_at)
+
                 return (
                   <button
                     key={u.id}
                     onClick={() => handleOpenDM(u)}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left text-muted-foreground hover:bg-accent/60 hover:text-foreground ${
-                      isBlocked ? "opacity-60 cursor-not-allowed" : ""
-                    }`}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+                      isActive
+                        ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    } ${isBlocked ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
-                    <div className="relative shrink-0">
+                    <div className="relative shrink-0 flex items-center justify-center">
                       <Avatar className="h-6 w-6 border border-border">
-                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">
+                        <AvatarFallback className={`text-[9px] font-bold ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"}`}>
                           {u.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card ${
-                          u.status === "online" ? "bg-emerald-500" : "bg-slate-400"
-                        }`}
-                      />
+                      {isUserOnline ? (
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" title="En línea (Activo)">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-card shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                        </span>
+                      ) : (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card bg-slate-400" title="Desconectado" />
+                      )}
                     </div>
                     <span className="truncate flex-1">{u.name}</span>
                     {isBlocked && (
-                      <Lock className="h-3 w-3 text-amber-500 shrink-0" />
+                      <Lock className={`h-3 w-3 shrink-0 ${isActive ? "text-primary-foreground" : "text-amber-500"}`} />
                     )}
                   </button>
                 )
@@ -601,14 +637,16 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         {/* Encabezado del Canal Activo */}
         <div className="h-14 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            {activeChannel.isPrivate ? (
+            {isDM ? (
+              <UserCheck className="h-4.5 w-4.5 text-emerald-500 shrink-0" />
+            ) : activeChannel.isPrivate ? (
               <Lock className="h-4 w-4 text-amber-500 shrink-0" />
             ) : (
               <Hash className="h-4 w-4 text-primary shrink-0" />
             )}
             <div className="min-w-0">
               <h3 className="font-semibold text-sm truncate flex items-center gap-2">
-                # {activeChannel.name}
+                {channelPrefix} {activeChannel.name}
               </h3>
               {activeChannel.description && (
                 <p className="text-[11px] text-muted-foreground truncate">{activeChannel.description}</p>
@@ -617,15 +655,17 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-accent"
-              onClick={() => setIsMembersOpen(true)}
-              title="Ver Miembros del Grupo"
-            >
-              <Users className="h-4 w-4" />
-            </Button>
+            {!isDM && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-accent"
+                onClick={() => setIsMembersOpen(true)}
+                title="Ver Miembros del Grupo"
+              >
+                <Users className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -640,73 +680,109 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
         {/* Feed de Mensajes */}
         <ScrollArea className="flex-1 p-4 space-y-4">
-          <div className="space-y-4">
-            {activeMessages.map((msg) => {
-              const isMe = msg.senderId === user.id
-              return (
-                <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
-                  <Avatar className="h-8 w-8 border border-border shrink-0">
-                    <AvatarImage src={msg.senderAvatar || ""} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {msg.senderName.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+          {isLoadingMessages ? (
+            <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-xs text-muted-foreground gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span>Cargando conversación...</span>
+            </div>
+          ) : activeMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full min-h-[350px] text-center p-6 space-y-3.5 my-auto">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                {isDM ? (
+                  <MessageSquareDashed className="h-8 w-8 text-emerald-500" />
+                ) : activeChannel.isPrivate ? (
+                  <Lock className="h-8 w-8 text-amber-500" />
+                ) : (
+                  <Hash className="h-8 w-8 text-primary" />
+                )}
+              </div>
+              <div className="max-w-sm space-y-1.5">
+                <h4 className="text-base font-bold tracking-tight text-foreground">
+                  {isDM
+                    ? `Inicio de conversación con ${activeChannel.name}`
+                    : `¡Bienvenido al canal #${activeChannel.name}!`}
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {isDM
+                    ? `Este es el comienzo de tu historial de mensajes directos con ${activeChannel.name}. Envía un mensaje a continuación para iniciar el chat en tiempo real.`
+                    : activeChannel.description || "Este canal de trabajo está creado y listo para enviar comunicados y coordinaciones del equipo."}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Badge variant="outline" className="text-[10px] gap-1 py-1 px-2.5 bg-background font-medium">
+                  <Sparkles className="h-3 w-3 text-amber-500" /> Mensajería en tiempo real Geofal CRM
+                </Badge>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activeMessages.map((msg) => {
+                const isMe = msg.senderId === user.id
+                return (
+                  <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
+                    <Avatar className="h-8 w-8 border border-border shrink-0">
+                      <AvatarImage src={msg.senderAvatar || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {msg.senderName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-xs text-foreground">{msg.senderName}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+                    <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-xs text-foreground">{msg.senderName}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
 
-                    <div
-                      className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                        isMe
-                          ? "bg-primary text-primary-foreground rounded-tr-none shadow-xs"
-                          : "bg-card border border-border text-card-foreground rounded-tl-none shadow-xs"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <div
+                        className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                          isMe
+                            ? "bg-primary text-primary-foreground rounded-tr-none shadow-xs"
+                            : "bg-card border border-border text-card-foreground rounded-tl-none shadow-xs"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
 
-                      {/* Adjuntos (Imágenes o Archivos) */}
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="mt-2 space-y-2">
-                          {msg.attachments.map((att, idx) => (
-                            <div key={idx}>
-                              {att.type === "image" ? (
-                                <img
-                                  src={att.url}
-                                  alt={att.name}
-                                  className="max-w-xs max-h-60 rounded-lg border border-border object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => setSelectedImage(att.url)}
-                                />
-                              ) : (
-                                <a
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border text-foreground hover:bg-accent transition-colors"
-                                >
-                                  <FileText className="h-4 w-4 text-primary" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-medium text-xs truncate">{att.name}</p>
-                                    {att.size && <p className="text-[10px] text-muted-foreground">{att.size}</p>}
-                                  </div>
-                                  <Download className="h-4 w-4 text-muted-foreground" />
-                                </a>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                        {/* Adjuntos (Imágenes o Archivos) */}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            {msg.attachments.map((att, idx) => (
+                              <div key={idx}>
+                                {att.type === "image" ? (
+                                  <img
+                                    src={att.url}
+                                    alt={att.name}
+                                    className="max-w-xs max-h-60 rounded-lg border border-border object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setSelectedImage(att.url)}
+                                  />
+                                ) : (
+                                  <a
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 p-2 rounded-lg bg-background/50 border border-border text-foreground hover:bg-accent transition-colors"
+                                  >
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-xs truncate">{att.name}</p>
+                                      {att.size && <p className="text-[10px] text-muted-foreground">{att.size}</p>}
+                                    </div>
+                                    <Download className="h-4 w-4 text-muted-foreground" />
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-            <div ref={messagesEndRef} />
-          </div>
+                )
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </ScrollArea>
 
         {/* Input de Mensaje de Abajo */}
@@ -723,7 +799,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             </label>
 
             <Input
-              placeholder={`Enviar mensaje a # ${activeChannel.name}...`}
+              placeholder={`Enviar mensaje a ${channelPrefix} ${activeChannel.name}...`}
               className="flex-1 border-none shadow-none focus-visible:ring-0 text-xs bg-transparent h-8"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
@@ -1039,11 +1115,14 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                                 {targetUser.name.substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span
-                              className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background ${
-                                targetUser.status === "online" ? "bg-emerald-500" : "bg-slate-400"
-                              }`}
-                            />
+                            {isOnline(targetUser.last_seen_at) ? (
+                              <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 border-background shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                              </span>
+                            ) : (
+                              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-slate-400" />
+                            )}
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
