@@ -105,6 +105,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
   // Form para crear canal
   const [newChannelName, setNewChannelName] = useState("")
+  const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
