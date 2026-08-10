@@ -978,14 +978,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                           onClick={() => openEditTempDoc(doc.items)}
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                          onClick={() => openEditTempDoc(doc.items)}
-                        >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button
@@ -1204,14 +1196,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         title="Exportar formato oficial Excel (F-LEM-IN-01.02 V03)"
                       >
                         <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-                        onClick={() => openEditBalanzaDoc(doc.items)}
-                      >
-                        <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
