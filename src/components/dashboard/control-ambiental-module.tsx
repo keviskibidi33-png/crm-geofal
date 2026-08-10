@@ -1106,8 +1106,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="max-w-[99vw] w-[99vw] max-h-[99vh] p-2 sm:p-4 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
-          <form onSubmit={handleSaveTempDoc} className="space-y-4">
+        <DialogContent className="max-w-[99vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
+          <form onSubmit={handleSaveTempDoc} className="flex flex-col h-full overflow-hidden space-y-2">
             {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
             <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-3">
@@ -1505,48 +1505,48 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowBalanzaModal(true)
         }}
       >
-        <DialogContent className="max-w-[99vw] w-[99vw] max-h-[99vh] p-2 sm:p-4 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
-          <form onSubmit={handleSaveBalanzaDoc} className="space-y-3">
+        <DialogContent className="max-w-[99vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
+          <form onSubmit={handleSaveBalanzaDoc} className="flex flex-col h-full overflow-hidden space-y-2">
             {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
-            <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="flex items-center justify-between gap-3 shrink-0 px-1">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
                   <Scale className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-slate-900">
+                  <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
                     FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS — F-LEM-IN-01.02 V03
                   </h1>
-                  <p className="text-xs text-slate-500">Módulo nativo del CRM</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Módulo nativo del CRM</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none"
                 title="Cerrar Formulario"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Hoja de Excel Blanca Central (Document Paper Box amplio a pantalla completa) */}
-            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+            {/* Hoja de Excel Blanca Central (Document Paper Box amplio flex-1 sin scroll exterior) */}
+            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs flex flex-col flex-1 min-h-0">
               {/* Bloque Encabezado Oficial Estilo Hoja Excel 3 Columnas (Logo | Título | Metadatos) */}
-              <div className="border-b border-slate-300 bg-white p-3">
+              <div className="border-b border-slate-300 bg-white p-2 shrink-0">
                 <div className="grid grid-cols-12 border border-slate-300 items-center">
-                  <div className="col-span-3 border-r border-slate-300 p-2 flex items-center justify-center bg-slate-50 min-h-[64px]">
-                    <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-8 w-auto" />
+                  <div className="col-span-3 border-r border-slate-300 p-1.5 flex items-center justify-center bg-slate-50 min-h-[56px]">
+                    <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
                   </div>
-                  <div className="col-span-6 border-r border-slate-300 p-2 text-center bg-slate-50 min-h-[64px] flex flex-col justify-center">
-                    <p className="text-base sm:text-lg font-bold leading-tight text-slate-900 uppercase">
+                  <div className="col-span-6 border-r border-slate-300 p-1.5 text-center bg-slate-50 min-h-[56px] flex flex-col justify-center">
+                    <p className="text-sm sm:text-base font-bold leading-tight text-slate-900 uppercase">
                       FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
                     </p>
-                    <p className="text-xs font-semibold text-slate-600 uppercase mt-0.5">
+                    <p className="text-[11px] font-semibold text-slate-600 uppercase mt-0.5">
                       NORMA NTP / ASTM — F-LEM-IN-01.02 V03
                     </p>
                   </div>
-                  <div className="col-span-3 text-[11px] font-mono text-slate-800 bg-slate-50 min-h-[64px] flex flex-col justify-center">
+                  <div className="col-span-3 text-[10px] font-mono text-slate-800 bg-slate-50 min-h-[56px] flex flex-col justify-center">
                     <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">CÓDIGO:</span>
                       <span className="font-bold text-slate-900">F-LEM-IN-01.02</span>
@@ -1568,14 +1568,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
 
               {/* Tabla Encabezado Metadatos Superior (Código Balanza | Mes-Año | Ubicación | Pesas Patrón) */}
-              <div className="border-b border-slate-300 bg-white p-3">
-                <table className="w-full table-fixed border border-slate-300 text-sm">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+              <div className="border-b border-slate-300 bg-white p-2 shrink-0">
+                <table className="w-full table-fixed border border-slate-300 text-xs">
+                  <thead className="bg-slate-100 text-[11px] font-semibold text-slate-800">
                     <tr>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>CÓDIGO DE LA BALANZA</th>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>MES / AÑO</th>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>UBICACIÓN</th>
-                      <th className="py-1.5" colSpan={2}>CÓDIGOS DE LAS PESAS PATRÓN</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>CÓDIGO DE LA BALANZA</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>MES / AÑO</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>UBICACIÓN</th>
+                      <th className="py-1" colSpan={2}>CÓDIGOS DE LAS PESAS PATRÓN</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1649,21 +1649,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* Tabla Principal de Casillas Grid Estilo Excel Real con Scroll Horizontal */}
-              <div className="p-3 overflow-x-auto max-w-full">
+              {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid 15 Pesadas */}
+              <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
                 <table className="min-w-[2400px] w-full border-collapse border border-slate-300 text-xs">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="border-r border-b border-slate-300 py-2 w-28 text-center" rowSpan={2}>FECHA</th>
-                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>HORA</th>
-                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>TEMP (°C)</th>
-                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>HUMEDAD (%H.R.)</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 text-center font-bold bg-emerald-100 text-emerald-900 border-emerald-300 uppercase tracking-wide" colSpan={15}>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-28 text-center bg-slate-100" rowSpan={2}>FECHA</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>HORA</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-b border-slate-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 border-emerald-300 uppercase tracking-wide" colSpan={15}>
                         PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                       </th>
-                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center" rowSpan={2}>REALIZADO POR</th>
-                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center" rowSpan={2}>REVISADO POR</th>
-                      <th className="border-b border-slate-300 py-2 w-12 text-center" rowSpan={2}>ACCION</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REVISADO POR</th>
+                      <th className="border-b border-slate-300 py-1.5 w-12 text-center bg-slate-100" rowSpan={2}>ACCION</th>
                     </tr>
                     <tr>
                       {Array.from({ length: 15 }).map((_, i) => (
@@ -1871,7 +1871,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
 
               {/* Botón de Agregar Fila estilo Hoja Excel */}
-              <div className="p-3 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
+              <div className="p-2 bg-slate-50 border-t border-slate-300 flex justify-between items-center shrink-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -1892,7 +1892,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     ])
                     setBalanzaIsDirty(true)
                   }}
-                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
+                  className="gap-2 h-7 text-xs font-semibold bg-white border-slate-300"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-600" />
                   Agregar Fila de Verificación Diaria
@@ -1904,7 +1904,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </div>
 
             {/* Sub-Card Limpieza y Nivelación */}
-            <div className="w-full max-w-[99vw] mx-auto flex items-center justify-between p-3 rounded-lg border border-slate-300 bg-white">
+            <div className="w-full max-w-[99vw] mx-auto flex items-center justify-between p-2 px-3 rounded-lg border border-slate-300 bg-white shrink-0">
               <span className="text-xs font-bold text-slate-800">
                 LIMPIEZA Y NIVELACIÓN DE LA BALANZA
               </span>
@@ -1917,7 +1917,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       setBalanzaDocHeader((p) => ({ ...p, limpieza_nivelacion: val }))
                       setBalanzaIsDirty(true)
                     }}
-                    className={`px-4 py-1.5 rounded text-xs font-bold border transition-all ${
+                    className={`px-3 py-1 rounded text-xs font-bold border transition-all ${
                       balanzaDocHeader.limpieza_nivelacion === val
                         ? val
                           ? "bg-sky-600 border-sky-600 text-white"
@@ -1932,16 +1932,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </div>
 
             {/* Footer Botones Guardar y Cancelar */}
-            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-300">
+            <div className="pt-1.5 flex items-center justify-end gap-3 border-t border-slate-300 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
-                className="h-9 text-xs font-semibold bg-white border-slate-300 px-5"
+                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
+              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
                 <Save className="h-4 w-4" />
                 Guardar Formato F-LEM-IN-01.02
               </Button>
