@@ -165,6 +165,7 @@ interface TempHeaderMeta {
   fecha_aprobacion?: string
   revisado_por?: string
   hum_min?: string
+  fecha_lectura?: string
 }
 
 interface BalanzaHeaderMeta {
@@ -458,19 +459,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const openNewTempDoc = () => {
     executeWithSafetyCheck(() => {
       setDeletedTempRowIds([])
+      const todayStr = new Date().toISOString().split("T")[0]
       setTempDocHeader({
         registro: "REG-01",
         mes_anio: getMesAnio(),
         aprobado_por: "JEFE DE LABORATORIO",
-        fecha_aprobacion: "2024-01-02",
+        fecha_aprobacion: todayStr,
         area_ambiente: DEFAULT_AREAS[0],
         cumple_global: true,
       })
       setTempDocRows([
         {
-          fecha_registro: new Date().toISOString().split("T")[0],
+          fecha_registro: todayStr,
           hora_toma: "08:00",
-          fecha_lectura: new Date().toISOString().split("T")[0],
+          fecha_lectura: todayStr,
           temp_min: "",
           temp_max: "",
           hum_min: "",
@@ -542,7 +544,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               id: it.id,
               fecha_registro: it.fecha,
               hora_toma: it.hora_lectura,
-              fecha_lectura: it.fecha,
+              fecha_lectura: rowObs.fecha_lectura || it.fecha,
               temp_min: it.temp_min != null ? String(it.temp_min) : "",
               temp_max: it.temp_max != null ? String(it.temp_max) : String(it.temperatura_c ?? ""),
               hum_min: rowObs.hum_min != null ? String(rowObs.hum_min) : "",
@@ -683,6 +685,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           fecha_aprobacion: tempDocHeader.fecha_aprobacion,
           revisado_por: row.responsable_revision || "ING. FABIAN",
           hum_min: row.hum_min || "",
+          fecha_lectura: row.fecha_lectura || row.fecha_registro,
         }
         const payload = {
           fecha: row.fecha_registro,
