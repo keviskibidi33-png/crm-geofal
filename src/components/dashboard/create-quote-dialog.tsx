@@ -1383,7 +1383,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
                   </div>
                   <Button className="w-full" onClick={handleSave} disabled={saving || loading}>
                     {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
-                    {quoteId ? "Actualizar y exportar" : "Guardar y exportar"}
+                    {quoteId ? "Actualizar cotización" : "Guardar y exportar"}
                   </Button>
                     <div className="rounded-xl bg-background p-4 space-y-2 text-sm">
                       <div className="flex justify-between"><span>Subtotal</span><strong>S/. {subtotal.toFixed(2)}</strong></div>
