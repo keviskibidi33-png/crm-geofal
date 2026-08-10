@@ -147,6 +147,14 @@ function getMesAnio() {
     .toUpperCase()
 }
 
+function ensure15Pesadas(pesadas: PesadaItem[]): PesadaItem[] {
+  const result = pesadas ? [...pesadas] : []
+  while (result.length < 15) {
+    result.push({ masa_patron_g: "", lectura_balanza_g: "" })
+  }
+  return result.slice(0, 15)
+}
+
 export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: ControlAmbientalModuleProps) {
   const [currentModuleMode, setCurrentModuleMode] = useState<"temperatura" | "balanza">(
     defaultTab === "balanza" ? "balanza" : "temperatura"
@@ -227,11 +235,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       hora: "08:00",
       temp_c: "23.0",
       humedad_pct: "50.0",
-      pesadas: [
-        { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
-        { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
-        { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
-      ],
+      pesadas: ensure15Pesadas([
+        { masa_patron_g: "200", lectura_balanza_g: "200.0" },
+        { masa_patron_g: "500", lectura_balanza_g: "500.0" },
+        { masa_patron_g: "1000", lectura_balanza_g: "1000.0" },
+      ]),
       verificado_por: "BEATRIZ",
       revisado_por: "ING. FABIAN",
     },
@@ -428,11 +436,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           hora: "08:00",
           temp_c: "23.0",
           humedad_pct: "50.0",
-          pesadas: [
-            { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
-            { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
-            { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
-          ],
+          pesadas: ensure15Pesadas([
+            { masa_patron_g: "200", lectura_balanza_g: "200.0" },
+            { masa_patron_g: "500", lectura_balanza_g: "500.0" },
+            { masa_patron_g: "1000", lectura_balanza_g: "1000.0" },
+          ]),
           verificado_por: "BEATRIZ",
           revisado_por: "ING. FABIAN",
         },
@@ -518,7 +526,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           })
         })
 
-        setBalanzaDocRows(Array.from(rowMap.values()))
+        const rows = Array.from(rowMap.values()).map((r) => ({
+          ...r,
+          pesadas: ensure15Pesadas(r.pesadas),
+        }))
+
+        setBalanzaDocRows(rows)
       }
       setBalanzaIsDirty(false)
       setShowBalanzaModal(true)
@@ -1572,9 +1585,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   <tbody>
                     <tr>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
-                        <Select
+                        <select
+                          className={`${denseInputClass} font-bold text-xs bg-white border-slate-300 cursor-pointer w-full text-ellipsis overflow-hidden`}
                           value={balanzaDocHeader.codigo_balanza}
-                          onValueChange={(val) => {
+                          onChange={(e) => {
+                            const val = e.target.value
                             const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
                             setBalanzaDocHeader((p) => ({
                               ...p,
@@ -1587,15 +1602,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             setBalanzaIsDirty(true)
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs font-bold bg-white border-slate-300"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {DEFAULT_BALANZAS.map((b) => (
-                              <SelectItem key={b.codigo} value={b.codigo}>
-                                {b.codigo} — {b.nombre} ({b.cap}g)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {DEFAULT_BALANZAS.map((b) => (
+                            <option key={b.codigo} value={b.codigo}>
+                              {b.codigo} — {b.nombre} ({b.cap}g)
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
                         <input
@@ -1648,26 +1660,28 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </p>
               </div>
 
-              {/* Tabla Principal de Casillas Grid Estilo Corte Directo (Imagen 6) */}
-              <div className="p-3">
-                <table className="w-full table-fixed border border-slate-300 text-xs">
+              {/* Tabla Principal de Casillas Grid Estilo Excel Real con Scroll Horizontal */}
+              <div className="p-3 overflow-x-auto max-w-full">
+                <table className="min-w-[1850px] w-full border-collapse border border-slate-300 text-xs">
                   <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                     <tr>
-                      <th className="border-r border-slate-300 py-2 w-28">FECHA</th>
-                      <th className="border-r border-slate-300 py-2 w-20">HORA</th>
-                      <th className="border-r border-slate-300 py-2 w-20">TEMP (°C)</th>
-                      <th className="border-r border-slate-300 py-2 w-20">HUMEDAD (%H.R.)</th>
-                      <th className="border-r border-slate-300 py-1" colSpan={3}>
-                        LECTURAS DE PESAS PATRÓN (HORIZONTALES)
-                        <div className="grid grid-cols-3 border-t border-slate-300 mt-1 text-[10px]">
-                          <div className="border-r border-slate-300 py-0.5">Pesada 1 (Masa / Lectura / Status)</div>
-                          <div className="border-r border-slate-300 py-0.5">Pesada 2 (Masa / Lectura / Status)</div>
-                          <div className="py-0.5">Pesada 3 (Masa / Lectura / Status)</div>
-                        </div>
+                      <th className="border-r border-b border-slate-300 py-2 w-28 text-center" rowSpan={2}>FECHA</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>HORA</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>TEMP (°C)</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 text-center font-bold bg-emerald-100 text-emerald-900 border-emerald-300 uppercase tracking-wide" colSpan={15}>
+                        PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                       </th>
-                      <th className="border-r border-slate-300 py-2 w-32">REALIZADO POR</th>
-                      <th className="border-r border-slate-300 py-2 w-32">REVISADO POR</th>
-                      <th className="py-2 w-12 text-center">ACCION</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center" rowSpan={2}>REALIZADO POR</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center" rowSpan={2}>REVISADO POR</th>
+                      <th className="border-b border-slate-300 py-2 w-12 text-center" rowSpan={2}>ACCION</th>
+                    </tr>
+                    <tr>
+                      {Array.from({ length: 15 }).map((_, i) => (
+                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-20 min-w-[76px]">
+                          OK
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -1734,77 +1748,52 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               }}
                             />
                           </td>
-                          {/* Columna de Pesadas Horizontales (3 pesadas en paralelo) */}
-                          {row.pesadas.map((p, pIdx) => {
+
+                          {/* 15 Casillas Horizontales de Pesada Patrón (Identico a Hoja Excel Real) */}
+                          {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
                             const m = parseFloat(p.masa_patron_g) || 0
                             const l = parseFloat(p.lectura_balanza_g) || 0
                             const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
                             const err = l - m
                             const conforme = Math.abs(err) <= tol
+                            const hasValue = p.lectura_balanza_g.trim() !== "" || p.masa_patron_g.trim() !== ""
 
                             return (
-                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 bg-slate-50/60">
-                                <div className="grid grid-cols-3 gap-1 items-center">
+                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-[76px] w-20 text-center bg-white">
+                                <div className="flex flex-col gap-0.5 items-center justify-center">
                                   <input
-                                    type="number"
-                                    step="0.001"
-                                    placeholder="Masa (g)"
-                                    className={`${denseInputClass} text-right text-[11px] font-medium`}
-                                    value={p.masa_patron_g}
-                                    onChange={(e) => {
-                                      const val = e.target.value
-                                      setBalanzaDocRows((rows) =>
-                                        rows.map((r, i) =>
-                                          i === idx
-                                            ? {
-                                                ...r,
-                                                pesadas: r.pesadas.map((pes, pi) =>
-                                                  pi === pIdx ? { ...pes, masa_patron_g: val } : pes
-                                                ),
-                                              }
-                                            : r
-                                        )
-                                      )
-                                      setBalanzaIsDirty(true)
-                                    }}
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.001"
-                                    placeholder="Lectura (g)"
-                                    className={`${denseInputClass} text-right text-[11px] font-bold text-sky-700`}
-                                    value={p.lectura_balanza_g}
-                                    onChange={(e) => {
-                                      const val = e.target.value
-                                      setBalanzaDocRows((rows) =>
-                                        rows.map((r, i) =>
-                                          i === idx
-                                            ? {
-                                                ...r,
-                                                pesadas: r.pesadas.map((pes, pi) =>
-                                                  pi === pIdx ? { ...pes, lectura_balanza_g: val } : pes
-                                                ),
-                                              }
-                                            : r
-                                        )
-                                      )
-                                      setBalanzaIsDirty(true)
-                                    }}
-                                  />
-                                  <div
-                                    className={`h-8 flex items-center justify-center rounded px-0.5 text-[10px] font-bold ${
-                                      conforme
-                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                        : "bg-red-50 text-red-700 border border-red-200"
+                                    type="text"
+                                    placeholder="OK"
+                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-full border-slate-300 ${
+                                      hasValue
+                                        ? conforme
+                                          ? "bg-blue-50 text-blue-900 border-blue-300 font-extrabold"
+                                          : "bg-red-50 text-red-900 border-red-300 font-extrabold"
+                                        : "bg-white"
                                     }`}
-                                  >
-                                    {conforme ? "OK" : "ERR"} ({err >= 0 ? "+" : ""}
-                                    {err.toFixed(2)}g)
-                                  </div>
+                                    value={p.lectura_balanza_g || p.masa_patron_g}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setBalanzaDocRows((rows) =>
+                                        rows.map((r, i) =>
+                                          i === idx
+                                            ? {
+                                                ...r,
+                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
+                                                  pi === pIdx ? { ...pes, lectura_balanza_g: val, masa_patron_g: val } : pes
+                                                ),
+                                              }
+                                            : r
+                                        )
+                                      )
+                                      setBalanzaIsDirty(true)
+                                    }}
+                                  />
                                 </div>
                               </td>
                             )
                           })}
+
                           <td className="border-t border-r border-slate-300 p-1">
                             <select
                               className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
