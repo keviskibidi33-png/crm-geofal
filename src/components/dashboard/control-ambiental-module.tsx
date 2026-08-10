@@ -354,17 +354,49 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }
   }
 
-  // ── Excel Export Functions using official reference .xlsx template ──
-  const handleExportTempExcel = (area?: string) => {
-    const query = area ? `?area=${encodeURIComponent(area)}` : ""
-    window.open(`${API_URL}/api/control-ambiental/temperatura/excel${query}`, "_blank")
-    toast.info("Descargando formato oficial Excel (F-LEM-P-05.01)...")
+  // ── Excel Export Functions using official reference .xlsx template with JWT Auth ──
+  const handleExportTempExcel = async (area?: string) => {
+    try {
+      toast.info("Generando formato oficial Excel (F-LEM-P-05.01)...")
+      const query = area ? `?area=${encodeURIComponent(area)}` : ""
+      const res = await authFetch(`${API_URL}/api/control-ambiental/temperatura/excel${query}`)
+      if (!res.ok) {
+        toast.error("No se pudo generar el Excel del formato")
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `F-LEM-P-05.01_${(area || "GENERAL").replace(/\s+/g, "_")}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Formato oficial Excel F-LEM-P-05.01 descargado")
+    } catch {
+      toast.error("Error al descargar Excel del servidor")
+    }
   }
 
-  const handleExportBalanzaExcel = (codigo?: string) => {
-    const query = codigo ? `?codigo=${encodeURIComponent(codigo)}` : ""
-    window.open(`${API_URL}/api/control-ambiental/balanza/excel${query}`, "_blank")
-    toast.info("Descargando formato oficial Excel (F-LEM-IN-01.02)...")
+  const handleExportBalanzaExcel = async (codigo?: string) => {
+    try {
+      toast.info("Generando formato oficial Excel (F-LEM-IN-01.02)...")
+      const query = codigo ? `?codigo=${encodeURIComponent(codigo)}` : ""
+      const res = await authFetch(`${API_URL}/api/control-ambiental/balanza/excel${query}`)
+      if (!res.ok) {
+        toast.error("No se pudo generar el Excel del formato")
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `F-LEM-IN-01.02_${(codigo || "GENERAL").replace(/\s+/g, "_")}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Formato oficial Excel F-LEM-IN-01.02 descargado")
+    } catch {
+      toast.error("Error al descargar Excel del servidor")
+    }
   }
 
   // ── Document Groupings for History List ──
