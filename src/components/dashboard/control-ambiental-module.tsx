@@ -1531,17 +1531,39 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
             {/* Hoja de Excel Blanca Central (Document Paper Box idéntico a Corte Directo) */}
             <div className="mx-auto max-w-6xl overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
-              {/* Bloque Encabezado Oficial con Logo y Título Centrado */}
-              <div className="border-b border-slate-300 bg-slate-50 p-4 text-center">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
+              {/* Bloque Encabezado Oficial Estilo Hoja Excel 3 Columnas (Logo | Título | Metadatos) */}
+              <div className="border-b border-slate-300 bg-white p-3">
+                <div className="grid grid-cols-12 border border-slate-300 items-center">
+                  <div className="col-span-3 border-r border-slate-300 p-2 flex items-center justify-center bg-slate-50 min-h-[64px]">
+                    <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-8 w-auto" />
+                  </div>
+                  <div className="col-span-6 border-r border-slate-300 p-2 text-center bg-slate-50 min-h-[64px] flex flex-col justify-center">
+                    <p className="text-base sm:text-lg font-bold leading-tight text-slate-900 uppercase">
+                      FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
+                    </p>
+                    <p className="text-xs font-semibold text-slate-600 uppercase mt-0.5">
+                      NORMA NTP / ASTM — F-LEM-IN-01.02 V03
+                    </p>
+                  </div>
+                  <div className="col-span-3 text-[11px] font-mono text-slate-800 bg-slate-50 min-h-[64px]">
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                      <span className="font-bold">CÓDIGO:</span>
+                      <span>F-LEM-IN-01.02</span>
+                    </div>
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                      <span className="font-bold">REVISIÓN:</span>
+                      <span>03</span>
+                    </div>
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                      <span className="font-bold">FECHA:</span>
+                      <span>2024-01-02</span>
+                    </div>
+                    <div className="px-2 py-0.5 flex justify-between">
+                      <span className="font-bold">PÁGINA:</span>
+                      <span>1 de 1</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[20px] font-bold leading-tight text-slate-900 font-sans">
-                  FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
-                </p>
-                <p className="text-sm font-bold text-slate-800 underline uppercase mt-0.5">
-                  NORMA NTP / ASTM — F-LEM-IN-01.02 V03
-                </p>
               </div>
 
               {/* Tabla Encabezado Metadatos Superior (Código Balanza | Mes-Año | Ubicación | Pesas Patrón) */}
@@ -1577,7 +1599,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           <SelectContent>
                             {DEFAULT_BALANZAS.map((b) => (
                               <SelectItem key={b.codigo} value={b.codigo}>
-                                {b.codigo} — {b.ubi} ({b.cap}g)
+                                {b.codigo} — {b.nombre} ({b.cap}g)
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1627,10 +1649,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* Banner Encabezado de Sección Tabla */}
-              <div className="border-b border-slate-300 bg-slate-100 px-4 py-2.5 text-center">
-                <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA HORIZONTALMENTE
+              {/* Franja Verde Estilo Excel Oficial PESA PATRÓN USADO (g) */}
+              <div className="border-b border-emerald-300 bg-emerald-100 px-4 py-2 text-center">
+                <p className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                 </p>
               </div>
 
