@@ -164,6 +164,7 @@ interface TempHeaderMeta {
   aprobado_por?: string
   fecha_aprobacion?: string
   revisado_por?: string
+  hum_min?: string
 }
 
 interface BalanzaHeaderMeta {
@@ -539,8 +540,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               hora_toma: it.hora_lectura,
               fecha_lectura: it.fecha,
               temp_min: it.temp_min != null ? String(it.temp_min) : "",
-              temp_max: it.temp_max != null ? String(it.temp_max) : "",
-              hum_min: "",
+              temp_max: it.temp_max != null ? String(it.temp_max) : String(it.temperatura_c ?? ""),
+              hum_min: rowObs.hum_min != null ? String(rowObs.hum_min) : "",
               hum_max: "",
               temperatura_c: it.temperatura_c != null ? String(it.temperatura_c) : "",
               humedad_relativa_pct: it.humedad_relativa_pct != null ? String(it.humedad_relativa_pct) : "",
@@ -659,12 +660,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       const promises = tempDocRows.map((row) => {
         const tempVal = parseFloat(row.temperatura_c)
         const humVal = parseFloat(row.humedad_relativa_pct)
+        const tempMinVal = parseFloat(row.temp_min)
+        const tempMaxVal = parseFloat(row.temp_max) || tempVal
+
         const obsMeta: TempHeaderMeta = {
           registro: tempDocHeader.registro,
           mes_anio: tempDocHeader.mes_anio,
           aprobado_por: tempDocHeader.aprobado_por,
           fecha_aprobacion: tempDocHeader.fecha_aprobacion,
           revisado_por: row.responsable_revision || "ING. FABIAN",
+          hum_min: row.hum_min || "",
         }
         const payload = {
           fecha: row.fecha_registro,
@@ -672,8 +677,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           area_ambiente: tempDocHeader.area_ambiente,
           temperatura_c: isNaN(tempVal) ? 0.0 : tempVal,
           humedad_relativa_pct: isNaN(humVal) ? 0.0 : humVal,
-          temp_min: row.temp_min ? parseFloat(row.temp_min) : null,
-          temp_max: row.temp_max ? parseFloat(row.temp_max) : null,
+          temp_min: isNaN(tempMinVal) ? null : tempMinVal,
+          temp_max: isNaN(tempMaxVal) ? null : tempMaxVal,
           cumple_especificacion: tempDocHeader.cumple_global,
           responsable_lectura: row.responsable_registro || user.name || "BEATRIZ",
           observaciones: JSON.stringify(obsMeta),
@@ -1452,7 +1457,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             onChange={(e) => {
                               const val = e.target.value
                               setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, temperatura_c: val } : r))
+                                rows.map((r, i) => (i === idx ? { ...r, temperatura_c: val, temp_max: val } : r))
                               )
                               setTempIsDirty(true)
                             }}
