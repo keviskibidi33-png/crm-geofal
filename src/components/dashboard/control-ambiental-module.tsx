@@ -877,16 +877,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 h-9 bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-medium"
-              onClick={() => handleExportTempExcel()}
-              title="Descargar formato oficial Excel (F-LEM-P-05.01 V03)"
-            >
-              <Download className="h-4 w-4" />
-              Exportar Excel
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               className="gap-2 h-9 bg-white"
               onClick={() => void fetchData()}
               disabled={loading}
@@ -1106,16 +1096,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 h-9 bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-medium"
-            onClick={() => handleExportBalanzaExcel()}
-            title="Descargar formato oficial Excel (F-LEM-IN-01.02 V03)"
-          >
-            <Download className="h-4 w-4" />
-            Exportar Excel
-          </Button>
           <div className="relative w-full sm:w-72">
             <Input
               placeholder="Buscar por código de balanza, ubicación..."
