@@ -47,7 +47,7 @@ import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialo
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 const denseInputClass =
-  "h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center font-mono text-xs text-slate-900 shadow-2xs focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+  "h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-center font-mono text-xs text-slate-900 shadow-2xs focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 
 interface ControlAmbientalModuleProps {
   defaultTab?: "dashboard" | "temperatura" | "balanza"
@@ -208,12 +208,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       fecha_registro: new Date().toISOString().split("T")[0],
       hora_toma: "08:00",
       fecha_lectura: new Date().toISOString().split("T")[0],
-      temp_min: "10.0",
-      temp_max: "30.0",
-      hum_min: "20.0",
-      hum_max: "80.0",
-      temperatura_c: "23.0",
-      humedad_relativa_pct: "50.0",
+      temp_min: "",
+      temp_max: "",
+      hum_min: "",
+      hum_max: "",
+      temperatura_c: "",
+      humedad_relativa_pct: "",
       cumple: true,
       responsable_registro: user.name || "LABORATORIO",
       responsable_revision: "",
@@ -223,21 +223,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [showBalanzaModal, setShowBalanzaModal] = useState(false)
   const [balanzaIsDirty, setBalanzaIsDirty] = useState(false)
   const [balanzaDocHeader, setBalanzaDocHeader] = useState({
-    codigo_balanza: "BAL-01",
+    codigo_balanza: "EQP-0046",
     mes_anio: getMesAnio(),
-    ubicacion: "Muestras / Cám. Húmeda",
+    ubicacion: "Area de Recepción de muestras",
     codigos_pesas_patron: "PP-01, PP-02, PP-05",
-    capacidad_g: "30000",
-    masa_patron_g: "5000",
-    error_max_permitido_g: "1.0",
+    capacidad_g: "15000",
+    masa_patron_g: "2000",
+    error_max_permitido_g: "0.5",
     limpieza_nivelacion: true,
   })
   const [balanzaDocRows, setBalanzaDocRows] = useState<BalanzaRow[]>([
     {
       fecha: new Date().toISOString().split("T")[0],
       hora: "08:00",
-      temp_c: "23.0",
-      humedad_pct: "50.0",
+      temp_c: "",
+      humedad_pct: "",
       pesadas: ensure15Pesadas([]),
       verificado_por: "BEATRIZ",
       revisado_por: "ING. FABIAN",
@@ -400,12 +400,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           fecha_registro: new Date().toISOString().split("T")[0],
           hora_toma: "08:00",
           fecha_lectura: new Date().toISOString().split("T")[0],
-          temp_min: "10.0",
-          temp_max: "30.0",
-          hum_min: "20.0",
-          hum_max: "80.0",
-          temperatura_c: "23.0",
-          humedad_relativa_pct: "50.0",
+          temp_min: "",
+          temp_max: "",
+          hum_min: "",
+          hum_max: "",
+          temperatura_c: "",
+          humedad_relativa_pct: "",
           cumple: true,
           responsable_registro: user.name || "LABORATORIO",
           responsable_revision: "",
@@ -433,8 +433,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         {
           fecha: new Date().toISOString().split("T")[0],
           hora: "08:00",
-          temp_c: "23.0",
-          humedad_pct: "50.0",
+          temp_c: "",
+          humedad_pct: "",
           pesadas: ensure15Pesadas([]),
           verificado_por: "BEATRIZ",
           revisado_por: "ING. FABIAN",
@@ -1310,8 +1310,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
                           <input
-                            type="number"
-                            step="0.1"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="10.0"
                             className={denseInputClass}
                             value={row.temp_min}
@@ -1326,8 +1326,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
                           <input
-                            type="number"
-                            step="0.1"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="30.0"
                             className={`${denseInputClass} font-bold text-sky-700`}
                             value={row.temperatura_c}
@@ -1343,8 +1343,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
                           <input
-                            type="number"
-                            step="0.1"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="20.0"
                             className={denseInputClass}
                             value={row.hum_min}
@@ -1359,8 +1359,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
                           <input
-                            type="number"
-                            step="0.1"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="80.0"
                             className={`${denseInputClass} font-bold text-blue-700`}
                             value={row.humedad_relativa_pct}
@@ -1447,12 +1447,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         fecha_registro: last ? last.fecha_registro : new Date().toISOString().split("T")[0],
                         hora_toma: "08:00",
                         fecha_lectura: last ? last.fecha_lectura : new Date().toISOString().split("T")[0],
-                        temp_min: "10.0",
-                        temp_max: "30.0",
-                        hum_min: "20.0",
-                        hum_max: "80.0",
-                        temperatura_c: "23.0",
-                        humedad_relativa_pct: "50.0",
+                        temp_min: "",
+                        temp_max: "",
+                        hum_min: "",
+                        hum_max: "",
+                        temperatura_c: "",
+                        humedad_relativa_pct: "",
                         cumple: true,
                         responsable_registro: user.name || "LABORATORIO",
                         responsable_revision: "",
@@ -1656,8 +1656,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <tr>
                       <th className="border-r border-b border-slate-300 py-1.5 w-28 text-center bg-slate-100" rowSpan={2}>FECHA</th>
                       <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>HORA</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-[105px] text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-[125px] text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
                       <th className="border-r border-b border-slate-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 border-emerald-300 uppercase tracking-wide" colSpan={15}>
                         PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                       </th>
@@ -1707,10 +1707,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               required
                             />
                           </td>
-                          <td className="border-t border-r border-slate-300 p-1">
+                          <td className="border-t border-r border-slate-300 p-1 w-28 min-w-[105px]">
                             <input
-                              type="number"
-                              step="0.1"
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="23.0"
                               className={denseInputClass}
                               value={row.temp_c}
                               onChange={(e) => {
@@ -1722,10 +1723,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               }}
                             />
                           </td>
-                          <td className="border-t border-r border-slate-300 p-1">
+                          <td className="border-t border-r border-slate-300 p-1 w-32 min-w-[125px]">
                             <input
-                              type="number"
-                              step="0.1"
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="50.0"
                               className={denseInputClass}
                               value={row.humedad_pct}
                               onChange={(e) => {
