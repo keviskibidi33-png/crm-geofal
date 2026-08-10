@@ -171,6 +171,10 @@ interface BalanzaHeaderMeta {
   mes_anio?: string
   codigos_pesas_patron?: string
   revisado_por?: string
+  hora?: string
+  temp_c?: string
+  humedad_pct?: string
+  estado_pesadas?: Record<number, string>
 }
 
 function parseTempObs(obs?: string | null): TempHeaderMeta {
@@ -588,9 +592,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           if (!rowMap.has(key)) {
             rowMap.set(key, {
               fecha: it.fecha,
-              hora: "08:00",
-              temp_c: "",
-              humedad_pct: "",
+              hora: rowObs.hora || "08:00",
+              temp_c: rowObs.temp_c || "",
+              humedad_pct: rowObs.humedad_pct || "",
               pesadas: [],
               verificado_por: it.verificado_por || "BEATRIZ",
               revisado_por: rowObs.revisado_por || "ING. FABIAN",
@@ -600,13 +604,22 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             id: it.id,
             masa_patron_g: String(it.masa_patron_g),
             lectura_balanza_g: String(it.lectura_balanza_g),
+            estado: (it as any).estado || (it.lectura_balanza_g ? "OK" : "-"),
           })
         })
 
-        const rows = Array.from(rowMap.values()).map((r) => ({
-          ...r,
-          pesadas: ensure15Pesadas(r.pesadas),
-        }))
+        const rows = Array.from(rowMap.values()).map((r) => {
+          const pesadas15 = ensure15Pesadas(r.pesadas)
+          const firstObs = items.length > 0 ? parseBalanzaObs(items[0].observaciones) : {}
+          if (firstObs.estado_pesadas) {
+            pesadas15.forEach((p, idx) => {
+              if (firstObs.estado_pesadas?.[idx]) {
+                p.estado = firstObs.estado_pesadas[idx]
+              }
+            })
+          }
+          return { ...r, pesadas: pesadas15 }
+        })
 
         setBalanzaDocRows(rows)
       }
@@ -721,13 +734,22 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       const promises: Promise<Response>[] = []
 
       balanzaDocRows.forEach((row) => {
-        row.pesadas.forEach((p) => {
+        const estadoMap: Record<number, string> = {}
+        row.pesadas.forEach((p, i) => {
+          if (p.estado) estadoMap[i] = p.estado
+        })
+
+        row.pesadas.forEach((p, pIdx) => {
           if (!p.masa_patron_g && !p.lectura_balanza_g) return
 
           const obsMeta: BalanzaHeaderMeta = {
             mes_anio: balanzaDocHeader.mes_anio,
             codigos_pesas_patron: balanzaDocHeader.codigos_pesas_patron,
             revisado_por: row.revisado_por || "ING. FABIAN",
+            hora: row.hora,
+            temp_c: row.temp_c,
+            humedad_pct: row.humedad_pct,
+            estado_pesadas: estadoMap,
           }
 
           const payload = {
