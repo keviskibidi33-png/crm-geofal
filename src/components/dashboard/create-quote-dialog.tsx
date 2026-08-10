@@ -898,41 +898,43 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
         throw new Error(errorText || `HTTP ${resp.status}`)
       }
 
-      let blob: Blob
       if (quoteId) {
-        const downloadResp = await authFetch(`${API_URL}/quotes/${quoteId}/download`)
-        if (!downloadResp.ok) throw new Error("No se pudo descargar el Excel actualizado")
-        blob = await downloadResp.blob()
-      } else {
-        blob = await resp.blob()
-      }
-
-      const urlBlob = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = urlBlob
-    a.download = `${numero ? formatQuoteNumber(numero, year) : `COT-nuevo-${String(year).slice(-2)}`}.xlsx`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(urlBlob)
-
-      if (user) {
-        logAction({
-          user_id: user.id,
-          user_name: user.name,
-          action: quoteId ? "Actualizó cotización nativa" : "Creó cotización nativa",
-          module: "COTIZACIONES",
-          details: { numero: numero ? formatQuoteNumber(numero, year) : null, year, items: items.length, total },
-        })
-      }
-
-      toast.success("Cotización procesada correctamente")
-      if (quoteId) {
+        if (user) {
+          logAction({
+            user_id: user.id,
+            user_name: user.name,
+            action: "Actualizó cotización nativa",
+            module: "COTIZACIONES",
+            details: { numero: numero ? formatQuoteNumber(numero, year) : null, year, items: items.length, total },
+          })
+        }
+        toast.success("Cotización actualizada correctamente")
         clearDraft()
       } else {
-        // Reset React state as well as localStorage before the next new quote.
+        const blob = await resp.blob()
+        const urlBlob = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = urlBlob
+        a.download = `${numero ? formatQuoteNumber(numero, year) : `COT-nuevo-${String(year).slice(-2)}`}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(urlBlob)
+
+        if (user) {
+          logAction({
+            user_id: user.id,
+            user_name: user.name,
+            action: "Creó cotización nativa",
+            module: "COTIZACIONES",
+            details: { numero: numero ? formatQuoteNumber(numero, year) : null, year, items: items.length, total },
+          })
+        }
+
+        toast.success("Cotización creada correctamente")
         handleClearDraft(false)
       }
+
       setPendingConditionTexts([])
       onSuccess?.()
       onOpenChange(false)
