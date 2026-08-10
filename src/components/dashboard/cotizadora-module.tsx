@@ -271,6 +271,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         .select("id, numero, year, cliente_nombre, cliente_ruc, proyecto, total, estado, vendedor_nombre, user_created, fecha_emision, created_at, items_count, object_key")
         .eq("visibilidad", "visible")
         .order("created_at", { ascending: false })
+        .range(0, 49999)
 
       if (error) throw error
       setQuotes((data || []).map((row) => mapDbQuoteToUi(row as DbQuoteListRow)))
