@@ -1106,7 +1106,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] p-4 sm:p-6 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-[99vw] w-[99vw] max-h-[99vh] p-2 sm:p-4 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
           <form onSubmit={handleSaveTempDoc} className="space-y-4">
             {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
             <div className="flex items-center justify-between gap-3 mb-2">
@@ -1505,10 +1505,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowBalanzaModal(true)
         }}
       >
-        <DialogContent className="max-w-[98vw] w-full max-h-[98vh] p-4 sm:p-6 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
-          <form onSubmit={handleSaveBalanzaDoc} className="space-y-4">
+        <DialogContent className="max-w-[99vw] w-[99vw] max-h-[99vh] p-2 sm:p-4 bg-[#f1f5f9] overflow-y-auto rounded-xl border-none shadow-2xl [&>button]:hidden">
+          <form onSubmit={handleSaveBalanzaDoc} className="space-y-3">
             {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-3 mb-1">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
                   <Scale className="h-5 w-5" />
@@ -1546,20 +1546,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       NORMA NTP / ASTM — F-LEM-IN-01.02 V03
                     </p>
                   </div>
-                  <div className="col-span-3 text-[11px] font-mono text-slate-800 bg-slate-50 min-h-[64px]">
-                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                  <div className="col-span-3 text-[11px] font-mono text-slate-800 bg-slate-50 min-h-[64px] flex flex-col justify-center">
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">CÓDIGO:</span>
-                      <span>F-LEM-IN-01.02</span>
+                      <span className="font-bold text-slate-900">F-LEM-IN-01.02</span>
                     </div>
-                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">REVISIÓN:</span>
                       <span>03</span>
                     </div>
-                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between">
+                    <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">FECHA:</span>
                       <span>2024-01-02</span>
                     </div>
-                    <div className="px-2 py-0.5 flex justify-between">
+                    <div className="px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">PÁGINA:</span>
                       <span>1 de 1</span>
                     </div>
