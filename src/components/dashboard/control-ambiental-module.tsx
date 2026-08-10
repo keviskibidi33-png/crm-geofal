@@ -158,6 +158,23 @@ function ensure15Pesadas(pesadas: PesadaItem[]): PesadaItem[] {
   return result.slice(0, 15)
 }
 
+function normalizeAreaName(areaStr?: string): string {
+  if (!areaStr) return DEFAULT_AREAS[0]
+  const clean = areaStr.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  const found = DEFAULT_AREAS.find((a) => {
+    const aClean = a.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    return aClean === clean || clean.includes(aClean) || aClean.includes(clean)
+  })
+  return found || DEFAULT_AREAS[0]
+}
+
+function normalizeBalanzaCode(code?: string): string {
+  if (!code) return DEFAULT_BALANZAS[0].codigo
+  const clean = code.trim().toUpperCase()
+  const found = DEFAULT_BALANZAS.find((b) => b.codigo.toUpperCase() === clean || clean.includes(b.codigo.toUpperCase()))
+  return found ? found.codigo : DEFAULT_BALANZAS[0].codigo
+}
+
 export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: ControlAmbientalModuleProps) {
   const [currentModuleMode, setCurrentModuleMode] = useState<"temperatura" | "balanza">(
     defaultTab === "balanza" ? "balanza" : "temperatura"
@@ -193,6 +210,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null)
 
   // ── Modals & Document State ──
+  const [deletedTempRowIds, setDeletedTempRowIds] = useState<number[]>([])
+  const [deletedBalanzaRowIds, setDeletedBalanzaRowIds] = useState<number[]>([])
   const [showTempModal, setShowTempModal] = useState(false)
   const [tempIsDirty, setTempIsDirty] = useState(false)
   const [tempDocHeader, setTempDocHeader] = useState({
@@ -200,7 +219,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     mes_anio: getMesAnio(),
     aprobado_por: "JEFE DE LABORATORIO",
     fecha_aprobacion: "2024-01-02",
-    area_ambiente: "Area de Recepción de muestras",
+    area_ambiente: DEFAULT_AREAS[0],
     cumple_global: true,
   })
   const [tempDocRows, setTempDocRows] = useState<TempRow[]>([
@@ -223,13 +242,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [showBalanzaModal, setShowBalanzaModal] = useState(false)
   const [balanzaIsDirty, setBalanzaIsDirty] = useState(false)
   const [balanzaDocHeader, setBalanzaDocHeader] = useState({
-    codigo_balanza: "EQP-0046",
+    codigo_balanza: DEFAULT_BALANZAS[0].codigo,
     mes_anio: getMesAnio(),
-    ubicacion: "Area de Recepción de muestras",
+    ubicacion: DEFAULT_BALANZAS[0].ubi,
     codigos_pesas_patron: "PP-01, PP-02, PP-05",
-    capacidad_g: "15000",
-    masa_patron_g: "2000",
-    error_max_permitido_g: "0.5",
+    capacidad_g: String(DEFAULT_BALANZAS[0].cap),
+    masa_patron_g: String(DEFAULT_BALANZAS[0].masa),
+    error_max_permitido_g: String(DEFAULT_BALANZAS[0].tol),
     limpieza_nivelacion: true,
   })
   const [balanzaDocRows, setBalanzaDocRows] = useState<BalanzaRow[]>([
@@ -298,16 +317,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }>()
 
     temperaturaList.forEach((item) => {
+      const normArea = normalizeAreaName(item.area_ambiente)
       const fechaObj = new Date(item.fecha + "T00:00:00")
       const mes_anio = item.fecha
         ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
         : "AGOSTO 2026"
-      const key = `${item.area_ambiente}__${mes_anio}`
+      const key = `${normArea}__${mes_anio}`
 
       if (!map.has(key)) {
         map.set(key, {
           key,
-          area_ambiente: item.area_ambiente,
+          area_ambiente: normArea,
           mes_anio,
           items: [],
         })
@@ -328,16 +348,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }>()
 
     balanzaList.forEach((item) => {
+      const normCode = normalizeBalanzaCode(item.codigo_balanza)
       const fechaObj = new Date(item.fecha + "T00:00:00")
       const mes_anio = item.fecha
         ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
         : "AGOSTO 2026"
-      const key = `${item.codigo_balanza}__${mes_anio}`
+      const key = `${normCode}__${mes_anio}`
 
       if (!map.has(key)) {
         map.set(key, {
           key,
-          codigo_balanza: item.codigo_balanza,
+          codigo_balanza: normCode,
           mes_anio,
           ubicacion: item.ubicacion,
           items: [],
@@ -387,12 +408,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // ── Open Form for New Document ──
   const openNewTempDoc = () => {
     executeWithSafetyCheck(() => {
+      setDeletedTempRowIds([])
       setTempDocHeader({
         registro: "REG-01",
         mes_anio: getMesAnio(),
         aprobado_por: "JEFE DE LABORATORIO",
         fecha_aprobacion: "2024-01-02",
-        area_ambiente: "Area de Recepción de muestras",
+        area_ambiente: DEFAULT_AREAS[0],
         cumple_global: true,
       })
       setTempDocRows([
@@ -419,6 +441,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const openNewBalanzaDoc = () => {
     executeWithSafetyCheck(() => {
       const firstBalanza = DEFAULT_BALANZAS[0]
+      setDeletedBalanzaRowIds([])
       setBalanzaDocHeader({
         codigo_balanza: firstBalanza.codigo,
         mes_anio: getMesAnio(),
@@ -448,6 +471,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // ── Open Form for Existing Document (Edit Sheet) ──
   const openEditTempDoc = (items: ControlTemperaturaItem[]) => {
     executeWithSafetyCheck(() => {
+      setDeletedTempRowIds([])
       if (items.length > 0) {
         const first = items[0]
         const fechaObj = new Date(first.fecha + "T00:00:00")
@@ -456,7 +480,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
           aprobado_por: "JEFE DE LABORATORIO",
           fecha_aprobacion: "2024-01-02",
-          area_ambiente: first.area_ambiente,
+          area_ambiente: normalizeAreaName(first.area_ambiente),
           cumple_global: first.cumple_especificacion,
         })
         setTempDocRows(
@@ -465,15 +489,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             fecha_registro: it.fecha,
             hora_toma: it.hora_lectura,
             fecha_lectura: it.fecha,
-            temp_min: String(it.temp_min ?? "10.0"),
-            temp_max: String(it.temp_max ?? "30.0"),
-            hum_min: "20.0",
-            hum_max: "80.0",
-            temperatura_c: String(it.temperatura_c),
-            humedad_relativa_pct: String(it.humedad_relativa_pct),
+            temp_min: it.temp_min != null ? String(it.temp_min) : "",
+            temp_max: it.temp_max != null ? String(it.temp_max) : "",
+            hum_min: "",
+            hum_max: "",
+            temperatura_c: it.temperatura_c != null ? String(it.temperatura_c) : "",
+            humedad_relativa_pct: it.humedad_relativa_pct != null ? String(it.humedad_relativa_pct) : "",
             cumple: it.cumple_especificacion,
             responsable_registro: it.responsable_lectura || "BEATRIZ",
-            responsable_revision: "ING. FABIAN",
+            responsable_revision: it.observaciones?.replace(/^REVISADO POR:\s*/i, "") || "ING. FABIAN",
           }))
         )
       }
@@ -484,17 +508,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
   const openEditBalanzaDoc = (items: ControlBalanzaItem[]) => {
     executeWithSafetyCheck(() => {
+      setDeletedBalanzaRowIds([])
       if (items.length > 0) {
         const first = items[0]
         const fechaObj = new Date(first.fecha + "T00:00:00")
+        const normCode = normalizeBalanzaCode(first.codigo_balanza)
+        const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode)
+
         setBalanzaDocHeader({
-          codigo_balanza: first.codigo_balanza,
+          codigo_balanza: normCode,
           mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-          ubicacion: first.ubicacion,
+          ubicacion: first.ubicacion || (matchingDef ? matchingDef.ubi : DEFAULT_BALANZAS[0].ubi),
           codigos_pesas_patron: "PP-01, PP-02, PP-05",
-          capacidad_g: String(first.capacidad_g),
-          masa_patron_g: String(first.masa_patron_g),
-          error_max_permitido_g: String(first.error_max_permitido_g),
+          capacidad_g: String(first.capacidad_g ?? matchingDef?.cap ?? 15000),
+          masa_patron_g: String(first.masa_patron_g ?? matchingDef?.masa ?? 2000),
+          error_max_permitido_g: String(first.error_max_permitido_g ?? matchingDef?.tol ?? 0.5),
           limpieza_nivelacion: first.limpieza_nivelacion,
         })
 
@@ -507,8 +535,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             rowMap.set(key, {
               fecha: it.fecha,
               hora: "08:00",
-              temp_c: "23.0",
-              humedad_pct: "50.0",
+              temp_c: "",
+              humedad_pct: "",
               pesadas: [],
               verificado_por: it.verificado_por || "BEATRIZ",
               revisado_por: it.observaciones?.replace(/^REVISADO POR:\s*/i, "") || "ING. FABIAN",
@@ -564,18 +592,31 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const handleSaveTempDoc = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // 1. Eliminar filas descartadas por el usuario en la UI
+      if (deletedTempRowIds.length > 0) {
+        await Promise.all(
+          deletedTempRowIds.map((id) =>
+            authFetch(`${API_URL}/api/control-ambiental/temperatura/${id}`, { method: "DELETE" })
+          )
+        )
+        setDeletedTempRowIds([])
+      }
+
+      // 2. Guardar o actualizar filas activas
       const promises = tempDocRows.map((row) => {
+        const tempVal = parseFloat(row.temperatura_c)
+        const humVal = parseFloat(row.humedad_relativa_pct)
         const payload = {
           fecha: row.fecha_registro,
           hora_lectura: row.hora_toma,
           area_ambiente: tempDocHeader.area_ambiente,
-          temperatura_c: parseFloat(row.temperatura_c) || 0.0,
-          humedad_relativa_pct: parseFloat(row.humedad_relativa_pct) || 0.0,
-          temp_min: parseFloat(row.temp_min) || 10.0,
-          temp_max: parseFloat(row.temp_max) || 30.0,
+          temperatura_c: isNaN(tempVal) ? 0.0 : tempVal,
+          humedad_relativa_pct: isNaN(humVal) ? 0.0 : humVal,
+          temp_min: row.temp_min ? parseFloat(row.temp_min) : null,
+          temp_max: row.temp_max ? parseFloat(row.temp_max) : null,
           cumple_especificacion: tempDocHeader.cumple_global,
-          responsable_lectura: row.responsable_registro,
-          observaciones: "",
+          responsable_lectura: row.responsable_registro || user.name || "BEATRIZ",
+          observaciones: row.responsable_revision ? `REVISADO POR: ${row.responsable_revision}` : "",
         }
         const url = row.id
           ? `${API_URL}/api/control-ambiental/temperatura/${row.id}`
@@ -601,6 +642,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const handleSaveBalanzaDoc = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // 1. Eliminar pesadas descartadas en la UI
+      if (deletedBalanzaRowIds.length > 0) {
+        await Promise.all(
+          deletedBalanzaRowIds.map((id) =>
+            authFetch(`${API_URL}/api/control-ambiental/balanza/${id}`, { method: "DELETE" })
+          )
+        )
+        setDeletedBalanzaRowIds([])
+      }
+
+      // 2. Guardar o actualizar pesadas activas
       const promises: Promise<Response>[] = []
 
       balanzaDocRows.forEach((row) => {
@@ -1419,6 +1471,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             size="icon"
                             disabled={tempDocRows.length <= 1}
                             onClick={() => {
+                              const targetId = tempDocRows[idx]?.id
+                              if (targetId) {
+                                setDeletedTempRowIds((ids) => [...ids, targetId])
+                              }
                               setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
                               setTempIsDirty(true)
                             }}
@@ -1857,6 +1913,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               size="icon"
                               disabled={balanzaDocRows.length <= 1}
                               onClick={() => {
+                                const rowToDelete = balanzaDocRows[idx]
+                                if (rowToDelete && rowToDelete.pesadas) {
+                                  const idsToDelete = rowToDelete.pesadas
+                                    .map((p) => p.id)
+                                    .filter((id): id is number => typeof id === "number")
+                                  if (idsToDelete.length > 0) {
+                                    setDeletedBalanzaRowIds((prev) => [...prev, ...idsToDelete])
+                                  }
+                                }
                                 setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
                                 setBalanzaIsDirty(true)
                               }}
