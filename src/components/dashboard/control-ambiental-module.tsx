@@ -107,6 +107,7 @@ interface PesadaItem {
   id?: number
   masa_patron_g: string
   lectura_balanza_g: string
+  estado?: string
 }
 
 interface BalanzaRow {
@@ -148,9 +149,9 @@ function getMesAnio() {
 }
 
 function ensure15Pesadas(pesadas: PesadaItem[]): PesadaItem[] {
-  const result = pesadas ? [...pesadas] : []
+  const result = pesadas ? pesadas.map((p) => ({ ...p, estado: p.estado || (p.lectura_balanza_g ? "OK" : "-") })) : []
   while (result.length < 15) {
-    result.push({ masa_patron_g: "", lectura_balanza_g: "" })
+    result.push({ masa_patron_g: "", lectura_balanza_g: "", estado: "-" })
   }
   return result.slice(0, 15)
 }
@@ -235,11 +236,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       hora: "08:00",
       temp_c: "23.0",
       humedad_pct: "50.0",
-      pesadas: ensure15Pesadas([
-        { masa_patron_g: "200", lectura_balanza_g: "200.0" },
-        { masa_patron_g: "500", lectura_balanza_g: "500.0" },
-        { masa_patron_g: "1000", lectura_balanza_g: "1000.0" },
-      ]),
+      pesadas: ensure15Pesadas([]),
       verificado_por: "BEATRIZ",
       revisado_por: "ING. FABIAN",
     },
@@ -436,11 +433,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           hora: "08:00",
           temp_c: "23.0",
           humedad_pct: "50.0",
-          pesadas: ensure15Pesadas([
-            { masa_patron_g: "200", lectura_balanza_g: "200.0" },
-            { masa_patron_g: "500", lectura_balanza_g: "500.0" },
-            { masa_patron_g: "1000", lectura_balanza_g: "1000.0" },
-          ]),
+          pesadas: ensure15Pesadas([]),
           verificado_por: "BEATRIZ",
           revisado_por: "ING. FABIAN",
         },
@@ -1678,8 +1671,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     </tr>
                     <tr>
                       {Array.from({ length: 15 }).map((_, i) => (
-                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-20 min-w-[76px]">
-                          OK
+                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-[136px]">
+                          OK / NO
                         </th>
                       ))}
                     </tr>
@@ -1749,29 +1742,19 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             />
                           </td>
 
-                          {/* 15 Casillas Horizontales de Pesada Patrón (Identico a Hoja Excel Real) */}
+                          {/* 15 Casillas Horizontales: /casilla de dato/desplegable (ok)(no)/ */}
                           {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
-                            const m = parseFloat(p.masa_patron_g) || 0
-                            const l = parseFloat(p.lectura_balanza_g) || 0
-                            const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
-                            const err = l - m
-                            const conforme = Math.abs(err) <= tol
-                            const hasValue = p.lectura_balanza_g.trim() !== "" || p.masa_patron_g.trim() !== ""
+                            const valText = p.lectura_balanza_g || p.masa_patron_g
+                            const estText = p.estado || (valText ? "OK" : "-")
 
                             return (
-                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-[76px] w-20 text-center bg-white">
-                                <div className="flex flex-col gap-0.5 items-center justify-center">
+                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-[136px] w-36 text-center bg-white">
+                                <div className="flex items-center gap-1">
                                   <input
                                     type="text"
-                                    placeholder="OK"
-                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-full border-slate-300 ${
-                                      hasValue
-                                        ? conforme
-                                          ? "bg-blue-50 text-blue-900 border-blue-300 font-extrabold"
-                                          : "bg-red-50 text-red-900 border-red-300 font-extrabold"
-                                        : "bg-white"
-                                    }`}
-                                    value={p.lectura_balanza_g || p.masa_patron_g}
+                                    placeholder="Dato"
+                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-20 border-slate-300 bg-white`}
+                                    value={valText}
                                     onChange={(e) => {
                                       const val = e.target.value
                                       setBalanzaDocRows((rows) =>
@@ -1780,7 +1763,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                             ? {
                                                 ...r,
                                                 pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
-                                                  pi === pIdx ? { ...pes, lectura_balanza_g: val, masa_patron_g: val } : pes
+                                                  pi === pIdx
+                                                    ? {
+                                                        ...pes,
+                                                        lectura_balanza_g: val,
+                                                        masa_patron_g: val,
+                                                        estado: pes.estado === "-" && val ? "OK" : pes.estado,
+                                                      }
+                                                    : pes
                                                 ),
                                               }
                                             : r
@@ -1789,6 +1779,36 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                       setBalanzaIsDirty(true)
                                     }}
                                   />
+                                  <select
+                                    className={`${denseInputClass} text-center font-extrabold text-[11px] h-7 w-14 cursor-pointer rounded ${
+                                      estText === "NO"
+                                        ? "bg-red-100 text-red-800 border-red-300"
+                                        : estText === "OK"
+                                        ? "bg-blue-100 text-blue-800 border-blue-300"
+                                        : "bg-slate-50 text-slate-600 border-slate-300"
+                                    }`}
+                                    value={estText}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setBalanzaDocRows((rows) =>
+                                        rows.map((r, i) =>
+                                          i === idx
+                                            ? {
+                                                ...r,
+                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
+                                                  pi === pIdx ? { ...pes, estado: val } : pes
+                                                ),
+                                              }
+                                            : r
+                                        )
+                                      )
+                                      setBalanzaIsDirty(true)
+                                    }}
+                                  >
+                                    <option value="-">-</option>
+                                    <option value="OK">OK</option>
+                                    <option value="NO">NO</option>
+                                  </select>
                                 </div>
                               </td>
                             )
