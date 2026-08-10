@@ -16,6 +16,8 @@ import {
   ChevronRight,
   FileText,
   X,
+  Save,
+  CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1129,8 +1131,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </button>
             </div>
 
-            {/* Hoja de Excel Blanca Central (Document Paper Box idéntico a Corte Directo) */}
-            <div className="mx-auto max-w-6xl overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+            {/* Hoja de Excel Blanca Central (Document Paper Box amplio a pantalla completa) */}
+            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
               {/* Bloque Encabezado Oficial con Logo y Título Centrado */}
               <div className="border-b border-slate-300 bg-slate-50 p-4 text-center">
                 <div className="flex items-center justify-center gap-3 mb-2">
@@ -1479,8 +1481,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6">
-                💾 Guardar Formato F-LEM-P-05.01
+              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
+                <Save className="h-4 w-4" />
+                Guardar Formato F-LEM-P-05.01
               </Button>
             </div>
           </form>
@@ -1527,8 +1530,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </button>
             </div>
 
-            {/* Hoja de Excel Blanca Central (Document Paper Box idéntico a Corte Directo) */}
-            <div className="mx-auto max-w-6xl overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+            {/* Hoja de Excel Blanca Central (Document Paper Box amplio a pantalla completa) */}
+            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
               {/* Bloque Encabezado Oficial Estilo Hoja Excel 3 Columnas (Logo | Título | Metadatos) */}
               <div className="border-b border-slate-300 bg-white p-3">
                 <div className="grid grid-cols-12 border border-slate-300 items-center">
@@ -1646,16 +1649,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* Franja Verde Estilo Excel Oficial PESA PATRÓN USADO (g) */}
-              <div className="border-b border-emerald-300 bg-emerald-100 px-4 py-2 text-center">
-                <p className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
-                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
-                </p>
-              </div>
-
               {/* Tabla Principal de Casillas Grid Estilo Excel Real con Scroll Horizontal */}
               <div className="p-3 overflow-x-auto max-w-full">
-                <table className="min-w-[1850px] w-full border-collapse border border-slate-300 text-xs">
+                <table className="min-w-[2400px] w-full border-collapse border border-slate-300 text-xs">
                   <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                     <tr>
                       <th className="border-r border-b border-slate-300 py-2 w-28 text-center" rowSpan={2}>FECHA</th>
@@ -1889,11 +1885,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         hora: "08:00",
                         temp_c: "23.0",
                         humedad_pct: "50.0",
-                        pesadas: [
-                          { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
-                          { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
-                          { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
-                        ],
+                        pesadas: ensure15Pesadas([]),
                         verificado_por: last ? last.verificado_por : "BEATRIZ",
                         revisado_por: last ? last.revisado_por : "ING. FABIAN",
                       },
@@ -1912,7 +1904,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </div>
 
             {/* Sub-Card Limpieza y Nivelación */}
-            <div className="mx-auto max-w-6xl flex items-center justify-between p-3 rounded-lg border border-slate-300 bg-white">
+            <div className="w-full max-w-[99vw] mx-auto flex items-center justify-between p-3 rounded-lg border border-slate-300 bg-white">
               <span className="text-xs font-bold text-slate-800">
                 LIMPIEZA Y NIVELACIÓN DE LA BALANZA
               </span>
@@ -1949,8 +1941,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6">
-                💾 Guardar Formato F-LEM-IN-01.02
+              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
+                <Save className="h-4 w-4" />
+                Guardar Formato F-LEM-IN-01.02
               </Button>
             </div>
           </form>
