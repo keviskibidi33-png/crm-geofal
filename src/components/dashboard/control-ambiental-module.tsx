@@ -158,6 +158,46 @@ function ensure15Pesadas(pesadas: PesadaItem[]): PesadaItem[] {
   return result.slice(0, 15)
 }
 
+interface TempHeaderMeta {
+  registro?: string
+  mes_anio?: string
+  aprobado_por?: string
+  fecha_aprobacion?: string
+  revisado_por?: string
+}
+
+interface BalanzaHeaderMeta {
+  mes_anio?: string
+  codigos_pesas_patron?: string
+  revisado_por?: string
+}
+
+function parseTempObs(obs?: string | null): TempHeaderMeta {
+  if (!obs) return {}
+  try {
+    if (obs.startsWith("{")) {
+      return JSON.parse(obs)
+    }
+  } catch {}
+  if (obs.startsWith("REVISADO POR:")) {
+    return { revisado_por: obs.replace(/^REVISADO POR:\s*/i, "") }
+  }
+  return {}
+}
+
+function parseBalanzaObs(obs?: string | null): BalanzaHeaderMeta {
+  if (!obs) return {}
+  try {
+    if (obs.startsWith("{")) {
+      return JSON.parse(obs)
+    }
+  } catch {}
+  if (obs.startsWith("REVISADO POR:")) {
+    return { revisado_por: obs.replace(/^REVISADO POR:\s*/i, "") }
+  }
+  return {}
+}
+
 function normalizeAreaName(areaStr?: string): string {
   if (!areaStr) return DEFAULT_AREAS[0]
   const clean = areaStr.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -318,10 +358,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
     temperaturaList.forEach((item) => {
       const normArea = normalizeAreaName(item.area_ambiente)
+      const parsedObs = parseTempObs(item.observaciones)
       const fechaObj = new Date(item.fecha + "T00:00:00")
-      const mes_anio = item.fecha
+      const defaultMesAnio = item.fecha
         ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
-        : "AGOSTO 2026"
+        : getMesAnio()
+      const mes_anio = parsedObs.mes_anio || defaultMesAnio
       const key = `${normArea}__${mes_anio}`
 
       if (!map.has(key)) {
@@ -349,10 +391,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
     balanzaList.forEach((item) => {
       const normCode = normalizeBalanzaCode(item.codigo_balanza)
+      const parsedObs = parseBalanzaObs(item.observaciones)
       const fechaObj = new Date(item.fecha + "T00:00:00")
-      const mes_anio = item.fecha
+      const defaultMesAnio = item.fecha
         ? fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
-        : "AGOSTO 2026"
+        : getMesAnio()
+      const mes_anio = parsedObs.mes_anio || defaultMesAnio
       const key = `${normCode}__${mes_anio}`
 
       if (!map.has(key)) {
@@ -474,31 +518,37 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       setDeletedTempRowIds([])
       if (items.length > 0) {
         const first = items[0]
+        const parsedObs = parseTempObs(first.observaciones)
         const fechaObj = new Date(first.fecha + "T00:00:00")
+        const defaultMesAnio = fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
+
         setTempDocHeader({
-          registro: "REG-01",
-          mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
-          aprobado_por: "JEFE DE LABORATORIO",
-          fecha_aprobacion: "2024-01-02",
+          registro: parsedObs.registro || "REG-01",
+          mes_anio: parsedObs.mes_anio || defaultMesAnio,
+          aprobado_por: parsedObs.aprobado_por || "JEFE DE LABORATORIO",
+          fecha_aprobacion: parsedObs.fecha_aprobacion || first.fecha || new Date().toISOString().split("T")[0],
           area_ambiente: normalizeAreaName(first.area_ambiente),
           cumple_global: first.cumple_especificacion,
         })
         setTempDocRows(
-          items.map((it) => ({
-            id: it.id,
-            fecha_registro: it.fecha,
-            hora_toma: it.hora_lectura,
-            fecha_lectura: it.fecha,
-            temp_min: it.temp_min != null ? String(it.temp_min) : "",
-            temp_max: it.temp_max != null ? String(it.temp_max) : "",
-            hum_min: "",
-            hum_max: "",
-            temperatura_c: it.temperatura_c != null ? String(it.temperatura_c) : "",
-            humedad_relativa_pct: it.humedad_relativa_pct != null ? String(it.humedad_relativa_pct) : "",
-            cumple: it.cumple_especificacion,
-            responsable_registro: it.responsable_lectura || "BEATRIZ",
-            responsable_revision: it.observaciones?.replace(/^REVISADO POR:\s*/i, "") || "ING. FABIAN",
-          }))
+          items.map((it) => {
+            const rowObs = parseTempObs(it.observaciones)
+            return {
+              id: it.id,
+              fecha_registro: it.fecha,
+              hora_toma: it.hora_lectura,
+              fecha_lectura: it.fecha,
+              temp_min: it.temp_min != null ? String(it.temp_min) : "",
+              temp_max: it.temp_max != null ? String(it.temp_max) : "",
+              hum_min: "",
+              hum_max: "",
+              temperatura_c: it.temperatura_c != null ? String(it.temperatura_c) : "",
+              humedad_relativa_pct: it.humedad_relativa_pct != null ? String(it.humedad_relativa_pct) : "",
+              cumple: it.cumple_especificacion,
+              responsable_registro: it.responsable_lectura || "BEATRIZ",
+              responsable_revision: rowObs.revisado_por || "ING. FABIAN",
+            }
+          })
         )
       }
       setTempIsDirty(false)
@@ -511,15 +561,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       setDeletedBalanzaRowIds([])
       if (items.length > 0) {
         const first = items[0]
+        const parsedObs = parseBalanzaObs(first.observaciones)
         const fechaObj = new Date(first.fecha + "T00:00:00")
         const normCode = normalizeBalanzaCode(first.codigo_balanza)
         const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode)
+        const defaultMesAnio = fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
 
         setBalanzaDocHeader({
           codigo_balanza: normCode,
-          mes_anio: fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase(),
+          mes_anio: parsedObs.mes_anio || defaultMesAnio,
           ubicacion: first.ubicacion || (matchingDef ? matchingDef.ubi : DEFAULT_BALANZAS[0].ubi),
-          codigos_pesas_patron: "PP-01, PP-02, PP-05",
+          codigos_pesas_patron: parsedObs.codigos_pesas_patron || "PP-01, PP-02, PP-05",
           capacidad_g: String(first.capacidad_g ?? matchingDef?.cap ?? 15000),
           masa_patron_g: String(first.masa_patron_g ?? matchingDef?.masa ?? 2000),
           error_max_permitido_g: String(first.error_max_permitido_g ?? matchingDef?.tol ?? 0.5),
@@ -530,6 +582,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         const rowMap = new Map<string, BalanzaRow>()
 
         items.forEach((it) => {
+          const rowObs = parseBalanzaObs(it.observaciones)
           const key = `${it.fecha}__${it.verificado_por}`
           if (!rowMap.has(key)) {
             rowMap.set(key, {
@@ -539,7 +592,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               humedad_pct: "",
               pesadas: [],
               verificado_por: it.verificado_por || "BEATRIZ",
-              revisado_por: it.observaciones?.replace(/^REVISADO POR:\s*/i, "") || "ING. FABIAN",
+              revisado_por: rowObs.revisado_por || "ING. FABIAN",
             })
           }
           rowMap.get(key)!.pesadas.push({
@@ -606,6 +659,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       const promises = tempDocRows.map((row) => {
         const tempVal = parseFloat(row.temperatura_c)
         const humVal = parseFloat(row.humedad_relativa_pct)
+        const obsMeta: TempHeaderMeta = {
+          registro: tempDocHeader.registro,
+          mes_anio: tempDocHeader.mes_anio,
+          aprobado_por: tempDocHeader.aprobado_por,
+          fecha_aprobacion: tempDocHeader.fecha_aprobacion,
+          revisado_por: row.responsable_revision || "ING. FABIAN",
+        }
         const payload = {
           fecha: row.fecha_registro,
           hora_lectura: row.hora_toma,
@@ -616,7 +676,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           temp_max: row.temp_max ? parseFloat(row.temp_max) : null,
           cumple_especificacion: tempDocHeader.cumple_global,
           responsable_lectura: row.responsable_registro || user.name || "BEATRIZ",
-          observaciones: row.responsable_revision ? `REVISADO POR: ${row.responsable_revision}` : "",
+          observaciones: JSON.stringify(obsMeta),
         }
         const url = row.id
           ? `${API_URL}/api/control-ambiental/temperatura/${row.id}`
@@ -659,6 +719,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         row.pesadas.forEach((p) => {
           if (!p.masa_patron_g && !p.lectura_balanza_g) return
 
+          const obsMeta: BalanzaHeaderMeta = {
+            mes_anio: balanzaDocHeader.mes_anio,
+            codigos_pesas_patron: balanzaDocHeader.codigos_pesas_patron,
+            revisado_por: row.revisado_por || "ING. FABIAN",
+          }
+
           const payload = {
             fecha: row.fecha,
             codigo_balanza: balanzaDocHeader.codigo_balanza,
@@ -669,7 +735,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             error_max_permitido_g: parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5,
             limpieza_nivelacion: balanzaDocHeader.limpieza_nivelacion,
             verificado_por: row.verificado_por,
-            observaciones: row.revisado_por ? `REVISADO POR: ${row.revisado_por}` : "",
+            observaciones: JSON.stringify(obsMeta),
           }
 
           const url = p.id
