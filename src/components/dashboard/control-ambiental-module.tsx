@@ -103,14 +103,18 @@ interface TempRow {
   responsable_revision: string
 }
 
-interface BalanzaRow {
+interface PesadaItem {
   id?: number
+  masa_patron_g: string
+  lectura_balanza_g: string
+}
+
+interface BalanzaRow {
   fecha: string
   hora: string
   temp_c: string
   humedad_pct: string
-  masa_patron_g: string
-  lectura_balanza_g: string
+  pesadas: PesadaItem[]
   verificado_por: string
   revisado_por: string
 }
@@ -124,12 +128,25 @@ const DEFAULT_AREAS = [
 ]
 
 const DEFAULT_BALANZAS = [
-  { codigo: "BAL-01", ubi: "Muestras / Cám. Húmeda",  cap: 30000, masa: 5000, tol: 1.0   },
-  { codigo: "BAL-02", ubi: "Laboratorio Suelos",       cap: 20000, masa: 2000, tol: 0.5   },
-  { codigo: "BAL-03", ubi: "Laboratorio Concreto",     cap: 5000,  masa: 1000, tol: 0.1   },
-  { codigo: "BAL-04", ubi: "Química / Finos",          cap: 1000,  masa: 500,  tol: 0.05  },
-  { codigo: "BAL-05", ubi: "Analítica General",        cap: 300,   masa: 100,  tol: 0.005 },
-  { codigo: "BAL-06", ubi: "Laboratorio Huanta",       cap: 15000, masa: 2000, tol: 0.5   },
+  { codigo: "EQP-0046", nombre: "BALANZA 0.1g (Recepcion / Suelos)", ubi: "Area de Recepción de muestras", cap: 15000, masa: 2000, tol: 0.5 },
+  { codigo: "EQP-0045", nombre: "BALANZA 0.01g (Ensayos Físicos / Límite Líquido)", ubi: "Área de Ensayos físicos", cap: 5000, masa: 1000, tol: 0.1 },
+  { codigo: "EQP-0054", nombre: "BALANZA 1g (Proctor / Peso Unitario)", ubi: "Area de Lavado y compactación", cap: 20000, masa: 5000, tol: 1.0 },
+  { codigo: "EQP-0090", nombre: "BALANZA 0.1g (Peso Específico Finos)", ubi: "Área de Ensayos físicos", cap: 1000, masa: 500, tol: 0.05 },
+  { codigo: "EQP-0059", nombre: "BALANZA 10g (Peso Unitario 10g)", ubi: "Area de Lavado y compactación", cap: 30000, masa: 10000, tol: 2.0 },
+  { codigo: "EQP-0050", nombre: "BALANZA 1g (Gravedad Específica Agregado Grueso)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
+  { codigo: "EQP-0044", nombre: "BALANZA 0.0001g (Analítica)", ubi: "Area de Ensayos especiales", cap: 300, masa: 100, tol: 0.005 },
+  { codigo: "EQP-0047", nombre: "BALANZA 0.1g (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
+]
+
+const RESPONSABLES_LIST = [
+  "BEATRIZ",
+  "ING. FABIAN",
+  "J.P.",
+  "M.A.",
+  "R.V.",
+  "B.S.",
+  "F.C.",
+  "LABORATORIO",
 ]
 
 function getMesAnio() {
@@ -218,10 +235,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       hora: "08:00",
       temp_c: "23.0",
       humedad_pct: "50.0",
-      masa_patron_g: "5000",
-      lectura_balanza_g: "5000.0",
-      verificado_por: user.name || "LABORATORIO",
-      revisado_por: "",
+      pesadas: [
+        { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
+        { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
+        { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
+      ],
+      verificado_por: "BEATRIZ",
+      revisado_por: "ING. FABIAN",
     },
   ])
 
@@ -399,14 +419,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
   const openNewBalanzaDoc = () => {
     executeWithSafetyCheck(() => {
+      const firstBalanza = DEFAULT_BALANZAS[0]
       setBalanzaDocHeader({
-        codigo_balanza: "BAL-01",
+        codigo_balanza: firstBalanza.codigo,
         mes_anio: getMesAnio(),
-        ubicacion: "Muestras / Cám. Húmeda",
+        ubicacion: firstBalanza.ubi,
         codigos_pesas_patron: "PP-01, PP-02, PP-05",
-        capacidad_g: "30000",
-        masa_patron_g: "5000",
-        error_max_permitido_g: "1.0",
+        capacidad_g: String(firstBalanza.cap),
+        masa_patron_g: String(firstBalanza.masa),
+        error_max_permitido_g: String(firstBalanza.tol),
         limpieza_nivelacion: true,
       })
       setBalanzaDocRows([
@@ -415,10 +436,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           hora: "08:00",
           temp_c: "23.0",
           humedad_pct: "50.0",
-          masa_patron_g: "5000",
-          lectura_balanza_g: "5000.0",
-          verificado_por: user.name || "LABORATORIO",
-          revisado_por: "",
+          pesadas: [
+            { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
+            { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
+            { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
+          ],
+          verificado_por: "BEATRIZ",
+          revisado_por: "ING. FABIAN",
         },
       ])
       setBalanzaIsDirty(false)
@@ -453,8 +477,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             temperatura_c: String(it.temperatura_c),
             humedad_relativa_pct: String(it.humedad_relativa_pct),
             cumple: it.cumple_especificacion,
-            responsable_registro: it.responsable_lectura,
-            responsable_revision: "",
+            responsable_registro: it.responsable_lectura || "BEATRIZ",
+            responsable_revision: "ING. FABIAN",
           }))
         )
       }
@@ -478,19 +502,31 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           error_max_permitido_g: String(first.error_max_permitido_g),
           limpieza_nivelacion: first.limpieza_nivelacion,
         })
-        setBalanzaDocRows(
-          items.map((it) => ({
+
+        // Agrupar pesadas por fecha y verificador en filas horizontales
+        const rowMap = new Map<string, BalanzaRow>()
+
+        items.forEach((it) => {
+          const key = `${it.fecha}__${it.verificado_por}`
+          if (!rowMap.has(key)) {
+            rowMap.set(key, {
+              fecha: it.fecha,
+              hora: "08:00",
+              temp_c: "23.0",
+              humedad_pct: "50.0",
+              pesadas: [],
+              verificado_por: it.verificado_por || "BEATRIZ",
+              revisado_por: it.observaciones?.replace(/^REVISADO POR:\s*/i, "") || "ING. FABIAN",
+            })
+          }
+          rowMap.get(key)!.pesadas.push({
             id: it.id,
-            fecha: it.fecha,
-            hora: "08:00",
-            temp_c: "23.0",
-            humedad_pct: "50.0",
             masa_patron_g: String(it.masa_patron_g),
             lectura_balanza_g: String(it.lectura_balanza_g),
-            verificado_por: it.verificado_por,
-            revisado_por: "",
-          }))
-        )
+          })
+        })
+
+        setBalanzaDocRows(Array.from(rowMap.values()))
       }
       setBalanzaIsDirty(false)
       setShowBalanzaModal(true)
@@ -565,27 +601,37 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const handleSaveBalanzaDoc = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const promises = balanzaDocRows.map((row) => {
-        const payload = {
-          fecha: row.fecha,
-          codigo_balanza: balanzaDocHeader.codigo_balanza,
-          ubicacion: balanzaDocHeader.ubicacion,
-          capacidad_g: parseFloat(balanzaDocHeader.capacidad_g) || 0.0,
-          masa_patron_g: parseFloat(row.masa_patron_g) || 0.0,
-          lectura_balanza_g: parseFloat(row.lectura_balanza_g) || 0.0,
-          error_max_permitido_g: parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5,
-          limpieza_nivelacion: balanzaDocHeader.limpieza_nivelacion,
-          verificado_por: row.verificado_por,
-          observaciones: "",
-        }
-        const url = row.id
-          ? `${API_URL}/api/control-ambiental/balanza/${row.id}`
-          : `${API_URL}/api/control-ambiental/balanza`
-        const method = row.id ? "PUT" : "POST"
-        return authFetch(url, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+      const promises: Promise<Response>[] = []
+
+      balanzaDocRows.forEach((row) => {
+        row.pesadas.forEach((p) => {
+          if (!p.masa_patron_g && !p.lectura_balanza_g) return
+
+          const payload = {
+            fecha: row.fecha,
+            codigo_balanza: balanzaDocHeader.codigo_balanza,
+            ubicacion: balanzaDocHeader.ubicacion,
+            capacidad_g: parseFloat(balanzaDocHeader.capacidad_g) || 0.0,
+            masa_patron_g: parseFloat(p.masa_patron_g) || 0.0,
+            lectura_balanza_g: parseFloat(p.lectura_balanza_g) || 0.0,
+            error_max_permitido_g: parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5,
+            limpieza_nivelacion: balanzaDocHeader.limpieza_nivelacion,
+            verificado_por: row.verificado_por,
+            observaciones: row.revisado_por ? `REVISADO POR: ${row.revisado_por}` : "",
+          }
+
+          const url = p.id
+            ? `${API_URL}/api/control-ambiental/balanza/${p.id}`
+            : `${API_URL}/api/control-ambiental/balanza`
+          const method = p.id ? "PUT" : "POST"
+
+          promises.push(
+            authFetch(url, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          )
         })
       })
 
@@ -1329,8 +1375,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           />
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            className={denseInputClass}
+                          <select
+                            className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                             value={row.responsable_registro}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1339,13 +1385,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            placeholder="Nombre operador"
-                            required
-                          />
+                          >
+                            {RESPONSABLES_LIST.map((resp) => (
+                              <option key={resp} value={resp}>
+                                {resp}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            className={denseInputClass}
+                          <select
+                            className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                             value={row.responsable_revision}
                             onChange={(e) => {
                               const val = e.target.value
@@ -1354,8 +1404,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               )
                               setTempIsDirty(true)
                             }}
-                            placeholder="Nombre revisor"
-                          />
+                          >
+                            {RESPONSABLES_LIST.map((resp) => (
+                              <option key={resp} value={resp}>
+                                {resp}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="border-t border-slate-300 p-1 text-center">
                           <Button
@@ -1540,14 +1595,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         />
                       </td>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
-                        <input
-                          className={denseInputClass}
+                        <select
+                          className={`${denseInputClass} font-semibold bg-white cursor-pointer`}
                           value={balanzaDocHeader.ubicacion}
                           onChange={(e) => {
-                            setBalanzaDocHeader((p) => ({ ...p, ubicacion: e.target.value }))
+                            const val = e.target.value
+                            setBalanzaDocHeader((p) => ({ ...p, ubicacion: val }))
                             setBalanzaIsDirty(true)
                           }}
-                        />
+                        >
+                          {DEFAULT_AREAS.map((area) => (
+                            <option key={area} value={area}>
+                              {area}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="border-t border-slate-300 p-1" colSpan={2}>
                         <input
@@ -1568,7 +1630,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               {/* Banner Encabezado de Sección Tabla */}
               <div className="border-b border-slate-300 bg-slate-100 px-4 py-2.5 text-center">
                 <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
+                  PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA HORIZONTALMENTE
                 </p>
               </div>
 
@@ -1579,24 +1641,23 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <tr>
                       <th className="border-r border-slate-300 py-2 w-28">FECHA</th>
                       <th className="border-r border-slate-300 py-2 w-20">HORA</th>
-                      <th className="border-r border-slate-300 py-2 w-24">TEMP (°C)</th>
-                      <th className="border-r border-slate-300 py-2 w-24">HUMEDAD (%H.R.)</th>
-                      <th className="border-r border-slate-300 py-2 w-32 text-right">MASA PATRÓN (g)</th>
-                      <th className="border-r border-slate-300 py-2 w-32 text-right">LECTURA (g)</th>
-                      <th className="border-r border-slate-300 py-2 w-32 text-center">ERROR / RESULT</th>
-                      <th className="border-r border-slate-300 py-2 w-36">REALIZADO POR</th>
-                      <th className="border-r border-slate-300 py-2 w-36">REVISADO POR</th>
+                      <th className="border-r border-slate-300 py-2 w-20">TEMP (°C)</th>
+                      <th className="border-r border-slate-300 py-2 w-20">HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={3}>
+                        LECTURAS DE PESAS PATRÓN (HORIZONTALES)
+                        <div className="grid grid-cols-3 border-t border-slate-300 mt-1 text-[10px]">
+                          <div className="border-r border-slate-300 py-0.5">Pesada 1 (Masa / Lectura / Status)</div>
+                          <div className="border-r border-slate-300 py-0.5">Pesada 2 (Masa / Lectura / Status)</div>
+                          <div className="py-0.5">Pesada 3 (Masa / Lectura / Status)</div>
+                        </div>
+                      </th>
+                      <th className="border-r border-slate-300 py-2 w-32">REALIZADO POR</th>
+                      <th className="border-r border-slate-300 py-2 w-32">REVISADO POR</th>
                       <th className="py-2 w-12 text-center">ACCION</th>
                     </tr>
                   </thead>
                   <tbody>
                     {balanzaDocRows.map((row, idx) => {
-                      const m = parseFloat(row.masa_patron_g) || 0
-                      const l = parseFloat(row.lectura_balanza_g) || 0
-                      const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
-                      const err = l - m
-                      const conforme = Math.abs(err) <= tol
-
                       return (
                         <tr key={idx} className="hover:bg-slate-50">
                           <td className="border-t border-r border-slate-300 p-1">
@@ -1659,53 +1720,80 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               }}
                             />
                           </td>
+                          {/* Columna de Pesadas Horizontales (3 pesadas en paralelo) */}
+                          {row.pesadas.map((p, pIdx) => {
+                            const m = parseFloat(p.masa_patron_g) || 0
+                            const l = parseFloat(p.lectura_balanza_g) || 0
+                            const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
+                            const err = l - m
+                            const conforme = Math.abs(err) <= tol
+
+                            return (
+                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 bg-slate-50/60">
+                                <div className="grid grid-cols-3 gap-1 items-center">
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    placeholder="Masa (g)"
+                                    className={`${denseInputClass} text-right text-[11px] font-medium`}
+                                    value={p.masa_patron_g}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setBalanzaDocRows((rows) =>
+                                        rows.map((r, i) =>
+                                          i === idx
+                                            ? {
+                                                ...r,
+                                                pesadas: r.pesadas.map((pes, pi) =>
+                                                  pi === pIdx ? { ...pes, masa_patron_g: val } : pes
+                                                ),
+                                              }
+                                            : r
+                                        )
+                                      )
+                                      setBalanzaIsDirty(true)
+                                    }}
+                                  />
+                                  <input
+                                    type="number"
+                                    step="0.001"
+                                    placeholder="Lectura (g)"
+                                    className={`${denseInputClass} text-right text-[11px] font-bold text-sky-700`}
+                                    value={p.lectura_balanza_g}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setBalanzaDocRows((rows) =>
+                                        rows.map((r, i) =>
+                                          i === idx
+                                            ? {
+                                                ...r,
+                                                pesadas: r.pesadas.map((pes, pi) =>
+                                                  pi === pIdx ? { ...pes, lectura_balanza_g: val } : pes
+                                                ),
+                                              }
+                                            : r
+                                        )
+                                      )
+                                      setBalanzaIsDirty(true)
+                                    }}
+                                  />
+                                  <div
+                                    className={`h-8 flex items-center justify-center rounded px-0.5 text-[10px] font-bold ${
+                                      conforme
+                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                        : "bg-red-50 text-red-700 border border-red-200"
+                                    }`}
+                                  >
+                                    {conforme ? "OK" : "ERR"} ({err >= 0 ? "+" : ""}
+                                    {err.toFixed(2)}g)
+                                  </div>
+                                </div>
+                              </td>
+                            )
+                          })}
                           <td className="border-t border-r border-slate-300 p-1">
-                            <input
-                              type="number"
-                              step="0.001"
-                              className={`${denseInputClass} text-right font-bold`}
-                              value={row.masa_patron_g}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, masa_patron_g: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                              required
-                            />
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1">
-                            <input
-                              type="number"
-                              step="0.001"
-                              className={`${denseInputClass} text-right font-bold text-sky-700`}
-                              value={row.lectura_balanza_g}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, lectura_balanza_g: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                              required
-                            />
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1 text-center">
-                            <div
-                              className={`h-8 flex items-center justify-center rounded px-1 text-[11px] font-bold ${
-                                conforme
-                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                  : "bg-red-50 text-red-700 border border-red-200"
-                              }`}
-                            >
-                              {conforme ? "OK" : "NO OK"} ({err >= 0 ? "+" : ""}
-                              {err.toFixed(2)}g)
-                            </div>
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1">
-                            <input
-                              className={denseInputClass}
+                            <select
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                               value={row.verificado_por}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1714,13 +1802,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              placeholder="Operador"
-                              required
-                            />
+                            >
+                              {RESPONSABLES_LIST.map((resp) => (
+                                <option key={resp} value={resp}>
+                                  {resp}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td className="border-t border-r border-slate-300 p-1">
-                            <input
-                              className={denseInputClass}
+                            <select
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                               value={row.revisado_por}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1729,8 +1821,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                                 setBalanzaIsDirty(true)
                               }}
-                              placeholder="Revisado por"
-                            />
+                            >
+                              {RESPONSABLES_LIST.map((resp) => (
+                                <option key={resp} value={resp}>
+                                  {resp}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td className="border-t border-slate-300 p-1 text-center">
                             <Button
@@ -1769,10 +1866,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         hora: "08:00",
                         temp_c: "23.0",
                         humedad_pct: "50.0",
-                        masa_patron_g: last ? last.masa_patron_g : "5000",
-                        lectura_balanza_g: last ? last.lectura_balanza_g : "5000.0",
-                        verificado_por: user.name || "LABORATORIO",
-                        revisado_por: "",
+                        pesadas: [
+                          { masa_patron_g: "2000", lectura_balanza_g: "2000.0" },
+                          { masa_patron_g: "5000", lectura_balanza_g: "5000.0" },
+                          { masa_patron_g: "10000", lectura_balanza_g: "10000.0" },
+                        ],
+                        verificado_por: last ? last.verificado_por : "BEATRIZ",
+                        revisado_por: last ? last.revisado_por : "ING. FABIAN",
                       },
                     ])
                     setBalanzaIsDirty(true)
