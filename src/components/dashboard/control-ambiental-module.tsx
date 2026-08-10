@@ -354,120 +354,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     }
   }
 
-  // ── Excel Export Functions according to exact Format Layout ──
-  const handleExportTempActiveSheet = () => {
-    const lines: string[] = []
-    lines.push("GEOFAL S.A.C. - LABORATORIO DE ENSAYO DE MATERIALES")
-    lines.push("FORMATO DE CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA (F-LEM-P-05.01 V03)")
-    lines.push(`REGISTRO;${tempDocHeader.registro};MES - AÑO;${tempDocHeader.mes_anio};ÁREA / AMBIENTE;${tempDocHeader.area_ambiente};APROBADO POR;${tempDocHeader.aprobado_por};FECHA APROBACIÓN;${tempDocHeader.fecha_aprobacion}`)
-    lines.push("")
-    lines.push("FECHA REGISTRO;HORA TOMA;FECHA LECTURA;TEMPERATURA MÍNIMA (°C);TEMPERATURA MÁXIMA (°C);HUMEDAD MÍNIMA (%);HUMEDAD MÁXIMA (%);RESPONSABLE REGISTRO;RESPONSABLE REVISIÓN")
-
-    tempDocRows.forEach((r) => {
-      lines.push(
-        `${r.fecha_registro};${r.hora_toma};${r.fecha_lectura};${r.temp_min || "-"};${r.temperatura_c};${r.hum_min || "-"};${r.humedad_relativa_pct};${r.responsable_registro};${r.responsable_revision || "ING. FABIAN"}`
-      )
-    })
-
-    const content = "\uFEFF" + lines.join("\n")
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `F-LEM-P-05.01_${tempDocHeader.area_ambiente.replace(/\s+/g, "_")}_${tempDocHeader.mes_anio.replace(/\s+/g, "_")}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Formato F-LEM-P-05.01 exportado según el orden oficial")
+  // ── Excel Export Functions using official reference .xlsx template ──
+  const handleExportTempExcel = (area?: string) => {
+    const query = area ? `?area=${encodeURIComponent(area)}` : ""
+    window.open(`${API_URL}/api/control-ambiental/temperatura/excel${query}`, "_blank")
+    toast.info("Descargando formato oficial Excel (F-LEM-P-05.01)...")
   }
 
-  const handleExportBalanzaActiveSheet = () => {
-    const lines: string[] = []
-    lines.push("GEOFAL S.A.C. - LABORATORIO DE ENSAYO DE MATERIALES")
-    lines.push("FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS (F-LEM-IN-01.02 V03)")
-    lines.push(`CÓDIGO BALANZA;${balanzaDocHeader.codigo_balanza};MES - AÑO;${balanzaDocHeader.mes_anio};UBICACIÓN;${balanzaDocHeader.ubicacion};PESAS PATRÓN;${balanzaDocHeader.codigos_pesas_patron}`)
-    lines.push("")
-
-    const pesadaHeaders = Array.from({ length: 15 }, (_, i) => `PESA ${i + 1} (g);ESTADO ${i + 1}`).join(";")
-    lines.push(`FECHA;HORA;TEMP (°C);HUMEDAD (%H.R.);${pesadaHeaders};REALIZADO POR;REVISADO POR`)
-
-    balanzaDocRows.forEach((r) => {
-      const pesadasStr = ensure15Pesadas(r.pesadas)
-        .map((p) => `${p.lectura_balanza_g || p.masa_patron_g || "-"};${p.estado || (p.lectura_balanza_g ? "OK" : "-")}`)
-        .join(";")
-      lines.push(`${r.fecha};${r.hora};${r.temp_c || "-"};${r.humedad_pct || "-"};${pesadasStr};${r.verificado_por};${r.revisado_por}`)
-    })
-
-    const content = "\uFEFF" + lines.join("\n")
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `F-LEM-IN-01.02_${balanzaDocHeader.codigo_balanza}_${balanzaDocHeader.mes_anio.replace(/\s+/g, "_")}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Formato F-LEM-IN-01.02 exportado según el orden oficial")
-  }
-
-  const handleExportTempGroup = (group: { area_ambiente: string; mes_anio: string; items: ControlTemperaturaItem[] }) => {
-    const lines: string[] = []
-    lines.push("GEOFAL S.A.C. - LABORATORIO DE ENSAYO DE MATERIALES")
-    lines.push("FORMATO DE CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA (F-LEM-P-05.01 V03)")
-    lines.push(`ÁREA / AMBIENTE;${group.area_ambiente};MES - AÑO;${group.mes_anio}`)
-    lines.push("")
-    lines.push("REGISTRO;FECHA REGISTRO;HORA TOMA;FECHA LECTURA;TEMP MIN (°C);TEMP MAX (°C);HUM MIN (%);HUM MAX (%);CUMPLE SPEC;RESPONSABLE REGISTRO;RESPONSABLE REVISIÓN")
-
-    group.items.forEach((item) => {
-      const parsedObs = parseTempObs(item.observaciones)
-      lines.push(
-        `${parsedObs.registro || "REG-01"};${item.fecha};${item.hora_lectura};${parsedObs.fecha_lectura || item.fecha};${item.temp_min ?? "-"};${item.temperatura_c};${parsedObs.hum_min || "-"};${item.humedad_relativa_pct};${item.cumple_especificacion ? "SÍ" : "NO"};${item.responsable_lectura};${parsedObs.revisado_por || "ING. FABIAN"}`
-      )
-    })
-
-    const content = "\uFEFF" + lines.join("\n")
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `F-LEM-P-05.01_${group.area_ambiente.replace(/\s+/g, "_")}_${group.mes_anio.replace(/\s+/g, "_")}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Formato exportado según el orden oficial")
-  }
-
-  const handleExportBalanzaGroup = (group: { codigo_balanza: string; mes_anio: string; ubicacion: string; items: ControlBalanzaItem[] }) => {
-    const lines: string[] = []
-    lines.push("GEOFAL S.A.C. - LABORATORIO DE ENSAYO DE MATERIALES")
-    lines.push("FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS (F-LEM-IN-01.02 V03)")
-    lines.push(`CÓDIGO BALANZA;${group.codigo_balanza};MES - AÑO;${group.mes_anio};UBICACIÓN;${group.ubicacion}`)
-    lines.push("")
-    lines.push("FECHA;HORA;CÓDIGO BALANZA;UBICACIÓN;CAPACIDAD (g);TEMP (°C);HUMEDAD (%H.R.);MASA PATRÓN (g);LECTURA BALANZA (g);ERROR (g);TOLERANCIA MÁX (g);ESTADO;LIMPIEZA/NIVEL;VERIFICADO POR;REVISADO POR")
-
-    group.items.forEach((item) => {
-      const parsedObs = parseBalanzaObs(item.observaciones)
-      lines.push(
-        `${item.fecha};${parsedObs.hora || "08:00"};${item.codigo_balanza};${item.ubicacion};${item.capacidad_g};${parsedObs.temp_c || "-"};${parsedObs.humedad_pct || "-"};${item.masa_patron_g};${item.lectura_balanza_g};${item.error_g};${item.error_max_permitido_g};${item.estado_conforme ? "CONFORME" : "NO CONFORME"};${item.limpieza_nivelacion ? "SÍ" : "NO"};${item.verificado_por};${parsedObs.revisado_por || "ING. FABIAN"}`
-      )
-    })
-
-    const content = "\uFEFF" + lines.join("\n")
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `F-LEM-IN-01.02_${group.codigo_balanza}_${group.mes_anio.replace(/\s+/g, "_")}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Formato exportado según el orden oficial")
-  }
-
-  const handleExportBackendExcelTemp = () => {
-    window.open(`${API_URL}/api/control-ambiental/temperatura/excel`, "_blank")
-    toast.info("Descargando reporte oficial Excel de Temperatura...")
-  }
-
-  const handleExportBackendExcelBalanza = () => {
-    window.open(`${API_URL}/api/control-ambiental/balanza/excel`, "_blank")
-    toast.info("Descargando reporte oficial Excel de Balanzas...")
+  const handleExportBalanzaExcel = (codigo?: string) => {
+    const query = codigo ? `?codigo=${encodeURIComponent(codigo)}` : ""
+    window.open(`${API_URL}/api/control-ambiental/balanza/excel${query}`, "_blank")
+    toast.info("Descargando formato oficial Excel (F-LEM-IN-01.02)...")
   }
 
   // ── Document Groupings for History List ──
@@ -949,11 +846,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               variant="outline"
               size="sm"
               className="gap-2 h-9 bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-medium"
-              onClick={handleExportBackendExcelTemp}
-              title="Descargar reporte Excel oficial de todas las lecturas de Temperatura"
+              onClick={() => handleExportTempExcel()}
+              title="Descargar formato oficial Excel (F-LEM-P-05.01 V03)"
             >
               <Download className="h-4 w-4" />
-              Exportar Excel API
+              Exportar Excel
             </Button>
             <Button
               variant="outline"
@@ -1048,8 +945,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                          onClick={() => handleExportTempGroup(doc)}
-                          title="Exportar hoja formato F-LEM-P-05.01"
+                          onClick={() => handleExportTempExcel(doc.area_ambiente)}
+                          title="Exportar formato oficial Excel (F-LEM-P-05.01 V03)"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -1177,6 +1074,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 h-9 bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-medium"
+            onClick={() => handleExportBalanzaExcel()}
+            title="Descargar formato oficial Excel (F-LEM-IN-01.02 V03)"
+          >
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </Button>
           <div className="relative w-full sm:w-72">
             <Input
               placeholder="Buscar por código de balanza, ubicación..."
@@ -1189,16 +1096,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             />
             <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 h-9 bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50 font-medium"
-            onClick={handleExportBackendExcelBalanza}
-            title="Descargar reporte Excel oficial de todas las verificaciones de Balanza"
-          >
-            <Download className="h-4 w-4" />
-            Exportar Excel API
-          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -1290,8 +1188,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                        onClick={() => handleExportBalanzaGroup(doc)}
-                        title="Exportar hoja formato F-LEM-IN-01.02"
+                        onClick={() => handleExportBalanzaExcel(doc.codigo_balanza)}
+                        title="Exportar formato oficial Excel (F-LEM-IN-01.02 V03)"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -1784,10 +1682,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 type="button"
                 variant="outline"
                 className="h-9 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2"
-                onClick={handleExportTempActiveSheet}
+                onClick={() => handleExportTempExcel(tempDocHeader.area_ambiente)}
               >
                 <Download className="h-4 w-4" />
-                Exportar Formato (Excel/CSV)
+                Exportar Excel
               </Button>
               <Button
                 type="button"
@@ -2264,10 +2162,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 type="button"
                 variant="outline"
                 className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2"
-                onClick={handleExportBalanzaActiveSheet}
+                onClick={() => handleExportBalanzaExcel(balanzaDocHeader.codigo_balanza)}
               >
                 <Download className="h-4 w-4" />
-                Exportar Formato (Excel/CSV)
+                Exportar Excel
               </Button>
               <Button
                 type="button"
