@@ -138,16 +138,8 @@ const DEFAULT_BALANZAS = [
   { codigo: "EQP-0047", nombre: "BALANZA 0.1g (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
 ]
 
-const RESPONSABLES_LIST = [
-  "BEATRIZ",
-  "ING. FABIAN",
-  "J.P.",
-  "M.A.",
-  "R.V.",
-  "B.S.",
-  "F.C.",
-  "LABORATORIO",
-]
+const REALIZADO_POR_LIST = ["BEATRIZ"]
+const REVISADO_POR_LIST = ["ING. FABIAN"]
 
 function getMesAnio() {
   return new Date()
@@ -1386,7 +1378,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               setTempIsDirty(true)
                             }}
                           >
-                            {RESPONSABLES_LIST.map((resp) => (
+                            {REALIZADO_POR_LIST.map((resp) => (
                               <option key={resp} value={resp}>
                                 {resp}
                               </option>
@@ -1405,7 +1397,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               setTempIsDirty(true)
                             }}
                           >
-                            {RESPONSABLES_LIST.map((resp) => (
+                            {REVISADO_POR_LIST.map((resp) => (
                               <option key={resp} value={resp}>
                                 {resp}
                               </option>
@@ -1825,7 +1817,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setBalanzaIsDirty(true)
                               }}
                             >
-                              {RESPONSABLES_LIST.map((resp) => (
+                              {REALIZADO_POR_LIST.map((resp) => (
                                 <option key={resp} value={resp}>
                                   {resp}
                                 </option>
@@ -1844,7 +1836,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setBalanzaIsDirty(true)
                               }}
                             >
-                              {RESPONSABLES_LIST.map((resp) => (
+                              {REVISADO_POR_LIST.map((resp) => (
                                 <option key={resp} value={resp}>
                                   {resp}
                                 </option>
