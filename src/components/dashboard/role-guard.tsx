@@ -7,11 +7,17 @@ import { Shield } from "lucide-react"
 interface RoleGuardProps {
   user: User
   allowedRoles: UserRole[]
+  allowedEmails?: string[]
   children: React.ReactNode
 }
 
-export function RoleGuard({ user, allowedRoles, children }: RoleGuardProps) {
-  if (!allowedRoles.includes(user.role)) {
+export function RoleGuard({ user, allowedRoles, allowedEmails, children }: RoleGuardProps) {
+  const isEmailAllowed =
+    allowedEmails &&
+    user.email &&
+    allowedEmails.some((e) => user.email.toLowerCase().trim().includes(e.toLowerCase().trim()))
+
+  if (!allowedRoles.includes(user.role) && !isEmailAllowed) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">

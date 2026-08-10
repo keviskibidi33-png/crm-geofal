@@ -141,6 +141,16 @@ function isKpiAuthorizedEmail(email?: string) {
   }
 
   if (activeCheckModule === "control_ambiental" || activeCheckModule === "control_ambiental_balanzas") {
+    if (email) {
+      const normEmail = email.toLowerCase().trim()
+      if (
+        normEmail === "tecnico3@geofal.com.pe" ||
+        normEmail === "sig@geofal.com.pe" ||
+        normEmail.includes("beatriz")
+      ) {
+        return true
+      }
+    }
     const normalizedRole = normalizeRole(role)
     return normalizedRole === "admin" || normalizedRole === "admin_general" || normalizedRole === "jefe_laboratorio"
   }

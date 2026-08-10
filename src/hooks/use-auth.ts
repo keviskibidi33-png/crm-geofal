@@ -41,7 +41,6 @@ export interface User {
 
 const CONTROL_ACCESS_REVOKED_EMAILS = new Set([
     "tecnico2@geofal.com.pe",
-    "tecnico3@geofal.com.pe",
 ])
 
 const CONTROL_ACCESS_BLOCKED_ROLES = new Set([
