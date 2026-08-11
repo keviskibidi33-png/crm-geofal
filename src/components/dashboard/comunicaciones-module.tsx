@@ -488,9 +488,9 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   return (
     <div className="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-background text-foreground rounded-xl border border-border shadow-md">
       {/* ── COLUMNA IZQUIERDA: Lista de Canales y DMs (Estilo Slack/Discord) ── */}
-      <div className="w-72 shrink-0 border-r border-border bg-card/60 flex flex-col">
+      <div className="w-72 shrink-0 border-r border-border bg-card/60 flex flex-col h-full overflow-hidden">
         {/* Encabezado de Comunicaciones */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
+        <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <h2 className="font-bold text-base tracking-tight">Comunicaciones</h2>
@@ -509,7 +509,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </div>
 
         {/* Buscador de Canales / Chat */}
-        <div className="p-3 border-b border-border space-y-2">
+        <div className="p-3 border-b border-border space-y-2 shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -528,7 +528,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </div>
 
         {/* Lista de Canales */}
-        <ScrollArea className="flex-1 px-3 py-2 space-y-4">
+        <ScrollArea className="flex-1 min-h-0 px-3 py-2 space-y-4">
           <div>
             <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               <span>Canales de Trabajo</span>
@@ -633,7 +633,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
       </div>
 
       {/* ── COLUMNA CENTRAL: Chat Principal (Discord Style) ── */}
-      <div className="flex-1 flex flex-col bg-background/40 min-w-0">
+      <div className="flex-1 flex flex-col bg-background/40 min-w-0 h-full overflow-hidden">
         {/* Encabezado del Canal Activo */}
         <div className="h-14 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -679,7 +679,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </div>
 
         {/* Feed de Mensajes */}
-        <ScrollArea className="flex-1 p-4 space-y-4">
+        <ScrollArea className="flex-1 min-h-0 p-4 space-y-4">
           {isLoadingMessages ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-xs text-muted-foreground gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -786,7 +786,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </ScrollArea>
 
         {/* Input de Mensaje de Abajo */}
-        <div className="p-3 border-t border-border bg-card/60">
+        <div className="p-3 border-t border-border bg-card/60 shrink-0">
           <div className="flex items-center gap-2 bg-background border border-border rounded-xl p-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all">
             <label className="cursor-pointer p-1.5 hover:bg-accent rounded-lg text-muted-foreground transition-colors">
               <Paperclip className="h-4 w-4" />
