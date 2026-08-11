@@ -14,9 +14,9 @@ import {
   areChannelIdsEqual,
 } from "./types"
 
-export function useChatState(user: User, initialChannelId?: string) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
+export function useChatState(user: User, initialChannelId?: string) {
   const [channels, setChannels] = useState<ChatChannel[]>(DEFAULT_CHANNELS)
   const [activeChannelId, setActiveChannelId] = useState<string>(initialChannelId || "general")
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([])

@@ -109,7 +109,7 @@ export function ChatFeed({
       {/* Feed de Mensajes */}
       <ScrollArea className="flex-1 min-h-0 p-4 space-y-4 [&>[data-slot=scroll-area-viewport]>div]:min-h-full [&>[data-slot=scroll-area-viewport]>div]:flex [&>[data-slot=scroll-area-viewport]>div]:flex-col">
         {isLoadingMessages ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] text-xs text-muted-foreground gap-2">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-75 text-xs text-muted-foreground gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span>Cargando conversación...</span>
           </div>

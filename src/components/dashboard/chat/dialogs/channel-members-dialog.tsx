@@ -79,7 +79,7 @@ export function ChannelMembersDialog({
           </div>
         )}
 
-        <div className="space-y-2.5 py-2 max-h-[380px] overflow-y-auto pr-2">
+        <div className="space-y-2.5 py-2 max-h-95 overflow-y-auto pr-2">
           {currentMembers.length === 0 ? (
             <div className="p-4 text-center text-xs text-muted-foreground">
               No hay integrantes en este grupo.

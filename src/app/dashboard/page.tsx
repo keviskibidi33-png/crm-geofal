@@ -21,7 +21,7 @@ import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
 
 function DashboardModuleFallback() {
   return (
-    <div className="flex min-h-[320px] w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm">
+    <div className="flex min-h-80 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm">
       <div className="flex items-center gap-3 text-sm font-medium">
         <Loader2 className="h-5 w-5 animate-spin" />
         Cargando módulo...

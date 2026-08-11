@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
-import { ensayosData, getEnsayosRequeridos, searchEnsayos, type EnsayoItem } from "@/data/ensayos-data"
+import { ensayosData, getEnsayosRequeridos, type EnsayoItem } from "@/data/ensayos-data"
 import { CreateProjectDialog } from "./create-project-dialog"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -405,7 +405,7 @@ export function CreateQuoteDialog({ open, onOpenChange, user, onSuccess, proyect
     } finally {
       setSavingPlantilla(false)
     }
-  }, [API_URL, currentPlantillaPayload, loadPlantillas, plantillaFormMode, selectedPlantillaId, user?.id])
+  }, [currentPlantillaPayload, loadPlantillas, plantillaFormMode, selectedPlantillaId, user?.id])
 
   const deleteSelectedPlantilla = useCallback(async () => {
     if (!selectedPlantillaId) return
