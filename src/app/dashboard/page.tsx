@@ -605,7 +605,7 @@ export default function DashboardPage() {
             requestModuleChange(module)
           }}
         />
-        <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">{renderModule()}</main>
+        <main className={`flex-1 ${activeModule === "comunicaciones" ? "overflow-hidden p-0" : "overflow-auto p-3 sm:p-4 lg:p-6"}`}>{renderModule()}</main>
       </div>
 
       {/* Visual Indicator Removed to avoid Z-index conflict with Dialog */}

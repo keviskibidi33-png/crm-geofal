@@ -486,7 +486,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const activeMessages = messages.filter((m) => m.channelId === activeChannelId)
 
   return (
-    <div className="flex h-[calc(100vh-5.5rem)] w-full overflow-hidden bg-background text-foreground rounded-xl border border-border shadow-md">
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
       {/* ── COLUMNA IZQUIERDA: Lista de Canales y DMs (Estilo Slack/Discord) ── */}
       <div className="w-72 shrink-0 border-r border-border bg-card/60 flex flex-col h-full overflow-hidden">
         {/* Encabezado de Comunicaciones */}
