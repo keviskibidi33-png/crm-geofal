@@ -224,13 +224,14 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
   }, [startedDmUserIds, user.email])
 
-  // 3. Cargar canales y usuarios de la API
+  // 3. Cargar canales, usuarios y historial de DMs de la API
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [channelsRes, usersRes] = await Promise.all([
+        const [channelsRes, usersRes, myDmsRes] = await Promise.all([
           authFetch(`${API_URL}/api/chat/channels`),
           authFetch(`${API_URL}/api/chat/users`),
+          authFetch(`${API_URL}/api/chat/my-dms`),
         ])
 
         if (channelsRes.ok) {
@@ -247,10 +248,11 @@ export function useChatState(user: User, initialChannelId?: string) {
           }
         }
 
+        let fetchedUsers: TeamUser[] = []
         if (usersRes.ok) {
           const data = await usersRes.json()
           if (data.users && data.users.length > 0) {
-            const apiUsers: TeamUser[] = data.users.map((u: any) => ({
+            fetchedUsers = data.users.map((u: any) => ({
               id: String(u.id),
               name: u.nombre || u.full_name || u.email || "Usuario CRM",
               email: u.email || "",
@@ -259,7 +261,25 @@ export function useChatState(user: User, initialChannelId?: string) {
               last_seen_at: u.last_seen_at,
               status: isOnline(u.last_seen_at) ? "online" : "offline",
             }))
-            setTeamUsers(apiUsers)
+            setTeamUsers(fetchedUsers)
+          }
+        }
+
+        if (myDmsRes.ok) {
+          const data = await myDmsRes.json()
+          if (Array.isArray(data.dm_user_ids) && data.dm_user_ids.length > 0) {
+            const matchedUserIds: string[] = []
+            data.dm_user_ids.forEach((identifier: string) => {
+              const matched = fetchedUsers.find(
+                (u) => u.email.toLowerCase() === identifier.toLowerCase() || String(u.id) === identifier
+              )
+              if (matched) {
+                matchedUserIds.push(matched.id)
+              }
+            })
+            if (matchedUserIds.length > 0) {
+              setStartedDmUserIds((prev) => Array.from(new Set([...matchedUserIds, ...prev])))
+            }
           }
         }
       } catch (err) {
@@ -311,9 +331,104 @@ export function useChatState(user: User, initialChannelId?: string) {
     })
   }, [activeChannelId])
 
-  // 5. Suscripción GLOBAL a mensajes en tiempo real vía Supabase para notificaciones y DMs automáticos
+  // 5. Suscripción GLOBAL Dual-Stream (Postgres Changes + Broadcast instantáneo)
   useEffect(() => {
-    console.log("[ChatRealtime Audit] Initializing global chat stream listener for user:", user.email || user.id)
+    console.log("[ChatRealtime Audit] Initializing global dual-stream chat listener for user:", user.email || user.id)
+
+    const processIncomingMessage = (newMsg: any) => {
+      if (!newMsg) return
+
+      const msgChannelId = String(newMsg.channel_id || newMsg.channelId || "")
+      console.log(`[ChatRealtime Dual-Stream] Processing incoming message:`, {
+        id: newMsg.id,
+        channel_id: msgChannelId,
+        sender_id: newMsg.sender_id || newMsg.senderId,
+        sender_name: newMsg.sender_name || newMsg.senderName,
+        content: newMsg.content,
+      })
+
+      const myEmail = (user.email || "").toLowerCase()
+      const myId = String(user.id || "")
+
+      // Si es un mensaje DM (dm_ o dm-)
+      if (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) {
+        const delimiter = msgChannelId.startsWith("dm_") ? "_" : "-"
+        const prefix = msgChannelId.startsWith("dm_") ? "dm_" : "dm-"
+        const parts = msgChannelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
+        const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
+
+        if (isUserInDm) {
+          const otherUser = teamUsers.find(
+            (u) =>
+              parts.includes(u.email.toLowerCase()) &&
+              u.email.toLowerCase() !== myEmail &&
+              String(u.id) !== myId
+          )
+          const senderUser = teamUsers.find(
+            (u) =>
+              u.email.toLowerCase() === String(newMsg.sender_id || newMsg.senderId || "").toLowerCase() ||
+              u.email.toLowerCase() === String(newMsg.sender_name || newMsg.senderName || "").toLowerCase() ||
+              String(u.id) === String(newMsg.sender_id || newMsg.senderId)
+          )
+
+          const targetUserId = otherUser?.id || senderUser?.id
+          if (targetUserId) {
+            setStartedDmUserIds((prev) => (prev.includes(targetUserId) ? [targetUserId, ...prev.filter((id) => id !== targetUserId)] : [targetUserId, ...prev]))
+          }
+        }
+      }
+
+      const isCurrentActiveChannel = areChannelIdsEqual(msgChannelId, activeChannelId)
+
+      // Si el mensaje pertenece al canal que se está viendo activamente, agregarlo al feed
+      if (isCurrentActiveChannel) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev
+          return [
+            ...prev,
+            {
+              id: newMsg.id,
+              channelId: msgChannelId,
+              senderId: newMsg.sender_id || newMsg.senderId,
+              senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
+              senderAvatar: newMsg.sender_avatar || newMsg.senderAvatar,
+              content: newMsg.content,
+              attachments: newMsg.attachments || [],
+              createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
+            },
+          ]
+        })
+        setTimeout(scrollToBottom, 50)
+      } else {
+        // Incrementar contador de no leídos para el canal o DM
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [msgChannelId]: (prev[msgChannelId] || 0) + 1,
+        }))
+      }
+
+      // Notificación sonora y campanita si el mensaje proviene de otro usuario
+      const senderVal = newMsg.sender_id || newMsg.senderId
+      const senderNameVal = newMsg.sender_name || newMsg.senderName
+      const isFromOther =
+        senderVal !== user.id &&
+        senderVal !== user.email &&
+        senderNameVal !== user.name &&
+        senderNameVal !== user.email
+
+      if (isFromOther) {
+        window.dispatchEvent(
+          new CustomEvent("crm_chat_notification", {
+            detail: {
+              senderName: senderNameVal || "Usuario CRM",
+              content: newMsg.content,
+              channelName: (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) ? "Chat Privado" : msgChannelId,
+              senderAvatar: newMsg.sender_avatar || newMsg.senderAvatar,
+            },
+          })
+        )
+      }
+    }
 
     const globalChatChannel = supabase
       .channel("chat_global_realtime_stream")
@@ -324,110 +439,11 @@ export function useChatState(user: User, initialChannelId?: string) {
           schema: "public",
           table: "chat_messages",
         },
-        (payload) => {
-          const newMsg = payload.new as any
-          if (!newMsg) return
-
-          const msgChannelId = String(newMsg.channel_id || "")
-          console.log(`[ChatRealtime Audit] Received message INSERT:`, {
-            id: newMsg.id,
-            channel_id: msgChannelId,
-            sender_id: newMsg.sender_id,
-            sender_name: newMsg.sender_name,
-            content: newMsg.content,
-          })
-
-          const myEmail = (user.email || "").toLowerCase()
-          const myId = String(user.id || "")
-
-          // Si es un mensaje DM (dm_ o dm-)
-          if (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) {
-            const delimiter = msgChannelId.startsWith("dm_") ? "_" : "-"
-            const prefix = msgChannelId.startsWith("dm_") ? "dm_" : "dm-"
-            const parts = msgChannelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
-            const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
-
-            console.log(`[ChatRealtime Audit] DM match evaluation:`, {
-              msgChannelId,
-              parts,
-              myEmail,
-              myId,
-              isUserInDm,
-            })
-
-            if (isUserInDm) {
-              const otherUser = teamUsers.find(
-                (u) =>
-                  parts.includes(u.email.toLowerCase()) &&
-                  u.email.toLowerCase() !== myEmail &&
-                  String(u.id) !== myId
-              )
-              const senderUser = teamUsers.find(
-                (u) =>
-                  u.email.toLowerCase() === String(newMsg.sender_id || "").toLowerCase() ||
-                  u.email.toLowerCase() === String(newMsg.sender_name || "").toLowerCase() ||
-                  String(u.id) === String(newMsg.sender_id)
-              )
-
-              const targetUserId = otherUser?.id || senderUser?.id
-              if (targetUserId) {
-                console.log(`[ChatRealtime Audit] Adding targetUserId to startedDmUserIds:`, targetUserId)
-                setStartedDmUserIds((prev) => (prev.includes(targetUserId) ? [targetUserId, ...prev.filter((id) => id !== targetUserId)] : [targetUserId, ...prev]))
-              }
-            }
-          }
-
-          const isCurrentActiveChannel = areChannelIdsEqual(msgChannelId, activeChannelId)
-
-          // Si el mensaje pertenece al canal que se está viendo activamente, agregarlo al feed
-          if (isCurrentActiveChannel) {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev
-              return [
-                ...prev,
-                {
-                  id: newMsg.id,
-                  channelId: newMsg.channel_id,
-                  senderId: newMsg.sender_id,
-                  senderName: newMsg.sender_name || "Usuario CRM",
-                  senderAvatar: newMsg.sender_avatar,
-                  content: newMsg.content,
-                  attachments: newMsg.attachments || [],
-                  createdAt: newMsg.created_at,
-                },
-              ]
-            })
-            setTimeout(scrollToBottom, 60)
-          } else {
-            // Incrementar contador de no leídos para el canal o DM
-            setUnreadCounts((prev) => ({
-              ...prev,
-              [msgChannelId]: (prev[msgChannelId] || 0) + 1,
-            }))
-          }
-
-          // Notificación sonora y campanita si el mensaje proviene de otro usuario
-          const isFromOther =
-            newMsg.sender_id !== user.id &&
-            newMsg.sender_id !== user.email &&
-            newMsg.sender_name !== user.name &&
-            newMsg.sender_name !== user.email
-
-          if (isFromOther) {
-            console.log(`[ChatRealtime Audit] Dispatching crm_chat_notification event for sender:`, newMsg.sender_name)
-            window.dispatchEvent(
-              new CustomEvent("crm_chat_notification", {
-                detail: {
-                  senderName: newMsg.sender_name || "Usuario CRM",
-                  content: newMsg.content,
-                  channelName: (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) ? "Chat Privado" : msgChannelId,
-                  senderAvatar: newMsg.sender_avatar,
-                },
-              })
-            )
-          }
-        }
+        (payload) => processIncomingMessage(payload.new)
       )
+      .on("broadcast", { event: "chat_message_broadcast" }, (payload) => {
+        processIncomingMessage(payload.payload)
+      })
       .subscribe((status) => {
         console.log(`[ChatRealtime Audit] Supabase Subscription Status for global stream:`, status)
       })
@@ -489,6 +505,26 @@ export function useChatState(user: User, initialChannelId?: string) {
     const currentText = inputMessage.trim()
     setInputMessage("")
     setTimeout(scrollToBottom, 50)
+
+    // Broadcast instantáneo por WebSocket a todos los clientes conectados (<10ms)
+    try {
+      supabase.channel("chat_global_realtime_stream").send({
+        type: "broadcast",
+        event: "chat_message_broadcast",
+        payload: {
+          id: tempMessage.id,
+          channel_id: activeChannelId,
+          sender_id: tempMessage.senderId,
+          sender_name: tempMessage.senderName,
+          sender_avatar: tempMessage.senderAvatar,
+          content: tempMessage.content,
+          attachments: tempMessage.attachments,
+          created_at: tempMessage.createdAt,
+        },
+      })
+    } catch (bErr) {
+      console.warn("Broadcast send warning:", bErr)
+    }
 
     try {
       await authFetch(`${API_URL}/api/chat/messages`, {
