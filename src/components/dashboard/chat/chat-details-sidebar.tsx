@@ -40,7 +40,7 @@ interface ChatDetailsSidebarProps {
   onClose: () => void
   handleOpenDM?: (targetUser: TeamUser) => void
   teamUsers?: TeamUser[]
-  setIsMembersOpen?: (open: boolean) => void
+  initialView?: ViewMode
 }
 
 type ViewMode = "main" | "members" | "user-detail"
@@ -51,6 +51,7 @@ export function ChatDetailsSidebar({
   activeMessages,
   onClose,
   teamUsers = [],
+  initialView = "main",
 }: ChatDetailsSidebarProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
   const displayName = isDM && dmTargetUser ? dmTargetUser.name : activeChannel.name
@@ -58,7 +59,11 @@ export function ChatDetailsSidebar({
   const displayEmail = isDM && dmTargetUser ? dmTargetUser.email : undefined
 
   // Navigation Sub-view State
-  const [currentView, setCurrentView] = useState<ViewMode>("main")
+  const [currentView, setCurrentView] = useState<ViewMode>(initialView)
+
+  useEffect(() => {
+    setCurrentView(initialView)
+  }, [initialView])
   const [selectedMember, setSelectedMember] = useState<TeamUser | null>(null)
 
   // Settings states

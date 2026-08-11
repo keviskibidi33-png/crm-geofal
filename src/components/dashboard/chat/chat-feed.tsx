@@ -80,6 +80,8 @@ export function ChatFeed({
       }
     : null
 
+  const [sidebarView, setSidebarView] = useState<"main" | "members">("main")
+
   const headerAvatarUrl = dmTargetUser ? getAvatarUrl(dmTargetUser.avatar) : undefined
   const headerDisplayName = dmTargetUser
     ? dmTargetUser.name
@@ -142,7 +144,10 @@ export function ChatFeed({
               variant="ghost"
               size="icon"
               className="h-8 w-8 hover:bg-accent"
-              onClick={() => setIsMembersOpen(true)}
+              onClick={() => {
+                setSidebarView("members")
+                setIsInfoOpen(true)
+              }}
               title="Ver Miembros del Grupo"
             >
               <Users className="h-4 w-4" />
@@ -152,7 +157,10 @@ export function ChatFeed({
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-accent"
-            onClick={() => setIsInfoOpen(true)}
+            onClick={() => {
+              setSidebarView("main")
+              setIsInfoOpen(!isInfoOpen)
+            }}
             title="Información del Canal"
           >
             <Info className="h-4 w-4" />
@@ -394,6 +402,7 @@ export function ChatFeed({
           activeMessages={activeMessages}
           onClose={() => setIsInfoOpen(false)}
           handleOpenDM={handleOpenDM}
+          initialView={sidebarView}
         />
       )}
     </div>

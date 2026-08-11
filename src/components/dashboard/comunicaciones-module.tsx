@@ -6,8 +6,6 @@ import { useChatState } from "./chat/use-chat-state"
 import { ChatSidebar } from "./chat/chat-sidebar"
 import { ChatFeed } from "./chat/chat-feed"
 import { CreateChannelDialog } from "./chat/dialogs/create-channel-dialog"
-import { ChannelMembersDialog } from "./chat/dialogs/channel-members-dialog"
-import { ChannelInfoDialog } from "./chat/dialogs/channel-info-dialog"
 import { NewDmDialog } from "./chat/dialogs/new-dm-dialog"
 import { ImageLightbox } from "./chat/dialogs/image-lightbox"
 
@@ -69,37 +67,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         setSelectedUserEmails={chat.setSelectedUserEmails}
         teamUsers={chat.teamUsers}
         handleCreateChannel={chat.handleCreateChannel}
-      />
-
-      <ChannelMembersDialog
-        isOpen={chat.isMembersOpen}
-        onOpenChange={chat.setIsMembersOpen}
-        activeChannel={chat.activeChannel}
-        canCreateChannel={chat.canCreateChannel}
-        selectedUserToAdd={chat.selectedUserToAdd}
-        setSelectedUserToAdd={chat.setSelectedUserToAdd}
-        availableUsersToAdd={chat.availableUsersToAdd}
-        currentMembers={chat.currentMembers}
-        handleAddMemberToChannel={chat.handleAddMemberToChannel}
-        handleRemoveMemberFromChannel={chat.handleRemoveMemberFromChannel}
-      />
-
-      <ChannelInfoDialog
-        isOpen={chat.isInfoOpen}
-        onOpenChange={chat.setIsInfoOpen}
-        activeChannel={chat.activeChannel}
-        activeChannelId={chat.activeChannelId}
-        canCreateChannel={chat.canCreateChannel}
-        editChannelName={chat.editChannelName}
-        setEditChannelName={chat.setEditChannelName}
-        editChannelDesc={chat.editChannelDesc}
-        setEditChannelDesc={chat.setEditChannelDesc}
-        editChannelCategory={chat.editChannelCategory}
-        setEditChannelCategory={chat.setEditChannelCategory}
-        editChannelIsPrivate={chat.editChannelIsPrivate}
-        setEditChannelIsPrivate={chat.setEditChannelIsPrivate}
-        handleUpdateChannelInfo={chat.handleUpdateChannelInfo}
-        handleDeleteChannel={chat.handleDeleteChannel}
       />
 
       <NewDmDialog
