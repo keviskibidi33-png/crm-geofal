@@ -825,7 +825,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
       {/* ── MODAL: Crear Canal ── */}
       <Dialog open={isCreateChannelOpen} onOpenChange={setIsCreateChannelOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Hash className="h-5 w-5 text-primary" />
@@ -881,7 +881,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                 <Label className="text-[11px] font-bold text-foreground uppercase tracking-wider">
                   Seleccionar Integrantes Autorizados del CRM
                 </Label>
-                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-2">
                   {teamUsers.map((u) => {
                     const isSelected = selectedUserEmails.includes(u.email)
                     return (
@@ -925,7 +925,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
       {/* ── MODAL: Miembros del Grupo ── */}
       <Dialog open={isMembersOpen} onOpenChange={setIsMembersOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
@@ -961,9 +961,9 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             </div>
           )}
 
-          <div className="space-y-3 py-2 max-h-80 overflow-y-auto">
+          <div className="space-y-2.5 py-2 max-h-[380px] overflow-y-auto pr-2">
             {teamUsers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card">
+              <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/80 hover:bg-card transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Avatar className="h-8 w-8 border border-border">
@@ -999,7 +999,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
       {/* ── MODAL: Información del Canal ── */}
       <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info className="h-5 w-5 text-primary" />
@@ -1050,7 +1050,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
       {/* ── MODAL: Nuevo Chat Privado (DM) ── */}
       <Dialog open={isNewDMOpen} onOpenChange={setIsNewDMOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <SquarePen className="h-5 w-5 text-primary" />
@@ -1072,7 +1072,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               />
             </div>
 
-            <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-2">
               {teamUsers.length === 0 ? (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   Cargando usuarios del sistema...
