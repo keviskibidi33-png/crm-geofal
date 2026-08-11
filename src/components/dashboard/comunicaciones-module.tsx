@@ -124,8 +124,11 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
+  const [channelMembersMap, setChannelMembersMap] = useState<Record<string, string[]>>({})
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const selectedImageState = useState<string | null>(null)
+  const selectedImage = selectedImageState[0]
+  const setSelectedImage = selectedImageState[1]
 
   // Indicador de "está escribiendo..." (Estilo WhatsApp)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -178,7 +181,30 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     typingTimeoutRef.current = setTimeout(() => {}, 2500)
   }
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  // Escuchar cambios de integrantes en tiempo real vía Broadcast
+  useEffect(() => {
+    const memberChannel = supabase
+      .channel(`channel_members_${activeChannelId}`)
+      .on("broadcast", { event: "member_change" }, (payload) => {
+        const { action, userEmail, channelId } = payload.payload || {}
+        if (channelId === activeChannelId) {
+          setChannelMembersMap((prev) => {
+            const currentList = prev[channelId] || teamUsers.map((u) => u.email)
+            if (action === "add") {
+              return { ...prev, [channelId]: Array.from(new Set([...currentList, userEmail])) }
+            } else if (action === "remove") {
+              return { ...prev, [channelId]: currentList.filter((e) => e !== userEmail) }
+            }
+            return prev
+          })
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(memberChannel)
+    }
+  }, [activeChannelId, teamUsers])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -373,16 +399,21 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     }
   }, [activeChannelId, activeChannel])
 
-  // Sync active DM into startedDmUserIds list
-  useEffect(() => {
-    if (activeChannelId && activeChannelId.startsWith("dm-")) {
-      const parts = activeChannelId.replace("dm-", "").split("-")
-      const targetId = parts.find((p) => String(p) !== String(user.id))
-      if (targetId) {
-        setStartedDmUserIds((prev) => (prev.includes(targetId) ? prev : [...prev, targetId]))
-      }
+  // Cálculos reactivos de integrantes pertenecientes al grupo
+  const currentMemberEmails = useMemo(() => {
+    if (channelMembersMap[activeChannelId]) {
+      return channelMembersMap[activeChannelId]
     }
-  }, [activeChannelId, user.id])
+    return teamUsers.map((u) => u.email)
+  }, [channelMembersMap, activeChannelId, teamUsers])
+
+  const currentMembers = useMemo(() => {
+    return teamUsers.filter((u) => currentMemberEmails.includes(u.email) || currentMemberEmails.includes(u.id))
+  }, [teamUsers, currentMemberEmails])
+
+  const availableUsersToAdd = useMemo(() => {
+    return teamUsers.filter((u) => !currentMemberEmails.includes(u.email) && !currentMemberEmails.includes(u.id))
+  }, [teamUsers, currentMemberEmails])
 
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
   const channelPrefix = isDM ? "@" : "#"
@@ -523,34 +554,59 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     }
   }
 
-  // Añadir integrante al grupo activo
+  // Añadir integrante al grupo activo en tiempo real
   const handleAddMemberToChannel = async () => {
     if (!selectedUserToAdd) {
       toast.error("Selecciona un integrante para añadir")
       return
     }
+    const selectedUser = teamUsers.find((u) => u.email === selectedUserToAdd || u.id === selectedUserToAdd)
+    const targetEmail = selectedUser?.email || selectedUserToAdd
+
+    // Actualización inmediata del estado local para respuesta instantánea en la UI
+    setChannelMembersMap((prev) => {
+      const currentList = prev[activeChannelId] || teamUsers.map((u) => u.email)
+      return { ...prev, [activeChannelId]: Array.from(new Set([...currentList, targetEmail])) }
+    })
+    setSelectedUserToAdd("")
+    toast.success(`Integrante ${selectedUser?.name || targetEmail} añadido al grupo #${activeChannel.name}`)
+
+    // Notificación en vivo vía WebSockets
+    supabase.channel(`channel_members_${activeChannelId}`).send({
+      type: "broadcast",
+      event: "member_change",
+      payload: { action: "add", userEmail: targetEmail, channelId: activeChannelId },
+    })
+
     try {
-      const selectedUser = teamUsers.find(u => u.email === selectedUserToAdd || u.id === selectedUserToAdd)
-      const res = await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members`, {
+      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members`, {
         method: "POST",
         body: JSON.stringify({
           user_id: selectedUser?.id || selectedUserToAdd,
-          user_email: selectedUser?.email || selectedUserToAdd,
+          user_email: targetEmail,
         }),
       })
-      if (res.ok) {
-        toast.success(`Integrante ${selectedUser?.name || ''} añadido al grupo #${activeChannel.name}`)
-        setSelectedUserToAdd("")
-      } else {
-        toast.error("Error al añadir integrante al grupo")
-      }
     } catch (err) {
       console.warn("Failed to add member:", err)
     }
   }
 
-  // Quitar integrante del grupo activo
+  // Quitar integrante del grupo activo en tiempo real
   const handleRemoveMemberFromChannel = async (member: TeamUser) => {
+    // Actualización inmediata del estado local (el usuario desaparece al instante de la UI)
+    setChannelMembersMap((prev) => {
+      const currentList = prev[activeChannelId] || teamUsers.map((u) => u.email)
+      return { ...prev, [activeChannelId]: currentList.filter((e) => e !== member.email && e !== member.id) }
+    })
+    toast.success(`Se retiró a ${member.name} del grupo #${activeChannel.name}`)
+
+    // Notificación en vivo vía WebSockets
+    supabase.channel(`channel_members_${activeChannelId}`).send({
+      type: "broadcast",
+      event: "member_change",
+      payload: { action: "remove", userEmail: member.email, channelId: activeChannelId },
+    })
+
     try {
       await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members/${member.id}`, {
         method: "DELETE",
@@ -558,7 +614,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     } catch (err) {
       console.warn("Failed to remove member:", err)
     }
-    toast.success(`Se retiró a ${member.name} del grupo #${activeChannel.name}`)
   }
 
   // Actualizar información del canal
@@ -1159,7 +1214,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                   onChange={(e) => setSelectedUserToAdd(e.target.value)}
                 >
                   <option value="">-- Seleccionar Usuario del CRM --</option>
-                  {teamUsers.map((u) => (
+                  {availableUsersToAdd.map((u) => (
                     <option key={u.id} value={u.email}>
                       {u.name} ({u.role.replace("_", " ")})
                     </option>
@@ -1173,44 +1228,50 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           )}
 
           <div className="space-y-2.5 py-2 max-h-[380px] overflow-y-auto pr-2">
-            {teamUsers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/80 hover:bg-card transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Avatar className="h-8 w-8 border border-border">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
-                        {member.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span
-                      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-card ${
-                        member.status === "online" ? "bg-emerald-500" : "bg-slate-400"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">{member.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{member.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                    {member.role.replace("_", " ")}
-                  </Badge>
-                  {canCreateChannel && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
-                      onClick={() => handleRemoveMemberFromChannel(member)}
-                      title="Quitar del grupo"
-                    >
-                      <UserMinus className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
+            {currentMembers.length === 0 ? (
+              <div className="p-4 text-center text-xs text-muted-foreground">
+                No hay integrantes en este grupo.
               </div>
-            ))}
+            ) : (
+              currentMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/80 hover:bg-card transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="h-8 w-8 border border-border">
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                          {member.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-card ${
+                          member.status === "online" ? "bg-emerald-500" : "bg-slate-400"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{member.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{member.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                      {member.role.replace("_", " ")}
+                    </Badge>
+                    {canCreateChannel && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
+                        onClick={() => handleRemoveMemberFromChannel(member)}
+                        title="Quitar del grupo"
+                      >
+                        <UserMinus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <DialogFooter>
