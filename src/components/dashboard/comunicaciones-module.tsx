@@ -23,6 +23,9 @@ import {
   Video,
   Info,
   UserPlus,
+  UserMinus,
+  Trash2,
+  Save,
   SquarePen,
   MessageSquareDashed,
   Sparkles,
@@ -112,8 +115,20 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [startedDmUserIds, setStartedDmUserIds] = useState<string[]>([])
 
-  // Form para crear canal
-  const [newChannelName, setNewChannelName] = useState("")
+  // Form para editar canal
+  const [editChannelName, setEditChannelName] = useState("")
+  const [editChannelDesc, setEditChannelDesc] = useState("")
+  const [editChannelIsPrivate, setEditChannelIsPrivate] = useState(false)
+  const [editChannelCategory, setEditChannelCategory] = useState("area")
+
+  useEffect(() => {
+    if (activeChannel) {
+      setEditChannelName(activeChannel.name)
+      setEditChannelDesc(activeChannel.description || "")
+      setEditChannelIsPrivate(activeChannel.isPrivate)
+      setEditChannelCategory(activeChannel.category || "area")
+    }
+  }, [activeChannelId, activeChannel])
   const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
@@ -462,6 +477,80 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     } catch (err) {
       console.warn("Failed to add member:", err)
     }
+  }
+
+  // Quitar integrante del grupo activo
+  const handleRemoveMemberFromChannel = async (member: TeamUser) => {
+    try {
+      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members/${member.id}`, {
+        method: "DELETE",
+      })
+    } catch (err) {
+      console.warn("Failed to remove member:", err)
+    }
+    toast.success(`Se retiró a ${member.name} del grupo #${activeChannel.name}`)
+  }
+
+  // Actualizar información del canal
+  const handleUpdateChannelInfo = async () => {
+    if (!editChannelName.trim()) {
+      toast.error("Ingresa un nombre válido para el canal")
+      return
+    }
+
+    const formattedName = editChannelName.toLowerCase().replace(/\s+/g, "-")
+
+    try {
+      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: formattedName,
+          description: editChannelDesc,
+          is_private: editChannelIsPrivate,
+          category: editChannelCategory,
+        }),
+      })
+    } catch (err) {
+      console.warn("Update channel error:", err)
+    }
+
+    setChannels((prev) =>
+      prev.map((c) =>
+        c.id === activeChannelId
+          ? {
+              ...c,
+              name: formattedName,
+              description: editChannelDesc,
+              isPrivate: editChannelIsPrivate,
+              category: editChannelCategory,
+            }
+          : c
+      )
+    )
+
+    toast.success("Información del canal actualizada con éxito")
+    setIsInfoOpen(false)
+  }
+
+  // Eliminar canal
+  const handleDeleteChannel = async () => {
+    if (activeChannelId === "general" || activeChannelId === "laboratorio") {
+      toast.error("Los canales principales no pueden ser eliminados")
+      return
+    }
+
+    try {
+      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}`, {
+        method: "DELETE",
+      })
+    } catch (err) {
+      console.warn("Delete channel error:", err)
+    }
+
+    setChannels((prev) => prev.filter((c) => c.id !== activeChannelId))
+    setActiveChannelId("general")
+    setIsInfoOpen(false)
+    toast.success(`Canal #${activeChannel.name} eliminado con éxito`)
   }
 
   // 7. Abrir Chat Privado (DM) con un usuario real
@@ -1009,9 +1098,22 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                     <p className="text-[10px] text-muted-foreground">{member.email}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                  {member.role.replace("_", " ")}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                    {member.role.replace("_", " ")}
+                  </Badge>
+                  {canCreateChannel && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
+                      onClick={() => handleRemoveMemberFromChannel(member)}
+                      title="Quitar del grupo"
+                    >
+                      <UserMinus className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -1024,53 +1126,112 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </DialogContent>
       </Dialog>
 
-      {/* ── MODAL: Información del Canal ── */}
+      {/* ── MODAL: Información del Canal (EDITABLE) ── */}
       <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info className="h-5 w-5 text-primary" />
-              Información de # {activeChannel.name}
+              Configuración e Información de # {activeChannel.name}
             </DialogTitle>
             <DialogDescription>
-              Detalles de gobernanza, privacidad y configuración del canal.
+              Modifica la configuración, gobernanza y detalles de este canal de trabajo.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2 text-xs">
-            <div className="p-3 rounded-lg border border-border bg-card space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-muted-foreground">Tipo de Canal:</span>
-                <Badge variant={activeChannel.isPrivate ? "destructive" : "secondary"}>
-                  {activeChannel.isPrivate ? "Privado / Grupo Proyecto" : "Público General"}
-                </Badge>
+          <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-ch-name" className="text-xs font-semibold">
+                Nombre del Canal
+              </Label>
+              <Input
+                id="edit-ch-name"
+                value={editChannelName}
+                onChange={(e) => setEditChannelName(e.target.value)}
+                className="text-xs font-medium"
+                placeholder="ej. prueba-comu"
+                disabled={!canCreateChannel}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-ch-desc" className="text-xs font-semibold">
+                Descripción
+              </Label>
+              <Textarea
+                id="edit-ch-desc"
+                value={editChannelDesc}
+                onChange={(e) => setEditChannelDesc(e.target.value)}
+                className="text-xs h-20"
+                placeholder="Describe el propósito del canal..."
+                disabled={!canCreateChannel}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Categoría</Label>
+                <select
+                  className="w-full h-9 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={editChannelCategory}
+                  onChange={(e) => setEditChannelCategory(e.target.value as any)}
+                  disabled={!canCreateChannel}
+                >
+                  <option value="general">General</option>
+                  <option value="area">Área de Trabajo</option>
+                  <option value="proyecto">Proyecto Especial</option>
+                </select>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-muted-foreground">Categoría:</span>
-                <span className="capitalize font-medium">{activeChannel.category}</span>
-              </div>
-              <div className="space-y-1 pt-1">
-                <span className="font-semibold text-muted-foreground">Descripción:</span>
-                <p className="text-foreground leading-relaxed bg-muted/30 p-2 rounded border border-border">
-                  {activeChannel.description || "Sin descripción asignada."}
-                </p>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Visibilidad</Label>
+                <div className="flex items-center justify-between h-9 px-3 rounded-md border border-input bg-background">
+                  <span className="text-xs font-medium">
+                    {editChannelIsPrivate ? "Privado" : "Público"}
+                  </span>
+                  <Switch
+                    checked={editChannelIsPrivate}
+                    onCheckedChange={setEditChannelIsPrivate}
+                    disabled={!canCreateChannel}
+                  />
+                </div>
               </div>
             </div>
 
             <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] space-y-1">
               <p className="font-bold flex items-center gap-1.5">
-                <Shield className="h-4 w-4" /> Política de Seguridad CRM
+                <Shield className="h-4 w-4" /> Política de Gobernanza CRM
               </p>
               <p className="leading-tight">
-                Reconfiguración exclusiva por la Jefatura de Laboratorio y Gerencia. No se permite la comunicación informal fuera de grupos asignados.
+                Los cambios en el canal se aplicarán en tiempo real para todos los integrantes asignados.
               </p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button size="sm" onClick={() => setIsInfoOpen(false)}>
-              Entendido
-            </Button>
+          <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+            {canCreateChannel && activeChannelId !== "general" && activeChannelId !== "laboratorio" ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={handleDeleteChannel}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Eliminar Canal
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsInfoOpen(false)}>
+                Cancelar
+              </Button>
+              {canCreateChannel && (
+                <Button size="sm" className="gap-1" onClick={handleUpdateChannelInfo}>
+                  <Save className="h-3.5 w-3.5" /> Guardar Cambios
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
