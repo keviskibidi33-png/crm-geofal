@@ -1624,12 +1624,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                               }
                               related.forEach((rel) => {
                                 if (rel.codigo === ensayo.codigo) return
+                                const customPrice = (ensayo.preciosRelacionados && ensayo.preciosRelacionados[rel.codigo] !== undefined)
+                                  ? ensayo.preciosRelacionados[rel.codigo]
+                                  : Number(rel.precio || 0);
                                 next.push({
                                   codigo: rel.codigo,
                                   descripcion: rel.descripcion,
                                   norma: rel.norma,
                                   acreditado: rel.acreditado,
-                                  costo_unitario: Number(rel.precio || 0),
+                                  costo_unitario: customPrice,
                                   cantidad: 1,
                                 })
                               })
@@ -1664,12 +1667,15 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                               }
                               related.forEach((rel) => {
                                 if (rel.codigo === ensayo.codigo) return
+                                const customPrice = (ensayo.preciosRelacionados && ensayo.preciosRelacionados[rel.codigo] !== undefined)
+                                  ? ensayo.preciosRelacionados[rel.codigo]
+                                  : Number(rel.precio || 0);
                                 next.push({
                                   codigo: rel.codigo,
                                   descripcion: rel.descripcion,
                                   norma: rel.norma,
                                   acreditado: rel.acreditado,
-                                  costo_unitario: Number(rel.precio || 0),
+                                  costo_unitario: customPrice,
                                   cantidad: 1,
                                 })
                               })

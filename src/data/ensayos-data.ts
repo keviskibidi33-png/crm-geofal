@@ -10,6 +10,7 @@ export interface EnsayoItem {
   comentarios: string;
   categoria: string;
   codigosRelacionados?: string[];
+  preciosRelacionados?: Record<string, number>;
 }
 
 export const ensayosData: EnsayoItem[] = [
@@ -773,7 +774,7 @@ export const ensayosData: EnsayoItem[] = [
     tiempo: '3 dias',
     comentarios: 'Para el ensayo se requiere de granulometria SU24 y/o AG28 y limites SU23\nPrecio referencia: 20',
     categoria: 'ENSAYO ESTÁNDAR SUELO',
-    codigosRelacionados: ['SU24', 'AG28', 'SU23'],
+    codigosRelacionados: ['SU23', 'SU24'],
   },
 
   {
@@ -1528,6 +1529,8 @@ export const ensayosData: EnsayoItem[] = [
     tiempo: '1/2 hora',
     comentarios: 'Salida minima 4 puntos, se requiere el ensayo de proctor\nPrecio referencia: 50',
     categoria: 'ENSAYOS DE CAMPO EN SUELO',
+    codigosRelacionados: ['SU20', 'SER04'],
+    preciosRelacionados: { SU20: 20 },
   },
 
   {
@@ -1541,6 +1544,8 @@ export const ensayosData: EnsayoItem[] = [
     tiempo: '1,1/2 hora',
     comentarios: 'Salida minima 4 puntos, se requiere el ensayo de proctor\nPrecio referencia: 80',
     categoria: 'ENSAYOS DE CAMPO EN SUELO',
+    codigosRelacionados: ['SU20', 'SER04'],
+    preciosRelacionados: { SU20: 20 },
   },
 
   {
@@ -1684,6 +1689,8 @@ export const ensayosData: EnsayoItem[] = [
     tiempo: '7 dias',
     comentarios: '',
     categoria: 'ENSAYOS ESPECIALES SUELO',
+    codigosRelacionados: ['SU19'],
+    preciosRelacionados: { SU19: 0 },
   },
 
   {
