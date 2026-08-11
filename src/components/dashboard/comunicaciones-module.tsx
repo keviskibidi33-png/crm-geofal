@@ -486,7 +486,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const activeMessages = messages.filter((m) => m.channelId === activeChannelId)
 
   return (
-    <div className="flex h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-background text-foreground rounded-xl border border-border shadow-md">
+    <div className="flex h-[calc(100vh-5.5rem)] w-full overflow-hidden bg-background text-foreground rounded-xl border border-border shadow-md">
       {/* ── COLUMNA IZQUIERDA: Lista de Canales y DMs (Estilo Slack/Discord) ── */}
       <div className="w-72 shrink-0 border-r border-border bg-card/60 flex flex-col h-full overflow-hidden">
         {/* Encabezado de Comunicaciones */}
@@ -679,14 +679,14 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         </div>
 
         {/* Feed de Mensajes */}
-        <ScrollArea className="flex-1 min-h-0 p-4 space-y-4">
+        <ScrollArea className="flex-1 min-h-0 p-4 space-y-4 [&>[data-slot=scroll-area-viewport]>div]:min-h-full [&>[data-slot=scroll-area-viewport]>div]:flex [&>[data-slot=scroll-area-viewport]>div]:flex-col">
           {isLoadingMessages ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-xs text-muted-foreground gap-2">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] text-xs text-muted-foreground gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span>Cargando conversación...</span>
             </div>
           ) : activeMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[350px] text-center p-6 space-y-3.5 my-auto">
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3.5 my-auto">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                 {isDM ? (
                   <MessageSquareDashed className="h-8 w-8 text-emerald-500" />
