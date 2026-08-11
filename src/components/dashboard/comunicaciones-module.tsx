@@ -12,6 +12,7 @@ import {
   type ComunicacionesModuleProps,
   DEFAULT_CHANNELS,
   getCanonicalDmId,
+  areChannelIdsEqual,
 } from "./chat/types"
 import { ChatSidebar } from "./chat/chat-sidebar"
 import { ChatFeed } from "./chat/chat-feed"
@@ -355,8 +356,10 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             }
           }
 
+          const isCurrentActiveChannel = areChannelIdsEqual(msgChannelId, activeChannelId)
+
           // Si el mensaje pertenece al canal que se está viendo activamente, agregarlo al feed
-          if (msgChannelId === activeChannelId) {
+          if (isCurrentActiveChannel) {
             setMessages((prev) => {
               if (prev.some((m) => m.id === newMsg.id)) return prev
               return [

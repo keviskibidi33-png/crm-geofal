@@ -50,3 +50,19 @@ export function getCanonicalDmId(user1: { id?: string; email?: string }, user2: 
   const sorted = [e1, e2].sort()
   return `dm_${sorted[0]}_${sorted[1]}`
 }
+
+export function areChannelIdsEqual(id1: string, id2: string): boolean {
+  if (!id1 || !id2) return false
+  if (id1 === id2) return true
+
+  const isDm1 = id1.startsWith("dm_") || id1.startsWith("dm-")
+  const isDm2 = id2.startsWith("dm_") || id2.startsWith("dm-")
+
+  if (isDm1 && isDm2) {
+    const parts1 = id1.replace(/^dm[_|-]/, "").split(/[_|-]/).map((p) => p.toLowerCase()).sort()
+    const parts2 = id2.replace(/^dm[_|-]/, "").split(/[_|-]/).map((p) => p.toLowerCase()).sort()
+    return parts1.join("_") === parts2.join("_")
+  }
+
+  return false
+}
