@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { MessageSquare, Shield, Lock, CheckCircle2, Clock, Mail, UserCheck } from "lucide-react"
+import { MessageSquare, Shield, Lock, CheckCircle2, Clock, Mail } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -96,8 +96,8 @@ export function UserProfilePopover({
       >
         {/* Cabecera Corporativa con Fondo Personalizado o Gradiente Geofal */}
         <div
-          className="relative h-24 bg-linear-to-r from-sky-600 via-blue-600 to-indigo-700 p-3 bg-cover bg-center transition-all"
-          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+          className="relative h-24 p-3 bg-cover bg-center transition-all bg-slate-900"
+          style={{ backgroundImage: `url(${bannerUrl || "/login-background.png"})` }}
         >
           <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
           <div className="absolute right-3 top-3 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white/90 font-semibold border border-white/20">
