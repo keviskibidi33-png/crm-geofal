@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client"
 
-import React, { RefObject } from "react"
+import React, { useState, RefObject } from "react"
 import {
   Hash,
   Lock,
@@ -56,7 +56,7 @@ export function ChatFeed({
   handleFileUpload,
   handleTyping,
   typingUsers,
-  setIsMembersOpen,
+  setIsMembersOpen: _setIsMembersOpen,
   isInfoOpen = false,
   setIsInfoOpen,
   setSelectedImage,
