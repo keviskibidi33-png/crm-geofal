@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { isAdminDashboardRole, isComercialDashboardRole, isLaboratoryNotificationsRole } from "@/lib/control-module-access"
 import { LabNotificationDetailDialog } from "@/components/dashboard/lab-notification-detail-dialog"
+import { toast } from "sonner"
 
 interface HeaderProps {
   user: User

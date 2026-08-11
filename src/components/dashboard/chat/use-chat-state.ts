@@ -487,8 +487,9 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
   }, [isInfoOpen, activeChannel])
 
-  const handleSendMessage = async (attachments?: any[]) => {
-    if (!inputMessage.trim() && (!attachments || attachments.length === 0)) return
+  const handleSendMessage = async (attachmentsParam?: any) => {
+    const attachments = Array.isArray(attachmentsParam) ? attachmentsParam : []
+    if (!inputMessage.trim() && attachments.length === 0) return
 
     const tempMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -497,7 +498,7 @@ export function useChatState(user: User, initialChannelId?: string) {
       senderName: user.name,
       senderAvatar: user.avatar,
       content: inputMessage.trim(),
-      attachments: attachments || [],
+      attachments,
       createdAt: new Date().toISOString(),
     }
 
@@ -518,7 +519,7 @@ export function useChatState(user: User, initialChannelId?: string) {
           sender_name: tempMessage.senderName,
           sender_avatar: tempMessage.senderAvatar,
           content: tempMessage.content,
-          attachments: tempMessage.attachments,
+          attachments,
           created_at: tempMessage.createdAt,
         },
       })
@@ -532,7 +533,7 @@ export function useChatState(user: User, initialChannelId?: string) {
         body: JSON.stringify({
           channel_id: activeChannelId,
           content: currentText,
-          attachments: attachments || [],
+          attachments,
         }),
       })
     } catch (err) {
