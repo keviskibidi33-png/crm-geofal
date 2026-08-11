@@ -10,14 +10,12 @@ import {
   Search,
   Edit2,
   Trash2,
-  Eye,
   Loader2,
   ChevronLeft,
   ChevronRight,
   FileText,
   X,
   Save,
-  CheckCircle2,
   Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -151,8 +149,12 @@ function getMesAnio() {
     .toUpperCase()
 }
 
-function ensure15Pesadas(pesadas: PesadaItem[]): PesadaItem[] {
-  const result = pesadas ? pesadas.map((p) => ({ ...p, estado: p.estado || (p.lectura_balanza_g ? "OK" : "-") })) : []
+function ensure15Pesadas(pesadas?: PesadaItem[], tol: number = 0.5): PesadaItem[] {
+  const list = pesadas || []
+  const result: PesadaItem[] = list.map((p) => {
+    const autoEval = evaluatePesadaConformity(p.lectura_balanza_g, p.masa_patron_g, tol)
+    return { ...p, estado: p.estado && p.estado !== "-" ? p.estado : (p.lectura_balanza_g ? autoEval.estado : "-") }
+  })
   while (result.length < 15) {
     result.push({ masa_patron_g: "", lectura_balanza_g: "", estado: "-" })
   }
@@ -220,6 +222,53 @@ function normalizeBalanzaCode(code?: string): string {
   const clean = code.trim().toUpperCase()
   const found = DEFAULT_BALANZAS.find((b) => b.codigo.toUpperCase() === clean || clean.includes(b.codigo.toUpperCase()))
   return found ? found.codigo : DEFAULT_BALANZAS[0].codigo
+}
+
+function evaluateTempHumRow(row: TempRow, areaName: string) {
+  const isLavado = areaName.toLowerCase().includes("compactac") || areaName.toLowerCase().includes("lavado")
+  const minLimitTemp = isLavado ? 18.0 : 10.0
+  const maxLimitTemp = isLavado ? 24.0 : 30.0
+  const maxLimitHum = 80.0
+
+  const tempVal = parseFloat(row.temperatura_c)
+  const humVal = parseFloat(row.humedad_relativa_pct)
+  const tempMinVal = parseFloat(row.temp_min)
+  const tempMaxVal = parseFloat(row.temp_max || row.temperatura_c)
+  const humMinVal = parseFloat(row.hum_min)
+
+  const isTempOut = !isNaN(tempVal) && (tempVal < minLimitTemp || tempVal > maxLimitTemp)
+  const isHumOut = !isNaN(humVal) && (humVal >= maxLimitHum)
+  const isTempRangeInvalid = !isNaN(tempMinVal) && !isNaN(tempMaxVal) && tempMinVal > tempMaxVal
+  const isHumRangeInvalid = !isNaN(humMinVal) && !isNaN(humVal) && humMinVal > humVal
+
+  const cumple = !isTempOut && !isHumOut && !isTempRangeInvalid && !isHumRangeInvalid
+
+  return {
+    cumple,
+    isTempOut,
+    isHumOut,
+    isTempRangeInvalid,
+    isHumRangeInvalid,
+    tempLimitsMsg: `${minLimitTemp} - ${maxLimitTemp} °C`,
+    humLimitsMsg: `< ${maxLimitHum}% H.R.`,
+  }
+}
+
+function evaluatePesadaConformity(lectura?: string, patron?: string, tol: number = 0.5) {
+  const lecNum = parseFloat(lectura || patron || "")
+  const patNum = parseFloat(patron || lectura || "")
+
+  if (isNaN(lecNum) || isNaN(patNum)) {
+    return { estado: "-", conforme: true, diff: 0 }
+  }
+
+  const diff = Math.abs(lecNum - patNum)
+  const isOk = Math.round(diff * 100000) / 100000 <= Math.round(tol * 100000) / 100000
+  return {
+    estado: isOk ? "OK" : "NO",
+    conforme: isOk,
+    diff,
+  }
 }
 
 export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: ControlAmbientalModuleProps) {
@@ -788,7 +837,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           if (p.estado) estadoMap[i] = p.estado
         })
 
-        row.pesadas.forEach((p, pIdx) => {
+        row.pesadas.forEach((p) => {
           if (!p.masa_patron_g && !p.lectura_balanza_g) return
 
           const obsMeta: BalanzaHeaderMeta = {
@@ -907,7 +956,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </p>
             </div>
             <Select value={areaFilter} onValueChange={(val) => { setAreaFilter(val); setTempPage(1) }}>
-              <SelectTrigger className="w-[180px] h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+              <SelectTrigger className="w-45 h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODAS">Todas las áreas</SelectItem>
                 {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
@@ -1031,7 +1080,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="min-w-[90px] text-center font-medium px-2">
+                  <span className="min-w-22.5 text-center font-medium px-2">
                     Página {tempPage} de {tempTotalPages}
                   </span>
                   <Button
@@ -1134,7 +1183,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             </p>
           </div>
           <Select value={balanzaFilter} onValueChange={(val) => { setBalanzaFilter(val); setBalanzaPage(1) }}>
-            <SelectTrigger className="w-[180px] h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
+            <SelectTrigger className="w-45 h-8 text-xs bg-white"><SelectValue placeholder="Filtrar por Balanza" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="TODAS">Todas las balanzas</SelectItem>
               {DEFAULT_BALANZAS.map((b) => <SelectItem key={b.codigo} value={b.codigo}>{b.codigo} — {b.ubi}</SelectItem>)}
@@ -1256,7 +1305,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="min-w-[90px] text-center font-medium px-2">
+                <span className="min-w-22.5 text-center font-medium px-2">
                   Página {balanzaPage} de {balanzaTotalPages}
                 </span>
                 <Button
@@ -1303,55 +1352,55 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowTempModal(true)
         }}
       >
-        <DialogContent className="max-w-[99vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
+        <DialogContent className="max-w-[99vw] md:max-w-[96vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 md:p-4 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
           <form onSubmit={handleSaveTempDoc} className="flex flex-col h-full overflow-hidden space-y-2">
-            {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
-            <div className="flex items-center justify-between gap-3 mb-2">
+            {/* Header Barra Superior Nativa */}
+            <div className="flex items-center justify-between gap-3 mb-1 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
                   <Thermometer className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-slate-900">
+                  <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
                     CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA — F-LEM-P-05.01 V03
                   </h1>
-                  <p className="text-xs text-slate-500">Módulo nativo del CRM</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Módulo nativo del CRM</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none"
                 title="Cerrar Formulario"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Hoja de Excel Blanca Central (Document Paper Box amplio a pantalla completa) */}
-            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs">
+            {/* Hoja de Excel Blanca Central */}
+            <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs flex flex-col flex-1 min-h-0">
               {/* Bloque Encabezado Oficial con Logo y Título Centrado */}
-              <div className="border-b border-slate-300 bg-slate-50 p-4 text-center">
-                <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="border-b border-slate-300 bg-slate-50 p-3 text-center shrink-0">
+                <div className="flex items-center justify-center gap-3 mb-1">
                   <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
                 </div>
-                <p className="text-[20px] font-bold leading-tight text-slate-900 font-sans">
+                <p className="text-base sm:text-lg font-bold leading-tight text-slate-900 font-sans">
                   LABORATORIO DE ENSAYO DE MATERIALES
                 </p>
-                <p className="text-sm font-bold text-slate-800 underline uppercase mt-0.5">
+                <p className="text-xs sm:text-sm font-bold text-slate-800 underline uppercase mt-0.5">
                   F-LEM-P-05.01 V03 CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
                 </p>
               </div>
 
               {/* Tabla Encabezado Metadatos Superior */}
-              <div className="border-b border-slate-300 bg-white p-3">
-                <table className="w-full table-fixed border border-slate-300 text-sm">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+              <div className="border-b border-slate-300 bg-white p-2 shrink-0 overflow-x-auto">
+                <table className="w-full min-w-162.5 table-fixed border border-slate-300 text-xs">
+                  <thead className="bg-slate-100 text-[11px] font-semibold text-slate-800">
                     <tr>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>REGISTRO</th>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>MES - AÑO</th>
-                      <th className="border-r border-slate-300 py-1.5" colSpan={2}>APROBADO POR</th>
-                      <th className="py-1.5" colSpan={2}>FECHA APROBACIÓN</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>REGISTRO</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>MES - AÑO</th>
+                      <th className="border-r border-slate-300 py-1" colSpan={2}>APROBADO POR</th>
+                      <th className="py-1" colSpan={2}>FECHA APROBACIÓN</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1405,7 +1454,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
 
               {/* Sub-Banner DATOS Y PARÁMETROS */}
-              <div className="border-b border-slate-300 bg-slate-100 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-800">
+              <div className="border-b border-slate-300 bg-slate-100 px-3 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-semibold text-slate-800 shrink-0">
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <span className="shrink-0">ÁREA DE CONTROL:</span>
                   <Select
@@ -1415,227 +1464,256 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       setTempIsDirty(true)
                     }}
                   >
-                    <SelectTrigger className="h-8 text-xs font-semibold bg-white border-slate-300 w-64"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs font-semibold bg-white border-slate-300 w-full sm:w-64"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono">
-                  <span>PARÁMETROS:</span>
+                  <span>PARÁMETROS NORMATIVOS:</span>
                   <span className="bg-white border border-slate-300 px-3 py-1 rounded font-bold text-sky-700">
-                    {tempDocHeader.area_ambiente.includes("compactación")
-                      ? "18 °C – 24 °C | Menor a 80 % H.R."
-                      : "10 °C – 30 °C | Menor a 80 % H.R."}
+                    {tempDocHeader.area_ambiente.toLowerCase().includes("compactac")
+                      ? "18 °C – 24 °C | < 80 % H.R."
+                      : "10 °C – 30 °C | < 80 % H.R."}
                   </span>
                 </div>
               </div>
 
-              {/* Tabla Principal de Casillas Grid Estilo Corte Directo (Imagen 6) */}
-              <div className="p-3">
-                <table className="w-full table-fixed border border-slate-300 text-xs">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
+              {/* Tabla Principal de Lecturas con Scroll Responsive */}
+              <div className="p-2 sm:p-3 overflow-x-auto overflow-y-auto flex-1 min-h-0">
+                <table className="w-full min-w-240 table-fixed border border-slate-300 text-xs">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="border-r border-slate-300 py-2 w-32">FECHA REGISTRO</th>
-                      <th className="border-r border-slate-300 py-2 w-24">HORA TOMA</th>
-                      <th className="border-r border-slate-300 py-2 w-32">FECHA LECTURA</th>
-                      <th className="border-r border-slate-300 py-1" colSpan={2}>
+                      <th className="border-r border-b border-slate-300 py-2 w-28 text-center bg-slate-100">FECHA REGISTRO</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-20 text-center bg-slate-100">HORA TOMA</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-28 text-center bg-slate-100">FECHA LECTURA</th>
+                      <th className="border-r border-b border-slate-300 py-1 bg-slate-100" colSpan={2}>
                         TEMPERATURA (°C)
                         <div className="grid grid-cols-2 border-t border-slate-300 mt-1 text-[10px]">
                           <div className="border-r border-slate-300 py-0.5">Mínimo</div>
-                          <div className="py-0.5">Máximo</div>
+                          <div className="py-0.5">Máximo / Actual</div>
                         </div>
                       </th>
-                      <th className="border-r border-slate-300 py-1" colSpan={2}>
+                      <th className="border-r border-b border-slate-300 py-1 bg-slate-100" colSpan={2}>
                         HUMEDAD RELATIVA (%)
                         <div className="grid grid-cols-2 border-t border-slate-300 mt-1 text-[10px]">
                           <div className="border-r border-slate-300 py-0.5">Mínimo</div>
-                          <div className="py-0.5">Máximo</div>
+                          <div className="py-0.5">Máximo / Actual</div>
                         </div>
                       </th>
-                      <th className="border-r border-slate-300 py-2 w-36">RESPONSABLE REGISTRO</th>
-                      <th className="border-r border-slate-300 py-2 w-36">RESPONSABLE REVISIÓN</th>
-                      <th className="py-2 w-12 text-center">ACCION</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-24 text-center bg-slate-100">ESTADO</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center bg-slate-100">REGISTRADO POR</th>
+                      <th className="border-r border-b border-slate-300 py-2 w-32 text-center bg-slate-100">REVISADO POR</th>
+                      <th className="border-b border-slate-300 py-2 w-12 text-center bg-slate-100">ACCION</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {tempDocRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="date"
-                            className={denseInputClass}
-                            value={row.fecha_registro}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, fecha_registro: val, fecha_lectura: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                            required
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="time"
-                            className={denseInputClass}
-                            value={row.hora_toma}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, hora_toma: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                            required
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="date"
-                            className={denseInputClass}
-                            value={row.fecha_lectura}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, fecha_lectura: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="10.0"
-                            className={denseInputClass}
-                            value={row.temp_min}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, temp_min: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="30.0"
-                            className={`${denseInputClass} font-bold text-sky-700`}
-                            value={row.temperatura_c}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, temperatura_c: val, temp_max: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                            required
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="20.0"
-                            className={denseInputClass}
-                            value={row.hum_min}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, hum_min: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="80.0"
-                            className={`${denseInputClass} font-bold text-blue-700`}
-                            value={row.humedad_relativa_pct}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, humedad_relativa_pct: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                            required
-                          />
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <select
-                            className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
-                            value={row.responsable_registro}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, responsable_registro: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                          >
-                            {REALIZADO_POR_LIST.map((resp) => (
-                              <option key={resp} value={resp}>
-                                {resp}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="border-t border-r border-slate-300 p-1">
-                          <select
-                            className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
-                            value={row.responsable_revision}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setTempDocRows((rows) =>
-                                rows.map((r, i) => (i === idx ? { ...r, responsable_revision: val } : r))
-                              )
-                              setTempIsDirty(true)
-                            }}
-                          >
-                            {REVISADO_POR_LIST.map((resp) => (
-                              <option key={resp} value={resp}>
-                                {resp}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="border-t border-slate-300 p-1 text-center">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={tempDocRows.length <= 1}
-                            onClick={() => {
-                              const targetId = tempDocRows[idx]?.id
-                              if (targetId) {
-                                setDeletedTempRowIds((ids) => [...ids, targetId])
+                    {tempDocRows.map((row, idx) => {
+                      const evalRes = evaluateTempHumRow(row, tempDocHeader.area_ambiente)
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="date"
+                              className={denseInputClass}
+                              value={row.fecha_registro}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, fecha_registro: val, fecha_lectura: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                              required
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="time"
+                              className={denseInputClass}
+                              value={row.hora_toma}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, hora_toma: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                              required
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="date"
+                              className={denseInputClass}
+                              value={row.fecha_lectura}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, fecha_lectura: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="10.0"
+                              className={`${denseInputClass} ${evalRes.isTempRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
+                              value={row.temp_min}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, temp_min: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="30.0"
+                              className={`${denseInputClass} font-bold ${
+                                evalRes.isTempOut || evalRes.isTempRangeInvalid
+                                  ? "bg-red-50 text-red-700 border-red-400 focus:ring-red-500 font-extrabold"
+                                  : "text-sky-700"
+                              }`}
+                              value={row.temperatura_c}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, temperatura_c: val, temp_max: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                              required
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="20.0"
+                              className={`${denseInputClass} ${evalRes.isHumRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
+                              value={row.hum_min}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, hum_min: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="80.0"
+                              className={`${denseInputClass} font-bold ${
+                                evalRes.isHumOut || evalRes.isHumRangeInvalid
+                                  ? "bg-red-50 text-red-700 border-red-400 focus:ring-red-500 font-extrabold"
+                                  : "text-blue-700"
+                              }`}
+                              value={row.humedad_relativa_pct}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, humedad_relativa_pct: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                              required
+                            />
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold font-mono border ${
+                                evalRes.cumple
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-red-100 text-red-800 border-red-300 animate-pulse"
+                              }`}
+                              title={
+                                evalRes.cumple
+                                  ? "Lecturas dentro del rango de especificación"
+                                  : `Fuera de límites (${evalRes.tempLimitsMsg} / ${evalRes.humLimitsMsg})`
                               }
-                              setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
-                              setTempIsDirty(true)
-                            }}
-                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                            >
+                              {evalRes.cumple ? "CONFORME" : "NO CUMPLE"}
+                            </span>
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <select
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                              value={row.responsable_registro}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, responsable_registro: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                            >
+                              {REALIZADO_POR_LIST.map((resp) => (
+                                <option key={resp} value={resp}>
+                                  {resp}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="border-t border-r border-slate-300 p-1">
+                            <select
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                              value={row.responsable_revision}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setTempDocRows((rows) =>
+                                  rows.map((r, i) => (i === idx ? { ...r, responsable_revision: val } : r))
+                                )
+                                setTempIsDirty(true)
+                              }}
+                            >
+                              {REVISADO_POR_LIST.map((resp) => (
+                                <option key={resp} value={resp}>
+                                  {resp}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="border-t border-slate-300 p-1 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={tempDocRows.length <= 1}
+                              onClick={() => {
+                                const targetId = tempDocRows[idx]?.id
+                                if (targetId) {
+                                  setDeletedTempRowIds((ids) => [...ids, targetId])
+                                }
+                                setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
+                                setTempIsDirty(true)
+                              }}
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              {/* Botón de Agregar Fila estilo Hoja Excel */}
-              <div className="p-3 bg-slate-50 border-t border-slate-300 flex justify-between items-center">
+              {/* Botón de Agregar Fila */}
+              <div className="p-2 sm:p-3 bg-slate-50 border-t border-slate-300 flex justify-between items-center shrink-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -1672,12 +1750,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Footer Botones Guardar y Cancelar */}
-            <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-300">
+            {/* Footer Botones Guardar y Cancelar Responsive */}
+            <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3 border-t border-slate-300 shrink-0">
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2"
+                className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2 w-full sm:w-auto"
                 onClick={() => handleExportTempExcel(tempDocHeader.area_ambiente)}
               >
                 <Download className="h-4 w-4" />
@@ -1687,11 +1765,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 type="button"
                 variant="outline"
                 onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
-                className="h-9 text-xs font-semibold bg-white border-slate-300 px-5"
+                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-9 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
+              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto">
                 <Save className="h-4 w-4" />
                 Guardar Formato F-LEM-P-05.01
               </Button>
@@ -1707,6 +1785,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // F-LEM-IN-01.02 V03 FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
   // ─────────────────────────────────────────────────────────────────────────────
   function renderBalanzaModal() {
+    const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
+
     return (
       <Dialog
         open={showBalanzaModal}
@@ -1715,9 +1795,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           else setShowBalanzaModal(true)
         }}
       >
-        <DialogContent className="max-w-[99vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
+        <DialogContent className="max-w-[99vw] md:max-w-[96vw] w-[99vw] h-[98vh] max-h-[98vh] p-2 sm:p-3 md:p-4 bg-[#f1f5f9] overflow-hidden rounded-xl border-none shadow-2xl flex flex-col [&>button]:hidden">
           <form onSubmit={handleSaveBalanzaDoc} className="flex flex-col h-full overflow-hidden space-y-2">
-            {/* Header Barra Superior Nativa (Idéntico a Corte Directo Imagen 6) */}
+            {/* Header Barra Superior Nativa */}
             <div className="flex items-center justify-between gap-3 shrink-0 px-1">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
@@ -1740,23 +1820,23 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </button>
             </div>
 
-            {/* Hoja de Excel Blanca Central (Document Paper Box amplio flex-1 sin scroll exterior) */}
+            {/* Hoja de Excel Blanca Central */}
             <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs flex flex-col flex-1 min-h-0">
-              {/* Bloque Encabezado Oficial Estilo Hoja Excel 3 Columnas (Logo | Título | Metadatos) */}
+              {/* Bloque Encabezado Oficial Estilo Hoja Excel 3 Columnas */}
               <div className="border-b border-slate-300 bg-white p-2 shrink-0">
                 <div className="grid grid-cols-12 border border-slate-300 items-center">
-                  <div className="col-span-3 border-r border-slate-300 p-1.5 flex items-center justify-center bg-slate-50 min-h-[56px]">
+                  <div className="col-span-12 sm:col-span-3 border-b sm:border-b-0 sm:border-r border-slate-300 p-1.5 flex items-center justify-center bg-slate-50 min-h-14">
                     <Image src="/logo-geofal.svg" alt="Geofal Logo" width={110} height={32} className="h-7 w-auto" />
                   </div>
-                  <div className="col-span-6 border-r border-slate-300 p-1.5 text-center bg-slate-50 min-h-[56px] flex flex-col justify-center">
+                  <div className="col-span-12 sm:col-span-6 border-b sm:border-b-0 sm:border-r border-slate-300 p-1.5 text-center bg-slate-50 min-h-14 flex flex-col justify-center">
                     <p className="text-sm sm:text-base font-bold leading-tight text-slate-900 uppercase">
                       FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
                     </p>
                     <p className="text-[11px] font-semibold text-slate-600 uppercase mt-0.5">
-                      NORMA NTP / ASTM — F-LEM-IN-01.02 V03
+                      NORMA NTP / ASTM — F-LEM-IN-01.02 V03 (Tolerancia: ±{tol} g)
                     </p>
                   </div>
-                  <div className="col-span-3 text-[10px] font-mono text-slate-800 bg-slate-50 min-h-[56px] flex flex-col justify-center">
+                  <div className="col-span-12 sm:col-span-3 text-[10px] font-mono text-slate-800 bg-slate-50 min-h-14 flex flex-col justify-center">
                     <div className="border-b border-slate-300 px-2 py-0.5 flex justify-between gap-1 whitespace-nowrap">
                       <span className="font-bold">CÓDIGO:</span>
                       <span className="font-bold text-slate-900">F-LEM-IN-01.02</span>
@@ -1777,9 +1857,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </div>
               </div>
 
-              {/* Tabla Encabezado Metadatos Superior (Código Balanza | Mes-Año | Ubicación | Pesas Patrón) */}
-              <div className="border-b border-slate-300 bg-white p-2 shrink-0">
-                <table className="w-full table-fixed border border-slate-300 text-xs">
+              {/* Tabla Encabezado Metadatos Superior */}
+              <div className="border-b border-slate-300 bg-white p-2 shrink-0 overflow-x-auto">
+                <table className="w-full min-w-175 table-fixed border border-slate-300 text-xs">
                   <thead className="bg-slate-100 text-[11px] font-semibold text-slate-800">
                     <tr>
                       <th className="border-r border-slate-300 py-1" colSpan={2}>CÓDIGO DE LA BALANZA</th>
@@ -1859,16 +1939,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid 15 Pesadas */}
+              {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid 15 Pesadas (Columnas Congeladas en Tablet) */}
               <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
                 <table className="min-w-[2400px] w-full border-collapse border border-slate-300 text-xs">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-10">
+                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30">
                     <tr>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-28 text-center bg-slate-100" rowSpan={2}>FECHA</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-20 text-center bg-slate-100" rowSpan={2}>HORA</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-[105px] text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-[125px] text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
-                      <th className="border-r border-b border-slate-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 border-emerald-300 uppercase tracking-wide" colSpan={15}>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-27.5 text-center bg-slate-100 sticky left-0 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>FECHA</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-20 min-w-20 text-center bg-slate-100 sticky left-27.5 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>HORA</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-26.25 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
+                      <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-31.25 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                      <th className="border-r border-b border-emerald-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 uppercase tracking-wide" colSpan={15}>
                         PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                       </th>
                       <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
@@ -1877,7 +1957,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     </tr>
                     <tr>
                       {Array.from({ length: 15 }).map((_, i) => (
-                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-[136px]">
+                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-34">
                           OK / NO
                         </th>
                       ))}
@@ -1886,8 +1966,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   <tbody>
                     {balanzaDocRows.map((row, idx) => {
                       return (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="border-t border-r border-slate-300 p-1">
+                        <tr key={idx} className="hover:bg-slate-50 group transition-colors">
+                          <td className="border-t border-r border-slate-300 p-1 sticky left-0 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
                             <input
                               type="date"
                               className={denseInputClass}
@@ -1902,7 +1982,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               required
                             />
                           </td>
-                          <td className="border-t border-r border-slate-300 p-1">
+                          <td className="border-t border-r border-slate-300 p-1 sticky left-27.5 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
                             <input
                               type="time"
                               className={denseInputClass}
@@ -1917,7 +1997,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               required
                             />
                           </td>
-                          <td className="border-t border-r border-slate-300 p-1 w-28 min-w-[105px]">
+                          <td className="border-t border-r border-slate-300 p-1 w-28 min-w-26.25">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1933,7 +2013,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               }}
                             />
                           </td>
-                          <td className="border-t border-r border-slate-300 p-1 w-32 min-w-[125px]">
+                          <td className="border-t border-r border-slate-300 p-1 w-32 min-w-31.25">
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1950,33 +2030,37 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             />
                           </td>
 
-                          {/* 15 Casillas Horizontales: /casilla de dato/desplegable (ok)(no)/ */}
-                          {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
+                          {/* 15 Casillas Horizontales con auto-evaluación de tolerancia */}
+                          {ensure15Pesadas(row.pesadas, tol).map((p, pIdx) => {
                             const valText = p.lectura_balanza_g || p.masa_patron_g
-                            const estText = p.estado || (valText ? "OK" : "-")
+                            const autoEval = evaluatePesadaConformity(p.lectura_balanza_g, p.masa_patron_g, tol)
+                            const estText = p.estado && p.estado !== "-" ? p.estado : valText ? autoEval.estado : "-"
 
                             return (
-                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-[136px] w-36 text-center bg-white">
+                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-34 w-36 text-center bg-white">
                                 <div className="flex items-center gap-1">
                                   <input
                                     type="text"
                                     placeholder="Dato"
-                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-20 border-slate-300 bg-white`}
+                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-20 border-slate-300 bg-white ${
+                                      estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
+                                    }`}
                                     value={valText}
                                     onChange={(e) => {
                                       const val = e.target.value
+                                      const newEval = evaluatePesadaConformity(val, val, tol)
                                       setBalanzaDocRows((rows) =>
                                         rows.map((r, i) =>
                                           i === idx
                                             ? {
                                                 ...r,
-                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
+                                                pesadas: ensure15Pesadas(r.pesadas, tol).map((pes, pi) =>
                                                   pi === pIdx
                                                     ? {
                                                         ...pes,
                                                         lectura_balanza_g: val,
                                                         masa_patron_g: val,
-                                                        estado: pes.estado === "-" && val ? "OK" : pes.estado,
+                                                        estado: val ? newEval.estado : "-",
                                                       }
                                                     : pes
                                                 ),
@@ -2003,7 +2087,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                           i === idx
                                             ? {
                                                 ...r,
-                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
+                                                pesadas: ensure15Pesadas(r.pesadas, tol).map((pes, pi) =>
                                                   pi === pIdx ? { ...pes, estado: val } : pes
                                                 ),
                                               }
@@ -2091,7 +2175,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* Botón de Agregar Fila estilo Hoja Excel */}
+              {/* Botón de Agregar Fila */}
               <div className="p-2 bg-slate-50 border-t border-slate-300 flex justify-between items-center shrink-0">
                 <Button
                   type="button"
@@ -2106,7 +2190,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         hora: "08:00",
                         temp_c: "23.0",
                         humedad_pct: "50.0",
-                        pesadas: ensure15Pesadas([]),
+                        pesadas: ensure15Pesadas([], tol),
                         verificado_por: last ? last.verificado_por : "BEATRIZ",
                         revisado_por: last ? last.revisado_por : "ING. FABIAN",
                       },
@@ -2152,12 +2236,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Footer Botones Guardar y Cancelar */}
-            <div className="pt-1.5 flex items-center justify-end gap-3 border-t border-slate-300 shrink-0">
+            {/* Footer Botones Guardar y Cancelar Responsive */}
+            <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3 border-t border-slate-300 shrink-0">
               <Button
                 type="button"
                 variant="outline"
-                className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2"
+                className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2 w-full sm:w-auto"
                 onClick={() => handleExportBalanzaExcel(balanzaDocHeader.codigo_balanza)}
               >
                 <Download className="h-4 w-4" />
@@ -2167,11 +2251,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 type="button"
                 variant="outline"
                 onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
-                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5"
+                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center gap-1.5">
+              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto">
                 <Save className="h-4 w-4" />
                 Guardar Formato F-LEM-IN-01.02
               </Button>
