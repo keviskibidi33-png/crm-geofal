@@ -96,10 +96,10 @@ export function UserProfilePopover({
       >
         {/* Cabecera Corporativa con Fondo Personalizado o Gradiente Geofal */}
         <div
-          className="relative h-24 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-3 bg-cover bg-center transition-all"
+          className="relative h-24 bg-linear-to-r from-sky-600 via-blue-600 to-indigo-700 p-3 bg-cover bg-center transition-all"
           style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
           <div className="absolute right-3 top-3 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white/90 font-semibold border border-white/20">
             <Shield className="h-3 w-3 text-sky-300" />
             <span>Perfil CRM</span>
@@ -112,7 +112,7 @@ export function UserProfilePopover({
             <div className="relative">
               <Avatar className="h-16 w-16 border-4 border-card shadow-lg ring-2 ring-primary/20">
                 {avatar && <AvatarImage src={avatar} alt={name} />}
-                <AvatarFallback className="bg-gradient-to-br from-primary to-blue-700 text-white font-extrabold text-lg">
+                <AvatarFallback className="bg-linear-to-br from-primary to-blue-700 text-white font-extrabold text-lg">
                   {name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>

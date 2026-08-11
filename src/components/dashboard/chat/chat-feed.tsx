@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 
 import React, { RefObject } from "react"
@@ -15,7 +16,6 @@ import {
   Send,
   FileText,
   Download,
-  Check,
   CheckCheck,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -218,9 +218,13 @@ export function ChatFeed({
                         <div className="flex items-center justify-end gap-1 mt-1 text-[10px] opacity-90 select-none">
                           <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {msg.read ? (
-                            <CheckCheck className="h-3.5 w-3.5 text-sky-300 fill-sky-300/40 shrink-0 font-bold" title="Visto y leído por el destinatario" />
+                            <span title="Visto y leído por el destinatario">
+                              <CheckCheck className="h-3.5 w-3.5 text-sky-300 fill-sky-300/40 shrink-0 font-bold" />
+                            </span>
                           ) : (
-                            <CheckCheck className="h-3.5 w-3.5 text-white/60 shrink-0" title="Entregado (No leído aún)" />
+                            <span title="Entregado (No leído aún)">
+                              <CheckCheck className="h-3.5 w-3.5 text-white/60 shrink-0" />
+                            </span>
                           )}
                         </div>
                       )}

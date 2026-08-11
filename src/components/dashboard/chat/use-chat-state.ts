@@ -333,7 +333,7 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
 
     fetchChannelMessages()
-  }, [activeChannelId])
+  }, [activeChannelId, teamUsers])
 
   // Clear unread counts for active channel
   useEffect(() => {
