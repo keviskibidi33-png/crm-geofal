@@ -115,20 +115,10 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [startedDmUserIds, setStartedDmUserIds] = useState<string[]>([])
 
-  // Form para editar canal
   const [editChannelName, setEditChannelName] = useState("")
   const [editChannelDesc, setEditChannelDesc] = useState("")
   const [editChannelIsPrivate, setEditChannelIsPrivate] = useState(false)
   const [editChannelCategory, setEditChannelCategory] = useState("area")
-
-  useEffect(() => {
-    if (activeChannel) {
-      setEditChannelName(activeChannel.name)
-      setEditChannelDesc(activeChannel.description || "")
-      setEditChannelIsPrivate(activeChannel.isPrivate)
-      setEditChannelCategory(activeChannel.category || "area")
-    }
-  }, [activeChannelId, activeChannel])
   const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
@@ -302,6 +292,16 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
     return DEFAULT_CHANNELS[0]
   }, [channels, activeChannelId, teamUsers, user.id])
+
+  // Sync edit channel form fields when active channel changes
+  useEffect(() => {
+    if (activeChannel) {
+      setEditChannelName(activeChannel.name)
+      setEditChannelDesc(activeChannel.description || "")
+      setEditChannelIsPrivate(activeChannel.isPrivate)
+      setEditChannelCategory(activeChannel.category || "area")
+    }
+  }, [activeChannelId, activeChannel])
 
   // Sync active DM into startedDmUserIds list
   useEffect(() => {
