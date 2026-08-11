@@ -36,7 +36,7 @@ interface ChatFeedProps {
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleTyping: () => void
   typingUsers: Record<string, { name: string; timestamp: number }>
-  setIsMembersOpen: (open: boolean) => void
+  setIsMembersOpen?: (open: boolean) => void
   isInfoOpen?: boolean
   setIsInfoOpen: (open: boolean) => void
   setSelectedImage: (url: string | null) => void
@@ -56,7 +56,6 @@ export function ChatFeed({
   handleFileUpload,
   handleTyping,
   typingUsers,
-  setIsMembersOpen: _setIsMembersOpen,
   isInfoOpen = false,
   setIsInfoOpen,
   setSelectedImage,
