@@ -194,7 +194,7 @@ export function ChatFeed({
                   >
                     <Avatar className="h-8 w-8 border border-border shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all">
                       {displaySenderAvatar && <AvatarImage src={displaySenderAvatar} alt={displaySenderName} />}
-                      <AvatarFallback className="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200 text-xs font-bold border border-sky-200 dark:border-sky-800">
+                      <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
                         {displaySenderName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>

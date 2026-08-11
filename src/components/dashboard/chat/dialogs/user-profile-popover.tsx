@@ -124,7 +124,7 @@ export function UserProfilePopover({
             <div className="relative">
               <Avatar className="h-16 w-16 border-4 border-card shadow-lg ring-2 ring-primary/20">
                 {avatar && <AvatarImage src={avatar} alt={name} />}
-                <AvatarFallback className="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200 font-extrabold text-lg border border-sky-300 dark:border-sky-800">
+                <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 font-extrabold text-xl border border-sky-200 dark:border-slate-700">
                   {getInitials(name)}
                 </AvatarFallback>
               </Avatar>

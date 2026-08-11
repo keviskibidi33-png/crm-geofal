@@ -190,7 +190,7 @@ export function ChatSidebar({
                           className={`text-[9px] font-extrabold ${
                             isActive
                               ? "bg-white/20 text-primary-foreground border border-white/30"
-                              : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600"
+                              : "bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 border border-sky-200 dark:border-slate-700"
                           }`}
                         >
                           {u.name.substring(0, 2).toUpperCase()}
