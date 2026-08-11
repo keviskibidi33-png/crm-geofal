@@ -43,6 +43,7 @@ interface ChatFeedProps {
   setSelectedImage: (url: string | null) => void
   messagesEndRef: RefObject<HTMLDivElement | null>
   handleOpenDM?: (targetUser: TeamUser) => void
+  teamUsers?: TeamUser[]
 }
 
 export function ChatFeed({
@@ -61,6 +62,7 @@ export function ChatFeed({
   setSelectedImage,
   messagesEndRef,
   handleOpenDM,
+  teamUsers = [],
 }: ChatFeedProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
   const channelPrefix = isDM ? "@" : "#"
@@ -161,7 +163,7 @@ export function ChatFeed({
                   )
                 )
               const matchedUser = teamUsers.find(
-                (u) =>
+                (u: TeamUser) =>
                   (u.email && u.email.toLowerCase() === (msg.senderId || "").toLowerCase()) ||
                   (u.name && u.name.toLowerCase() === (msg.senderName || "").toLowerCase()) ||
                   String(u.id) === String(msg.senderId)
