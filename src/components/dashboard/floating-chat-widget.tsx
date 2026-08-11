@@ -48,6 +48,36 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
   const [activeChannelId, setActiveChannelId] = useState("laboratorio")
   const [activeChatName, setActiveChatName] = useState("# laboratorio-ensayos")
   const [messages, setMessages] = useState<FloatingMessage[]>([])
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>([
+    { id: "laboratorio", name: "# laboratorio-ensayos" },
+    { id: "general", name: "# general" },
+    { id: "ventas", name: "# comercial-ventas" },
+    { id: "informes", name: "# informes-revision" },
+    { id: "alertas", name: "# alertas-gerencia" },
+  ])
+
+  useEffect(() => {
+    async function loadChannels() {
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/channels`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.channels && data.channels.length > 0) {
+            const list = data.channels
+              .filter((c: any) => c.category !== "dm" && !c.id.startsWith("dm-"))
+              .map((c: any) => ({
+                id: c.id,
+                name: `# ${c.name}`,
+              }))
+            if (list.length > 0) setChannels(list)
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch channels for floating widget:", err)
+      }
+    }
+    loadChannels()
+  }, [])
 
   const [inputText, setInputText] = useState("")
   const chatEndRef = useRef<HTMLDivElement | null>(null)
@@ -225,9 +255,24 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
               <Avatar className="h-8 w-8 border border-primary/30">
                 <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">AL</AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
-                <p className="text-xs font-bold truncate leading-tight">{activeChatName}</p>
-                <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+              <div className="min-w-0 flex flex-col justify-center">
+                <select
+                  value={activeChannelId}
+                  onChange={(e) => {
+                    const selId = e.target.value
+                    const found = channels.find((c) => c.id === selId)
+                    setActiveChannelId(selId)
+                    setActiveChatName(found ? found.name : `# ${selId}`)
+                  }}
+                  className="bg-transparent text-xs font-bold text-foreground cursor-pointer focus:outline-none border-b border-border/40 hover:border-primary transition-colors py-0.5"
+                >
+                  {channels.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-background text-foreground text-xs font-medium">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1 mt-0.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   En línea
                 </p>
