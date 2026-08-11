@@ -264,40 +264,38 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     fetchChannelMessages()
   }, [activeChannelId])
 
-  // 5. Suscripción a mensajes en tiempo real vía Supabase
+  // 5. Suscripción GLOBAL a mensajes en tiempo real vía Supabase para notificaciones y DMs automáticos
   useEffect(() => {
-    const channel = supabase
-      .channel(`chat_realtime_${activeChannelId}`)
+    const globalChatChannel = supabase
+      .channel("chat_global_realtime_stream")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
-          filter: `channel_id=eq.${activeChannelId}`,
         },
         (payload) => {
           const newMsg = payload.new as any
-          if (newMsg) {
-            const isFromOther =
-              newMsg.sender_id !== user.id &&
-              newMsg.sender_id !== user.email &&
-              newMsg.sender_name !== user.name &&
-              newMsg.sender_name !== user.email
+          if (!newMsg) return
 
-            if (isFromOther) {
-              window.dispatchEvent(
-                new CustomEvent("crm_chat_notification", {
-                  detail: {
-                    senderName: newMsg.sender_name || "Usuario CRM",
-                    content: newMsg.content,
-                    channelName: activeChannel?.name || "Canal",
-                    senderAvatar: newMsg.sender_avatar,
-                  },
-                })
-              )
+          const msgChannelId = String(newMsg.channel_id || "")
+
+          // Si es un mensaje DM, agregar automáticamente al destinatario en el panel lateral
+          if (msgChannelId.startsWith("dm-")) {
+            const parts = msgChannelId.replace("dm-", "").split("-")
+            const isUserInDm = parts.includes(String(user.id)) || parts.includes(String(user.email))
+
+            if (isUserInDm) {
+              const otherId = parts.find((p) => String(p) !== String(user.id) && String(p) !== String(user.email))
+              if (otherId) {
+                setStartedDmUserIds((prev) => (prev.includes(otherId) ? prev : [...prev, otherId]))
+              }
             }
+          }
 
+          // Si el mensaje pertenece al canal que se está viendo activamente, agregarlo al feed
+          if (msgChannelId === activeChannelId) {
             setMessages((prev) => {
               if (prev.some((m) => m.id === newMsg.id)) return prev
               return [
@@ -315,14 +313,55 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               ]
             })
           }
+
+          // Notificación sonora y campanita si el mensaje proviene de otro usuario
+          const isFromOther =
+            newMsg.sender_id !== user.id &&
+            newMsg.sender_id !== user.email &&
+            newMsg.sender_name !== user.name &&
+            newMsg.sender_name !== user.email
+
+          if (isFromOther) {
+            window.dispatchEvent(
+              new CustomEvent("crm_chat_notification", {
+                detail: {
+                  senderName: newMsg.sender_name || "Usuario CRM",
+                  content: newMsg.content,
+                  channelName: msgChannelId.startsWith("dm-") ? "Chat Privado" : msgChannelId,
+                  senderAvatar: newMsg.sender_avatar,
+                },
+              })
+            )
+          }
         }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(globalChatChannel)
     }
-  }, [activeChannelId, activeChannel?.name, user.id, user.email, user.name])
+  }, [activeChannelId, user.id, user.email, user.name])
+
+  // 6. Cargar integrantes reales del canal desde la base de datos
+  useEffect(() => {
+    async function fetchMembers() {
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members`)
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data.members)) {
+            setChannelMembersMap((prev) => ({
+              ...prev,
+              [activeChannelId]: data.members,
+            }))
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch channel members:", err)
+      }
+    }
+    fetchMembers()
+  }, [activeChannelId])
 
   useEffect(() => {
     scrollToBottom()
@@ -515,7 +554,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     })
 
     try {
-      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members/${member.id}`, {
+      await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}/members/${encodeURIComponent(member.email)}`, {
         method: "DELETE",
       })
     } catch (err) {
