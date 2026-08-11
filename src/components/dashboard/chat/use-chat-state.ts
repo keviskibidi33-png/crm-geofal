@@ -196,6 +196,34 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
   }, [activeChannelId, teamUsers])
 
+  // Cargar DMs persistidos en localStorage al iniciar
+  useEffect(() => {
+    if (typeof window === "undefined" || !user.email) return
+    try {
+      const storageKey = `crm_chat_dms_${user.email.toLowerCase()}`
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setStartedDmUserIds(parsed)
+        }
+      }
+    } catch (err) {
+      console.warn("Could not parse saved DMs from localStorage:", err)
+    }
+  }, [user.email])
+
+  // Persistir DMs en localStorage al modificar la lista
+  useEffect(() => {
+    if (typeof window === "undefined" || !user.email || startedDmUserIds.length === 0) return
+    try {
+      const storageKey = `crm_chat_dms_${user.email.toLowerCase()}`
+      localStorage.setItem(storageKey, JSON.stringify(startedDmUserIds))
+    } catch (err) {
+      console.warn("Could not save DMs to localStorage:", err)
+    }
+  }, [startedDmUserIds, user.email])
+
   // 3. Cargar canales y usuarios de la API
   useEffect(() => {
     async function loadInitialData() {

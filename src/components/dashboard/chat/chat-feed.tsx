@@ -22,7 +22,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type User } from "@/hooks/use-auth"
-import { type ChatChannel, type ChatMessage } from "./types"
+import { type ChatChannel, type ChatMessage, type TeamUser } from "./types"
+import { UserProfilePopover } from "./dialogs/user-profile-popover"
 
 interface ChatFeedProps {
   user: User
@@ -39,6 +40,7 @@ interface ChatFeedProps {
   setIsInfoOpen: (open: boolean) => void
   setSelectedImage: (url: string | null) => void
   messagesEndRef: RefObject<HTMLDivElement | null>
+  handleOpenDM?: (targetUser: TeamUser) => void
 }
 
 export function ChatFeed({
@@ -56,6 +58,7 @@ export function ChatFeed({
   setIsInfoOpen,
   setSelectedImage,
   messagesEndRef,
+  handleOpenDM,
 }: ChatFeedProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
   const channelPrefix = isDM ? "@" : "#"
@@ -155,16 +158,42 @@ export function ChatFeed({
                 ))
               return (
                 <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
-                  <Avatar className="h-8 w-8 border border-border shrink-0">
-                    <AvatarImage src={msg.senderAvatar || ""} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                      {msg.senderName.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserProfilePopover
+                    targetUser={{
+                      name: msg.senderName,
+                      email: msg.senderId.includes("@") ? msg.senderId : undefined,
+                      avatar: msg.senderAvatar,
+                    }}
+                    currentUser={user}
+                    handleOpenDM={handleOpenDM}
+                    side="right"
+                    align="start"
+                  >
+                    <Avatar className="h-8 w-8 border border-border shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all">
+                      <AvatarImage src={msg.senderAvatar || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                        {msg.senderName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </UserProfilePopover>
 
                   <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-xs text-foreground">{msg.senderName}</span>
+                      <UserProfilePopover
+                        targetUser={{
+                          name: msg.senderName,
+                          email: msg.senderId.includes("@") ? msg.senderId : undefined,
+                          avatar: msg.senderAvatar,
+                        }}
+                        currentUser={user}
+                        handleOpenDM={handleOpenDM}
+                        side="bottom"
+                        align="start"
+                      >
+                        <span className="font-semibold text-xs text-foreground cursor-pointer hover:underline hover:text-primary transition-colors">
+                          {msg.senderName}
+                        </span>
+                      </UserProfilePopover>
                       <span className="text-[10px] text-muted-foreground">
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
@@ -177,7 +206,10 @@ export function ChatFeed({
                           : "bg-card border border-border text-card-foreground rounded-tl-none shadow-xs"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      {/* Evitar duplicar el texto "Imagen adjunta:" si hay un adjunto de tipo imagen */}
+                      {msg.content && !msg.content.startsWith("Imagen adjunta:") && (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
 
                       {/* Adjuntos (Imágenes o Archivos) */}
                       {msg.attachments && msg.attachments.length > 0 && (

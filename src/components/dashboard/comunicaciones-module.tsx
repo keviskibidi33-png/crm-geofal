@@ -50,6 +50,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         setIsInfoOpen={chat.setIsInfoOpen}
         setSelectedImage={chat.setSelectedImage}
         messagesEndRef={chat.messagesEndRef}
+        handleOpenDM={chat.handleOpenDM}
       />
 
       {/* ── MODALES Y DIÁLOGOS ── */}
