@@ -291,6 +291,20 @@ export function useChatState(user: User, initialChannelId?: string) {
     loadInitialData()
   }, [])
 
+  // Send periodic heartbeat every 25 seconds to update last_seen_at for real-time presence
+  useEffect(() => {
+    const sendHeartbeat = () => {
+      try {
+        authFetch(`${API_URL}/api/chat/heartbeat`, { method: "POST" })
+      } catch {
+        // Ignore heartbeat warning
+      }
+    }
+    sendHeartbeat()
+    const interval = setInterval(sendHeartbeat, 25000)
+    return () => clearInterval(interval)
+  }, [])
+
   // 4. Cargar mensajes del canal activo
   useEffect(() => {
     async function fetchChannelMessages() {
