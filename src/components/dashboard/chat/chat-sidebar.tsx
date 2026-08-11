@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { type User } from "@/hooks/use-auth"
-import { type ChatChannel, type TeamUser } from "./types"
+import { type ChatChannel, type TeamUser, getCanonicalDmId } from "./types"
 
 interface ChatSidebarProps {
   user: User
@@ -161,7 +161,7 @@ export function ChatSidebar({
                 const isLabTarget = u.role === "jefe_laboratorio" || u.role === "tecnico" || u.role === "laboratorio"
                 const isBlocked = !isAdminUser && isComercialUser && isLabTarget
 
-                const targetDmId = user.id < u.id ? `dm-${user.id}-${u.id}` : `dm-${u.id}-${u.id}`
+                const targetDmId = getCanonicalDmId(user, u)
                 const isActive = activeChannelId === targetDmId
                 const isUserOnline = isOnline(u.last_seen_at)
 

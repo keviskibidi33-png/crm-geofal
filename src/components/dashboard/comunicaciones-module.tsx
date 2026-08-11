@@ -11,6 +11,7 @@ import {
   type TeamUser,
   type ComunicacionesModuleProps,
   DEFAULT_CHANNELS,
+  getCanonicalDmId,
 } from "./chat/types"
 import { ChatSidebar } from "./chat/chat-sidebar"
 import { ChatFeed } from "./chat/chat-feed"
@@ -80,10 +81,23 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     const found = channels.find((c) => c.id === activeChannelId)
     if (found) return found
 
-    if (activeChannelId.startsWith("dm-")) {
-      const parts = activeChannelId.replace("dm-", "").split("-")
-      const targetUser = teamUsers.find((u) => parts.includes(String(u.id)) && String(u.id) !== String(user.id))
-      const targetName = targetUser ? targetUser.name : "Chat Privado"
+    if (activeChannelId.startsWith("dm_") || activeChannelId.startsWith("dm-")) {
+      const delimiter = activeChannelId.startsWith("dm_") ? "_" : "-"
+      const prefix = activeChannelId.startsWith("dm_") ? "dm_" : "dm-"
+      const parts = activeChannelId.replace(prefix, "").split(delimiter)
+      const myEmail = (user.email || "").toLowerCase()
+      const myId = String(user.id || "")
+
+      const targetUser = teamUsers.find(
+        (u) =>
+          (parts.includes(u.email.toLowerCase()) || parts.includes(String(u.id))) &&
+          u.email.toLowerCase() !== myEmail &&
+          String(u.id) !== myId
+      )
+      const targetName = targetUser
+        ? targetUser.name
+        : parts.find((p) => p.toLowerCase() !== myEmail && p !== myId) || "Chat Privado"
+
       return {
         id: activeChannelId,
         name: targetName,
@@ -94,7 +108,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     }
 
     return DEFAULT_CHANNELS[0]
-  }, [channels, activeChannelId, teamUsers, user.id])
+  }, [channels, activeChannelId, teamUsers, user.id, user.email])
 
   const currentMemberEmails = useMemo(() => {
     if (channelMembersMap[activeChannelId]) {
@@ -266,6 +280,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
   // 5. Suscripción GLOBAL a mensajes en tiempo real vía Supabase para notificaciones y DMs automáticos
   useEffect(() => {
+    console.log("[ChatRealtime Audit] Initializing global chat stream listener for user:", user.email || user.id)
+
     const globalChatChannel = supabase
       .channel("chat_global_realtime_stream")
       .on(
@@ -280,16 +296,50 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           if (!newMsg) return
 
           const msgChannelId = String(newMsg.channel_id || "")
+          console.log(`[ChatRealtime Audit] Received message INSERT:`, {
+            id: newMsg.id,
+            channel_id: msgChannelId,
+            sender_id: newMsg.sender_id,
+            sender_name: newMsg.sender_name,
+            content: newMsg.content,
+          })
 
-          // Si es un mensaje DM, agregar automáticamente al destinatario en el panel lateral
-          if (msgChannelId.startsWith("dm-")) {
-            const parts = msgChannelId.replace("dm-", "").split("-")
-            const isUserInDm = parts.includes(String(user.id)) || parts.includes(String(user.email))
+          const myEmail = (user.email || "").toLowerCase()
+          const myId = String(user.id || "")
+
+          // Si es un mensaje DM (dm_ o dm-)
+          if (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) {
+            const delimiter = msgChannelId.startsWith("dm_") ? "_" : "-"
+            const prefix = msgChannelId.startsWith("dm_") ? "dm_" : "dm-"
+            const parts = msgChannelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
+            const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
+
+            console.log(`[ChatRealtime Audit] DM match evaluation:`, {
+              msgChannelId,
+              parts,
+              myEmail,
+              myId,
+              isUserInDm,
+            })
 
             if (isUserInDm) {
-              const otherId = parts.find((p) => String(p) !== String(user.id) && String(p) !== String(user.email))
-              if (otherId) {
-                setStartedDmUserIds((prev) => (prev.includes(otherId) ? prev : [...prev, otherId]))
+              const otherUser = teamUsers.find(
+                (u) =>
+                  parts.includes(u.email.toLowerCase()) &&
+                  u.email.toLowerCase() !== myEmail &&
+                  String(u.id) !== myId
+              )
+              const senderUser = teamUsers.find(
+                (u) =>
+                  u.email.toLowerCase() === String(newMsg.sender_id || "").toLowerCase() ||
+                  u.email.toLowerCase() === String(newMsg.sender_name || "").toLowerCase() ||
+                  String(u.id) === String(newMsg.sender_id)
+              )
+
+              const targetUserId = otherUser?.id || senderUser?.id
+              if (targetUserId) {
+                console.log(`[ChatRealtime Audit] Adding targetUserId to startedDmUserIds:`, targetUserId)
+                setStartedDmUserIds((prev) => (prev.includes(targetUserId) ? prev : [...prev, targetUserId]))
               }
             }
           }
@@ -322,12 +372,13 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
             newMsg.sender_name !== user.email
 
           if (isFromOther) {
+            console.log(`[ChatRealtime Audit] Dispatching crm_chat_notification event for sender:`, newMsg.sender_name)
             window.dispatchEvent(
               new CustomEvent("crm_chat_notification", {
                 detail: {
                   senderName: newMsg.sender_name || "Usuario CRM",
                   content: newMsg.content,
-                  channelName: msgChannelId.startsWith("dm-") ? "Chat Privado" : msgChannelId,
+                  channelName: (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) ? "Chat Privado" : msgChannelId,
                   senderAvatar: newMsg.sender_avatar,
                 },
               })
@@ -335,12 +386,14 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log(`[ChatRealtime Audit] Supabase Subscription Status for global stream:`, status)
+      })
 
     return () => {
       supabase.removeChannel(globalChatChannel)
     }
-  }, [activeChannelId, user.id, user.email, user.name])
+  }, [activeChannelId, teamUsers, user.id, user.email, user.name])
 
   // 6. Cargar integrantes reales del canal desde la base de datos
   useEffect(() => {
@@ -634,7 +687,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
       return
     }
 
-    const dmId = user.id < targetUser.id ? `dm-${user.id}-${targetUser.id}` : `dm-${targetUser.id}-${user.id}`
+    const dmId = getCanonicalDmId(user, targetUser)
+    console.log(`[ChatDM Audit] Opening DM between ${user.email} and ${targetUser.email} -> canonical dmId: ${dmId}`)
     setStartedDmUserIds((prev) => (prev.includes(targetUser.id) ? prev : [...prev, targetUser.id]))
     setActiveChannelId(dmId)
   }

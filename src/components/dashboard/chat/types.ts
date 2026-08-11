@@ -43,3 +43,10 @@ export const DEFAULT_CHANNELS: ChatChannel[] = [
   { id: "informes", name: "informes-revision", description: "Revisión y emisión de informes LEM", isPrivate: false, category: "area" },
   { id: "alertas", name: "alertas-gerencia", description: "Notificaciones y clientes prioritarios", isPrivate: true, category: "area" },
 ]
+
+export function getCanonicalDmId(user1: { id?: string; email?: string }, user2: { id?: string; email?: string }): string {
+  const e1 = (user1.email || user1.id || "").trim().toLowerCase()
+  const e2 = (user2.email || user2.id || "").trim().toLowerCase()
+  const sorted = [e1, e2].sort()
+  return `dm_${sorted[0]}_${sorted[1]}`
+}
