@@ -125,8 +125,58 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
 
-  // Visor de fotos (Lightbox)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  // Indicador de "está escribiendo..." (Estilo WhatsApp)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timestamp: number }>>({})
+
+  // Broadcast & escuchar eventos de "está escribiendo..." en el canal activo
+  useEffect(() => {
+    const typingChannel = supabase
+      .channel(`typing_${activeChannelId}`)
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const { userId, userName } = payload.payload || {}
+        if (userId && userId !== user.id && userId !== user.email) {
+          setTypingUsers((prev) => ({
+            ...prev,
+            [userId]: { name: userName || "Usuario", timestamp: Date.now() },
+          }))
+        }
+      })
+      .subscribe()
+
+    const interval = setInterval(() => {
+      const now = Date.now()
+      setTypingUsers((prev) => {
+        const next = { ...prev }
+        let changed = false
+        for (const [id, data] of Object.entries(next)) {
+          if (now - data.timestamp > 3000) {
+            delete next[id]
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }, 1000)
+
+    return () => {
+      supabase.removeChannel(typingChannel)
+      clearInterval(interval)
+    }
+  }, [activeChannelId, user.id, user.email])
+
+  const handleTyping = () => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    supabase.channel(`typing_${activeChannelId}`).send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: user.id || user.email, userName: user.name },
+    })
+
+    typingTimeoutRef.current = setTimeout(() => {}, 2500)
+  }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -232,6 +282,25 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         (payload) => {
           const newMsg = payload.new as any
           if (newMsg) {
+            const isFromOther =
+              newMsg.sender_id !== user.id &&
+              newMsg.sender_id !== user.email &&
+              newMsg.sender_name !== user.name &&
+              newMsg.sender_name !== user.email
+
+            if (isFromOther) {
+              window.dispatchEvent(
+                new CustomEvent("crm_chat_notification", {
+                  detail: {
+                    senderName: newMsg.sender_name || "Usuario CRM",
+                    content: newMsg.content,
+                    channelName: activeChannel?.name || "Canal",
+                    senderAvatar: newMsg.sender_avatar,
+                  },
+                })
+              )
+            }
+
             setMessages((prev) => {
               if (prev.some((m) => m.id === newMsg.id)) return prev
               return [
@@ -256,7 +325,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [activeChannelId])
+  }, [activeChannelId, activeChannel?.name, user.id, user.email, user.name])
 
   useEffect(() => {
     scrollToBottom()
@@ -834,7 +903,14 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           ) : (
             <div className="space-y-4">
               {activeMessages.map((msg) => {
-                const isMe = msg.senderId === user.id
+                const isMe =
+                  msg.senderId === user.id ||
+                  msg.senderId === user.email ||
+                  (msg.senderName && (
+                    msg.senderName === user.name ||
+                    msg.senderName === user.email ||
+                    msg.senderName.toLowerCase() === user.email.toLowerCase()
+                  ))
                 return (
                   <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
                     <Avatar className="h-8 w-8 border border-border shrink-0">
@@ -902,6 +978,21 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
           )}
         </ScrollArea>
 
+        {/* Indicador de "está escribiendo..." (Estilo WhatsApp) */}
+        {Object.values(typingUsers).length > 0 && (
+          <div className="px-4 py-1.5 text-xs text-primary font-medium bg-primary/5 border-t border-border flex items-center gap-2 animate-pulse">
+            <span className="flex gap-1 items-center">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+            </span>
+            <span>
+              {Object.values(typingUsers).map((u) => u.name).join(", ")}{" "}
+              {Object.values(typingUsers).length === 1 ? "está escribiendo..." : "están escribiendo..."}
+            </span>
+          </div>
+        )}
+
         {/* Input de Mensaje de Abajo */}
         <div className="p-3 border-t border-border bg-card/60 shrink-0">
           <div className="flex items-center gap-2 bg-background border border-border rounded-xl p-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all">
@@ -919,7 +1010,10 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
               placeholder={`Enviar mensaje a ${channelPrefix} ${activeChannel.name}...`}
               className="flex-1 border-none shadow-none focus-visible:ring-0 text-xs bg-transparent h-8"
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              onChange={(e) => {
+                setInputMessage(e.target.value)
+                handleTyping()
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()

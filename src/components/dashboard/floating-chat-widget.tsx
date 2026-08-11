@@ -95,7 +95,14 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
               senderName: m.sender_name || "Usuario",
               senderAvatar: m.sender_avatar,
               content: m.content,
-              isMe: m.sender_id === user.id,
+              isMe:
+                m.sender_id === user.id ||
+                m.sender_id === user.email ||
+                (m.sender_name && (
+                  m.sender_name === user.name ||
+                  m.sender_name === user.email ||
+                  m.sender_name.toLowerCase() === user.email.toLowerCase()
+                )),
               timestamp: new Date(m.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
               attachmentUrl: m.attachments?.[0]?.url,
             }))
@@ -118,7 +125,25 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
         { event: "INSERT", schema: "public", table: "chat_messages" },
         (payload) => {
           const newMsg = payload.new as any
-          if (newMsg && newMsg.sender_id !== user.id) {
+          const isFromOther =
+            newMsg &&
+            newMsg.sender_id !== user.id &&
+            newMsg.sender_id !== user.email &&
+            newMsg.sender_name !== user.name &&
+            newMsg.sender_name !== user.email
+
+          if (isFromOther) {
+            window.dispatchEvent(
+              new CustomEvent("crm_chat_notification", {
+                detail: {
+                  senderName: newMsg.sender_name || "Usuario CRM",
+                  content: newMsg.content,
+                  channelName: activeChatName,
+                  senderAvatar: newMsg.sender_avatar,
+                },
+              })
+            )
+
             setMessages((prev) => [
               ...prev,
               {

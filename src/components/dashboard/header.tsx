@@ -73,7 +73,7 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   const isAdmin = isAdminDashboardRole(user.role)
   const isCommercialNotificationsRole = isComercialDashboardRole(user.role)
   const isLaboratoryNotifications = isLaboratoryNotificationsRole(user.role)
-  const showNotifications = isAdmin || isCommercialNotificationsRole || isLaboratoryNotifications
+  const showNotifications = true
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -229,6 +229,33 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
       setNotificationsLoading(false)
     }
   }, [isAdmin, isCommercialNotificationsRole, isLaboratoryNotifications, mergeNotifications, showNotifications])
+
+  useEffect(() => {
+    const handleChatNotification = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (!detail) return
+      triggerBellAlert()
+      setNotifications((prev) => [
+        {
+          id: `chat-${Date.now()}-${Math.random()}`,
+          type: "chat_message",
+          severity: "info",
+          title: `Mensaje en ${detail.channelName || "Chat"}`,
+          message: `${detail.senderName}: ${detail.content ? detail.content.substring(0, 50) : "Nuevo archivo de chat"}`,
+          status: "open",
+          created_at: new Date().toISOString(),
+          metadata: {
+            created_by: detail.senderName,
+            avatar_url: detail.senderAvatar,
+          },
+        },
+        ...prev,
+      ])
+    }
+
+    window.addEventListener("crm_chat_notification", handleChatNotification)
+    return () => window.removeEventListener("crm_chat_notification", handleChatNotification)
+  }, [triggerBellAlert])
 
   const acknowledgeNotification = useCallback(async (notificationId: string) => {
     if (!showNotifications || !notificationId) return
