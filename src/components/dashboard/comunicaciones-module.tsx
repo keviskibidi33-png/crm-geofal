@@ -480,7 +480,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     }
 
     setActiveChannelId(dmId)
-    toast.info(`Conversación abierta con ${targetUser.name}`)
   }
 
   const activeMessages = messages.filter((m) => m.channelId === activeChannelId)
@@ -544,10 +543,10 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                     <button
                       key={ch.id}
                       onClick={() => setActiveChannelId(ch.id)}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 text-left ${
                         isActive
                           ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 hover:text-foreground"
                       }`}
                     >
                       {ch.isPrivate ? (
@@ -599,15 +598,15 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                   <button
                     key={u.id}
                     onClick={() => handleOpenDM(u)}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 text-left ${
                       isActive
                         ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 hover:text-foreground"
                     } ${isBlocked ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
                     <div className="relative shrink-0 flex items-center justify-center">
                       <Avatar className="h-6 w-6 border border-border">
-                        <AvatarFallback className={`text-[9px] font-bold ${isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                        <AvatarFallback className={`text-[9px] font-extrabold ${isActive ? "bg-white/20 text-primary-foreground border border-white/30" : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600"}`}>
                           {u.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
