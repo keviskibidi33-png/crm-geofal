@@ -24,6 +24,7 @@ interface ChatSidebarProps {
   setIsCreateChannelOpen: (open: boolean) => void
   setIsNewDMOpen: (open: boolean) => void
   handleOpenDM: (targetUser: TeamUser) => void
+  unreadCounts?: Record<string, number>
 }
 
 export function ChatSidebar({
@@ -40,6 +41,7 @@ export function ChatSidebar({
   setIsCreateChannelOpen,
   setIsNewDMOpen,
   handleOpenDM,
+  unreadCounts = {},
 }: ChatSidebarProps) {
   const isOnline = (lastSeen?: string | null) => {
     if (!lastSeen) return false
@@ -104,6 +106,7 @@ export function ChatSidebar({
           <div className="mt-1 space-y-0.5">
             {filteredWork.map((ch) => {
               const isActive = ch.id === activeChannelId
+              const unread = unreadCounts[ch.id] || ch.unreadCount || 0
               return (
                 <button
                   key={ch.id}
@@ -111,6 +114,8 @@ export function ChatSidebar({
                   className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 text-left ${
                     isActive
                       ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : unread > 0
+                      ? "bg-primary/10 text-foreground font-bold border border-primary/20"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 hover:text-foreground"
                   }`}
                 >
@@ -120,9 +125,9 @@ export function ChatSidebar({
                     <Hash className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-primary-foreground" : "text-primary/70"}`} />
                   )}
                   <span className="truncate flex-1"># {ch.name}</span>
-                  {ch.unreadCount ? (
-                    <Badge variant="destructive" className="h-4 px-1 text-[10px]">
-                      {ch.unreadCount}
+                  {unread > 0 ? (
+                    <Badge variant="destructive" className="h-4 px-1.5 text-[10px] font-extrabold animate-bounce shadow-xs">
+                      {unread}
                     </Badge>
                   ) : null}
                 </button>
@@ -164,6 +169,7 @@ export function ChatSidebar({
                 const targetDmId = getCanonicalDmId(user, u)
                 const isActive = activeChannelId === targetDmId
                 const isUserOnline = isOnline(u.last_seen_at)
+                const unread = unreadCounts[targetDmId] || 0
 
                 return (
                   <button
@@ -172,6 +178,8 @@ export function ChatSidebar({
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 text-left ${
                       isActive
                         ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                        : unread > 0
+                        ? "bg-primary/10 text-foreground font-bold border border-primary/20 animate-pulse"
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 hover:text-foreground"
                     } ${isBlocked ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
@@ -197,6 +205,11 @@ export function ChatSidebar({
                       )}
                     </div>
                     <span className="truncate flex-1">{u.name}</span>
+                    {unread > 0 && (
+                      <Badge variant="destructive" className="h-4 px-1.5 text-[10px] font-extrabold animate-bounce shadow-xs ml-auto">
+                        {unread}
+                      </Badge>
+                    )}
                     {isBlocked && (
                       <Lock className={`h-3 w-3 shrink-0 ${isActive ? "text-primary-foreground" : "text-amber-500"}`} />
                     )}

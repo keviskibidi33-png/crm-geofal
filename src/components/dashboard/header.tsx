@@ -235,13 +235,16 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
       const detail = (e as CustomEvent).detail
       if (!detail) return
       triggerBellAlert()
+      toast.info(`💬 ${detail.senderName} (${detail.channelName || "Chat"})`, {
+        description: detail.content ? detail.content.substring(0, 60) : "Nuevo archivo adjunto",
+      })
       setNotifications((prev) => [
         {
           id: `chat-${Date.now()}-${Math.random()}`,
           type: "chat_message",
           severity: "info",
-          title: `Mensaje en ${detail.channelName || "Chat"}`,
-          message: `${detail.senderName}: ${detail.content ? detail.content.substring(0, 50) : "Nuevo archivo de chat"}`,
+          title: `Mensaje de ${detail.senderName}`,
+          message: `${detail.channelName ? `[${detail.channelName}] ` : ""}${detail.content ? detail.content.substring(0, 60) : "Nuevo archivo de chat"}`,
           status: "open",
           created_at: new Date().toISOString(),
           metadata: {

@@ -47,8 +47,9 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
+  const [startedDmUserIds, setStartedDmUserIds] = useState<string[]>([])
   const [channelMembersMap, setChannelMembersMap] = useState<Record<string, string[]>>({})
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timestamp: number }>>({})
@@ -278,6 +279,16 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     fetchChannelMessages()
   }, [activeChannelId])
 
+  // Clear unread counts for active channel
+  useEffect(() => {
+    setUnreadCounts((prev) => {
+      if (!prev[activeChannelId]) return prev
+      const next = { ...prev }
+      delete next[activeChannelId]
+      return next
+    })
+  }, [activeChannelId])
+
   // 5. Suscripción GLOBAL a mensajes en tiempo real vía Supabase para notificaciones y DMs automáticos
   useEffect(() => {
     console.log("[ChatRealtime Audit] Initializing global chat stream listener for user:", user.email || user.id)
@@ -362,6 +373,13 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
                 },
               ]
             })
+            setTimeout(scrollToBottom, 60)
+          } else {
+            // Incrementar contador de no leídos para el canal o DM
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [msgChannelId]: (prev[msgChannelId] || 0) + 1,
+            }))
           }
 
           // Notificación sonora y campanita si el mensaje proviene de otro usuario
@@ -689,7 +707,13 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
 
     const dmId = getCanonicalDmId(user, targetUser)
     console.log(`[ChatDM Audit] Opening DM between ${user.email} and ${targetUser.email} -> canonical dmId: ${dmId}`)
-    setStartedDmUserIds((prev) => (prev.includes(targetUser.id) ? prev : [...prev, targetUser.id]))
+    setStartedDmUserIds((prev) => (prev.includes(targetUser.id) ? [targetUser.id, ...prev.filter((id) => id !== targetUser.id)] : [targetUser.id, ...prev]))
+    setUnreadCounts((prev) => {
+      if (!prev[dmId]) return prev
+      const next = { ...prev }
+      delete next[dmId]
+      return next
+    })
     setActiveChannelId(dmId)
   }
 
@@ -712,6 +736,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         setIsCreateChannelOpen={setIsCreateChannelOpen}
         setIsNewDMOpen={setIsNewDMOpen}
         handleOpenDM={handleOpenDM}
+        unreadCounts={unreadCounts}
       />
 
       {/* ── COLUMNA CENTRAL: Feed de Mensajes ── */}
