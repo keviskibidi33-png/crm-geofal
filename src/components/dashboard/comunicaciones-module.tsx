@@ -48,7 +48,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [newChannelDesc, setNewChannelDesc] = useState("")
   const [newChannelIsPrivate, setNewChannelIsPrivate] = useState(false)
   const [selectedUserEmails, setSelectedUserEmails] = useState<string[]>([])
-  const [startedDmUserIds, setStartedDmUserIds] = useState<string[]>([])
   const [channelMembersMap, setChannelMembersMap] = useState<Record<string, string[]>>({})
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
 
