@@ -64,25 +64,67 @@ export function ChatFeed({
   handleOpenDM,
   teamUsers = [],
 }: ChatFeedProps) {
-  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
-  const channelPrefix = isDM ? "@" : "#"
+  const dmTargetUser = isDM
+    ? teamUsers.find(
+        (u) =>
+          (u.email && u.email.toLowerCase() === activeChannel.name.toLowerCase()) ||
+          (u.name && u.name.toLowerCase() === activeChannel.name.toLowerCase()) ||
+          String(u.id) === activeChannel.name
+      ) || {
+        name: activeChannel.name,
+        email: activeChannel.name.includes("@") ? activeChannel.name : undefined,
+        avatar: undefined,
+      }
+    : null
+
+  const headerAvatarUrl = dmTargetUser ? getAvatarUrl(dmTargetUser.avatar) : undefined
+  const headerDisplayName = dmTargetUser
+    ? dmTargetUser.name
+    : activeChannel.name
 
   return (
     <div className="flex-1 flex flex-col bg-background/40 min-w-0 h-full overflow-hidden">
       {/* Encabezado del Canal Activo */}
       <div className="h-14 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          {isDM ? (
-            <UserCheck className="h-4.5 w-4.5 text-emerald-500 shrink-0" />
+          {isDM && dmTargetUser ? (
+            <UserProfilePopover
+              targetUser={dmTargetUser}
+              currentUser={user}
+              handleOpenDM={handleOpenDM}
+              side="bottom"
+              align="start"
+            >
+              <Avatar className="h-8 w-8 border border-border shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all">
+                {headerAvatarUrl && <AvatarImage src={headerAvatarUrl} alt={headerDisplayName} />}
+                <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
+                  {headerDisplayName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </UserProfilePopover>
           ) : activeChannel.isPrivate ? (
             <Lock className="h-4 w-4 text-amber-500 shrink-0" />
           ) : (
             <Hash className="h-4 w-4 text-primary shrink-0" />
           )}
           <div className="min-w-0">
-            <h3 className="font-semibold text-sm truncate flex items-center gap-2">
-              {channelPrefix} {activeChannel.name}
-            </h3>
+            {isDM && dmTargetUser ? (
+              <UserProfilePopover
+                targetUser={dmTargetUser}
+                currentUser={user}
+                handleOpenDM={handleOpenDM}
+                side="bottom"
+                align="start"
+              >
+                <h3 className="font-semibold text-sm truncate flex items-center gap-2 cursor-pointer hover:underline hover:text-primary transition-colors">
+                  {channelPrefix} {headerDisplayName}
+                </h3>
+              </UserProfilePopover>
+            ) : (
+              <h3 className="font-semibold text-sm truncate flex items-center gap-2">
+                {channelPrefix} {activeChannel.name}
+              </h3>
+            )}
             {activeChannel.description && (
               <p className="text-[11px] text-muted-foreground truncate">{activeChannel.description}</p>
             )}
@@ -142,11 +184,6 @@ export function ChatFeed({
                   ? `Este es el comienzo de tu historial de mensajes directos con ${activeChannel.name}. Envía un mensaje a continuación para iniciar el chat en tiempo real.`
                   : activeChannel.description || "Este canal de trabajo está creado y listo para enviar comunicados y coordinaciones del equipo."}
               </p>
-            </div>
-            <div className="flex items-center gap-2 pt-1">
-              <Badge variant="outline" className="text-[10px] gap-1 py-1 px-2.5 bg-background font-medium">
-                <Sparkles className="h-3 w-3 text-amber-500" /> Mensajería en tiempo real Geofal CRM
-              </Badge>
             </div>
           </div>
         ) : (

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { MessageSquare, Shield, Lock, CheckCircle2, Clock, Mail } from "lucide-react"
+import { MessageSquare, Shield, Lock, CheckCircle2, Clock, Mail, Hash } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -166,6 +166,25 @@ export function UserProfilePopover({
             <span className={onlineStatus ? "font-bold text-emerald-600 dark:text-emerald-400" : "font-medium text-slate-500"}>
               {onlineStatus ? "En línea (Activo)" : "Desconectado"}
             </span>
+          </div>
+
+          {/* Canales de Trabajo en común */}
+          <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+              <Hash className="h-3.5 w-3.5 text-primary" />
+              <span>Canales de Trabajo en común</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="secondary" className="text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                # general
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                # comercial-ventas
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                # informes-revision
+              </Badge>
+            </div>
           </div>
 
           {/* Botón Acción Principal: Chat Privado */}
