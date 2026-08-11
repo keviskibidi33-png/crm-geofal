@@ -1685,7 +1685,7 @@ export const ensayosData: EnsayoItem[] = [
     acreditado: 'SI',
     referenciaOtraNorma: 'NTP 339.145',
     ubicacion: 'LABORATORIO',
-    precio: 300,
+    precio: 350,
     tiempo: '7 dias',
     comentarios: '',
     categoria: 'ENSAYOS ESPECIALES SUELO',
