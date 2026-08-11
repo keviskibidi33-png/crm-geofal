@@ -136,7 +136,7 @@ function isKpiAuthorizedEmail(email?: string) {
   return KPI_AUTHORIZED_IDENTITIES.some((id) => norm.includes(id))
 }
 
-  if (activeCheckModule === "configuracion") {
+  if (activeCheckModule === "configuracion" || activeCheckModule === "comunicaciones") {
     return true
   }
 
