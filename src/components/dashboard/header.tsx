@@ -231,35 +231,7 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
     }
   }, [isAdmin, isCommercialNotificationsRole, isLaboratoryNotifications, mergeNotifications, showNotifications])
 
-  useEffect(() => {
-    const handleChatNotification = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      if (!detail) return
-      triggerBellAlert()
-      toast.info(`💬 ${detail.senderName} (${detail.channelName || "Chat"})`, {
-        description: detail.content ? detail.content.substring(0, 60) : "Nuevo archivo adjunto",
-      })
-      setNotifications((prev) => [
-        {
-          id: `chat-${Date.now()}-${Math.random()}`,
-          type: "chat_message",
-          severity: "info",
-          title: `Mensaje de ${detail.senderName}`,
-          message: `${detail.channelName ? `[${detail.channelName}] ` : ""}${detail.content ? detail.content.substring(0, 60) : "Nuevo archivo de chat"}`,
-          status: "open",
-          created_at: new Date().toISOString(),
-          metadata: {
-            created_by: detail.senderName,
-            avatar_url: detail.senderAvatar,
-          },
-        },
-        ...prev,
-      ])
-    }
 
-    window.addEventListener("crm_chat_notification", handleChatNotification)
-    return () => window.removeEventListener("crm_chat_notification", handleChatNotification)
-  }, [triggerBellAlert])
 
   const acknowledgeNotification = useCallback(async (notificationId: string) => {
     if (!showNotifications || !notificationId) return

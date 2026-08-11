@@ -531,6 +531,7 @@ export function useChatState(user: User, initialChannelId?: string) {
       await authFetch(`${API_URL}/api/chat/messages`, {
         method: "POST",
         body: JSON.stringify({
+          id: tempMessage.id,
           channel_id: activeChannelId,
           content: currentText,
           attachments,

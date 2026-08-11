@@ -10,7 +10,7 @@ import { type TeamUser } from "../types"
 import { type User } from "@/hooks/use-auth"
 
 interface UserProfilePopoverProps {
-  targetUser: TeamUser | { id?: string; name: string; email?: string; role?: string; avatar?: string; last_seen_at?: string }
+  targetUser: TeamUser | { id?: string; name: string; email?: string; role?: string; avatar?: string; banner_url?: string; last_seen_at?: string }
   currentUser: User
   handleOpenDM?: (targetUser: TeamUser) => void
   children: React.ReactNode
@@ -37,8 +37,18 @@ export function UserProfilePopover({
   const name = targetUser.name || "Usuario CRM"
   const email = targetUser.email || ""
   const role = targetUser.role || "usuario"
-  const avatar = targetUser.avatar
+  const rawAvatar = targetUser.avatar
+  const bannerUrl = (targetUser as any).banner_url
   const onlineStatus = isOnline(targetUser.last_seen_at)
+
+  const resolveAvatarUrl = (url?: string) => {
+    if (!url) return undefined
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://uivlyclywvxvhjvgssky.supabase.co"
+    return `${supabaseUrl}/storage/v1/object/public/avatars/${url.replace(/^\/+/, "")}`
+  }
+
+  const avatar = resolveAvatarUrl(rawAvatar)
 
   const isAdminUser =
     currentUser.role === "admin" ||
@@ -84,9 +94,13 @@ export function UserProfilePopover({
         side={side}
         className="w-80 p-0 overflow-hidden rounded-2xl border border-border shadow-2xl bg-card text-card-foreground z-50 animate-in fade-in-0 zoom-in-95"
       >
-        {/* Cabecera Corporativa con Gradiente Branding Geofal */}
-        <div className="relative h-20 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-3">
-          <div className="absolute right-3 top-3 flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white/90 font-semibold border border-white/20">
+        {/* Cabecera Corporativa con Fondo Personalizado o Gradiente Geofal */}
+        <div
+          className="relative h-24 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-3 bg-cover bg-center transition-all"
+          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute right-3 top-3 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white/90 font-semibold border border-white/20">
             <Shield className="h-3 w-3 text-sky-300" />
             <span>Perfil CRM</span>
           </div>

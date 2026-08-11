@@ -10,6 +10,7 @@ export interface ChatMessage {
   attachments?: Array<{ url: string; type: "image" | "file"; name: string; size?: string }>
   createdAt: string
   parent_id?: string
+  read?: boolean
 }
 
 export interface ChatChannel {

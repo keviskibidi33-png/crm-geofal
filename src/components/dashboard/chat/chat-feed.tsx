@@ -15,6 +15,8 @@ import {
   Send,
   FileText,
   Download,
+  Check,
+  CheckCheck,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -209,6 +211,18 @@ export function ChatFeed({
                       {/* Evitar duplicar el texto "Imagen adjunta:" si hay un adjunto de tipo imagen */}
                       {msg.content && !msg.content.startsWith("Imagen adjunta:") && (
                         <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
+
+                      {/* Indicador de Hora y Visto (Leído/No Leído estilo WhatsApp / Facebook) */}
+                      {isMe && (
+                        <div className="flex items-center justify-end gap-1 mt-1 text-[10px] opacity-90 select-none">
+                          <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          {msg.read ? (
+                            <CheckCheck className="h-3.5 w-3.5 text-sky-200 fill-sky-200/30 shrink-0" title="Leído por el destinatario" />
+                          ) : (
+                            <CheckCheck className="h-3.5 w-3.5 text-white/70 shrink-0" title="Entregado" />
+                          )}
+                        </div>
                       )}
 
                       {/* Adjuntos (Imágenes o Archivos) */}
