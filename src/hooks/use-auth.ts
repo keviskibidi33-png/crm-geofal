@@ -440,8 +440,9 @@ async function buildUser(session: any): Promise<User> {
             p.correlativos = p.ingenieria_archivos
         }
 
-        // LAW: Everyone can edit their own settings/config
+        // LAW: Everyone can edit their own settings/config and access communications
         p.configuracion = { read: true, write: true, delete: false }
+        p.comunicaciones = { read: true, write: true, delete: false }
 
         // Habilitar control de probetas para todos los usuarios de Oficina Técnica
         if (rNorm === "oficina_tecnica" || rNorm.startsWith("oficina_tecnica")) {
@@ -831,6 +832,7 @@ async function buildUser(session: any): Promise<User> {
             },
             comercial: pick('comercial'),
             programacion: pick('programacion'),
+            comunicaciones: { read: true, write: true, delete: false },
             configuracion: pick('configuracion'),
         }
     }
@@ -872,6 +874,7 @@ async function buildUser(session: any): Promise<User> {
             verificacion_muestras: pick('verificacion_muestras'),
             compresion: pick('compresion'),
             compresion_no_confinada: pick('compresion_no_confinada'),
+            comunicaciones: { read: true, write: true, delete: false },
             configuracion: pick('configuracion'),
         }
     }
@@ -971,7 +974,16 @@ async function refreshAuthSession() {
     refreshInFlight = (async () => {
         try {
             const { data, error } = await supabase.auth.refreshSession()
-            if (error) return
+            if (error) {
+                if (error.status === 400 || error.message?.includes("refresh_token") || error.message?.includes("Invalid")) {
+                    console.warn("[Auth] Refresh token expired or invalid (HTTP 400). Clearing invalid session.")
+                    await supabase.auth.signOut().catch(() => {})
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('token')
+                    }
+                }
+                return
+            }
             if (data?.session?.access_token && typeof window !== 'undefined') {
                 localStorage.setItem('token', data.session.access_token)
             }
