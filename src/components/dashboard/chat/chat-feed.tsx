@@ -9,8 +9,6 @@ import {
   Info,
   Loader2,
   MessageSquareDashed,
-  Sparkles,
-  UserCheck,
   Paperclip,
   Image as ImageIcon,
   Send,
@@ -21,7 +19,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type User } from "@/hooks/use-auth"
 import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
@@ -64,6 +61,9 @@ export function ChatFeed({
   handleOpenDM,
   teamUsers = [],
 }: ChatFeedProps) {
+  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
+  const channelPrefix = isDM ? "@" : "#"
+
   const dmTargetUser = isDM
     ? teamUsers.find(
         (u) =>
