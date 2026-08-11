@@ -17,6 +17,7 @@ import { canAccessDashboardModule, getPreferredControlModule, isRestrictedTechni
 import { Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { LoadingScreen } from "@/components/ui/loading-screen"
+import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
 
 function DashboardModuleFallback() {
   return (
@@ -100,7 +101,6 @@ const AdministracionKpisDevelopment = dashboardDynamic(async () => (await import
 const DashboardHomeModule = dashboardDynamic(async () => (await import("@/components/dashboard/dashboard-home-module")).DashboardHomeModule)
 const ComunicacionesModule = dashboardDynamic(async () => (await import("@/components/dashboard/comunicaciones-module")).ComunicacionesModule)
 const KanbanModule = dashboardDynamic(async () => (await import("@/components/dashboard/kanban-module")).KanbanModule)
-import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
 
 export default function DashboardPage() {
   const initRedirectedRef = useRef(false)
