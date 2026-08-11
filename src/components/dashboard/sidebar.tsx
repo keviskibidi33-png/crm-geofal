@@ -153,6 +153,19 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     return () => mediaQuery.removeEventListener("change", updateTabletLayout)
   }, [])
 
+  const [unreadChatCount, setUnreadChatCount] = React.useState(0)
+
+  React.useEffect(() => {
+    const handleUnreadCount = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail && typeof customEvent.detail.count === "number") {
+        setUnreadChatCount(customEvent.detail.count)
+      }
+    }
+    window.addEventListener("crm_chat_unread_count", handleUnreadCount)
+    return () => window.removeEventListener("crm_chat_unread_count", handleUnreadCount)
+  }, [])
+
   React.useEffect(() => {
     const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
     updateViewport()
@@ -669,25 +682,38 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
 
           const Icon = module.icon
           const isActive = activeModule === module.id
-
           const readOnly = isModuleReadOnly(module.id)
+          const isComunicaciones = module.id === "comunicaciones"
 
           const button = (
             <button
               key={module.id}
               onClick={() => handleModuleClick(module.id)}
               className={cn(
-                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 relative",
                 collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <div className="relative flex items-center justify-center">
+                <Icon className="h-5 w-5 shrink-0" />
+                {collapsed && isComunicaciones && unreadChatCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                  </span>
+                )}
+              </div>
               {!collapsed && <span className="flex-1 text-left truncate">{module.label}</span>}
+              {!collapsed && isComunicaciones && unreadChatCount > 0 && (
+                <Badge variant="destructive" className="h-5 px-1.5 text-[11px] font-extrabold animate-bounce ml-auto shadow-xs">
+                  {unreadChatCount}
+                </Badge>
+              )}
               {!collapsed && readOnly && <Eye className="h-3.5 w-3.5 text-amber-500/70 shrink-0" />}
-              {!collapsed && !readOnly && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
+              {!collapsed && !readOnly && isActive && !isComunicaciones && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
             </button>
           )
 

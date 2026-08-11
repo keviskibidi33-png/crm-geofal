@@ -345,6 +345,16 @@ export function useChatState(user: User, initialChannelId?: string) {
     })
   }, [activeChannelId])
 
+  // Broadcast total unread count to global UI (Sidebar badge)
+  useEffect(() => {
+    const total = Object.values(unreadCounts).reduce((acc, count) => acc + count, 0)
+    window.dispatchEvent(
+      new CustomEvent("crm_chat_unread_count", {
+        detail: { count: total },
+      })
+    )
+  }, [unreadCounts])
+
   // 5. Suscripción GLOBAL Dual-Stream (Postgres Changes + Broadcast instantáneo)
   useEffect(() => {
     console.log("[ChatRealtime Audit] Initializing global dual-stream chat listener for user:", user.email || user.id)
