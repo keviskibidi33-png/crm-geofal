@@ -115,6 +115,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [startedDmUserIds, setStartedDmUserIds] = useState<string[]>([])
 
+  const [newChannelName, setNewChannelName] = useState("")
   const [editChannelName, setEditChannelName] = useState("")
   const [editChannelDesc, setEditChannelDesc] = useState("")
   const [editChannelIsPrivate, setEditChannelIsPrivate] = useState(false)
