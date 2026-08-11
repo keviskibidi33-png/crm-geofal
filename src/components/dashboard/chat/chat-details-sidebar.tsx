@@ -7,13 +7,10 @@ import {
   Star,
   Users,
   Pin,
-  FileText,
-  Link2,
   Bell,
   AlertTriangle,
   LogOut,
   ShieldCheck,
-  CheckCircle2,
   Image as ImageIcon,
   Copy,
   Check,
@@ -34,13 +31,13 @@ interface ChatDetailsSidebarProps {
   user: User
   activeMessages: ChatMessage[]
   onClose: () => void
-  handleOpenDM?: (userId: string) => void
+  handleOpenDM?: (targetUser: TeamUser) => void
 }
 
 export function ChatDetailsSidebar({
   activeChannel,
   dmTargetUser,
-  user,
+  user: _user,
   activeMessages,
   onClose,
 }: ChatDetailsSidebarProps) {
@@ -104,10 +101,7 @@ export function ChatDetailsSidebar({
 
   // Count attachments in activeMessages
   const attachments = activeMessages.flatMap((m) => m.attachments || [])
-  const imageCount = attachments.filter(
-    (a) => a.type === "image" || a.url?.match(/\.(png|jpg|jpeg|webp|gif)$/i)
-  ).length
-  const fileCount = attachments.length - imageCount
+  const memberCount = (activeChannel as unknown as { memberCount?: number }).memberCount || 1
 
   return (
     <div className="w-80 border-l border-border bg-card/60 flex flex-col h-full shrink-0 shadow-lg animate-in slide-in-from-right duration-200">
@@ -191,7 +185,7 @@ export function ChatDetailsSidebar({
                   <Users className="h-4 w-4 text-primary" /> Gente / Miembros
                 </span>
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                  {activeChannel.memberCount || 1}
+                  {memberCount}
                 </Badge>
               </button>
             )}

@@ -47,6 +47,7 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         handleTyping={chat.handleTyping}
         typingUsers={chat.typingUsers}
         setIsMembersOpen={chat.setIsMembersOpen}
+        isInfoOpen={chat.isInfoOpen}
         setIsInfoOpen={chat.setIsInfoOpen}
         setSelectedImage={chat.setSelectedImage}
         messagesEndRef={chat.messagesEndRef}

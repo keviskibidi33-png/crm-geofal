@@ -37,6 +37,7 @@ interface ChatFeedProps {
   handleTyping: () => void
   typingUsers: Record<string, { name: string; timestamp: number }>
   setIsMembersOpen: (open: boolean) => void
+  isInfoOpen?: boolean
   setIsInfoOpen: (open: boolean) => void
   setSelectedImage: (url: string | null) => void
   messagesEndRef: RefObject<HTMLDivElement | null>
@@ -56,6 +57,7 @@ export function ChatFeed({
   handleTyping,
   typingUsers,
   setIsMembersOpen,
+  isInfoOpen = false,
   setIsInfoOpen,
   setSelectedImage,
   messagesEndRef,
