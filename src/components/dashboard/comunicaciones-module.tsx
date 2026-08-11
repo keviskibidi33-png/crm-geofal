@@ -126,13 +126,64 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>("")
   const [channelMembersMap, setChannelMembersMap] = useState<Record<string, string[]>>({})
 
-  const selectedImageState = useState<string | null>(null)
-  const selectedImage = selectedImageState[0]
-  const setSelectedImage = selectedImageState[1]
-
-  // Indicador de "está escribiendo..." (Estilo WhatsApp)
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timestamp: number }>>({})
+
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  // Memorizaciones iniciales ordenadas antes de cualquier useEffect
+  const isAdminUser = useMemo(() => {
+    return (
+      user.role === "admin" ||
+      user.role === "admin_general" ||
+      user.role === "gerencia" ||
+      user.role === "super_admin" ||
+      user.email === "gerencia@geofal.com.pe"
+    )
+  }, [user.role, user.email])
+
+  const canCreateChannel = useMemo(() => {
+    return isAdminUser || user.role === "jefe_laboratorio"
+  }, [isAdminUser, user.role])
+
+  const activeChannel: ChatChannel = useMemo(() => {
+    const found = channels.find((c) => c.id === activeChannelId)
+    if (found) return found
+
+    if (activeChannelId.startsWith("dm-")) {
+      const parts = activeChannelId.replace("dm-", "").split("-")
+      const targetUser = teamUsers.find((u) => parts.includes(String(u.id)) && String(u.id) !== String(user.id))
+      const targetName = targetUser ? targetUser.name : "Chat Privado"
+      return {
+        id: activeChannelId,
+        name: targetName,
+        description: `Chat privado con ${targetName}`,
+        isPrivate: true,
+        category: "dm",
+      }
+    }
+
+    return DEFAULT_CHANNELS[0]
+  }, [channels, activeChannelId, teamUsers, user.id])
+
+  const currentMemberEmails = useMemo(() => {
+    if (channelMembersMap[activeChannelId]) {
+      return channelMembersMap[activeChannelId]
+    }
+    return teamUsers.map((u) => u.email)
+  }, [channelMembersMap, activeChannelId, teamUsers])
+
+  const currentMembers = useMemo(() => {
+    return teamUsers.filter((u) => currentMemberEmails.includes(u.email) || currentMemberEmails.includes(u.id))
+  }, [teamUsers, currentMemberEmails])
+
+  const availableUsersToAdd = useMemo(() => {
+    return teamUsers.filter((u) => !currentMemberEmails.includes(u.email) && !currentMemberEmails.includes(u.id))
+  }, [teamUsers, currentMemberEmails])
+
+  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
+  const channelPrefix = isDM ? "@" : "#"
 
   // Broadcast & escuchar eventos de "está escribiendo..." en el canal activo
   useEffect(() => {
@@ -357,38 +408,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
     scrollToBottom()
   }, [messages, activeChannelId])
 
-  // Verificar si el usuario actual tiene rol/email permitido para crear canales
-  const isAdminUser =
-    user.role === "admin" ||
-    user.role === "admin_general" ||
-    user.role === "gerencia" ||
-    user.role === "super_admin" ||
-    user.email === "gerencia@geofal.com.pe"
-
-  const canCreateChannel =
-    isAdminUser ||
-    user.role === "jefe_laboratorio"
-
-  const activeChannel: ChatChannel = useMemo(() => {
-    const found = channels.find((c) => c.id === activeChannelId)
-    if (found) return found
-
-    if (activeChannelId.startsWith("dm-")) {
-      const parts = activeChannelId.replace("dm-", "").split("-")
-      const targetUser = teamUsers.find((u) => parts.includes(String(u.id)) && String(u.id) !== String(user.id))
-      const targetName = targetUser ? targetUser.name : "Chat Privado"
-      return {
-        id: activeChannelId,
-        name: targetName,
-        description: `Chat privado con ${targetName}`,
-        isPrivate: true,
-        category: "dm",
-      }
-    }
-
-    return DEFAULT_CHANNELS[0]
-  }, [channels, activeChannelId, teamUsers, user.id])
-
   // Sync edit channel form fields when active channel changes
   useEffect(() => {
     if (activeChannel) {
@@ -398,25 +417,6 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
       setEditChannelCategory(activeChannel.category || "area")
     }
   }, [activeChannelId, activeChannel])
-
-  // Cálculos reactivos de integrantes pertenecientes al grupo
-  const currentMemberEmails = useMemo(() => {
-    if (channelMembersMap[activeChannelId]) {
-      return channelMembersMap[activeChannelId]
-    }
-    return teamUsers.map((u) => u.email)
-  }, [channelMembersMap, activeChannelId, teamUsers])
-
-  const currentMembers = useMemo(() => {
-    return teamUsers.filter((u) => currentMemberEmails.includes(u.email) || currentMemberEmails.includes(u.id))
-  }, [teamUsers, currentMemberEmails])
-
-  const availableUsersToAdd = useMemo(() => {
-    return teamUsers.filter((u) => !currentMemberEmails.includes(u.email) && !currentMemberEmails.includes(u.id))
-  }, [teamUsers, currentMemberEmails])
-
-  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
-  const channelPrefix = isDM ? "@" : "#"
 
   // 4. Enviar mensaje real a API Backend
   const handleSendMessage = async () => {
