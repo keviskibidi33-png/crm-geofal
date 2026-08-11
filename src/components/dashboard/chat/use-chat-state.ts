@@ -436,10 +436,10 @@ export function useChatState(user: User, initialChannelId?: string) {
 
   useEffect(() => {
     if (isInfoOpen) {
-      setEditChannelName(activeChannel.name)
-      setEditChannelDesc(activeChannel.description)
-      setEditChannelIsPrivate(activeChannel.isPrivate)
-      setEditChannelCategory(activeChannel.category)
+      setEditChannelName(activeChannel.name || "")
+      setEditChannelDesc(activeChannel.description || "")
+      setEditChannelIsPrivate(Boolean(activeChannel.isPrivate))
+      setEditChannelCategory(activeChannel.category || "area")
     }
   }, [isInfoOpen, activeChannel])
 
