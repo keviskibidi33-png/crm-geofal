@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { type User } from "@/hooks/use-auth"
 import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
 import { UserProfilePopover } from "./dialogs/user-profile-popover"
+import { ChatDetailsSidebar } from "./chat-details-sidebar"
 
 interface ChatFeedProps {
   user: User
@@ -83,8 +84,10 @@ export function ChatFeed({
     : activeChannel.name
 
   return (
-    <div className="flex-1 flex flex-col bg-background/40 min-w-0 h-full overflow-hidden">
-      {/* Encabezado del Canal Activo */}
+    <div className="flex-1 flex flex-row bg-background/40 min-w-0 h-full overflow-hidden relative">
+      {/* Feed Principal del Chat */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden border-r border-border/40">
+        {/* Encabezado del Canal Activo */}
       <div className="h-14 px-4 border-b border-border flex items-center justify-between bg-card/40 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           {isDM && dmTargetUser ? (
@@ -378,6 +381,19 @@ export function ChatFeed({
           </Button>
         </div>
       </div>
+      </div>
+
+      {/* Panel Lateral de Detalles del Chat (Sidebar Derecho) */}
+      {isInfoOpen && (
+        <ChatDetailsSidebar
+          activeChannel={activeChannel}
+          dmTargetUser={dmTargetUser}
+          user={user}
+          activeMessages={activeMessages}
+          onClose={() => setIsInfoOpen(false)}
+          handleOpenDM={handleOpenDM}
+        />
+      )}
     </div>
   )
 }
