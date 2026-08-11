@@ -35,7 +35,7 @@ import { toast } from "sonner"
 interface ChatDetailsSidebarProps {
   activeChannel: ChatChannel
   dmTargetUser: TeamUser | { name: string; email?: string; avatar?: string } | null
-  user: User
+  user?: User
   activeMessages: ChatMessage[]
   onClose: () => void
   handleOpenDM?: (targetUser: TeamUser) => void
@@ -48,7 +48,6 @@ type ViewMode = "main" | "members" | "user-detail"
 export function ChatDetailsSidebar({
   activeChannel,
   dmTargetUser,
-  user: _user,
   activeMessages,
   onClose,
   teamUsers = [],
@@ -118,9 +117,9 @@ export function ChatDetailsSidebar({
 
   // Count attachments in activeMessages
   const attachments = activeMessages.flatMap((m) => m.attachments || [])
-  const memberList = teamUsers.length > 0 ? teamUsers : [
-    { id: "1", name: "sistem_admin", email: "admin@geofal.com.pe", role: "Administrador" },
-    { id: "2", name: "Geraldine", email: "geraldine@geofal.com.pe", role: "Comercial" },
+  const memberList: TeamUser[] = teamUsers.length > 0 ? teamUsers : [
+    { id: "1", name: "sistem_admin", email: "admin@geofal.com.pe", role: "Administrador", status: "online", avatar: undefined },
+    { id: "2", name: "Geraldine", email: "geraldine@geofal.com.pe", role: "Comercial", status: "online", avatar: undefined },
   ]
   const filteredMembers = memberList.filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -367,7 +366,7 @@ export function ChatDetailsSidebar({
                       {m.email && <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>}
                     </div>
                   </div>
-                  <Badge variant="ghost" className="text-[10px] text-muted-foreground font-medium shrink-0">
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium shrink-0">
                     {m.role || "Miembro"}
                   </Badge>
                 </button>
