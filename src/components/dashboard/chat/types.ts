@@ -67,3 +67,44 @@ export function areChannelIdsEqual(id1: string, id2: string): boolean {
 
   return false
 }
+
+export function getAvatarUrl(avatarPath?: string | null): string | undefined {
+  if (!avatarPath) return undefined
+  if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://") || avatarPath.startsWith("data:")) {
+    return avatarPath
+  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://uivlyclywvxvhjvgssky.supabase.co"
+  const cleanPath = avatarPath.replace(/^\/+/, "")
+  return `${supabaseUrl}/storage/v1/object/public/avatars/${cleanPath}`
+}
+
+export function playChatChimeSound(): void {
+  if (typeof window === "undefined") return
+  try {
+    const soundEnabled = localStorage.getItem("crm_chat_sound_enabled") !== "false"
+    if (!soundEnabled) return
+
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return
+    const ctx = new AudioContextClass()
+
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(587.33, now)
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12)
+
+    gain.gain.setValueAtTime(0.15, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.35)
+  } catch (err) {
+    console.warn("Could not play chat chime sound:", err)
+  }
+}

@@ -12,6 +12,8 @@ import {
   DEFAULT_CHANNELS,
   getCanonicalDmId,
   areChannelIdsEqual,
+  getAvatarUrl,
+  playChatChimeSound,
 } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -257,7 +259,7 @@ export function useChatState(user: User, initialChannelId?: string) {
               name: u.nombre || u.full_name || u.email || "Usuario CRM",
               email: u.email || "",
               role: u.rol || u.role || "usuario",
-              avatar: u.avatar_url,
+              avatar: getAvatarUrl(u.avatar_url || u.avatar),
               last_seen_at: u.last_seen_at,
               status: isOnline(u.last_seen_at) ? "online" : "offline",
             }))
@@ -298,16 +300,25 @@ export function useChatState(user: User, initialChannelId?: string) {
         if (res.ok) {
           const data = await res.json()
           if (data.messages) {
-            const loadedMessages: ChatMessage[] = data.messages.map((m: any) => ({
-              id: m.id,
-              channelId: m.channel_id,
-              senderId: m.sender_id,
-              senderName: m.sender_name || "Usuario",
-              senderAvatar: m.sender_avatar,
-              content: m.content,
-              attachments: m.attachments || [],
-              createdAt: m.created_at,
-            }))
+            const loadedMessages: ChatMessage[] = data.messages.map((m: any) => {
+              const userMatch = teamUsers.find(
+                (u) =>
+                  u.email.toLowerCase() === String(m.sender_id || "").toLowerCase() ||
+                  u.email.toLowerCase() === String(m.sender_name || "").toLowerCase() ||
+                  String(u.id) === String(m.sender_id)
+              )
+              return {
+                id: m.id,
+                channelId: m.channel_id,
+                senderId: m.sender_id,
+                senderName: m.sender_name || "Usuario",
+                senderAvatar: getAvatarUrl(m.sender_avatar) || userMatch?.avatar,
+                content: m.content,
+                attachments: m.attachments || [],
+                createdAt: m.created_at,
+                read: true,
+              }
+            })
             setMessages(loadedMessages)
           }
         }
@@ -382,6 +393,12 @@ export function useChatState(user: User, initialChannelId?: string) {
 
       // Si el mensaje pertenece al canal que se está viendo activamente, agregarlo al feed
       if (isCurrentActiveChannel) {
+        const senderUser = teamUsers.find(
+          (u) =>
+            u.email.toLowerCase() === String(newMsg.sender_id || newMsg.senderId || "").toLowerCase() ||
+            u.email.toLowerCase() === String(newMsg.sender_name || newMsg.senderName || "").toLowerCase() ||
+            String(u.id) === String(newMsg.sender_id || newMsg.senderId)
+        )
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev
           return [
@@ -391,10 +408,11 @@ export function useChatState(user: User, initialChannelId?: string) {
               channelId: msgChannelId,
               senderId: newMsg.sender_id || newMsg.senderId,
               senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
-              senderAvatar: newMsg.sender_avatar || newMsg.senderAvatar,
+              senderAvatar: getAvatarUrl(newMsg.sender_avatar || newMsg.senderAvatar) || senderUser?.avatar,
               content: newMsg.content,
               attachments: newMsg.attachments || [],
               createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
+              read: isCurrentActiveChannel,
             },
           ]
         })
@@ -407,7 +425,7 @@ export function useChatState(user: User, initialChannelId?: string) {
         }))
       }
 
-      // Notificación sonora y campanita si el mensaje proviene de otro usuario
+      // Notificación sonora si el mensaje proviene de otro usuario
       const senderVal = newMsg.sender_id || newMsg.senderId
       const senderNameVal = newMsg.sender_name || newMsg.senderName
       const isFromOther =
@@ -417,16 +435,7 @@ export function useChatState(user: User, initialChannelId?: string) {
         senderNameVal !== user.email
 
       if (isFromOther) {
-        window.dispatchEvent(
-          new CustomEvent("crm_chat_notification", {
-            detail: {
-              senderName: senderNameVal || "Usuario CRM",
-              content: newMsg.content,
-              channelName: (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) ? "Chat Privado" : msgChannelId,
-              senderAvatar: newMsg.sender_avatar || newMsg.senderAvatar,
-            },
-          })
-        )
+        playChatChimeSound()
       }
     }
 
@@ -443,6 +452,12 @@ export function useChatState(user: User, initialChannelId?: string) {
       )
       .on("broadcast", { event: "chat_message_broadcast" }, (payload) => {
         processIncomingMessage(payload.payload)
+      })
+      .on("broadcast", { event: "chat_read_receipt" }, (payload) => {
+        const data = payload.payload
+        if (data && areChannelIdsEqual(data.channel_id, activeChannelId)) {
+          setMessages((prev) => prev.map((m) => ({ ...m, read: true })))
+        }
       })
       .subscribe((status) => {
         console.log(`[ChatRealtime Audit] Supabase Subscription Status for global stream:`, status)
@@ -473,6 +488,23 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
     fetchMembers()
   }, [activeChannelId])
+
+  // Emitir señal de lectura (Double Blue Checks) al entrar al canal
+  useEffect(() => {
+    if (!activeChannelId) return
+    try {
+      supabase.channel("chat_global_realtime_stream").send({
+        type: "broadcast",
+        event: "chat_read_receipt",
+        payload: {
+          channel_id: activeChannelId,
+          reader_id: user.id || user.email,
+        },
+      })
+    } catch (bErr) {
+      console.warn("Read receipt broadcast warning:", bErr)
+    }
+  }, [activeChannelId, user.id, user.email])
 
   useEffect(() => {
     scrollToBottom()
