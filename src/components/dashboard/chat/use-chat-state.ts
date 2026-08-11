@@ -307,6 +307,9 @@ export function useChatState(user: User, initialChannelId?: string) {
                   u.email.toLowerCase() === String(m.sender_name || "").toLowerCase() ||
                   String(u.id) === String(m.sender_id)
               )
+              const rawAtt = m.attachments
+              const safeAtt = typeof rawAtt === "string" ? (function() { try { return JSON.parse(rawAtt) } catch { return [] } })() : (Array.isArray(rawAtt) ? rawAtt : [])
+
               return {
                 id: m.id,
                 channelId: m.channel_id,
@@ -314,9 +317,9 @@ export function useChatState(user: User, initialChannelId?: string) {
                 senderName: m.sender_name || "Usuario",
                 senderAvatar: getAvatarUrl(m.sender_avatar) || userMatch?.avatar,
                 content: m.content,
-                attachments: m.attachments || [],
+                attachments: safeAtt,
                 createdAt: m.created_at,
-                read: true,
+                read: Boolean(m.is_read || m.read),
               }
             })
             setMessages(loadedMessages)
@@ -399,6 +402,9 @@ export function useChatState(user: User, initialChannelId?: string) {
             u.email.toLowerCase() === String(newMsg.sender_name || newMsg.senderName || "").toLowerCase() ||
             String(u.id) === String(newMsg.sender_id || newMsg.senderId)
         )
+        const rawAtt = newMsg.attachments
+        const safeAtt = typeof rawAtt === "string" ? (function() { try { return JSON.parse(rawAtt) } catch { return [] } })() : (Array.isArray(rawAtt) ? rawAtt : [])
+
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev
           return [
@@ -410,9 +416,9 @@ export function useChatState(user: User, initialChannelId?: string) {
               senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
               senderAvatar: getAvatarUrl(newMsg.sender_avatar || newMsg.senderAvatar) || senderUser?.avatar,
               content: newMsg.content,
-              attachments: newMsg.attachments || [],
+              attachments: safeAtt,
               createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
-              read: isCurrentActiveChannel,
+              read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
             },
           ]
         })
@@ -489,10 +495,14 @@ export function useChatState(user: User, initialChannelId?: string) {
     fetchMembers()
   }, [activeChannelId])
 
-  // Emitir señal de lectura (Double Blue Checks) al entrar al canal
+  // Emitir señal de lectura (Double Blue Checks) al entrar al canal y actualizar en DB
   useEffect(() => {
     if (!activeChannelId) return
     try {
+      authFetch(`${API_URL}/api/chat/messages/mark-read`, {
+        method: "POST",
+        body: JSON.stringify({ channel_id: activeChannelId }),
+      })
       supabase.channel("chat_global_realtime_stream").send({
         type: "broadcast",
         event: "chat_read_receipt",
