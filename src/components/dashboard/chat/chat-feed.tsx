@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type User } from "@/hooks/use-auth"
-import { type ChatChannel, type ChatMessage, type TeamUser } from "./types"
+import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
 import { UserProfilePopover } from "./dialogs/user-profile-popover"
 
 interface ChatFeedProps {
@@ -153,28 +153,47 @@ export function ChatFeed({
               const isMe =
                 msg.senderId === user.id ||
                 msg.senderId === user.email ||
-                (msg.senderName && (
-                  msg.senderName === user.name ||
-                  msg.senderName === user.email ||
-                  msg.senderName.toLowerCase() === user.email.toLowerCase()
-                ))
+                Boolean(
+                  msg.senderName && (
+                    msg.senderName === user.name ||
+                    msg.senderName === user.email ||
+                    msg.senderName.toLowerCase() === (user.email || "").toLowerCase()
+                  )
+                )
+              const matchedUser = teamUsers.find(
+                (u) =>
+                  (u.email && u.email.toLowerCase() === (msg.senderId || "").toLowerCase()) ||
+                  (u.name && u.name.toLowerCase() === (msg.senderName || "").toLowerCase()) ||
+                  String(u.id) === String(msg.senderId)
+              )
+
+              const popoverUser = matchedUser || {
+                name: msg.senderName,
+                email: msg.senderId.includes("@") ? msg.senderId : undefined,
+                avatar: msg.senderAvatar,
+              }
+
+              const displaySenderName = matchedUser
+                ? matchedUser.name
+                : msg.senderName.includes("@")
+                ? msg.senderName.split("@")[0].replace(/\./g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                : msg.senderName
+
+              const displaySenderAvatar = getAvatarUrl(msg.senderAvatar || matchedUser?.avatar)
+
               return (
                 <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
                   <UserProfilePopover
-                    targetUser={{
-                      name: msg.senderName,
-                      email: msg.senderId.includes("@") ? msg.senderId : undefined,
-                      avatar: msg.senderAvatar,
-                    }}
+                    targetUser={popoverUser}
                     currentUser={user}
                     handleOpenDM={handleOpenDM}
                     side="right"
                     align="start"
                   >
                     <Avatar className="h-8 w-8 border border-border shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all">
-                      <AvatarImage src={msg.senderAvatar || ""} />
+                      {displaySenderAvatar && <AvatarImage src={displaySenderAvatar} alt={displaySenderName} />}
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                        {msg.senderName.substring(0, 2).toUpperCase()}
+                        {displaySenderName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </UserProfilePopover>
@@ -182,18 +201,14 @@ export function ChatFeed({
                   <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
                     <div className="flex items-center gap-2 mb-1">
                       <UserProfilePopover
-                        targetUser={{
-                          name: msg.senderName,
-                          email: msg.senderId.includes("@") ? msg.senderId : undefined,
-                          avatar: msg.senderAvatar,
-                        }}
+                        targetUser={popoverUser}
                         currentUser={user}
                         handleOpenDM={handleOpenDM}
                         side="bottom"
                         align="start"
                       >
                         <span className="font-semibold text-xs text-foreground cursor-pointer hover:underline hover:text-primary transition-colors">
-                          {msg.senderName}
+                          {displaySenderName}
                         </span>
                       </UserProfilePopover>
                       <span className="text-[10px] text-muted-foreground">

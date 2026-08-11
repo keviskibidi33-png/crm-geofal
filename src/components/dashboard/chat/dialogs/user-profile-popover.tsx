@@ -34,12 +34,24 @@ export function UserProfilePopover({
     return diff < 5 * 60 * 1000
   }
 
-  const name = targetUser.name || "Usuario CRM"
-  const email = targetUser.email || ""
+  const rawName = targetUser.name || "Usuario CRM"
+  const name = rawName.includes("@")
+    ? rawName.split("@")[0].replace(/\./g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : rawName
+
+  const email = targetUser.email || (rawName.includes("@") ? rawName : "")
   const role = targetUser.role || "usuario"
   const rawAvatar = targetUser.avatar
   const bannerUrl = (targetUser as any).banner_url
   const onlineStatus = isOnline(targetUser.last_seen_at)
+
+  const getInitials = (n: string) => {
+    const parts = n.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return n.substring(0, 2).toUpperCase()
+  }
 
   const resolveAvatarUrl = (url?: string) => {
     if (!url) return undefined
@@ -113,7 +125,7 @@ export function UserProfilePopover({
               <Avatar className="h-16 w-16 border-4 border-card shadow-lg ring-2 ring-primary/20">
                 {avatar && <AvatarImage src={avatar} alt={name} />}
                 <AvatarFallback className="bg-linear-to-br from-primary to-blue-700 text-white font-extrabold text-lg">
-                  {name.substring(0, 2).toUpperCase()}
+                  {getInitials(name)}
                 </AvatarFallback>
               </Avatar>
               {onlineStatus ? (
