@@ -428,42 +428,43 @@ export function ChatDetailsSidebar({
                         setSelectedMember(m)
                         setCurrentView("user-detail")
                       }}
-                      className="flex-1 flex items-center justify-between min-w-0 text-left mr-1"
+                      className="flex-1 flex items-center gap-2.5 min-w-0 text-left mr-1 overflow-hidden"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="relative shrink-0">
-                          <Avatar className="h-8 w-8 border border-border">
-                            {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
-                            <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
-                              {m.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          {online ? (
-                            <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" title="En línea (Activo)">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-card shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-                            </span>
-                          ) : (
-                            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card bg-slate-400" title="Desconectado" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                            {m.name}
-                          </p>
-                          {m.email && <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>}
+                      <div className="relative shrink-0">
+                        <Avatar className="h-8 w-8 border border-border">
+                          {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
+                          <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
+                            {m.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {online ? (
+                          <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" title="En línea (Activo)">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-card shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                          </span>
+                        ) : (
+                          <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card bg-slate-400" title="Desconectado" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors leading-tight">
+                          {m.name}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground min-w-0">
+                          {m.email && <span className="truncate flex-1">{m.email}</span>}
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-bold shrink-0 rounded-sm bg-muted/60 border border-border/40 text-muted-foreground tracking-tight">
+                            {formatRoleLabel(m.role)}
+                          </Badge>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium shrink-0 ml-1.5 whitespace-nowrap">
-                        {formatRoleLabel(m.role)}
-                      </Badge>
                     </button>
 
                     {isUserAdmin && !isDM && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 rounded-full text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
+                        className="h-7 w-7 rounded-full text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity ml-1"
                         title="Expulsar integrante del canal"
                         onClick={(e) => {
                           e.stopPropagation()
