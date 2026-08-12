@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
 import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -13,9 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
-import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
-import { SmartIframe } from "./smart-iframe"
 import { OrdenForm } from "./recepcion-native/OrdenForm"
 import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 
@@ -37,105 +35,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
-    const [token, setToken] = useState<string | null>(null)
     const [isImporting, setIsImporting] = useState(false)
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const importedDataSentRef = useRef(false)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
     const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
     const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
-    const RECEPCION_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_RECEPCION_MODE || "native") as "native" | "iframe"
-    const FRONTEND_URL = process.env.NEXT_PUBLIC_RECEPCION_FRONTEND_URL || "http://127.0.0.1:5173"
-
-    const getStoredAccessToken = useCallback((): string | null => {
-        if (typeof window === "undefined") return null
-
-        const direct = localStorage.getItem("token")
-        if (direct) return direct
-
-        const extractToken = (parsed: any): string | null => {
-            if (!parsed) return null
-            if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-            if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
-            if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
-            if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
-            return null
-        }
-
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
-
-            const raw = localStorage.getItem(key)
-            if (!raw) continue
-
-            try {
-                const parsed = JSON.parse(raw)
-                const token = extractToken(parsed)
-                if (token) return token
-            } catch {
-                // Ignore malformed storage entries.
-            }
-        }
-
-        return null
-    }, [])
-
-    const isTokenExpiringSoon = useCallback((jwt: string | null, skewMs = 60_000): boolean => {
-        if (!jwt) return true
-
-        try {
-            const [, payload] = jwt.split(".")
-            if (!payload) return true
-
-            const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
-            const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
-            const parsed = JSON.parse(window.atob(padded))
-            const expMs = typeof parsed?.exp === "number" ? parsed.exp * 1000 : null
-
-            if (!expMs) return true
-            return expMs <= Date.now() + skewMs
-        } catch {
-            return true
-        }
-    }, [])
-
-    const frontendOrigin = useMemo(() => {
-        try {
-            return new URL(FRONTEND_URL).origin
-        } catch {
-            return null
-        }
-    }, [FRONTEND_URL])
-
-    const syncIframeToken = useCallback(async (): Promise<string | null> => {
-        const { data: { session } } = await supabase.auth.getSession()
-        const sessionToken = session?.access_token ?? null
-        const localToken = getStoredAccessToken()
-        let freshToken = !isTokenExpiringSoon(sessionToken)
-            ? sessionToken
-            : !isTokenExpiringSoon(localToken)
-                ? localToken
-                : null
-
-        if (!freshToken) {
-            try {
-                const { data } = await supabase.auth.refreshSession()
-                freshToken = data?.session?.access_token ?? getStoredAccessToken()
-            } catch {
-                freshToken = getStoredAccessToken()
-            }
-        }
-
-        if (freshToken && typeof window !== "undefined") {
-            localStorage.setItem("token", freshToken)
-        }
-
-        setToken(freshToken)
-        return freshToken
-    }, [getStoredAccessToken, isTokenExpiringSoon])
 
     const refreshCurrentPage = useCallback(() => {
         void fetchRecepciones({
@@ -146,34 +52,6 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         })
     }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize, selectedTipo])
 
-    useEffect(() => {
-        if (!frontendOrigin) return
-        const preconnectLink = document.createElement("link")
-        preconnectLink.rel = "preconnect"
-        preconnectLink.href = frontendOrigin
-        preconnectLink.crossOrigin = "anonymous"
-        document.head.appendChild(preconnectLink)
-
-        const dnsPrefetchLink = document.createElement("link")
-        dnsPrefetchLink.rel = "dns-prefetch"
-        dnsPrefetchLink.href = frontendOrigin
-        document.head.appendChild(dnsPrefetchLink)
-
-        return () => {
-            if (preconnectLink.parentNode) {
-                preconnectLink.parentNode.removeChild(preconnectLink)
-            }
-            if (dnsPrefetchLink.parentNode) {
-                dnsPrefetchLink.parentNode.removeChild(dnsPrefetchLink)
-            }
-        }
-    }, [frontendOrigin])
-
-    // Sync token once on mount.
-    useEffect(() => {
-        void syncIframeToken()
-    }, [syncIframeToken])
-
     // Debounce search to avoid request spam and reset to first page.
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -183,7 +61,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         return () => clearTimeout(timer)
     }, [searchTerm])
 
-    // Real server-side pagination + search.
+    // Real server-side pagination + search + tipo_recepcion filter.
     useEffect(() => {
         void fetchRecepciones({
             page: currentPage,
@@ -193,258 +71,244 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         })
     }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize, selectedTipo])
 
-
-    // Listen for close message from Iframe
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            if (frontendOrigin && event.origin !== frontendOrigin) return
-
-            if (event.data?.type === 'IFRAME_READY' && event.source && isModalOpen && importedData && !editId && !importedDataSentRef.current) {
-                console.log('[RecepcionModule] Syncing imported data to iframe after IFRAME_READY...')
-                ;(event.source as Window).postMessage(
-                    { type: 'IMPORT_DATA', data: importedData },
-                    event.origin
-                )
-                importedDataSentRef.current = true
-            }
-
-            if (event.data?.type === 'CLOSE_MODAL') {
-                const reason = event.data?.reason
-                if (reason === 'created') {
-                    toast.success('¡Recepción creada exitosamente!')
-                } else if (reason === 'updated') {
-                    toast.success('¡Recepción actualizada exitosamente!')
-                }
-                setIsModalOpen(false)
-                setEditId(null)
-                refreshCurrentPage()
-            }
-            // Auto-refresh: iframe requests a fresh token before expiry
-            if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
-                syncIframeToken().then((freshToken) => {
-                    if (freshToken && event.source) {
-                        (event.source as Window).postMessage(
-                            {
-                                type: 'TOKEN_REFRESH',
-                                token: freshToken,
-                                requestId: typeof event.data?.requestId === 'string' ? event.data.requestId : undefined,
-                            },
-                            event.origin
-                        )
-                    }
-                })
-            }
-        }
-        window.addEventListener("message", handleMessage)
-        return () => window.removeEventListener("message", handleMessage)
-    }, [editId, frontendOrigin, importedData, isModalOpen, refreshCurrentPage, syncIframeToken])
-
-    useEffect(() => {
-        importedDataSentRef.current = false
-    }, [importedData, editId, isModalOpen])
-
     // Refresh when modal closes
     const handleModalOpenChange = (open: boolean) => {
         if (!open) {
             if (editId) {
-                // Editing → show confirmation before discarding
                 setShowExitConfirm(true)
-                return
+            } else {
+                setIsModalOpen(false)
+                setEditId(null)
+                setImportedData(null)
             }
-            // Creating new → close directly
-            setIsModalOpen(false)
-            refreshCurrentPage()
-            return
+        } else {
+            setIsModalOpen(true)
         }
-        setIsModalOpen(open)
     }
 
     const confirmCloseModal = () => {
         setShowExitConfirm(false)
         setIsModalOpen(false)
         setEditId(null)
-        refreshCurrentPage()
+        setImportedData(null)
     }
 
-    const handleEdit = (recepcion: Recepcion) => {
-        if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
-            return
-        }
-        setEditId(recepcion.id)
-        setIsDetailOpen(false)
-        setIsModalOpen(true)
-        void syncIframeToken()
-    }
-
-    const handleCreate = () => {
-        if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
-            return
-        }
+    const handleCreateNew = () => {
         setEditId(null)
         setImportedData(null)
         setIsModalOpen(true)
-        void syncIframeToken()
     }
 
-    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
-            if (fileInputRef.current) fileInputRef.current.value = ""
-            return
-        }
-
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xlsm')) {
-            toast.error("Formato no válido", { description: "Por favor selecciona un archivo Excel (.xlsx o .xlsm)" })
-            return
-        }
-
-        setIsImporting(true)
-        const loadingToast = toast.loading("Procesando Excel...")
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-
-        try {
-            const formData = new FormData()
-            formData.append('file', file)
-            
-            const response = await authFetch(`${API_URL}/api/recepcion/importar-excel`, {
-                method: 'POST',
-                body: formData
-            })
-
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.detail || "Error al procesar el Excel")
-            }
-
-            const data = await response.json()
-            toast.dismiss(loadingToast)
-            toast.success(`Excel importado: ${data.muestras?.length || 0} muestras detectadas`)
-            
-            // Set data and open modal
-            setImportedData(data)
-            setEditId(null)
-            setIsModalOpen(true)
-            void syncIframeToken()
-        } catch (error: any) {
-            toast.dismiss(loadingToast)
-            toast.error(error.message)
-        } finally {
-            setIsImporting(false)
-            if (fileInputRef.current) fileInputRef.current.value = ""
-        }
+    const handleEdit = (recepcion: Recepcion) => {
+        setIsDetailOpen(false)
+        setImportedData(null)
+        setEditId(recepcion.id)
+        setIsModalOpen(true)
     }
 
-    const safeCurrentPage = Math.max(1, pagination.page || currentPage)
-    const safeTotalPages = Math.max(1, pagination.totalPages || 1)
-    const hasData = recepciones.length > 0
-    const showingFrom = hasData ? (safeCurrentPage - 1) * pagination.pageSize + 1 : 0
-    const showingTo = hasData ? Math.min(safeCurrentPage * pagination.pageSize, pagination.total) : 0
-
-    const handleDelete = async (id: number) => {
-        if (!canDelete) {
-            toast.error("Acceso denegado", { description: "No tienes permisos para eliminar recepciones." })
-            return
-        }
-
-        const success = await deleteRecepcion(id)
-        if (success) {
-            toast.success("Recepción eliminada correctamente")
-            if (selectedRecepcion?.id === id) {
-                setIsDetailOpen(false)
-            }
-            if (recepciones.length === 1 && currentPage > 1) {
-                setCurrentPage(prev => Math.max(1, prev - 1))
-            } else {
-                refreshCurrentPage()
-            }
-        } else {
-            toast.error("Error al eliminar recepción")
-        }
-    }
-
-    const openDetail = useCallback(async (recepcion: Recepcion) => {
-        setSelectedRecepcion(recepcion)
+    const handleViewDetail = async (id: number) => {
         setIsDetailLoading(true)
         setIsDetailOpen(true)
         try {
-            const fullRecepcion = await getRecepcionById(recepcion.id)
-            setSelectedRecepcion(fullRecepcion)
-        } catch (error: any) {
-            toast.error("No se pudo cargar el detalle completo", {
-                description: error?.message || "Intenta nuevamente.",
-            })
+            const data = await getRecepcionById(id)
+            setSelectedRecepcion(data)
+        } catch {
+            toast.error("No se pudo cargar el detalle de la recepción")
+            setIsDetailOpen(false)
         } finally {
             setIsDetailLoading(false)
         }
-    }, [getRecepcionById])
+    }
 
     useEffect(() => {
-        if (!focusRecepcionId || recepciones.length === 0) return
+        if (!focusRecepcionId) return
         if (lastFocusedRecepcionIdRef.current === focusRecepcionId) return
 
-        const target = recepciones.find((item) => item.id === focusRecepcionId)
-        if (!target) return
-
         lastFocusedRecepcionIdRef.current = focusRecepcionId
-        void openDetail(target)
-        onFocusHandled?.()
-    }, [focusRecepcionId, onFocusHandled, openDetail, recepciones])
+        void handleViewDetail(focusRecepcionId)
+
+        if (onFocusHandled) {
+            onFocusHandled()
+        }
+    }, [focusRecepcionId, onFocusHandled])
+
+    const handleDelete = async (id: number) => {
+        try {
+            await deleteRecepcion(id)
+            toast.success("Recepción eliminada correctamente")
+            refreshCurrentPage()
+        } catch {
+            toast.error("Error al eliminar la recepción")
+        }
+    }
+
+    const handleDownloadExcel = async (id: number) => {
+        try {
+            const response = await authFetch(`/api/recepcion/${id}/excel`, {
+                headers: {
+                    Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                },
+            })
+
+            if (!response.ok) throw new Error("Error al descargar Excel")
+
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `Recepcion_${id}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+            toast.success("Excel descargado correctamente")
+        } catch {
+            toast.error("No se pudo descargar el archivo Excel")
+        }
+    }
+
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsImporting(true)
+        const formData = new FormData()
+        formData.append("file", file)
+
+        try {
+            const response = await authFetch("/api/recepcion/import-excel", {
+                method: "POST",
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null)
+                throw new Error(errData?.detail || "Error al procesar el archivo Excel")
+            }
+
+            const resData = await response.json()
+            toast.success("Excel leído correctamente. Revisa los datos en el formulario.")
+
+            setImportedData(resData.data)
+            setEditId(null)
+            setIsModalOpen(true)
+        } catch (err: any) {
+            console.error("Import error:", err)
+            toast.error(err.message || "No se pudo importar la recepción desde Excel")
+        } finally {
+            setIsImporting(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return "-"
+        try {
+            const d = new Date(dateStr)
+            if (isNaN(d.getTime())) return dateStr
+            return d.toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            })
+        } catch {
+            return dateStr
+        }
+    }
+
+    const safeTotalPages = Math.max(1, Number(pagination.totalPages || 1))
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), safeTotalPages)
+    const showingFrom = pagination.total === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1
+    const showingTo = pagination.total === 0 ? 0 : Math.min(safeCurrentPage * pageSize, pagination.total)
+
+    const getTipoBadge = (tipo?: string) => {
+        switch (tipo) {
+            case "ROCA":
+                return <Badge className="bg-purple-100 text-purple-800 border-purple-300 font-bold text-[10px]">ROCA (F-LEM-P-01.04)</Badge>
+            case "ALBANILERIA":
+                return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-bold text-[10px]">ALBAÑILERÍA (F-LEM-P-01.05)</Badge>
+            case "AGUA":
+                return <Badge className="bg-cyan-100 text-cyan-800 border-cyan-300 font-bold text-[10px]">AGUA (F-LEM-P-01.06)</Badge>
+            case "SUELO_AGREGADO":
+                return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">SUELO Y AG. (F-LEM-P-01.13)</Badge>
+            case "CONCRETO":
+            default:
+                return <Badge className="bg-blue-100 text-blue-800 border-blue-300 font-bold text-[10px]">CONCRETO (F-LEM-P-01.02)</Badge>
+        }
+    }
 
     return (
-        <div className="h-full min-h-0 flex flex-col gap-6 p-4 md:p-6 overflow-y-auto overscroll-contain">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="p-6 space-y-6">
+            {/* Header section */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Recepciones Generales</h1>
-                    <p className="text-muted-foreground">Gestiona los registros de ingreso y órdenes de trabajo de laboratorios</p>
+                    <h1 className="text-2xl font-black text-foreground uppercase tracking-tight flex items-center gap-2">
+                        Recepciones Generales
+                    </h1>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                        Gestión unificada de recepciones de laboratorio (Concreto, Roca, Albañilería, Agua, Suelo/Agregado)
+                    </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx,.xlsm"
-                        onChange={handleImportExcel}
-                        className="hidden"
-                    />
-                    <Button variant="outline" size="icon" onClick={() => { void refreshRecepciones() }} disabled={loading}>
-                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={refreshCurrentPage}
+                        disabled={loading}
+                        className="gap-2 text-xs font-bold"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                        Recargar
                     </Button>
+
                     {canWrite && (
-                        <Button 
-                            onClick={() => fileInputRef.current?.click()} 
-                            disabled={isImporting}
-                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                            {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                            Importar Recepción
-                        </Button>
-                    )}
-                    {canWrite && (
-                        <Button onClick={handleCreate} className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            Nueva Recepción
-                        </Button>
+                        <>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImportExcel}
+                                accept=".xlsx, .xls"
+                                className="hidden"
+                            />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isImporting}
+                                className="gap-2 text-xs font-bold border-green-600/30 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
+                            >
+                                {isImporting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                                ) : (
+                                    <Upload className="h-4 w-4 text-green-600" />
+                                )}
+                                Importar Excel
+                            </Button>
+                            <Button onClick={handleCreateNew} size="sm" className="gap-2 text-xs font-bold">
+                                <Plus className="h-4 w-4" />
+                                Nueva Recepción
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
-                <div className="relative flex-1 max-w-sm">
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col md:flex-row items-center gap-4 bg-card p-4 rounded-xl border">
+                <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Buscar por OT, Cliente..."
+                        placeholder="Buscar por cliente, proyecto, RUC, Nº Recepción, OT..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
+                        className="pl-9 text-xs"
                     />
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Dropdown de tipo de recepción en la lista */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
                     <span className="text-xs font-bold text-muted-foreground uppercase whitespace-nowrap">Tipo:</span>
                     <select
                         value={selectedTipo}
@@ -452,91 +316,125 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             setSelectedTipo(e.target.value)
                             setCurrentPage(1)
                         }}
-                        className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs font-semibold shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="h-9 rounded-md border bg-background px-3 text-xs font-bold uppercase text-foreground focus:outline-none cursor-pointer"
                     >
-                        <option value="ALL">Todos los tipos</option>
-                        <option value="CONCRETO">F-LEM-P-01.02 Concreto (Probetas)</option>
-                        <option value="ROCA">F-LEM-P-01.04 Muestras de Roca</option>
-                        <option value="ALBANILERIA">F-LEM-P-01.05 Muestras de Albañilería</option>
-                        <option value="AGUA">F-LEM-P-01.06 Muestras de Agua</option>
-                        <option value="SUELO_AGREGADO">F-LEM-P-01.13 Suelo y Agregado</option>
+                        <option value="ALL">Todos los formatos</option>
+                        <option value="CONCRETO">Concreto (F-LEM-P-01.02)</option>
+                        <option value="ROCA">Roca (F-LEM-P-01.04)</option>
+                        <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
+                        <option value="AGUA">Agua (F-LEM-P-01.06)</option>
+                        <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
                     </select>
                 </div>
             </div>
 
-            {/* Content (Table) */}
-            <div className="rounded-md border bg-card flex-1 overflow-auto">
+            {/* Table */}
+            <div className="rounded-xl border bg-card overflow-hidden">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[180px]">Recepción N°</TableHead>
+                        <TableRow className="bg-muted/50 text-xs font-bold uppercase tracking-wider">
+                            <TableHead className="w-[110px]">Nº Recepción</TableHead>
+                            <TableHead className="w-[110px]">Nº OT</TableHead>
+                            <TableHead className="w-[140px]">Tipo Formato</TableHead>
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
-                            <TableHead className="text-center">Muestras</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                            <TableHead className="w-[110px]">F. Recepción</TableHead>
+                            <TableHead className="w-[90px] text-center">Muestras</TableHead>
+                            <TableHead className="w-[100px] text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody>
-                        {loading && recepciones.length === 0 ? (
+                    <TableBody className="text-xs">
+                        {loading ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    Cargando datos...
+                                <TableCell colSpan={8} className="text-center py-12">
+                                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <p className="font-bold">Cargando recepciones...</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : recepciones.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No se encontraron resultados
+                                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                                    <p className="font-bold">No se encontraron recepciones</p>
+                                    <p className="text-[11px] mt-1">Prueba con otros términos de búsqueda o añade una nueva recepción.</p>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             recepciones.map((item) => (
-                                <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { void openDetail(item) }}>
-                                    <TableCell className="font-bold text-primary">
-                                        <div className="flex items-center gap-2">
-                                            <span>{item.numero_recepcion}</span>
-                                            {item.tipo_recepcion && (
-                                                <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground">
-                                                    {item.tipo_recepcion === "CONCRETO" ? "Concreto" :
-                                                     item.tipo_recepcion === "ROCA" ? "Roca" :
-                                                     item.tipo_recepcion === "ALBANILERIA" ? "Albañilería" :
-                                                     item.tipo_recepcion === "AGUA" ? "Agua" :
-                                                     item.tipo_recepcion === "SUELO_AGREGADO" ? "Suelo/Agregado" : item.tipo_recepcion}
-                                                </Badge>
-                                            )}
-                                        </div>
+                                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                                    <TableCell className="font-bold font-mono text-primary">
+                                        {item.numero_recepcion || "-"}
                                     </TableCell>
-                                    <TableCell className="max-w-[200px] truncate" title={item.cliente}>
-                                        {item.cliente}
+                                    <TableCell className="font-bold font-mono">
+                                        {item.numero_ot || "-"}
                                     </TableCell>
-                                    <TableCell className="max-w-[200px] truncate" title={item.proyecto}>
-                                        {item.proyecto}
+                                    <TableCell>
+                                        {getTipoBadge(item.tipo_recepcion)}
+                                    </TableCell>
+                                    <TableCell className="font-medium max-w-[200px] truncate" title={item.cliente}>
+                                        {item.cliente || "-"}
+                                    </TableCell>
+                                    <TableCell className="max-w-[250px] truncate text-muted-foreground" title={item.proyecto}>
+                                        {item.proyecto || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatDate(item.fecha_recepcion)}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        <Badge variant="secondary">
-                                            {Number(item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0))}
+                                        <Badge variant="secondary" className="font-bold">
+                                            {item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex justify-end items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => { void openDetail(item) }}>
-                                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                    <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleViewDetail(item.id)}
+                                                title="Ver Detalle"
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <Eye className="h-4 w-4" />
                                             </Button>
+
                                             {canWrite && (
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleEdit(item)}
+                                                    title="Editar Recepción"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
                                                 </Button>
                                             )}
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDownloadExcel(item.id)}
+                                                title="Descargar Excel"
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                                            </Button>
+
                                             {canDelete && (
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            title="Eliminar Recepción"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>¿Está absolutamente seguro?</AlertDialogTitle>
+                                                            <AlertDialogTitle>¿Eliminar Recepción?</AlertDialogTitle>
                                                             <AlertDialogDescription>
                                                                 Esta acción no se puede deshacer. Esto eliminará permanentemente la recepción
                                                                 <span className="font-bold text-foreground"> {item.numero_recepcion} </span>
@@ -609,36 +507,25 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 </div>
             </div>
 
-            {/* Modal for Creation/Edit (Native or Iframe) */}
+            {/* Modal for Creation/Edit (100% Native) */}
             <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden flex flex-col bg-background [&>button]:hidden">
                     <DialogTitle className="sr-only">
-                        {editId ? "Editar Recepción Probetas" : "Nueva Recepción Probetas"}
+                        {editId ? "Editar Recepción" : "Nueva Recepción"}
                     </DialogTitle>
                     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                        {RECEPCION_MODE === "native" ? (
-                            <OrdenForm
-                                mode={editId ? "edit" : "create"}
-                                editId={editId ?? undefined}
-                                importedData={importedData}
-                                onClose={(reason) => {
-                                    if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
-                                    else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
-                                    setIsModalOpen(false)
-                                    setEditId(null)
-                                    refreshCurrentPage()
-                                }}
-                            />
-                        ) : (
-                            <SmartIframe
-                                src={editId
-                                    ? `${FRONTEND_URL}/migration/recepciones/${editId}/editar`
-                                    : `${FRONTEND_URL}/migration/nueva-recepcion`
-                                }
-                                title={editId ? 'Editar Recepción Probetas' : 'Nueva Recepción Probetas'}
-                                token={token}
-                            />
-                        )}
+                        <OrdenForm
+                            mode={editId ? "edit" : "create"}
+                            editId={editId ?? undefined}
+                            importedData={importedData}
+                            onClose={(reason) => {
+                                if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
+                                else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
+                                setIsModalOpen(false)
+                                setEditId(null)
+                                refreshCurrentPage()
+                            }}
+                        />
                     </div>
                 </DialogContent>
             </Dialog>
@@ -661,182 +548,21 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* Detail Dialog */}
+            {/* Detail Dialog (100% Native) */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
                 <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden [&>button]:hidden">
-                    {RECEPCION_MODE === "native" && selectedRecepcion?.id ? (
-                        <>
-                            <DialogTitle className="sr-only">
-                                Detalle de Recepción Probetas
-                            </DialogTitle>
-                            <DialogDescription className="sr-only">
-                                Vista detallada nativa de la recepción de probetas.
-                            </DialogDescription>
-                        </>
-                    ) : null}
-                    {RECEPCION_MODE === "native" && selectedRecepcion?.id ? (
+                    <DialogTitle className="sr-only">
+                        Detalle de Recepción
+                    </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Vista detallada nativa de la recepción.
+                    </DialogDescription>
+                    {selectedRecepcion?.id && (
                         <OrdenDetail
                             recepcionId={selectedRecepcion.id}
                             onEdit={() => selectedRecepcion && handleEdit(selectedRecepcion)}
                             onClose={() => setIsDetailOpen(false)}
                         />
-                    ) : (
-                        <>
-                            <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
-                                <DialogTitle className="flex items-center gap-2 text-xl">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    Detalle de Recepción Probetas {selectedRecepcion?.numero_recepcion}
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Información completa de la orden de trabajo {selectedRecepcion?.numero_ot}
-                                </DialogDescription>
-                            </DialogHeader>
-
-                    {isDetailLoading ? (
-                        <div className="flex flex-1 items-center justify-center">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Cargando detalle...
-                            </div>
-                        </div>
-                    ) : selectedRecepcion && (
-                        <div className="flex-1 min-h-0 overflow-auto">
-                            <div className="p-6 space-y-6">
-                                {/* Section 1: Project & Client */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/20">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cliente / Solicitante</p>
-                                        <p className="font-semibold text-lg">{selectedRecepcion.solicitante || selectedRecepcion.cliente}</p>
-                                        {selectedRecepcion.domicilio_legal && <p className="text-sm text-muted-foreground">{selectedRecepcion.domicilio_legal}</p>}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Proyecto</p>
-                                        <p className="font-semibold text-lg">{selectedRecepcion.proyecto}</p>
-                                        {selectedRecepcion.ubicacion && <p className="text-sm text-muted-foreground">{selectedRecepcion.ubicacion}</p>}
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contacto</p>
-                                        <p className="text-sm font-medium">{selectedRecepcion.persona_contacto || "-"}</p>
-                                        <div className="text-xs text-muted-foreground space-y-0.5">
-                                            {selectedRecepcion.email && selectedRecepcion.email.split(/[\s,;]+/).filter(Boolean).map((e, i) => (
-                                                <p key={i}>{e}</p>
-                                            ))}
-                                            {selectedRecepcion.telefono && <p>Tel: {selectedRecepcion.telefono}</p>}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Fechas</p>
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <span className="text-muted-foreground">Recepción Probetas:</span> <span className="font-medium">{formatDate(selectedRecepcion.fecha_recepcion)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-muted-foreground">Conclusión Est.:</span> <span className="font-medium">{formatDate(selectedRecepcion.fecha_estimada_culminacion)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Section 2: Logistics */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Emisión de Formatos</p>
-                                        <div className="flex gap-2 mt-1">
-                                            {selectedRecepcion.emision_fisica && <Badge variant="outline">Físico</Badge>}
-                                            {selectedRecepcion.emision_digital && <Badge variant="default">Digital</Badge>}
-                                            {!selectedRecepcion.emision_fisica && !selectedRecepcion.emision_digital && <span className="text-muted-foreground">-</span>}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entregado Por</p>
-                                        <p className="font-medium">{selectedRecepcion.entregado_por || "-"}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recibido Por</p>
-                                        <p className="font-medium">{selectedRecepcion.recibido_por || "-"}</p>
-                                    </div>
-                                </div>
-
-                                {/* Section 3: Samples Table */}
-                                <div>
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm">
-                                            {Array.isArray(selectedRecepcion.muestras) ? selectedRecepcion.muestras.length : 0}
-                                        </span>
-                                        Muestras Registradas
-                                    </h3>
-                                    <div className="rounded-md border overflow-x-auto">
-                                        <Table className="min-w-[900px]">
-                                            <TableHeader>
-                                                <TableRow className="bg-muted/50 text-xs hover:bg-muted/50">
-                                                    <TableHead className="w-[50px] text-center font-bold">Nº</TableHead>
-                                                    <TableHead className="font-bold">Código LEM</TableHead>
-                                                    <TableHead className="font-bold">Codigo</TableHead>
-                                                    <TableHead className="font-bold">Estructura</TableHead>
-                                                    <TableHead className="text-center font-bold">F&apos;c</TableHead>
-                                                    <TableHead className="font-bold">Fecha Moldeo</TableHead>
-                                                    <TableHead className="font-bold">Hora</TableHead>
-                                                    <TableHead className="text-center font-bold">Edad</TableHead>
-                                                    <TableHead className="font-bold">Fecha Rotura</TableHead>
-                                                    <TableHead className="text-center font-bold">Densidad</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody className="text-xs">
-                                                {Array.isArray(selectedRecepcion.muestras) && selectedRecepcion.muestras.map((m: any, idx: number) => (
-                                                    <TableRow key={idx}>
-                                                        <TableCell className="text-center font-medium bg-muted/20">{m.item_numero}</TableCell>
-                                                        <TableCell className="font-mono text-primary">{m.codigo_muestra_lem || "-"}</TableCell>
-                                                        <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.identificacion_muestra || "-"}</TableCell>
-                                                        <TableCell className="whitespace-pre-wrap max-w-[180px]">{m.estructura || "-"}</TableCell>
-                                                        <TableCell className="text-center font-bold">{m.fc_kg_cm2 || "-"}</TableCell>
-                                                        <TableCell>{formatDate(m.fecha_moldeo)}</TableCell>
-                                                        <TableCell>{m.hora_moldeo || "-"}</TableCell>
-                                                        <TableCell className="text-center font-semibold">{m.edad}</TableCell>
-                                                        <TableCell>{formatDate(m.fecha_rotura)}</TableCell>
-                                                        <TableCell className="text-center">
-                                                            {m.requiere_densidad ? <Badge variant="outline" className="h-5 px-1">SI</Badge> : <span className="text-muted-foreground opacity-50">NO</span>}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                                {(!Array.isArray(selectedRecepcion.muestras) || selectedRecepcion.muestras.length === 0) && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                                                            No hay muestras registradas en esta recepción.
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <DialogFooter className="p-6 border-t shrink-0 bg-muted/5 gap-2 sm:gap-0">
-                        <div className="flex-1 text-xs text-muted-foreground flex items-center">
-                            ID Referencia: {selectedRecepcion?.id}
-                        </div>
-                        {canWrite && !isDetailLoading && (
-                            <Button variant="outline" onClick={() => selectedRecepcion && handleEdit(selectedRecepcion)} className="gap-2">
-                                <Pencil className="h-4 w-4" />
-                                Editar
-                            </Button>
-                        )}
-                        <Button
-                            variant="outline"
-                            onClick={() => selectedRecepcion && handleDownloadExcel(selectedRecepcion.id)}
-                            className="gap-2"
-                            disabled={isDetailLoading || !selectedRecepcion}
-                        >
-                            <FileSpreadsheet className="h-4 w-4" />
-                            Descargar Excel
-                        </Button>
-                        <Button onClick={() => setIsDetailOpen(false)}>Cerrar</Button>
-                    </DialogFooter>
-                        </>
                     )}
                 </DialogContent>
             </Dialog>

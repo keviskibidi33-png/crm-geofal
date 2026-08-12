@@ -729,6 +729,30 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
                   Registro Geofal
                 </p>
               </div>
+
+              {/* TIPO DE RECEPCION SELECTOR - HEADER LOCATION (IMAGE 2) */}
+              <div className="ml-4 flex items-center gap-2 bg-background border-2 border-primary/30 rounded-xl px-3 py-1.5 shadow-sm">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  Tipo de Recepción:
+                </Label>
+                <select
+                  {...register("tipo_recepcion")}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setValue("tipo_recepcion", val);
+                    const cfg = TIPO_RECEPCION_CONFIG[val] || TIPO_RECEPCION_CONFIG["CONCRETO"];
+                    setValue("codigo_laboratorio", cfg.codigo);
+                    setValue("version", cfg.version);
+                  }}
+                  className="h-7 bg-transparent text-xs font-black uppercase text-foreground focus:outline-none cursor-pointer"
+                >
+                  <option value="CONCRETO">Concreto (Probetas)</option>
+                  <option value="ROCA">Muestras de Roca</option>
+                  <option value="ALBANILERIA">Muestras de Albañilería</option>
+                  <option value="AGUA">Muestras de Agua</option>
+                  <option value="SUELO_AGREGADO">Suelo y Agregado</option>
+                </select>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -749,8 +773,8 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
           </div>
           <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest border-t pt-3 mt-3">
             <div className="flex gap-6">
-              <span>COD: <span className="text-foreground">F-LEM-P-01.02</span></span>
-              <span>VER: <span className="text-foreground">07</span></span>
+              <span>COD: <span className="text-foreground">{TIPO_RECEPCION_CONFIG[watch("tipo_recepcion") || "CONCRETO"]?.codigo || "F-LEM-P-01.02"}</span></span>
+              <span>VER: <span className="text-foreground">{TIPO_RECEPCION_CONFIG[watch("tipo_recepcion") || "CONCRETO"]?.version || "07"}</span></span>
             </div>
             <div className="flex gap-6">
               <span>FECHA: <span className="text-foreground">{new Date().toLocaleDateString("es-ES")}</span></span>
