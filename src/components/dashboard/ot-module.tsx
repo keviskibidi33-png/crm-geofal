@@ -11,10 +11,7 @@ import {
   Trash2,
   Download,
   Loader2,
-  CheckCircle2,
-  Clock,
   AlertCircle,
-  Layers,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -152,7 +149,7 @@ export function OTModule() {
       case "COMPLETADO":
         return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold">COMPLETADO</Badge>
       case "EN PROCESO":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 font-semibold">EN PROCESO</Badge>
+        return <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100 font-semibold">EN PROCESO</Badge>
       default:
         return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-semibold">PENDIENTE</Badge>
     }
@@ -164,7 +161,7 @@ export function OTModule() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="h-7 w-7 text-amber-600" />
+            <FileText className="h-7 w-7 text-sky-600" />
             Órdenes de Trabajo (OT)
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -178,14 +175,14 @@ export function OTModule() {
             size="sm"
             onClick={fetchOts}
             disabled={loading}
-            className="gap-2 text-slate-700 bg-white shadow-sm hover:bg-slate-50"
+            className="gap-2 text-slate-700 bg-white shadow-sm hover:bg-slate-50 border-slate-300"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Recargar
           </Button>
           <Button
             onClick={handleCreateNew}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-md gap-2"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-md gap-2"
           >
             <Plus className="h-4 w-4" />
             Nueva OT
@@ -195,9 +192,9 @@ export function OTModule() {
 
       {/* METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-amber-50/50 to-white">
+        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-sky-50/60 to-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
+            <CardTitle className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
               Total OTs Registradas
             </CardTitle>
           </CardHeader>
@@ -254,7 +251,7 @@ export function OTModule() {
             placeholder="Buscar por N° OT, Recepción, Muestra..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+            className="pl-9 text-xs bg-slate-50 border-slate-200 focus-visible:ring-sky-500"
           />
         </div>
 
@@ -263,7 +260,7 @@ export function OTModule() {
           <select
             value={estadoFilter}
             onChange={(e) => setEstadoFilter(e.target.value)}
-            className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             <option value="TODOS">Todos</option>
             <option value="PENDIENTE">Pendientes</option>
@@ -294,7 +291,7 @@ export function OTModule() {
                 <TableRow>
                   <TableCell colSpan={8} className="h-48 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-slate-500 text-sm">
-                      <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                      <Loader2 className="h-6 w-6 animate-spin text-sky-600" />
                       Cargando Órdenes de Trabajo...
                     </div>
                   </TableCell>
@@ -311,8 +308,8 @@ export function OTModule() {
                 </TableRow>
               ) : (
                 data.map((ot) => (
-                  <TableRow key={ot.id} className="hover:bg-amber-50/20 transition-colors">
-                    <TableCell className="font-mono font-bold text-amber-900 text-xs">
+                  <TableRow key={ot.id} className="hover:bg-sky-50/20 transition-colors">
+                    <TableCell className="font-mono font-bold text-sky-900 text-xs">
                       {ot.numero_ot}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-700">
@@ -356,7 +353,7 @@ export function OTModule() {
                           size="icon"
                           onClick={() => handleEdit(ot)}
                           title="Editar OT"
-                          className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          className="h-8 w-8 text-sky-600 hover:text-sky-800 hover:bg-sky-50"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>

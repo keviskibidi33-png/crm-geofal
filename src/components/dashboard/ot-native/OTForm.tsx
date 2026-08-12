@@ -126,7 +126,6 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
       return
     }
     const newItems = items.filter((_, idx) => idx !== index)
-    // Re-indexar
     const reindexed = newItems.map((item, idx) => ({ ...item, item: idx + 1 }))
     setItems(reindexed)
   }
@@ -199,10 +198,10 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
   }
 
   return (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 rounded-2xl">
-      <DialogHeader>
+    <DialogContent className="max-w-[95vw] w-full h-[92vh] flex flex-col p-6 sm:p-8 rounded-2xl overflow-hidden bg-white">
+      <DialogHeader className="shrink-0 pb-2 border-b border-slate-200">
         <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
-          <FileText className="h-6 w-6 text-amber-600" />
+          <FileText className="h-6 w-6 text-sky-600" />
           {initialData?.id ? `Editar OT: ${initialData.numero_ot}` : "Crear Nueva Orden de Trabajo (OT)"}
         </DialogTitle>
         <DialogDescription>
@@ -210,266 +209,270 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
         </DialogDescription>
       </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-        {/* SECCIÓN 1: ENCABEZADO */}
-        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200/60 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 border-b border-amber-200 pb-2">
-            <Hash className="h-4 w-4 text-amber-600" />
-            1. Encabezado de Orden de Trabajo
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">N° OT *</Label>
-              <Input
-                placeholder="ej. 001-26-LEM"
-                value={numeroOt}
-                onChange={(e) => setNumeroOt(e.target.value)}
-                className="mt-1 font-mono font-bold bg-white"
-                required
-              />
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-6 pt-4">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+          {/* SECCIÓN 1: ENCABEZADO */}
+          <div className="bg-sky-50/60 p-4 rounded-xl border border-sky-200/80 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-sky-900 border-b border-sky-200 pb-2">
+              <Hash className="h-4 w-4 text-sky-600" />
+              1. Encabezado de Orden de Trabajo
             </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
-              <Input
-                placeholder="ej. 001-26"
-                value={numeroRecepcion}
-                onChange={(e) => setNumeroRecepcion(e.target.value)}
-                className="mt-1 font-mono bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">REFERENCIA</Label>
-              <Input
-                placeholder="-"
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                className="mt-1 bg-white"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECCIÓN 2: TABLA DE ÍTEMS Y ENSAYOS */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <Layers className="h-4 w-4 text-blue-600" />
-              2. Muestras y Ensayos (Descripción)
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddItem}
-              className="gap-1 text-xs border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Agregar Ítem
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {items.map((item, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-12 gap-2 items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm"
-              >
-                <div className="col-span-1 text-center font-bold text-slate-500 text-sm">
-                  #{idx + 1}
-                </div>
-                <div className="col-span-3">
-                  <Input
-                    placeholder="Código muestra (ej. 001-SU-26)"
-                    value={item.codigo_muestra}
-                    onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
-                    className="text-xs font-mono"
-                  />
-                </div>
-                <div className="col-span-6">
-                  <Input
-                    placeholder="Descripción del Ensayo / Norma (ej. ANÁLISIS GRANULOMÉTRICO POR TAMIZADO)"
-                    value={item.descripcion}
-                    onChange={(e) => handleItemChange(idx, "descripcion", e.target.value)}
-                    className="text-xs"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Cant."
-                    value={item.cantidad}
-                    onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
-                    className="text-xs text-center"
-                  />
-                </div>
-                <div className="col-span-1 text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveItem(idx)}
-                    className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">N° OT *</Label>
+                <Input
+                  placeholder="ej. 001-26-LEM"
+                  value={numeroOt}
+                  onChange={(e) => setNumeroOt(e.target.value)}
+                  className="mt-1 font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                  required
+                />
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* SECCIÓN 3: CONTROL DE FECHAS Y EJECUCIÓN */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
-            <Calendar className="h-4 w-4 text-emerald-600" />
-            3. Fechas de Programación y Ejecución Real
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCIÓN</Label>
-              <Input
-                type="date"
-                value={fechaRecepcion}
-                onChange={(e) => setFechaRecepcion(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">INICIO PROGRAMADO</Label>
-              <Input
-                type="date"
-                value={inicioProgramado}
-                onChange={(e) => setInicioProgramado(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">FIN PROGRAMADO</Label>
-              <Input
-                type="date"
-                value={finProgramado}
-                onChange={(e) => setFinProgramado(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">PLAZO DE ENTREGA (DÍAS)</Label>
-              <Input
-                placeholder="ej. 5"
-                value={plazoEntregaDias}
-                onChange={(e) => setPlazoEntregaDias(e.target.value)}
-                className="mt-1 text-xs bg-white font-bold"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">INICIO REAL</Label>
-              <Input
-                type="date"
-                value={inicioReal}
-                onChange={(e) => setInicioReal(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">FIN REAL</Label>
-              <Input
-                type="date"
-                value={finReal}
-                onChange={(e) => setFinReal(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE INICIO</Label>
-              <Input
-                placeholder="-"
-                value={variacionInicio}
-                onChange={(e) => setVariacionInicio(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE FIN</Label>
-              <Input
-                placeholder="-"
-                value={variacionFin}
-                onChange={(e) => setVariacionFin(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">DURACIÓN REAL DE EJECUCIÓN (DÍAS)</Label>
-              <Input
-                placeholder="ej. 4"
-                value={duracionReal}
-                onChange={(e) => setDuracionReal(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
+                <Input
+                  placeholder="ej. 001-26"
+                  value={numeroRecepcion}
+                  onChange={(e) => setNumeroRecepcion(e.target.value)}
+                  className="mt-1 font-mono bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">REFERENCIA</Label>
+                <Input
+                  placeholder="-"
+                  value={referencia}
+                  onChange={(e) => setReferencia(e.target.value)}
+                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* SECCIÓN 4: OBSERVACIONES Y PERSONAL */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
-            <UserCheck className="h-4 w-4 text-violet-600" />
-            4. Observaciones y Responsables
-          </div>
-
-          <div>
-            <Label className="text-xs font-semibold text-slate-700">OBSERVACIONES</Label>
-            <Textarea
-              rows={2}
-              placeholder="Escribe observaciones adicionales o requerimientos del área..."
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              className="mt-1 text-xs bg-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">OT APERTURADA POR</Label>
-              <Input
-                placeholder="Nombre de quien apertura"
-                value={otAperturadaPor}
-                onChange={(e) => setOtAperturadaPor(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">OT DESIGNADA A (Técnicos)</Label>
-              <Input
-                placeholder="Nombre del técnico responsable"
-                value={otDesignadaA}
-                onChange={(e) => setOtDesignadaA(e.target.value)}
-                className="mt-1 text-xs bg-white"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">ESTADO</Label>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500"
+          {/* SECCIÓN 2: TABLA DE ÍTEMS Y ENSAYOS */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                <Layers className="h-4 w-4 text-sky-600" />
+                2. Muestras y Ensayos (Descripción)
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddItem}
+                className="gap-1 text-xs border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 font-medium"
               >
-                <option value="PENDIENTE">PENDIENTE</option>
-                <option value="EN PROCESO">EN PROCESO</option>
-                <option value="COMPLETADO">COMPLETADO</option>
-              </select>
+                <Plus className="h-3.5 w-3.5" />
+                Agregar Ítem
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-2 items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm"
+                >
+                  <div className="col-span-1 text-center font-bold text-slate-500 text-sm">
+                    #{idx + 1}
+                  </div>
+                  <div className="col-span-3">
+                    <Input
+                      placeholder="Código muestra (ej. 001-SU-26)"
+                      value={item.codigo_muestra}
+                      onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
+                      className="text-xs font-mono border-slate-300 focus-visible:ring-sky-500"
+                    />
+                  </div>
+                  <div className="col-span-6">
+                    <Input
+                      placeholder="Descripción del Ensayo / Norma (ej. ANÁLISIS GRANULOMÉTRICO POR TAMIZADO)"
+                      value={item.descripcion}
+                      onChange={(e) => handleItemChange(idx, "descripcion", e.target.value)}
+                      className="text-xs border-slate-300 focus-visible:ring-sky-500"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Cant."
+                      value={item.cantidad}
+                      onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
+                      className="text-xs text-center border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="col-span-1 text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveItem(idx)}
+                      className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECCIÓN 3: CONTROL DE FECHAS Y EJECUCIÓN */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
+              <Calendar className="h-4 w-4 text-emerald-600" />
+              3. Fechas de Programación y Ejecución Real
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCIÓN</Label>
+                <Input
+                  type="date"
+                  value={fechaRecepcion}
+                  onChange={(e) => setFechaRecepcion(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">INICIO PROGRAMADO</Label>
+                <Input
+                  type="date"
+                  value={inicioProgramado}
+                  onChange={(e) => setInicioProgramado(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">FIN PROGRAMADO</Label>
+                <Input
+                  type="date"
+                  value={finProgramado}
+                  onChange={(e) => setFinProgramado(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">PLAZO DE ENTREGA (DÍAS)</Label>
+                <Input
+                  type="number"
+                  placeholder="ej. 5"
+                  value={plazoEntregaDias}
+                  onChange={(e) => setPlazoEntregaDias(e.target.value)}
+                  className="mt-1 text-xs bg-white font-bold border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">INICIO REAL</Label>
+                <Input
+                  type="date"
+                  value={inicioReal}
+                  onChange={(e) => setInicioReal(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">FIN REAL</Label>
+                <Input
+                  type="date"
+                  value={finReal}
+                  onChange={(e) => setFinReal(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE INICIO</Label>
+                <Input
+                  placeholder="-"
+                  value={variacionInicio}
+                  onChange={(e) => setVariacionInicio(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE FIN</Label>
+                <Input
+                  placeholder="-"
+                  value={variacionFin}
+                  onChange={(e) => setVariacionFin(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">DURACIÓN REAL DE EJECUCIÓN (DÍAS)</Label>
+                <Input
+                  type="number"
+                  placeholder="ej. 4"
+                  value={duracionReal}
+                  onChange={(e) => setDuracionReal(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN 4: OBSERVACIONES Y PERSONAL */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
+              <UserCheck className="h-4 w-4 text-violet-600" />
+              4. Observaciones y Responsables
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-700">OBSERVACIONES</Label>
+              <Textarea
+                rows={2}
+                placeholder="Escribe observaciones adicionales o requerimientos del área..."
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">OT APERTURADA POR</Label>
+                <Input
+                  placeholder="Nombre de quien apertura"
+                  value={otAperturadaPor}
+                  onChange={(e) => setOtAperturadaPor(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">OT DESIGNADA A (Técnicos)</Label>
+                <Input
+                  placeholder="Nombre del técnico responsable"
+                  value={otDesignadaA}
+                  onChange={(e) => setOtDesignadaA(e.target.value)}
+                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">ESTADO</Label>
+                <select
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="PENDIENTE">PENDIENTE</option>
+                  <option value="EN PROCESO">EN PROCESO</option>
+                  <option value="COMPLETADO">COMPLETADO</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 pt-2">
+        <DialogFooter className="shrink-0 pt-4 border-t border-slate-200 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white gap-2">
+          <Button type="submit" disabled={loading} className="bg-sky-600 hover:bg-sky-700 text-white gap-2 px-6 font-semibold shadow-md">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {initialData?.id ? "Actualizar OT" : "Guardar OT"}
           </Button>
