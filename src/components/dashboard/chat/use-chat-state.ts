@@ -108,10 +108,15 @@ export function useChatState(user: User, initialChannelId?: string) {
   }, [channels, activeChannelId, teamUsers, user.id, user.email])
 
   const currentMemberEmails = useMemo(() => {
-    if (channelMembersMap[activeChannelId]) {
+    if (channelMembersMap[activeChannelId] && channelMembersMap[activeChannelId].length > 0) {
       return channelMembersMap[activeChannelId]
     }
-    return teamUsers.map((u) => u.email)
+    if (activeChannelId === "general") {
+      return teamUsers.map((u) => u.email)
+    }
+    return teamUsers
+      .filter((u) => ["admin", "admin_general", "gerencia", "super_admin"].includes((u.role || "").toLowerCase()))
+      .map((u) => u.email)
   }, [channelMembersMap, activeChannelId, teamUsers])
 
   const currentMembers = useMemo(() => {
