@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FileText, Download, Calendar, Layers, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { authFetch } from "@/lib/api-auth"
 import type { OTData } from "./OTForm"
 
 interface OTDetailDialogProps {
@@ -23,7 +24,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
     if (!ot.id) return
     setDownloading(true)
     try {
-      const res = await fetch(`${API_URL}/api/ot/${ot.id}/excel`)
+      const res = await authFetch(`${API_URL}/api/ot/${ot.id}/excel`)
       if (!res.ok) throw new Error("Error al descargar el archivo Excel")
 
       const blob = await res.blob()
