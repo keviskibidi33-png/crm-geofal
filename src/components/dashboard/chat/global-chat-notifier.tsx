@@ -18,6 +18,7 @@ interface GlobalChatNotifierProps {
 export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalChatNotifierProps) {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const activeReadChannelRef = useRef<string | null>(null)
+  const processedMsgIdsRef = useRef<Set<string>>(new Set())
 
   // 1. Cargar resumen inicial de mensajes no leídos desde el servidor
   useEffect(() => {
