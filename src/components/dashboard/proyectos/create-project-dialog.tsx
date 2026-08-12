@@ -243,7 +243,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-[550px] w-[95vw] bg-card border-border p-0 overflow-hidden shadow-2xl h-[85vh] flex flex-col rounded-3xl"
+        className="sm:max-w-137.5 w-[95vw] bg-card border-border p-0 overflow-hidden shadow-2xl h-[85vh] flex flex-col rounded-3xl"
       >
         {/* HEADER */}
         <DialogHeader className="p-6 border-b border-border/50 bg-slate-50/10 shrink-0">
@@ -266,7 +266,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                   <div className="h-5 w-5 rounded-md bg-[#0089b3]/10 flex items-center justify-center">
                     <Briefcase className="h-3 w-3 text-[#0089b3]" />
                   </div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.1em] text-[#0089b3]">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#0089b3]">
                     Datos del Proyecto
                   </h4>
                 </div>
@@ -293,7 +293,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                   <div className="h-5 w-5 rounded-md bg-blue-500/10 flex items-center justify-center">
                     <Building className="h-3 w-3 text-blue-500" />
                   </div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.1em] text-blue-600">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600">
                     Empresa y Representante
                   </h4>
                 </div>
@@ -316,7 +316,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[500px] p-0 rounded-xl" align="start">
+                      <PopoverContent className="w-125 p-0 rounded-xl" align="start">
                         <Command shouldFilter={false}>
                           <CommandInput
                             placeholder="Buscar por nombre, RUC..."
@@ -401,7 +401,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, user, initi
                   <div className="h-5 w-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
                     <MapPin className="h-3 w-3 text-emerald-500" />
                   </div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-600">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
                     Ubicación y contacto
                   </h4>
                 </div>

@@ -546,7 +546,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
       {/* Metric Cards Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card
-          className="cursor-pointer hover:border-blue-500/50 transition-all duration-200 bg-gradient-to-br from-blue-500/5 to-transparent border-blue-500/20"
+          className="cursor-pointer hover:border-blue-500/50 transition-all duration-200 bg-linear-to-br from-blue-500/5 to-transparent border-blue-500/20"
           onClick={() => setBreakdownType('pipeline')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -566,7 +566,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         </Card>
 
         <Card
-          className="cursor-pointer hover:border-emerald-500/50 transition-all duration-200 bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/20"
+          className="cursor-pointer hover:border-emerald-500/50 transition-all duration-200 bg-linear-to-br from-emerald-500/5 to-transparent border-emerald-500/20"
           onClick={() => setBreakdownType('ventas')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -588,7 +588,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
         </Card>
 
         <Card
-          className="cursor-pointer hover:border-rose-500/50 transition-all duration-200 bg-gradient-to-br from-rose-500/5 to-transparent border-rose-500/20"
+          className="cursor-pointer hover:border-rose-500/50 transition-all duration-200 bg-linear-to-br from-rose-500/5 to-transparent border-rose-500/20"
           onClick={() => setBreakdownType('perdidas')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1162,7 +1162,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden p-0">
-            <ScrollArea className="h-[400px]">
+            <ScrollArea className="h-100">
               <div className="p-4">
                 <Table>
                   <TableHeader>
@@ -1189,7 +1189,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
                               <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                 <FolderKanban className="h-4 w-4 text-primary" />
                               </div>
-                              <div className="flex flex-col min-w-0 flex-1 max-w-[280px] sm:max-w-[350px] md:max-w-[400px]">
+                              <div className="flex flex-col min-w-0 flex-1 max-w-70 sm:max-w-87.5 md:max-w-100">
                                 <span className="font-semibold text-xs sm:text-sm group-hover:text-primary transition-colors line-clamp-2" title={project.nombre}>
                                   {project.nombre}
                                 </span>
@@ -1264,7 +1264,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 min-h-[200px] max-h-[50vh]">
+          <ScrollArea className="flex-1 min-h-50 max-h-[50vh]">
             <div className="p-4 sm:p-6 space-y-2 sm:space-y-3">
               {loadingHistory ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">

@@ -545,13 +545,13 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
                           <span className="text-[10px] text-muted-foreground block font-normal">{quote.fecha}</span>
                         </TableCell>
                         <TableCell className="text-xs">
-                          <span className="font-bold text-foreground block truncate max-w-[180px]">{quote.cliente}</span>
+                          <span className="font-bold text-foreground block truncate max-w-45">{quote.cliente}</span>
                           {quote.clienteRuc && (
                             <span className="text-[10px] text-muted-foreground font-mono">RUC: {quote.clienteRuc}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs">
-                          <span className="text-foreground truncate max-w-[180px] block">{quote.proyectoNombre || "Sin proyecto especificad."}</span>
+                          <span className="text-foreground truncate max-w-45 block">{quote.proyectoNombre || "Sin proyecto especificad."}</span>
                         </TableCell>
                         <TableCell>{getStatusBadge(quote.estado)}</TableCell>
                         <TableCell className="text-right font-black text-xs">
@@ -627,7 +627,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
         </div>
 
         {/* Panel lateral derecho (Vista Rápida) */}
-        <div className="lg:col-span-1 border border-border/50 rounded-2xl overflow-hidden shadow-xs h-[750px] sticky top-6">
+        <div className="lg:col-span-1 border border-border/50 rounded-2xl overflow-hidden shadow-xs h-187.5 sticky top-6">
           <QuotePreviewPanel
             quote={selectedQuote}
             onDownload={handleDownloadExcel}
