@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTracing } from "@/hooks/use-tracing"
+import { useReactToPrint } from "react-to-print"
 import { ModernConfirmDialog } from "../modern-confirm-dialog"
 import {
     Search,
+    CheckCircle2,
+    Clock,
     AlertCircle,
     FileText,
     FlaskConical,
@@ -13,16 +16,18 @@ import {
     RefreshCw,
     Eye,
     ChevronRight,
+    Calendar,
     Download,
     Loader2,
     FileSpreadsheet,
     Trash2,
     History
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -32,9 +37,7 @@ import { toast } from "sonner"
 
 export function TracingModule() {
     const { user } = useAuth()
-    const { tracingData: rawTracingData, tracingList: rawTracingList, loading, loadingList, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
-    const tracingData = rawTracingData as any
-    const tracingList = (rawTracingList || []) as any[]
+    const { tracingData, tracingList, loading, loadingList, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
@@ -45,34 +48,188 @@ export function TracingModule() {
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
     const [selectedEnsayoId, setSelectedEnsayoId] = useState<number | null>(null)
 
+    // Reception Detail State
     const [isRecepcionDetailOpen, setIsRecepcionDetailOpen] = useState(false)
     const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
     const [loadingRecepcion, setLoadingRecepcion] = useState(false)
 
+    // Verification Detail State
+    const [isVerificDetailOpen, setIsVerificDetailOpen] = useState(false)
+    const [selectedVerific, setSelectedVerific] = useState<any>(null)
+    const [loadingVerific, setLoadingVerific] = useState(false)
+
+    // Informe Version History State
+    const [informeVersiones, setInformeVersiones] = useState<any[]>([])
+    const [loadingVersiones, setLoadingVersiones] = useState(false)
+    const [downloadingStage, setDownloadingStage] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 100
+    const canDelete = user?.role === "admin" || user?.permissions?.tracing?.delete === true
+
+    // Custom Concrete Report States
     const [isCustomReportOpen, setIsCustomReportOpen] = useState(false)
+    const [customReportNumero, setCustomReportNumero] = useState<string | null>(null)
+    const [customReportProbetas, setCustomReportProbetas] = useState<any[]>([])
     const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
     const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
 
+    // Silenciar alertas de variables no usadas que podrían requerirse a futuro
+    if (selectedEnsayoId || loadingVersiones || isEnsayoDetailOpen || selectedEnsayo || loadingEnsayo) {
+        // no-op
+    }
+
+
+    const componentRef = useRef<HTMLDivElement>(null)
+
+    const handlePrint = useReactToPrint({
+        // @ts-ignore
+        content: () => componentRef.current,
+        documentTitle: `Seguimiento-${tracingData?.numero_recepcion || 'Muestra'}`,
+    })
+
+    // Silenciar alerta de handlePrint no usado
+    if (typeof handlePrint === 'function') {
+        // no-op
+    }
+
+    // Cargar lista inicial
     useEffect(() => {
         fetchTracingList()
     }, [fetchTracingList])
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (searchTerm.trim()) {
-            fetchTracing(searchTerm.trim())
-            setIsDetailOpen(true)
-        }
-    }
-
-    const handleSelectFromList = (numero: string) => {
-        setSearchTerm(numero)
+    const handleOpenDetail = (numero: string) => {
         fetchTracing(numero)
+        fetchInformeVersiones(numero)
         setIsDetailOpen(true)
     }
 
-    const handleDeleteClick = (e: React.MouseEvent, numero: string) => {
-        e.stopPropagation()
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+    // Fetch version history when detail opens
+    const fetchInformeVersiones = async (numeroRecepcion: string) => {
+        setLoadingVersiones(true)
+        try {
+            const response = await authFetch(`${API_URL}/api/tracing/informe/${encodeURIComponent(numeroRecepcion)}/versiones`)
+            if (response.ok) {
+                const data = await response.json()
+                setInformeVersiones(data.versiones || [])
+            }
+        } catch (err) {
+            console.error("Error fetching versiones:", err)
+        } finally {
+            setLoadingVersiones(false)
+        }
+    }
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'completado': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+            case 'en_proceso': return <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />;
+            case 'por_implementar': return <Zap className="w-4 h-4 text-blue-400 opacity-60" />;
+            default: return <AlertCircle className="w-4 h-4 text-slate-300" />;
+        }
+    }
+
+    const handleDownload = async (url: string, filenamePrefix: string, stageKey: string) => {
+        if (downloadingStage) return
+        setDownloadingStage(stageKey)
+        try {
+            const response = await authFetch(`${API_URL}${url}`)
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                console.error("Download error:", errorData)
+                throw new Error(errorData.detail || "Error al descargar")
+            }
+            
+            const blob = await response.blob()
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            
+            // Try to get filename from content-disposition
+            let filename = `${filenamePrefix}.xlsx`
+            const contentDisposition = response.headers.get('Content-Disposition')
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1]
+                }
+            }
+            
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+
+            // If it's the report, refresh versions
+            if (stageKey === 'informe' && tracingData?.numero_recepcion) {
+                setTimeout(() => fetchInformeVersiones(tracingData.numero_recepcion), 2000)
+            }
+
+        } catch (error) {
+            console.error("Error downloading file:", error)
+            alert("Error al descargar el archivo. Verifique su sesión y permisos.")
+        } finally {
+            setDownloadingStage(null)
+        }
+    }
+
+    const handleViewEnsayoDetail = async (id: number) => {
+        setLoadingEnsayo(true)
+        setIsEnsayoDetailOpen(true)
+        setSelectedEnsayoId(id)
+        try {
+            const response = await authFetch(`${API_URL}/api/compresion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedEnsayo(data)
+            }
+        } catch (error) {
+            console.error("Error loading ensayo detail:", error)
+        } finally {
+            setLoadingEnsayo(false)
+        }
+    }
+
+    const handleViewRecepcionDetail = async (id: number) => {
+        setLoadingRecepcion(true)
+        setIsRecepcionDetailOpen(true)
+        try {
+            const response = await authFetch(`${API_URL}/api/recepcion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedRecepcion(data)
+            }
+        } catch (error) {
+            console.error("Error loading recepcion detail:", error)
+        } finally {
+            setLoadingRecepcion(false)
+        }
+    }
+
+    const handleViewVerificDetail = async (id: number) => {
+        setLoadingVerific(true)
+        setIsVerificDetailOpen(true)
+        try {
+            const response = await authFetch(`${API_URL}/api/verificacion/${id}`)
+            if (response.ok) {
+                const data = await response.json()
+                setSelectedVerific(data)
+            }
+        } catch (error) {
+            console.error("Error loading verificacion detail:", error)
+        } finally {
+            setLoadingVerific(false)
+        }
+    }
+
+    const confirmDelete = (numero: string) => {
+        if (!canDelete) {
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Seguimiento." })
+            return
+        }
         setDeleteTargetNumero(numero)
         setDeleteConfirmInput("")
         setIsDeleteConfirmOpen(true)
@@ -80,598 +237,1020 @@ export function TracingModule() {
 
     const handleDeleteTracing = async () => {
         if (!deleteTargetNumero) return
+
         const success = await deleteTracing(deleteTargetNumero)
         if (success) {
+            setIsDetailOpen(false)
             setIsDeleteConfirmOpen(false)
             setDeleteTargetNumero(null)
-            if (tracingData?.recepcion?.numero_recepcion === deleteTargetNumero) {
-                setIsDetailOpen(false)
-            }
+            toast.success("Registro eliminado con éxito.")
+        } else {
+            toast.error("No se pudo eliminar el registro.")
         }
     }
 
-    const handleOpenEnsayoDetail = async (ensayoId: number) => {
-        setSelectedEnsayoId(ensayoId)
-        setLoadingEnsayo(true)
-        setIsEnsayoDetailOpen(true)
-        setSelectedEnsayo(null)
-
-        try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-            const res = await authFetch(`${API_URL}/api/compresion/ensayos/${ensayoId}`)
-            if (!res.ok) {
-                throw new Error("No se pudo obtener la información del ensayo.")
-            }
-            const data = await res.json()
-            setSelectedEnsayo(data)
-        } catch (err: any) {
-            toast.error("Error al cargar ensayo", {
-                description: err.message || "No se pudo conectar con el servidor.",
-            })
-            setIsEnsayoDetailOpen(false)
-        } finally {
-            setLoadingEnsayo(false)
-        }
-    }
-
-    const handleOpenRecepcionDetail = async (recepcionId: string) => {
-        setLoadingRecepcion(true)
-        setIsRecepcionDetailOpen(true)
-        setSelectedRecepcion(null)
-
-        try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-            const res = await authFetch(`${API_URL}/api/recepcion/${recepcionId}`)
-            if (!res.ok) {
-                throw new Error("No se pudo obtener la información de la recepción.")
-            }
-            const data = await res.json()
-            setSelectedRecepcion(data)
-        } catch (err: any) {
-            toast.error("Error al cargar recepción", {
-                description: err.message || "No se pudo conectar con el servidor.",
-            })
-            setIsRecepcionDetailOpen(false)
-        } finally {
-            setLoadingRecepcion(false)
-        }
-    }
-
-    const handleDownloadReport = async (ensayoId: number) => {
-        try {
-            const toastId = toast.loading("Generando informe Excel...")
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-            const response = await authFetch(`${API_URL}/api/compresion/ensayos/${ensayoId}/excel`)
-            if (!response.ok) throw new Error('Error al generar Excel del servidor')
-
-            const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            
-            const contentDisposition = response.headers.get('content-disposition')
-            let fileName = `Informe_Compresion_${ensayoId}.xlsx`
-            if (contentDisposition && contentDisposition.includes('filename=')) {
-                fileName = contentDisposition.split('filename=')[1].replace(/["']/g, '')
-            }
-
-            a.download = fileName
-            document.body.appendChild(a)
-            a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
-            toast.dismiss(toastId)
-            toast.success("Informe descargado con éxito")
-        } catch (error: any) {
-            toast.error("Error al descargar informe", { description: error.message })
-        }
-    }
-
-    const handleOpenCustomReportModal = () => {
+    const handleOpenCustomReportModal = async (numeroRecepcion: string) => {
+        setCustomReportNumero(numeroRecepcion)
         setSelectedProbetasIds([])
         setIsCustomReportOpen(true)
+        try {
+            // Obtener datos de la recepción para listar sus probetas
+            const response = await authFetch(`${API_URL}/api/recepcion/buscar-recepcion?numero=${encodeURIComponent(numeroRecepcion)}`)
+            if (response.ok) {
+                const searchRes = await response.json()
+                if (searchRes.encontrado && searchRes.datos?.id) {
+                    const detailResponse = await authFetch(`${API_URL}/api/recepcion/${searchRes.datos.id}`)
+                    if (detailResponse.ok) {
+                        const detailData = await detailResponse.json()
+                        setCustomReportProbetas(detailData.muestras || [])
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching custom report probetas:", error)
+            toast.error("Error al obtener las probetas de la recepción.")
+        }
     }
 
     const handleDownloadCustomReport = async () => {
         if (selectedProbetasIds.length === 0) {
-            toast.warning("Selecciona probetas", { description: "Debes seleccionar al menos 1 probeta para generar el informe." })
+            toast.error("Debe seleccionar al menos 1 probeta.")
+            return
+        }
+        if (selectedProbetasIds.length > 6) {
+            toast.error("Límite superado", { description: "Solo puede seleccionar un máximo de 6 probetas por informe." })
             return
         }
 
-        if (!selectedEnsayoId) return
-
         setGeneratingCustomReport(true)
         try {
-            const toastId = toast.loading(`Generando informe con ${selectedProbetasIds.length} probetas...`)
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-            
-            const response = await authFetch(`${API_URL}/api/compresion/ensayos/${selectedEnsayoId}/excel-custom`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ muestra_ids: selectedProbetasIds })
+            const response = await authFetch(`${API_URL}/api/compresion/informe-medida`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    numero_recepcion: customReportNumero,
+                    muestras_ids: selectedProbetasIds
+                })
             })
 
             if (!response.ok) {
-                const errJson = await response.json().catch(() => ({}))
-                throw new Error(errJson.detail || 'Error al generar informe personalizado')
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.detail || "Error al generar informe")
             }
 
             const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-
-            const contentDisposition = response.headers.get('content-disposition')
-            let fileName = `Informe_Compresion_Seleccion_${selectedEnsayoId}.xlsx`
-            if (contentDisposition && contentDisposition.includes('filename=')) {
-                fileName = contentDisposition.split('filename=')[1].replace(/["']/g, '')
+            const downloadUrl = window.URL.createObjectURL(blob)
+            
+            // Determinar nombre del archivo del header o usar fallback
+            const contentDisposition = response.headers.get("content-disposition")
+            let filename = ""
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename=(.+)/)
+                if (filenameMatch) {
+                    filename = filenameMatch[1].replace(/["']/g, "")
+                }
+            }
+            if (!filename) {
+                const recNum = customReportNumero || ""
+                const match = recNum.match(/(\d+)/)
+                const recCode = match ? match[1] : "000"
+                const nMuestras = selectedProbetasIds.length
+                filename = `1-Inf-N-${recCode}-26-CO12-COM-V04 -${nMuestras}.xlsx`
             }
 
-            a.download = fileName
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = filename
             document.body.appendChild(a)
             a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
-            
-            toast.dismiss(toastId)
-            toast.success("Informe descargado con éxito")
+            a.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+
+            toast.success("Informe generado y descargado correctamente.")
             setIsCustomReportOpen(false)
-            
-            if (selectedEnsayoId) {
-                handleOpenEnsayoDetail(selectedEnsayoId)
-            }
+            fetchTracingList() // Recargar para mostrar los nuevos estados
         } catch (error: any) {
-            toast.error("Error al generar informe", { description: error.message })
+            console.error("Error generating custom report:", error)
+            toast.error(error.message || "Error al descargar el informe.")
         } finally {
             setGeneratingCustomReport(false)
         }
     }
 
+    const handleExportList = () => {
+        // Implementación simple de exportación a CSV desde el frontend
+        if (!tracingList.length) return
+
+        const headers = ["Numero Recepcion", "Cliente", "Fecha Entrega", "Recepcion", "Verificacion", "Compresion", "Informe"]
+        const rows = tracingList.map(item => [
+            item.numero_recepcion,
+            item.cliente || "",
+            item.fecha_entrega
+                ? new Date(item.fecha_entrega).toLocaleDateString()
+                : item.fecha
+                    ? new Date(item.fecha).toLocaleDateString()
+                    : "",
+            item.stages.find(s => s.key === 'recepcion')?.status || "-",
+            item.stages.find(s => s.key === 'verificacion')?.status || "-",
+            item.stages.find(s => s.key === 'compresion')?.status || "-",
+            item.stages.find(s => s.key === 'informe')?.status || "-"
+        ])
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n")
+
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement("a")
+        link.setAttribute("href", encodedUri)
+        link.setAttribute("download", `tracing_list_${new Date().toISOString().split('T')[0]}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
+
+
+    const getStatusBubble = (status: string, label: string) => {
+        const colors = {
+            completado: "bg-green-500 shadow-green-500/20",
+            en_proceso: "bg-yellow-500 shadow-yellow-500/20",
+            pendiente: "bg-slate-200 dark:bg-slate-800",
+            por_implementar: "bg-blue-300 opacity-60"
+        } as any;
+
+        return (
+            <div className="flex flex-col items-center gap-1">
+                <div className={cn(
+                    "w-3 h-3 rounded-full shadow-sm transition-all duration-300",
+                    colors[status] || colors.pendiente
+                )} />
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">{label}</span>
+            </div>
+        )
+    }
+
     const filteredList = tracingList.filter(item =>
         item.numero_recepcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.proyecto.toLowerCase().includes(searchTerm.toLowerCase())
+        item.cliente?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    const isSystemAdmin = user?.role === 'admin' || user?.role === 'superadmin'
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage))
+    const safeCurrentPage = Math.min(currentPage, totalPages)
+    const paginatedList = filteredList.slice(
+        (safeCurrentPage - 1) * itemsPerPage,
+        safeCurrentPage * itemsPerPage
+    )
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm])
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages)
+        }
+    }, [currentPage, totalPages])
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto pb-10">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-linear-to-r from-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-blue-800/40 relative overflow-hidden">
-                <div className="absolute top-0 right-0 translate-x-4 -translate-y-4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="space-y-1 relative z-10">
+        <div className="h-full flex flex-col space-y-6 p-6 overflow-hidden">
+            <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <History className="h-6 w-6 text-blue-400" />
-                        <h1 className="text-2xl font-black tracking-tight">Trazabilidad Integral de Muestras</h1>
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                            Seguimiento de trabajos
+                        </h1>
                     </div>
-                    <p className="text-xs text-blue-200/80 max-w-2xl font-normal">
-                        Monitoreo en tiempo real del ciclo de vida de recepción, verificación dimensional, ensayos mecánicos y emisión de informes.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3 relative z-10">
-                    <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <div className="flex justify-center">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                             <Input
-                                placeholder="Buscar por N° Recepción..."
+                                placeholder="Buscar por cliente o número de recepción..."
+                                className="pl-10 h-8 text-sm bg-muted/30 border border-transparent focus-visible:ring-1"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-blue-200/60 focus:bg-white/20 text-xs h-10 rounded-xl"
                             />
                         </div>
-                        <Button type="submit" size="sm" disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-4 rounded-xl text-xs shadow-md">
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2">
+                            <Download className="w-4 h-4" />
+                            Exportar Lista
                         </Button>
-                    </form>
-                    <Button variant="outline" size="icon" onClick={() => fetchTracingList()} disabled={loadingList} className="h-10 w-10 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl">
-                        <RefreshCw className={cn("h-4 w-4", loadingList && "animate-spin")} />
-                    </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchTracingList()} disabled={loadingList} className="gap-2">
+                            <RefreshCw className={cn("w-4 h-4", loadingList && "animate-spin")} />
+                            Actualizar
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* List Table */}
-            <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <LayoutList className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                            Historial de Trazabilidad ({filteredList.length})
-                        </h2>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-slate-50/80 dark:bg-slate-900/80">
-                                <TableHead className="font-bold text-xs">N° Recepción</TableHead>
-                                <TableHead className="font-bold text-xs">Cliente / Proyecto</TableHead>
-                                <TableHead className="font-bold text-xs text-center">Recepción</TableHead>
-                                <TableHead className="font-bold text-xs text-center">Verificación</TableHead>
-                                <TableHead className="font-bold text-xs text-center">Compresión</TableHead>
-                                <TableHead className="font-bold text-xs text-right">Acciones</TableHead>
+            <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                        <TableRow>
+                            <TableHead className="w-[180px]">Número Recepción</TableHead>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead className="w-[140px]">Fecha entrega</TableHead>
+                            <TableHead className="text-center w-[240px]">Estado por Etapa</TableHead>
+                            <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loadingList ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <TableRow key={i} className="animate-pulse">
+                                    <TableCell><div className="h-4 bg-muted rounded w-24"></div></TableCell>
+                                    <TableCell><div className="h-4 bg-muted rounded w-48"></div></TableCell>
+                                    <TableCell><div className="h-4 bg-muted rounded w-16"></div></TableCell>
+                                    <TableCell><div className="h-4 bg-muted rounded w-32 mx-auto"></div></TableCell>
+                                    <TableCell><div className="h-8 bg-muted rounded w-8 ml-auto"></div></TableCell>
+                                </TableRow>
+                            ))
+                        ) : filteredList.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                                    No se encontraron registros.
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loadingList ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-12">
-                                        <Loader2 className="h-6 w-6 animate-spin text-blue-600 mx-auto mb-2" />
-                                        <p className="text-xs text-slate-500">Cargando registros...</p>
+                        ) : (
+                            paginatedList.map((item) => (
+                                <TableRow key={item.numero_recepcion} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => handleOpenDetail(item.numero_recepcion)}>
+                                    <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
+                                    <TableCell className="font-medium max-w-[200px] truncate">{item.cliente || '-'}</TableCell>
+                                    <TableCell className="text-muted-foreground text-xs">
+                                        {item.fecha_entrega
+                                            ? new Date(item.fecha_entrega).toLocaleDateString()
+                                            : item.fecha
+                                                ? new Date(item.fecha).toLocaleDateString()
+                                                : '-'}
                                     </TableCell>
-                                </TableRow>
-                            ) : filteredList.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-12">
-                                        <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                                        <p className="text-sm font-bold text-slate-700">Sin registros de trazabilidad</p>
-                                        <p className="text-xs text-slate-500">No se encontraron recepciones en la base de datos.</p>
+                                    <TableCell>
+                                        <div className="flex justify-center gap-6">
+                                            {item.stages.map(s => (
+                                                <div key={s.key}>
+                                                    {getStatusBubble(s.status, s.key.substring(0, 3))}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredList.map((row) => (
-                                    <TableRow
-                                        key={row.numero_recepcion}
-                                        onClick={() => handleSelectFromList(row.numero_recepcion)}
-                                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                                    >
-                                        <TableCell className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
-                                            {row.numero_recepcion}
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                             <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-60">
-                                                 {row.cliente || "Sin cliente"}
-                                             </div>
-                                             <div className="text-[10px] text-slate-500 truncate max-w-60">
-                                                 {row.proyecto || "Sin proyecto"}
-                                             </div>
-                                         </TableCell>
-                                        <TableCell className="text-center">
-                                            {row.recepcion_completada ? (
-                                                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[10px] font-bold">
-                                                    Registrado
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-slate-400 text-[10px]">
-                                                    Pendiente
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {row.verificacion_completada ? (
-                                                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[10px] font-bold">
-                                                    Verificado
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-slate-400 text-[10px]">
-                                                    Pendiente
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {row.ensayo_compresion_completado ? (
-                                                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-[10px] font-bold">
-                                                    Ensayado ({row.muestras_ensayadas_count})
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-slate-400 text-[10px]">
-                                                    Pendiente
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2 px-2" onClick={(e) => e.stopPropagation()}>
+                                            {canDelete && (
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => handleSelectFromList(row.numero_recepcion)}
-                                                    className="h-8 w-8 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                                                    title="Ver Trazabilidad"
+                                                    className="hover:bg-red-50 hover:text-red-500 rounded-full h-8 w-8"
+                                                    onClick={() => confirmDelete(item.numero_recepcion)}
                                                 >
-                                                    <Eye className="h-4 w-4" />
+                                                    <Trash2 className="w-4 h-4" />
                                                 </Button>
-                                                {isSystemAdmin && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => handleDeleteClick(e, row.numero_recepcion)}
-                                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                                        title="Eliminar Trazabilidad"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </Card>
+                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Generar Informe concreto"
+                                                className="hover:bg-green-50 hover:text-green-600 rounded-full h-8 w-8 text-slate-500"
+                                                onClick={() => handleOpenCustomReportModal(item.numero_recepcion)}
+                                            >
+                                                <FileSpreadsheet className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-white transition-all rounded-full h-8 w-8" onClick={() => handleOpenDetail(item.numero_recepcion)}>
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+                {!loadingList && filteredList.length > 0 && (
+                    <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
+                        <span className="text-muted-foreground">
+                            Mostrando {(safeCurrentPage - 1) * itemsPerPage + 1}
+                            {' - '}
+                            {Math.min(safeCurrentPage * itemsPerPage, filteredList.length)}
+                            {' de '}
+                            {filteredList.length}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={safeCurrentPage <= 1}
+                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            >
+                                Anterior
+                            </Button>
+                            <span className="min-w-[88px] text-center font-medium">
+                                Página {safeCurrentPage} / {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={safeCurrentPage >= totalPages}
+                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
-            {/* Modal Detail */}
+            {/* Modal de Detalle Premium */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl bg-slate-900 border-slate-800 text-white">
-                    <DialogHeader className="p-6 border-b border-slate-800 bg-slate-950/60 flex flex-row items-center justify-between">
-                        <div>
-                            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                                <History className="h-5 w-5 text-blue-400" />
-                                Trazabilidad N° {tracingData?.recepcion?.numero_recepcion || searchTerm}
-                            </DialogTitle>
-                            <DialogDescription className="text-xs text-slate-400 mt-1">
-                                {tracingData?.recepcion?.cliente || "Cliente"} — {tracingData?.recepcion?.proyecto || "Proyecto"}
-                            </DialogDescription>
+                <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden rounded-2xl">
+                    <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
+                        <div className="flex justify-between items-start w-full">
+                            <div className="space-y-1.5 w-full">
+                                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                                    <LayoutList className="w-5 h-5 text-slate-600" />
+                                    Detalle de Seguimiento
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-500 font-semibold text-xs">
+                                    Consolidado de recepción y laboratorio para {tracingData?.numero_recepcion}
+                                </DialogDescription>
+                                
+                                {/* Datos de Cliente y Proyecto integrados directamente en el encabezado */}
+                                {!loading && tracingData && (
+                                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 gap-4 text-xs">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-400">Cliente / Solicitante</span>
+                                            <span className="font-bold text-slate-700 truncate">{tracingData.cliente || 'No especificado'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-400">Proyecto Relacionado</span>
+                                            <span className="font-bold text-slate-700 truncate">{tracingData.proyecto || 'General'}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </DialogHeader>
 
-                    {loading ? (
-                        <div className="py-20 text-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-3" />
-                            <p className="text-xs text-slate-400">Consultando flujo de datos...</p>
-                        </div>
-                    ) : tracingData ? (
-                        <div className="p-6 space-y-6">
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Card
-                                    onClick={() => tracingData.recepcion?.id && handleOpenRecepcionDetail(tracingData.recepcion.id)}
-                                    className="bg-slate-800/60 border-slate-700/60 text-white p-4 cursor-pointer hover:border-blue-500/60 hover:bg-slate-800 transition-all group"
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Etapa 1: Recepción</span>
-                                        <FileText className="h-4 w-4 text-blue-400 group-hover:scale-110 transition-transform" />
-                                    </div>
-                                    <div className="text-base font-bold truncate">{tracingData.recepcion?.numero_recepcion || "-"}</div>
-                                    <p className="text-xs text-slate-400 mt-1">Muestras: {tracingData.recepcion?.muestras_count || 0}</p>
-                                </Card>
+                    <ScrollArea className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900">
+                        <div ref={componentRef} className="p-8 space-y-8">
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center p-24 gap-4">
+                                    <RefreshCw className="w-12 h-12 text-primary animate-spin" />
+                                    <p className="text-muted-foreground font-medium animate-pulse">Consolidando estados de laboratorio...</p>
+                                </div>
+                            ) : tracingData ? (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {/* Dashboard Info Cards (Removed as requested, now integrated in header) */}
 
-                                <Card className="bg-slate-800/60 border-slate-700/60 text-white p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Etapa 2: Verificación</span>
-                                        <FlaskConical className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                                    </div>
-                                    <div className="text-base font-bold">
-                                        {tracingData.verificacion ? "Verificado" : "Pendiente"}
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        {tracingData.verificacion?.fecha_verificacion ? `Fecha: ${tracingData.verificacion.fecha_verificacion}` : "Sin verificar"}
-                                    </p>
-                                </Card>
+                                    {/* Timeline Stepper */}
+                                    <div className="relative space-y-4 px-2">
+                                        <div className="absolute left-7 top-4 bottom-4 w-1 bg-slate-200 dark:bg-slate-800 rounded-full hidden md:block" />
 
-                                <Card className="bg-slate-800/60 border-slate-700/60 text-white p-4">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Etapa 3: Compresión</span>
-                                        <Zap className="h-4 w-4 text-amber-400" />
-                                    </div>
-                                    <div className="text-base font-bold">
-                                        {tracingData.ensayo_compresion ? "Ensayos Realizados" : "Sin Ensayos"}
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        {tracingData.ensayo_compresion?.items?.length || 0} roturas registradas
-                                    </p>
-                                </Card>
-                            </div>
-
-                            {/* Ensayos List if available */}
-                            {tracingData.ensayos && tracingData.ensayos.length > 0 && (
-                                <div className="space-y-3">
-                                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                                        <Zap className="h-4 w-4 text-amber-400" />
-                                        Ensayos de Compresión ({tracingData.ensayos.length})
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {tracingData.ensayos.map((ensayo: any) => (
-                                            <div
-                                                key={ensayo.id}
-                                                onClick={() => handleOpenEnsayoDetail(ensayo.id)}
-                                                className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 cursor-pointer hover:bg-slate-800 hover:border-blue-500/50 transition-all flex justify-between items-center"
-                                            >
-                                                <div>
-                                                    <div className="font-mono font-bold text-sm text-blue-400">
-                                                        Ensayo N° {ensayo.id}
-                                                    </div>
-                                                    <div className="text-xs text-slate-400 mt-0.5">
-                                                        Fecha: {ensayo.fecha_ensayo || "N/A"}
-                                                    </div>
+                                        {tracingData.stages.map((stage, index) => (
+                                            <div key={stage.key} className="relative flex flex-col md:flex-row gap-6 md:items-center">
+                                                <div className={cn(
+                                                    "z-10 w-10 h-10 rounded-full flex items-center justify-center shadow-lg shrink-0 transition-all duration-300 ring-4 ring-white dark:ring-slate-900",
+                                                    stage.status === 'completado' ? "bg-green-500 text-white" :
+                                                        stage.status === 'en_proceso' ? "bg-yellow-500 text-white animate-pulse" :
+                                                            stage.status === 'por_implementar' ? "bg-blue-300 text-white" :
+                                                                "bg-slate-200 text-slate-500 dark:bg-slate-800"
+                                                )}>
+                                                    {index === 0 ? <LayoutList className="w-5 h-5" /> :
+                                                        index === 1 ? <FlaskConical className="w-5 h-5" /> :
+                                                            index === 2 ? <Zap className="w-5 h-5" /> :
+                                                                <FileText className="w-5 h-5" />}
                                                 </div>
-                                                <Button size="sm" variant="ghost" className="text-xs text-blue-400 hover:text-white">
-                                                    Ver Detalle <ChevronRight className="h-4 w-4 ml-1" />
-                                                </Button>
+
+                                                <Card className={cn(
+                                                    "flex-1 border-none shadow-sm transition-all duration-300",
+                                                    stage.status === 'completado' ? "bg-white dark:bg-slate-800" :
+                                                        stage.status === 'en_proceso' ? "bg-yellow-50/50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30" :
+                                                            "bg-slate-100/50 dark:bg-slate-800/50 opacity-60"
+                                                )}>
+                                                    <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <h3 className="text-md font-bold">{stage.name}</h3>
+                                                                {getStatusIcon(stage.status)}
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground leading-tight">{stage.message}</p>
+                                                            {stage.date && (
+                                                                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-2 font-medium">
+                                                                    <Calendar className="w-3 h-3" />
+                                                                    {new Date(stage.date).toLocaleString()}
+                                                                </div>
+                                                            )}
+                                                            {stage.data && Object.keys(stage.data).length > 0 && stage.key !== 'informe' && (
+                                                                <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-200 dark:border-slate-700 pt-3">
+                                                                    {Object.entries(stage.data).map(([key, value]) => (
+                                                                        key !== 'ot' && (
+                                                                            <div key={key} className="flex flex-col">
+                                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{key}</span>
+                                                                                <span className="font-medium text-slate-900 dark:text-slate-100">{String(value)}</span>
+                                                                            </div>
+                                                                        )
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {/* Informe stage: custom UI with version info */}
+                                                            {stage.key === 'informe' && (
+                                                                <div className="mt-3 space-y-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                                                                    {/* Status indicators */}
+                                                                    <div className="flex flex-wrap gap-2 text-[10px]">
+                                                                        {stage.data?.versiones > 0 && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px]">
+                                                                                <History className="w-3 h-3" />
+                                                                                {stage.data.versiones} versión(es) generada(s)
+                                                                            </Badge>
+                                                                        )}
+                                                                        {stage.status !== 'completado' && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px] border-yellow-300 text-yellow-700 bg-yellow-50">
+                                                                                <AlertCircle className="w-3 h-3" />
+                                                                                Datos parciales
+                                                                            </Badge>
+                                                                        )}
+                                                                        {stage.status === 'completado' && (
+                                                                            <Badge variant="outline" className="gap-1 text-[10px] border-green-300 text-green-700 bg-green-50">
+                                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                                Datos completos
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    {/* Download button */}
+                                                                    {stage.download_url && (
+                                                                        <Button
+                                                                            variant="default"
+                                                                            size="sm"
+                                                                            disabled={downloadingStage === stage.key}
+                                                                            className="gap-2 h-8 text-xs w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                                                                            onClick={() => handleDownload(stage.download_url!, `Informe-${tracingData?.numero_recepcion}`, stage.key)}
+                                                                        >
+                                                                            {downloadingStage === stage.key ? (
+                                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                                            ) : (
+                                                                                <Download className="w-3 h-3" />
+                                                                            )}
+                                                                            {stage.status === 'completado' ? 'Generar Informe Final' : 'Generar Informe (Parcial)'}
+                                                                        </Button>
+                                                                    )}
+                                                                    {/* Version history */}
+                                                                    {informeVersiones.length > 0 && (
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                                                <History className="w-3 h-3" />
+                                                                                Historial de Versiones
+                                                                            </p>
+                                                                            <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+                                                                                {informeVersiones.map((v: any) => (
+                                                                                    <div key={v.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded px-2.5 py-1.5 text-[11px]">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <span className="font-bold text-primary">v{v.version}</span>
+                                                                                            <span className="text-muted-foreground">
+                                                                                                {v.fecha_generacion ? new Date(v.fecha_generacion).toLocaleString() : '-'}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            {v.datos_completos ? (
+                                                                                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-green-300 text-green-600">Completo</Badge>
+                                                                                            ) : (
+                                                                                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-yellow-300 text-yellow-600">Parcial</Badge>
+                                                                                            )}
+                                                                                            <span className="text-muted-foreground">{v.total_muestras}m</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {/* Non-informe download buttons */}
+                                                            {stage.download_url && stage.key !== 'informe' && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={downloadingStage === stage.key}
+                                                                    className="mt-3 gap-2 h-8 text-xs w-full sm:w-auto border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary"
+                                                                    onClick={() => handleDownload(stage.download_url!, `Original-${stage.key}`, stage.key)}
+                                                                >
+                                                                    {downloadingStage === stage.key ? (
+                                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    ) : (
+                                                                        <FileText className="w-3 h-3" />
+                                                                    )}
+                                                                    Descargar Excel Original
+                                                                </Button>
+                                                            )}
+                                                            {stage.key === 'recepcion' && stage.data?.recepcion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewRecepcionDetail(stage.data.recepcion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles de Recepción
+                                                                </Button>
+                                                            )}
+                                                            {stage.key === 'verificacion' && stage.data?.verificacion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewVerificDetail(stage.data.verificacion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles de Verificación
+                                                                </Button>
+                                                            )}
+                                                            {stage.key === 'compresion' && stage.data?.compresion_id && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 p-0 h-auto"
+                                                                    onClick={() => handleViewEnsayoDetail(stage.data.compresion_id)}
+                                                                >
+                                                                    <Eye className="w-3 h-3" />
+                                                                    Ver Detalles del Ensayo
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        <Badge className={cn(
+                                                            "text-[10px] uppercase px-2 py-0 border-none transition-colors",
+                                                            stage.status === 'completado' ? "bg-green-100 text-green-700 hover:bg-green-200" :
+                                                                stage.status === 'en_proceso' ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" :
+                                                                    "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                                        )}>
+                                                            {stage.status.replace('_', ' ')}
+                                                        </Badge>
+                                                    </CardContent>
+                                                </Card>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
-                    ) : (
-                        <div className="py-20 text-center text-slate-400 text-xs">
-                            No se encontró información para el número ingresado.
-                        </div>
-                    )}
+                    </ScrollArea>
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Detail Ensayo */}
+            {/* Ensayo Detail Modal */}
             <Dialog open={isEnsayoDetailOpen} onOpenChange={setIsEnsayoDetailOpen}>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-800 text-white rounded-2xl">
-                    <DialogHeader className="border-b border-slate-800 pb-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <DialogTitle className="text-lg font-bold text-blue-400">
-                                    Detalle de Ensayo de Compresión N° {selectedEnsayoId}
-                                </DialogTitle>
-                                <DialogDescription className="text-xs text-slate-400">
-                                    Valores de rotura y resistencia probetas de concreto
-                                </DialogDescription>
-                            </div>
-                            {selectedEnsayoId && (
-                                <div className="flex gap-2">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleOpenCustomReportModal}
-                                        className="bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 text-xs h-8"
-                                    >
-                                        <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-400" />
-                                        Seleccionar Probetas
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        onClick={() => handleDownloadReport(selectedEnsayoId)}
-                                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8"
-                                    >
-                                        <Download className="h-3.5 w-3.5 mr-1" />
-                                        Descargar Completo
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileText className="h-5 w-5 text-primary" />
+                            Detalle de Ensayo de Compresión
+                        </DialogTitle>
+                        <DialogDescription>
+                            Información completa del ensayo OT {selectedEnsayo?.numero_ot}
+                        </DialogDescription>
                     </DialogHeader>
 
                     {loadingEnsayo ? (
-                        <div className="py-12 text-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-2" />
-                            <p className="text-xs text-slate-400">Cargando datos del ensayo...</p>
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos del ensayo...</p>
                         </div>
                     ) : selectedEnsayo ? (
-                        <div className="space-y-4 pt-2">
-                            <div className="bg-linear-to-r from-blue-500/10 via-emerald-500/10 to-indigo-500/10 p-4 rounded-xl border border-blue-500/20 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Realizado Por:</span>
-                                    <span className="font-bold">{selectedEnsayo.realizado_por || "-"}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Revisado Por:</span>
-                                    <span className="font-bold">{selectedEnsayo.revisado_por || "-"}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Aprobado Por:</span>
-                                    <span className="font-bold">{selectedEnsayo.aprobado_por || "-"}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Fecha Ensayo:</span>
-                                    <span className="font-bold">{selectedEnsayo.fecha_ensayo || "-"}</span>
-                                </div>
-                            </div>
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-6 space-y-6">
+                                {/* Ensayo Info Card */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Cabecera del Ensayo
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número OT</p>
+                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedEnsayo.numero_ot}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número Recepción</p>
+                                                    <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.numero_recepcion}</p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Equipo Utilizado</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.codigo_equipo || 'No especificado'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            {/* Table Items */}
-                            <div className="border border-slate-800 rounded-xl overflow-hidden">
-                                <Table>
-                                    <TableHeader className="bg-slate-800/80">
-                                        <TableRow>
-                                            <TableHead className="text-xs font-bold text-slate-300">Cód. LEM</TableHead>
-                                            <TableHead className="text-xs font-bold text-slate-300">Muestra</TableHead>
-                                            <TableHead className="text-xs font-bold text-slate-300 text-center">f'c (kg/cm²)</TableHead>
-                                            <TableHead className="text-xs font-bold text-slate-300 text-center">Edad (Días)</TableHead>
-                                            <TableHead className="text-xs font-bold text-slate-300 text-right">Carga (kN)</TableHead>
-                                            <TableHead className="text-xs font-bold text-slate-300 text-right">Resistencia %</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {(selectedEnsayo.items || []).map((item: any) => (
-                                            <TableRow key={item.id} className="border-slate-800 hover:bg-slate-800/40">
-                                                <TableCell className="font-mono text-xs font-bold text-blue-400">{item.codigo_lem || "-"}</TableCell>
-                                                <TableCell className="text-xs text-slate-200">{item.identificacion_muestra || "-"}</TableCell>
-                                                <TableCell className="text-xs text-center font-bold">{item.fc_kg_cm2 || "-"}</TableCell>
-                                                <TableCell className="text-xs text-center">{item.edad_dias || "-"}</TableCell>
-                                                <TableCell className="text-xs text-right font-mono">{item.carga_maxima ? item.carga_maxima.toFixed(2) : "-"}</TableCell>
-                                                <TableCell className="text-xs text-right font-bold text-emerald-400">{item.porcentaje_resistencia ? `${item.porcentaje_resistencia.toFixed(1)}%` : "-"}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 shadow-sm">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                                            <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                            Notas y Adicionales
+                                        </h4>
+                                        <div className="space-y-2.5">
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Otros Detalles</p>
+                                                <p className="text-sm font-semibold text-slate-800">{selectedEnsayo.otros || 'Sin detalles'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Nota</p>
+                                                <p className="text-xs text-slate-600 italic line-clamp-2">{selectedEnsayo.nota || 'Sin observaciones'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Items Table Section */}
+                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                                            Resultados de Compresión ({selectedEnsayo.items?.length || 0})
+                                        </h4>
+                                        <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedEnsayo.estado}</Badge>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <Table className="min-w-full">
+                                            <TableHeader className="bg-slate-50/50">
+                                                <TableRow>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Cód. LEM</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fecha Ensayo</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Carga Máx (kN)</TableHead>
+                                                    <TableHead className="text-[9px] font-black uppercase h-8">Fractura</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedEnsayo.items?.map((m: any) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/50 transition-colors h-10">
+                                                        <TableCell className="text-xs font-bold text-center py-2">{m.item}</TableCell>
+                                                        <TableCell className="text-[11px] font-mono text-indigo-700 py-2">{m.codigo_lem}</TableCell>
+                                                        <TableCell className="text-xs font-semibold py-2">
+                                                            {m.fecha_ensayo ? new Date(m.fecha_ensayo).toLocaleDateString('es-PE') : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-green-700 py-2">{m.carga_maxima} kN</TableCell>
+                                                        <TableCell className="text-xs text-slate-600 py-2">{m.tipo_fractura}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                                {(!selectedEnsayo.items || selectedEnsayo.items.length === 0) && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="h-16 text-center text-xs text-slate-400 italic">No hay resultados registrados</TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
                             </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para este ensayo.</p>
                         </div>
-                    ) : null}
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsEnsayoDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Detail Recepcion */}
+            {/* Reception Detail Modal */}
             <Dialog open={isRecepcionDetailOpen} onOpenChange={setIsRecepcionDetailOpen}>
-                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-900 border-slate-800 text-white rounded-2xl">
-                    <DialogHeader className="border-b border-slate-800 pb-4">
-                        <DialogTitle className="text-lg font-bold text-blue-400">
-                            Detalle de Recepción N° {selectedRecepcion?.numero_recepcion || ""}
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileSpreadsheet className="h-5 w-5 text-primary" />
+                            Detalle de Recepción Original
                         </DialogTitle>
-                        <DialogDescription className="text-xs text-slate-400">
-                            Registro de ingreso de muestras al laboratorio
+                        <DialogDescription>
+                            Información completa de la OT {selectedRecepcion?.numero_ot}
                         </DialogDescription>
                     </DialogHeader>
 
                     {loadingRecepcion ? (
-                        <div className="py-12 text-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto mb-2" />
-                            <p className="text-xs text-slate-400">Cargando datos de recepción...</p>
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos de recepción...</p>
                         </div>
                     ) : selectedRecepcion ? (
-                        <div className="space-y-4 pt-2">
-                            <div className="grid grid-cols-2 gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50 text-xs">
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Cliente:</span>
-                                    <span className="font-bold">{selectedRecepcion.cliente || "-"}</span>
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-8 space-y-8">
+                                {/* Information Grid */}
+                                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente / Solicitante</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedRecepcion.cliente || '1111'}</p>
+                                                <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ruc || '1111'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Contacto</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.persona_contacto || '1111'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    {selectedRecepcion.email} • {selectedRecepcion.telefono}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Proyecto</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedRecepcion.proyecto || '1111'}</p>
+                                                <p className="text-xs font-bold text-slate-500 mt-1">{selectedRecepcion.ubicacion || '1111'}</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Fechas</p>
+                                                    <p className="text-xs font-bold text-slate-700">Recepción: <span className="font-black">{selectedRecepcion.fecha_recepcion || '06/02/2026'}</span></p>
+                                                </div>
+                                                <div className="flex flex-col justify-end">
+                                                    <p className="text-xs font-bold text-slate-700">Conclusión Est.: <span className="font-black">{selectedRecepcion.fecha_estimada_culminacion || '13/02/2026'}</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase">Proyecto:</span>
-                                    <span className="font-bold">{selectedRecepcion.proyecto || "-"}</span>
+
+                                {/* Logistics Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-2">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Emisión de Informes</p>
+                                        <div className="flex gap-2">
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-[10px] font-black uppercase border-slate-200", selectedRecepcion.emision_fisica ? "bg-slate-100 text-slate-700" : "opacity-40")}>Físico</Badge>
+                                            <Badge variant="outline" className={cn("px-3 py-1 text-[10px] font-black uppercase border-transparent", selectedRecepcion.emision_digital ? "bg-[#0070F3] text-white" : "opacity-40")}>Digital</Badge>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Entregado por</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.entregado_por || '1111'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">Recibido por</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase">{selectedRecepcion.recibido_por || '1111'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Muestras Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 text-[#0070F3] h-6 w-6 rounded-md flex items-center justify-center text-xs font-black">
+                                            {selectedRecepcion.muestras?.length || 0}
+                                        </div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Muestras Registradas</h3>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                                                    <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Nº</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Código LEM</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Identificación</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Estructura</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">F'c</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Moldeo</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Edad</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Rotura</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Densidad</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedRecepcion.muestras?.map((m: any, idx: number) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/30 transition-colors h-12">
+                                                        <TableCell className="text-xs font-bold text-slate-400 text-center">{idx + 1}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-[#0070F3] text-center underline decoration-blue-200">
+                                                            {m.codigo_muestra_lem || m.codigo_muestra || m.codigo_lem || '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.identificacion_muestra || '1111'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.estructura || '1111'}</TableCell>
+                                                        <TableCell className="text-xs font-black text-slate-900 text-center">{m.fc_kg_cm2 || '280'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.fecha_moldeo || '05/12/2026'}</TableCell>
+                                                        <TableCell className="text-xs font-black text-slate-600 text-center">{m.edad || '7'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-500 text-center">{m.fecha_rotura || '12/12/2026'}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter bg-slate-50 py-0 h-5">
+                                                                {m.densidad ? 'SI' : 'NO'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </div>
                             </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para esta recepción.</p>
                         </div>
-                    ) : null}
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsRecepcionDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Modal Custom Report */}
-            <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
-                <DialogContent className="max-w-2xl bg-white border-slate-200 text-slate-900 rounded-2xl p-0 overflow-hidden shadow-2xl">
-                    <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
-                        <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
-                            Generar Informe Personalizado
+            {/* Verification Detail Modal */}
+            <Dialog open={isVerificDetailOpen} onOpenChange={setIsVerificDetailOpen}>
+                <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background z-10">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                            Detalle de Verificación de Muestras
                         </DialogTitle>
-                        <DialogDescription className="text-xs text-slate-500">
-                            Selecciona hasta 6 probetas de concreto para incluir en el informe de compresión.
+                        <DialogDescription>
+                            Validación técnica de dimensiones y geometría
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="p-6 space-y-4">
-                        <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    {loadingVerific ? (
+                        <div className="flex-1 flex flex-col items-center justify-center py-20 animate-pulse">
+                            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Cargando datos de verificación...</p>
+                        </div>
+                    ) : selectedVerific ? (
+                        <ScrollArea className="flex-1 min-h-0">
+                            <div className="p-6 space-y-6">
+                                {/* Header Info */}
+                                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Cliente</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase truncate">{selectedVerific.cliente || 'CLIENTE PRUEBA PATRONES'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Documento de Referencia</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedVerific.codigo_documento || 'F-LEM-P-01.12 (v03)'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    Fecha Doc: {selectedVerific.fecha_documento || '01/01/2026'} • Pág: {selectedVerific.pagina || '1 de 1'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Nº Verificación</p>
+                                                <p className="text-lg font-black text-slate-900 uppercase">{selectedVerific.numero_verificacion || 'TEST-1758'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2">Fecha & Responsable</p>
+                                                <p className="text-sm font-black text-slate-800 uppercase">{selectedVerific.fecha_verificacion || '2026-02-06'}</p>
+                                                <p className="text-[11px] text-slate-500 font-bold mt-1">
+                                                    Verificado por: {selectedVerific.verificado_por || 'TEST AGENT'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Results Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-50 text-[#0070F3] h-6 w-6 rounded-md flex items-center justify-center text-xs font-black">
+                                            {selectedVerific.muestras_verificadas?.length || 0}
+                                        </div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Muestras Verificadas</h3>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                                                    <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Itm</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Cód. LEM</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600">Tipo</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Ø1 (mm)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Ø2 (mm)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Tol (%)</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Cumple</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {selectedVerific.muestras_verificadas?.map((m: any, idx: number) => (
+                                                    <TableRow key={m.id} className="hover:bg-slate-50/30 transition-colors h-12">
+                                                        <TableCell className="text-xs font-bold text-slate-400 text-center">{m.item_numero || idx + 1}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-[#0070F3] underline decoration-blue-200">{m.codigo_lem || '-'}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600">{m.tipo_testigo}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.diametro_1_mm}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.diametro_2_mm}</TableCell>
+                                                        <TableCell className="text-xs font-bold text-slate-600 text-center">{m.tolerancia_porcentaje}%</TableCell>
+                                                        <TableCell className="text-center">
+                                                            {m.aceptacion_diametro ? (
+                                                                <Badge variant="outline" className={cn(
+                                                                    "text-[9px] font-black uppercase px-2 py-0 border-none",
+                                                                    m.aceptacion_diametro.toLowerCase().includes("cumple") && !m.aceptacion_diametro.toLowerCase().includes("no") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                                )}>
+                                                                    {m.aceptacion_diametro}
+                                                                </Badge>
+                                                            ) : "-"}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                            <p className="text-slate-400 italic">No se encontraron datos para esta verificación.</p>
+                        </div>
+                    )}
+
+                    <div className="p-6 border-t bg-muted/5">
+                        <Button variant="outline" onClick={() => setIsVerificDetailOpen(false)} className="w-full sm:w-auto px-8 font-bold text-slate-700">
+                            Cerrar Detalles
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Selección e Informe a Medida (Concreto 1-6 Probetas) */}
+            <Dialog open={isCustomReportOpen} onOpenChange={setIsCustomReportOpen}>
+                <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none rounded-2xl">
+                    <DialogHeader className="p-6 bg-[#f4f4f5] dark:bg-slate-800 text-slate-800 shrink-0 border-b border-slate-200">
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                            <FileSpreadsheet className="h-5 w-5 text-slate-600" />
+                            Informe concreto ({customReportNumero})
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-semibold text-xs mt-1">
+                            Selecciona entre 1 y 6 probetas para generar su informe.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Metadata de Recepción, Compresión y Verificación */}
+                    <div className="px-6 py-4 bg-slate-50 border-b grid grid-cols-3 gap-4 shrink-0 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Cliente / Solicitante</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.cliente || tracingList.find(x => x.numero_recepcion === customReportNumero)?.cliente || 'Geofal / Cliente'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Estado de Ensayo (Lab)</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.status_ensayo || 'PENDIENTE / CURADO'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] font-black uppercase text-slate-400">Proyecto Relacionado</span>
+                            <span className="font-bold text-slate-700 truncate">
+                                {customReportProbetas[0]?.obra || 'General'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="p-6 flex-1 overflow-auto bg-white dark:bg-slate-900">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border shadow-sm overflow-hidden">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-b flex justify-between items-center">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                                    Probetas Disponibles en esta Recepción ({customReportProbetas.length})
+                                </span>
+                                <Badge variant={selectedProbetasIds.length > 6 ? "destructive" : "secondary"} className="font-bold text-xs bg-slate-100 border-none text-slate-700">
+                                    Seleccionadas: {selectedProbetasIds.length} / 6 Max
+                                </Badge>
+                            </div>
+                            
                             <Table>
-                                <TableHeader className="bg-slate-50">
-                                    <TableRow>
-                                        <TableHead className="w-10 text-center font-bold">Sel.</TableHead>
-                                        <TableHead className="w-10 text-center font-bold text-xs">#</TableHead>
-                                        <TableHead className="text-xs font-bold">Cód. LEM</TableHead>
-                                        <TableHead className="text-xs font-bold">Identificación</TableHead>
-                                        <TableHead className="text-xs font-bold">Estructura</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">f'c</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">Moldeo</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">Rotura</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">Ø (cm)</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">Carga (kN)</TableHead>
-                                        <TableHead className="text-xs font-bold text-center">Estado</TableHead>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50/50">
+                                        <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Sel</TableHead>
+                                        <TableHead className="w-12 text-center text-[10px] font-black uppercase text-slate-600">Itm</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código muestra LEM</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Código cliente</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600">Estructura</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">F'c (kg/cm²)</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Moldeo</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Fecha Rotura</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Diametro 1</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Carga Máxima (kN)</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase text-slate-600 text-center">Estado</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {selectedEnsayo?.items?.length === 0 ? (
+                                    {customReportProbetas.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={11} className="text-center py-6 text-xs text-slate-400">
-                                                No hay probetas disponibles en este ensayo.
+                                            <TableCell colSpan={11} className="h-32 text-center text-slate-400 italic">
+                                                No hay probetas cargadas en esta recepción.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        selectedEnsayo?.items?.map((m: any, idx: number) => {
+                                        customReportProbetas.map((m: any, idx: number) => {
                                             const isSelected = selectedProbetasIds.includes(m.id);
-                                            const isReported = Boolean(m.informe_generado);
+                                            const isReported = m.status_entrega === "GENERADO";
                                             return (
                                                 <TableRow 
                                                     key={m.id} 
                                                     className={cn(
-                                                        "cursor-pointer transition-colors",
-                                                        isSelected ? "bg-blue-50/80 font-medium" : "hover:bg-slate-50"
+                                                        "hover:bg-slate-100/50 transition-colors h-12 cursor-pointer select-none",
+                                                        isSelected && "bg-green-50/50 hover:bg-green-50"
                                                     )}
                                                     onClick={() => {
                                                         if (isSelected) {
@@ -710,7 +1289,7 @@ export function TracingModule() {
                                                     <TableCell className="text-xs font-semibold text-slate-700">
                                                         {m.codigo_muestra || m.identificacion_muestra || '-'}
                                                     </TableCell>
-                                                    <TableCell className="font-mono text-xs max-w-37.5 truncate" title={m.estructura}>
+                                                    <TableCell className="text-xs font-normal text-slate-600 max-w-[150px] truncate" title={m.estructura}>
                                                         {m.estructura || '-'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-black text-slate-800 text-center">{m.fc_kg_cm2 || '210'}</TableCell>
@@ -784,3 +1363,4 @@ export function TracingModule() {
         </div>
     )
 }
+
