@@ -50,31 +50,64 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
     )
   }, [unreadCounts])
 
-  // 3. Listener Realtime GLOBAL permanente
+  // 3. Polling de respaldo cada 15 segundos para sincronizar no leídos en segundo plano
+  useEffect(() => {
+    if (!user?.id) return
+
+    const pollUnread = async () => {
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/unread-summary`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data && data.unread_counts) {
+            setUnreadCounts(data.unread_counts)
+          }
+        }
+      } catch {
+        // Ignore polling errors in background
+      }
+    }
+
+    const interval = setInterval(pollUnread, 15000)
+    return () => clearInterval(interval)
+  }, [user?.id])
+
+  // 4. Listener Realtime GLOBAL permanente
   useEffect(() => {
     if (!user?.id && !user?.email) return
 
     const myEmail = (user.email || "").toLowerCase()
     const myId = String(user.id || "")
 
-    const processMessage = (newMsg: any) => {
-      if (!newMsg || !newMsg.id) return
+    const processMessage = (rawMsg: any) => {
+      if (!rawMsg || !rawMsg.id) return
 
-      // Evitar procesar duplicados idénticos en la misma sesión
-      const msgKey = `${newMsg.id}_${newMsg.created_at || newMsg.createdAt || ""}`
+      const msgKey = `${rawMsg.id}_${rawMsg.created_at || rawMsg.createdAt || ""}`
       if (processedMsgIdsRef.current.has(msgKey)) return
       processedMsgIdsRef.current.add(msgKey)
 
-      // Limpiar el set si crece demasiado
       if (processedMsgIdsRef.current.size > 200) {
         const arr = Array.from(processedMsgIdsRef.current)
         processedMsgIdsRef.current = new Set(arr.slice(100))
       }
 
-      const senderId = String(newMsg.sender_id || newMsg.senderId || "").toLowerCase()
-      const senderName = newMsg.sender_name || newMsg.senderName || "Usuario CRM"
-      const content = newMsg.content || ""
-      const channelId = String(newMsg.channel_id || newMsg.channelId || "general")
+      const normalizedMsg = {
+        id: String(rawMsg.id),
+        channelId: String(rawMsg.channel_id || rawMsg.channelId || "general"),
+        channel_id: String(rawMsg.channel_id || rawMsg.channelId || "general"),
+        senderId: String(rawMsg.sender_id || rawMsg.senderId || ""),
+        sender_id: String(rawMsg.sender_id || rawMsg.senderId || ""),
+        senderName: rawMsg.sender_name || rawMsg.senderName || "Usuario CRM",
+        sender_name: rawMsg.sender_name || rawMsg.senderName || "Usuario CRM",
+        content: rawMsg.content || "",
+        attachments: rawMsg.attachments || [],
+        createdAt: rawMsg.created_at || rawMsg.createdAt || new Date().toISOString(),
+        created_at: rawMsg.created_at || rawMsg.createdAt || new Date().toISOString(),
+      }
+
+      const senderId = normalizedMsg.senderId.toLowerCase()
+      const senderName = normalizedMsg.senderName
+      const channelId = normalizedMsg.channelId
 
       const isFromMe =
         senderId === myId ||
@@ -82,10 +115,10 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         senderName.toLowerCase() === myEmail ||
         (user.name && senderName === user.name)
 
-      // Transmitir evento a las ventanas activas (Chat o Widget Flotante)
+      // Transmitir evento normalizado a las ventanas activas (Chat o Widget Flotante)
       window.dispatchEvent(
         new CustomEvent("crm_chat_global_message", {
-          detail: newMsg,
+          detail: normalizedMsg,
         })
       )
 
@@ -93,11 +126,10 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       if (!isFromMe) {
         playChatChimeSound()
 
-        // Si el usuario no está en la pestaña de Comunicaciones, mostrar Toast de notificación
         if (activeModule !== "comunicaciones") {
           const displaySender = senderName.split(" ")[0] || "Usuario"
           toast(`💬 Mensaje de @${displaySender}`, {
-            description: content.length > 70 ? `${content.slice(0, 70)}...` : content || "Nuevo mensaje recibido",
+            description: normalizedMsg.content.length > 70 ? `${normalizedMsg.content.slice(0, 70)}...` : normalizedMsg.content || "Nuevo mensaje recibido",
             action: {
               label: "Ver chat",
               onClick: () => onOpenChat(),
@@ -106,7 +138,6 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
           })
         }
 
-        // Incrementar contador de no leídos para este canal
         setUnreadCounts((prev) => ({
           ...prev,
           [channelId]: (prev[channelId] || 0) + 1,

@@ -42,7 +42,6 @@ export const DEFAULT_CHANNELS: ChatChannel[] = [
   { id: "ventas", name: "comercial-ventas", description: "Coordinación de cotizaciones y clientes", isPrivate: false, category: "area" },
   { id: "laboratorio", name: "laboratorio-ensayos", description: "Ensayos de campo, muestras y probetas", isPrivate: false, category: "area" },
   { id: "informes", name: "informes-revision", description: "Revisión y emisión de informes LEM", isPrivate: false, category: "area" },
-  { id: "alertas", name: "alertas-gerencia", description: "Notificaciones y clientes prioritarios", isPrivate: true, category: "area" },
 ]
 
 export function getCanonicalDmId(user1: { id?: string; email?: string }, user2: { id?: string; email?: string }): string {
@@ -78,15 +77,45 @@ export function getAvatarUrl(avatarPath?: string | null): string | undefined {
   return `${supabaseUrl}/storage/v1/object/public/avatars/${cleanPath}`
 }
 
+let sharedAudioCtx: AudioContext | null = null
+
+function getUnlockedAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return null
+    if (!sharedAudioCtx || sharedAudioCtx.state === "closed") {
+      sharedAudioCtx = new AudioContextClass()
+    }
+    if (sharedAudioCtx.state === "suspended") {
+      sharedAudioCtx.resume().catch(() => {})
+    }
+    return sharedAudioCtx
+  } catch {
+    return null
+  }
+}
+
+if (typeof window !== "undefined") {
+  const unlock = () => {
+    getUnlockedAudioContext()
+    window.removeEventListener("pointerdown", unlock)
+    window.removeEventListener("keydown", unlock)
+    window.removeEventListener("click", unlock)
+  }
+  window.addEventListener("pointerdown", unlock, { once: true })
+  window.addEventListener("keydown", unlock, { once: true })
+  window.addEventListener("click", unlock, { once: true })
+}
+
 export function playChatChimeSound(): void {
   if (typeof window === "undefined") return
   try {
     const soundEnabled = localStorage.getItem("crm_chat_sound_enabled") !== "false"
     if (!soundEnabled) return
 
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-    if (!AudioContextClass) return
-    const ctx = new AudioContextClass()
+    const ctx = getUnlockedAudioContext()
+    if (!ctx) return
 
     const now = ctx.currentTime
     const osc = ctx.createOscillator()
@@ -96,7 +125,7 @@ export function playChatChimeSound(): void {
     osc.frequency.setValueAtTime(587.33, now)
     osc.frequency.exponentialRampToValueAtTime(880, now + 0.12)
 
-    gain.gain.setValueAtTime(0.15, now)
+    gain.gain.setValueAtTime(0.18, now)
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
 
     osc.connect(gain)
@@ -105,6 +134,6 @@ export function playChatChimeSound(): void {
     osc.start(now)
     osc.stop(now + 0.35)
   } catch (err) {
-    console.warn("Could not play chat chime sound:", err)
+    console.warn("[playChatChimeSound] Could not play chime sound:", err)
   }
 }
