@@ -51,6 +51,12 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         messagesEndRef={chat.messagesEndRef}
         handleOpenDM={chat.handleOpenDM}
         teamUsers={chat.teamUsers}
+        currentMembers={chat.currentMembers}
+        availableUsersToAdd={chat.availableUsersToAdd}
+        onAddMember={chat.handleAddMemberToChannel}
+        onRemoveMember={chat.handleRemoveMemberFromChannel}
+        onTogglePrivacy={chat.handleToggleChannelPrivacy}
+        isAdminUser={chat.isAdminUser}
       />
 
       {/* ── MODALES Y DIÁLOGOS ── */}

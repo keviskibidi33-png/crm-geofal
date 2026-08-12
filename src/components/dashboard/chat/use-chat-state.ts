@@ -558,7 +558,7 @@ export function useChatState(user: User, initialChannelId?: string) {
       window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
       supabase.removeChannel(globalChatChannel)
     }
-  }, [activeChannelId, teamUsers, user.id, user.email, user.name])
+  }, [activeChannelId, teamUsers, user.id, user.email, user.name, channels])
 
   // 6. Cargar integrantes reales del canal desde la base de datos
   useEffect(() => {
@@ -840,6 +840,28 @@ export function useChatState(user: User, initialChannelId?: string) {
     setIsInfoOpen(false)
   }
 
+  const handleToggleChannelPrivacy = async (newIsPrivate: boolean) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/chat/channels/${activeChannelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_private: newIsPrivate }),
+      })
+      if (res.ok) {
+        toast.success(`Canal cambiado a ${newIsPrivate ? "Privado" : "Público"}`)
+        setChannels((prev) =>
+          prev.map((c) => (c.id === activeChannelId ? { ...c, isPrivate: newIsPrivate } : c))
+        )
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        toast.error(errData.detail || "Error al cambiar la privacidad del canal")
+      }
+    } catch (err) {
+      console.warn("Failed to update channel privacy:", err)
+      toast.error("Error de conexión al cambiar la privacidad")
+    }
+  }
+
   const handleDeleteChannel = async () => {
     if (activeChannelId === "general" || activeChannelId === "laboratorio") {
       toast.error("Los canales principales no pueden ser eliminados")
@@ -944,6 +966,7 @@ export function useChatState(user: User, initialChannelId?: string) {
     handleAddMemberToChannel,
     handleRemoveMemberFromChannel,
     handleUpdateChannelInfo,
+    handleToggleChannelPrivacy,
     handleDeleteChannel,
     handleOpenDM,
   }

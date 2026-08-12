@@ -17,10 +17,11 @@ import {
   ChevronLeft,
   UserPlus,
   Share2,
-  Trash2,
   UserX,
   ChevronRight,
   ShieldAlert,
+  Lock,
+  Globe,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { type User } from "@/hooks/use-auth"
 import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
 import { toast } from "sonner"
@@ -40,7 +48,13 @@ interface ChatDetailsSidebarProps {
   onClose: () => void
   handleOpenDM?: (targetUser: TeamUser) => void
   teamUsers?: TeamUser[]
+  currentMembers?: TeamUser[]
+  availableUsersToAdd?: TeamUser[]
   initialView?: ViewMode
+  onAddMember?: (userEmailOrId: string) => void
+  onRemoveMember?: (member: TeamUser) => void
+  onTogglePrivacy?: (isPrivate: boolean) => void
+  isAdminUser?: boolean
 }
 
 type ViewMode = "main" | "members" | "user-detail"
@@ -48,18 +62,29 @@ type ViewMode = "main" | "members" | "user-detail"
 export function ChatDetailsSidebar({
   activeChannel,
   dmTargetUser,
+  user,
   activeMessages,
   onClose,
   teamUsers = [],
+  currentMembers = [],
+  availableUsersToAdd = [],
   initialView = "main",
+  onAddMember,
+  onRemoveMember,
+  onTogglePrivacy,
+  isAdminUser,
 }: ChatDetailsSidebarProps) {
-  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-")
+  const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
   const displayName = isDM && dmTargetUser ? dmTargetUser.name : activeChannel.name
   const displayAvatar = isDM && dmTargetUser ? getAvatarUrl(dmTargetUser.avatar) : undefined
   const displayEmail = isDM && dmTargetUser ? dmTargetUser.email : undefined
 
+  const userRole = (user?.role || user?.rol || "").toLowerCase()
+  const isUserAdmin = Boolean(isAdminUser) || ["admin", "admin_general", "gerencia", "super_admin"].includes(userRole)
+
   // Navigation Sub-view State
   const [currentView, setCurrentView] = useState<ViewMode>(initialView)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   useEffect(() => {
     setCurrentView(initialView)
@@ -122,10 +147,7 @@ export function ChatDetailsSidebar({
 
   // Count attachments in activeMessages
   const attachments = activeMessages.flatMap((m) => m.attachments || [])
-  const memberList: TeamUser[] = teamUsers.length > 0 ? teamUsers : [
-    { id: "1", name: "sistem_admin", email: "admin@geofal.com.pe", role: "Administrador", status: "online", avatar: undefined },
-    { id: "2", name: "Geraldine", email: "geraldine@geofal.com.pe", role: "Comercial", status: "online", avatar: undefined },
-  ]
+  const memberList: TeamUser[] = (currentMembers && currentMembers.length > 0) ? currentMembers : (teamUsers.length > 0 ? teamUsers : [])
   const filteredMembers = memberList.filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
     (m.email && m.email.toLowerCase().includes(memberSearch.toLowerCase()))
@@ -228,6 +250,20 @@ export function ChatDetailsSidebar({
                 </span>
                 <Switch checked={soundEnabled} onCheckedChange={toggleSound} className="scale-85" />
               </div>
+
+              {!isDM && isUserAdmin && (
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/60 border border-border/50">
+                  <span className="text-xs font-medium flex items-center gap-2 text-foreground">
+                    {activeChannel.isPrivate ? <Lock className="h-4 w-4 text-amber-500" /> : <Globe className="h-4 w-4 text-emerald-500" />}
+                    {activeChannel.isPrivate ? "Canal Privado" : "Canal Público"}
+                  </span>
+                  <Switch
+                    checked={activeChannel.isPrivate}
+                    onCheckedChange={(checked) => onTogglePrivacy?.(checked)}
+                    className="scale-85"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="h-px bg-border my-3" />
@@ -321,7 +357,17 @@ export function ChatDetailsSidebar({
           <Button
             variant="outline"
             className="w-full h-9 gap-2 rounded-full border-border hover:bg-accent text-xs font-semibold shadow-xs"
-            onClick={() => toast.info("Función de invitación abierta para administradores")}
+            onClick={() => {
+              if (!isUserAdmin) {
+                toast.info("Solo Administradores o Gerencia pueden invitar integrantes al canal.")
+                return
+              }
+              if (availableUsersToAdd.length === 0) {
+                toast.info("Todos los integrantes del equipo ya forman parte de este canal.")
+                return
+              }
+              setIsInviteModalOpen(true)
+            }}
           >
             <UserPlus className="h-4 w-4 text-primary" /> Invitar Participante
           </Button>
@@ -345,36 +391,55 @@ export function ChatDetailsSidebar({
           <ScrollArea className="flex-1 -mx-2 px-2">
             <div className="space-y-1">
               {filteredMembers.map((m) => (
-                <button
+                <div
                   key={m.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedMember(m)
-                    setCurrentView("user-detail")
-                  }}
-                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/60 transition-colors text-left group"
+                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/60 transition-colors group"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative">
-                      <Avatar className="h-8 w-8 border border-border">
-                        {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
-                        <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
-                          {m.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMember(m)
+                      setCurrentView("user-detail")
+                    }}
+                    className="flex-1 flex items-center justify-between min-w-0 text-left mr-1"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative">
+                        <Avatar className="h-8 w-8 border border-border">
+                          {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
+                          <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
+                            {m.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {m.name}
+                        </p>
+                        {m.email && <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                        {m.name}
-                      </p>
-                      {m.email && <p className="text-[10px] text-muted-foreground truncate">{m.email}</p>}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium shrink-0">
-                    {m.role || "Miembro"}
-                  </Badge>
-                </button>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium shrink-0 ml-1">
+                      {m.role || "Miembro"}
+                    </Badge>
+                  </button>
+
+                  {isUserAdmin && !isDM && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
+                      title="Expulsar integrante del canal"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveMember?.(m)
+                      }}
+                    >
+                      <UserX className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           </ScrollArea>
@@ -435,26 +500,70 @@ export function ChatDetailsSidebar({
               <span>Compartir enlace al usuario</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => toast.info("Historial de mensajes limpio")}
-              className="w-full flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-rose-500/10 text-rose-500 transition-colors font-medium"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Eliminar mensajes recientes</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => toast.warning("Solicitud de desactivación de usuario enviada")}
-              className="w-full flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors font-medium"
-            >
-              <UserX className="h-4 w-4" />
-              <span>Desactivar usuario</span>
-            </button>
+            {isUserAdmin && !isDM && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full gap-2 rounded-lg text-xs font-semibold"
+                onClick={() => {
+                  onRemoveMember?.(selectedMember)
+                  setCurrentView("members")
+                }}
+              >
+                <UserX className="h-4 w-4" /> Expulsar integrante del canal
+              </Button>
+            )}
           </div>
         </ScrollArea>
       )}
+
+      {/* Modal Invitar Participante */}
+      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Invitar Participante a #{activeChannel.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Selecciona un usuario del equipo para añadirlo a este canal.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto py-2">
+            {availableUsersToAdd.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card hover:bg-accent/40 transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar className="h-8 w-8 border border-border">
+                    {u.avatar && <AvatarImage src={getAvatarUrl(u.avatar)} />}
+                    <AvatarFallback className="bg-sky-100 text-sky-700 text-xs font-bold">
+                      {u.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{u.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{u.email || u.role}</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs rounded-full gap-1 hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => {
+                    onAddMember?.(u.email || u.id)
+                    setIsInviteModalOpen(false)
+                  }}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Añadir
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

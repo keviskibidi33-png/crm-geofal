@@ -43,6 +43,12 @@ interface ChatFeedProps {
   messagesEndRef: RefObject<HTMLDivElement | null>
   handleOpenDM?: (targetUser: TeamUser) => void
   teamUsers?: TeamUser[]
+  currentMembers?: TeamUser[]
+  availableUsersToAdd?: TeamUser[]
+  onAddMember?: (userEmailOrId: string) => void
+  onRemoveMember?: (member: TeamUser) => void
+  onTogglePrivacy?: (isPrivate: boolean) => void
+  isAdminUser?: boolean
 }
 
 export function ChatFeed({
@@ -62,6 +68,12 @@ export function ChatFeed({
   messagesEndRef,
   handleOpenDM,
   teamUsers = [],
+  currentMembers = [],
+  availableUsersToAdd = [],
+  onAddMember,
+  onRemoveMember,
+  onTogglePrivacy,
+  isAdminUser,
 }: ChatFeedProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
   const channelPrefix = isDM ? "@" : "#"
@@ -401,7 +413,14 @@ export function ChatFeed({
           activeMessages={activeMessages}
           onClose={() => setIsInfoOpen(false)}
           handleOpenDM={handleOpenDM}
+          teamUsers={teamUsers}
+          currentMembers={currentMembers}
+          availableUsersToAdd={availableUsersToAdd}
           initialView={sidebarView}
+          onAddMember={onAddMember}
+          onRemoveMember={onRemoveMember}
+          onTogglePrivacy={onTogglePrivacy}
+          isAdminUser={isAdminUser}
         />
       )}
     </div>
