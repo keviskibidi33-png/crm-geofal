@@ -23,6 +23,9 @@ export interface ChatChannel {
   isPrivate: boolean
   category: "general" | "area" | "proyecto" | "dm"
   unreadCount?: number
+  allowedRoles?: string[]
+  allowedEmails?: string[]
+  createdBy?: string
 }
 
 export interface TeamUser {

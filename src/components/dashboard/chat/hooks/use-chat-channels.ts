@@ -441,7 +441,10 @@ export function useChatChannels(user: User, initialChannelId?: string) {
   }
 
   const handleOpenDM = (targetUser: TeamUser) => {
-    const dmId = getCanonicalDmId(user.email || String(user.id || ""), targetUser.email || String(targetUser.id))
+    const dmId = getCanonicalDmId(
+      { id: String(user.id || ""), email: user.email || "" },
+      { id: String(targetUser.id || ""), email: targetUser.email || "" }
+    )
     if (!startedDmUserIds.includes(targetUser.id)) {
       setStartedDmUserIds((prev) => [...prev, targetUser.id])
     }
