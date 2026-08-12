@@ -11,6 +11,7 @@ export interface ChatMessage {
   createdAt: string
   parent_id?: string
   read?: boolean
+  isPinned?: boolean
 }
 
 export interface ChatChannel {

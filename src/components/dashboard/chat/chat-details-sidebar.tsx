@@ -1,3 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+"use client"
+
 import React, { useState, useEffect, useMemo } from "react"
 import {
   X,
@@ -22,14 +26,12 @@ import {
   Globe,
   FileText,
   Link as LinkIcon,
-  ExternalLink,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -115,7 +117,7 @@ export function ChatDetailsSidebar({
   const displayAvatar = isDM && dmTargetUser ? getAvatarUrl(dmTargetUser.avatar) : undefined
   const displayEmail = isDM && dmTargetUser && "email" in dmTargetUser ? dmTargetUser.email : undefined
 
-  const userRole = (user?.role || user?.rol || "").toLowerCase()
+  const userRole = (user?.role || "").toLowerCase()
   const isUserAdmin = Boolean(isAdminUser) || ["admin", "admin_general", "gerencia", "super_admin"].includes(userRole)
 
   const [currentView, setCurrentView] = useState<ViewMode>(initialView)
@@ -138,10 +140,10 @@ export function ChatDetailsSidebar({
     }
   })
 
-  const pinnedIds = pinnedIdsMap[activeChannel.id] || []
   const pinnedMessages = useMemo(() => {
+    const pinnedIds = pinnedIdsMap[activeChannel.id] || []
     return activeMessages.filter((m) => m.isPinned || pinnedIds.includes(m.id))
-  }, [activeMessages, pinnedIds])
+  }, [activeMessages, pinnedIdsMap, activeChannel.id])
 
   const media = useMemo(() => extractChannelMediaAndFiles(activeMessages), [activeMessages])
 
