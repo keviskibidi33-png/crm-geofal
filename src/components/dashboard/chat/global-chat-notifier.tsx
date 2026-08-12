@@ -17,7 +17,7 @@ interface GlobalChatNotifierProps {
 
 export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalChatNotifierProps) {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
-  const processedMsgIdsRef = useRef<Set<string>>(new Set())
+  const activeReadChannelRef = useRef<string | null>(null)
 
   // 1. Cargar resumen inicial de mensajes no leídos desde el servidor
   useEffect(() => {
@@ -29,7 +29,15 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         if (res.ok) {
           const data = await res.json()
           if (data && data.unread_counts) {
-            setUnreadCounts(data.unread_counts)
+            const counts = { ...data.unread_counts }
+            if (activeReadChannelRef.current) {
+              const readId = activeReadChannelRef.current
+              const keysToClear = Object.keys(counts).filter(
+                (k) => k === readId || k.replace(/^ch-/, "") === readId.replace(/^ch-/, "")
+              )
+              for (const k of keysToClear) delete counts[k]
+            }
+            setUnreadCounts(counts)
           }
         }
       } catch (err) {
@@ -60,7 +68,15 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         if (res.ok) {
           const data = await res.json()
           if (data && data.unread_counts) {
-            setUnreadCounts(data.unread_counts)
+            const counts = { ...data.unread_counts }
+            if (activeReadChannelRef.current) {
+              const readId = activeReadChannelRef.current
+              const keysToClear = Object.keys(counts).filter(
+                (k) => k === readId || k.replace(/^ch-/, "") === readId.replace(/^ch-/, "")
+              )
+              for (const k of keysToClear) delete counts[k]
+            }
+            setUnreadCounts(counts)
           }
         }
       } catch {
@@ -182,6 +198,7 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       const customEvent = e as CustomEvent
       if (customEvent.detail && customEvent.detail.channelId) {
         const targetId = String(customEvent.detail.channelId)
+        activeReadChannelRef.current = targetId
         setUnreadCounts((prev) => {
           const keysToClear = Object.keys(prev).filter((k) => k === targetId || k.replace(/^ch-/, "") === targetId.replace(/^ch-/, ""))
           if (keysToClear.length === 0) return prev

@@ -121,6 +121,8 @@ export function useChatMessages({
 
   // Clear unread counts for active channel (clears "chisme visual" badge)
   useEffect(() => {
+    if (!activeChannelId) return
+
     setUnreadCounts((prev) => {
       const keysToClear = Object.keys(prev).filter((k) => k === activeChannelId || areChannelIdsEqual(k, activeChannelId))
       if (keysToClear.length === 0) return prev
@@ -130,11 +132,19 @@ export function useChatMessages({
       }
       return next
     })
+
     window.dispatchEvent(
       new CustomEvent("crm_chat_channel_read", {
         detail: { channelId: activeChannelId },
       })
     )
+
+    // Persistir lectura en el servidor para que el backend no devuelva no leídos en /unread-summary
+    authFetch(`${API_URL}/api/chat/messages/mark-read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_id: activeChannelId }),
+    }).catch(() => {})
   }, [activeChannelId, messages.length])
 
   // Broadcast total unread count to global UI (Sidebar badge)
