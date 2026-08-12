@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useTracing } from "@/hooks/use-tracing"
-import { useReactToPrint } from "react-to-print"
 import { ModernConfirmDialog } from "../modern-confirm-dialog"
 import {
     Search,

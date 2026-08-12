@@ -51,6 +51,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [estadoFilter, setEstadoFilter] = useState<string>("todos")
   const [clienteFilter, setClienteFilter] = useState<string>("todos")
+  const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -60,7 +61,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   // Upload Replace file dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [uploadQuoteTarget, setUploadQuoteTarget] = useState<Quote | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
   const fetchQuotes = useCallback(async () => {
@@ -203,7 +203,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      setSelectedFile(file)
       void handleUploadFile(file)
     }
   }
@@ -325,9 +324,10 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
               setEditingQuote(null)
               setCreateDialogOpen(true)
             }}
+            disabled={isUploading}
             className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md hover:shadow-lg transition-all rounded-xl text-xs h-10 px-5"
           >
-            <Plus className="mr-2 h-4 w-4" /> Nueva Cotización
+            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} Nueva Cotización
           </Button>
         </div>
       </div>
@@ -550,7 +550,12 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-3">
-            <Input type="file" accept=".xlsx,.xls,.pdf" onChange={handleFileSelect} className="text-xs" />
+            <Input type="file" accept=".xlsx,.xls,.pdf" disabled={isUploading} onChange={handleFileSelect} className="text-xs" />
+            {isUploading && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Subiendo documento...
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
