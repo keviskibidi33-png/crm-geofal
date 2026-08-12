@@ -152,7 +152,8 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
             alertas: ["admin", "admin_general", "gerencia", "super_admin"],
             "alertas-gerencia": ["admin", "admin_general", "gerencia", "super_admin"],
           }
-          const allowed = defaultRolesMap[channelId.toLowerCase()]
+          const cleanChanId = channelId.toLowerCase().replace(/^ch-/, "")
+          const allowed = defaultRolesMap[cleanChanId] || defaultRolesMap[channelId.toLowerCase()]
           if (allowed && allowed.length > 0 && !allowed.includes(userRole)) {
             return
           }
