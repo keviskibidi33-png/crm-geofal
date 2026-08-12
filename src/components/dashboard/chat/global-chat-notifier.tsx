@@ -109,13 +109,36 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       const senderName = normalizedMsg.senderName
       const channelId = normalizedMsg.channelId
 
-      const isDm = channelId.startsWith("dm_") || channelId.startsWith("dm-")
-      if (isDm) {
-        const delimiter = channelId.startsWith("dm_") ? "_" : "-"
-        const prefix = channelId.startsWith("dm_") ? "dm_" : "dm-"
-        const parts = channelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
-        const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
-        if (!isUserInDm) return
+      const userRole = (user.role || (user as any).rol || "").toLowerCase()
+      const isUserAdmin =
+        ["admin", "admin_general", "gerencia", "super_admin"].includes(userRole) ||
+        myEmail === "gerencia@geofal.com.pe" ||
+        myEmail === "admin@geofal.com.pe"
+
+      if (!isUserAdmin) {
+        if (isDm) {
+          const delimiter = channelId.startsWith("dm_") ? "_" : "-"
+          const prefix = channelId.startsWith("dm_") ? "dm_" : "dm-"
+          const parts = channelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
+          const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
+          if (!isUserInDm) return
+        } else {
+          const defaultRolesMap: Record<string, string[]> = {
+            general: [],
+            ventas: ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial"],
+            "comercial-ventas": ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial"],
+            laboratorio: ["admin", "admin_general", "gerencia", "super_admin", "laboratorio", "jefe_laboratorio", "jefe_de_laboratorio", "tecnico", "tecnico_suelos", "laboratorio_tipificador"],
+            "laboratorio-ensayos": ["admin", "admin_general", "gerencia", "super_admin", "laboratorio", "jefe_laboratorio", "jefe_de_laboratorio", "tecnico", "tecnico_suelos", "laboratorio_tipificador"],
+            informes: ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial", "laboratorio", "jefe_laboratorio", "jefe_de_laboratorio"],
+            "informes-revision": ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial", "laboratorio", "jefe_laboratorio", "jefe_de_laboratorio"],
+            alertas: ["admin", "admin_general", "gerencia", "super_admin"],
+            "alertas-gerencia": ["admin", "admin_general", "gerencia", "super_admin"],
+          }
+          const allowed = defaultRolesMap[channelId.toLowerCase()]
+          if (allowed && allowed.length > 0 && !allowed.includes(userRole)) {
+            return
+          }
+        }
       }
 
       const isFromMe =
