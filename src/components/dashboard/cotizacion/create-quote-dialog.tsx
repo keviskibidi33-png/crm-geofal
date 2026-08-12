@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AlertCircle, ExternalLink, FileUp, Loader2, Plus, Search, Trash2, FolderOpen, ChevronRight, ListFilter, Pencil } from "lucide-react"
+import { FileUp, Loader2, Trash2, FolderOpen } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,15 +9,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
 import { AutocompleteInput } from "@/components/ui/autocomplete-input"
-import { ensayosData, getEnsayosRequeridos, type EnsayoItem } from "@/data/ensayos-data"
+import { ensayosData, type EnsayoItem } from "@/data/ensayos-data"
 import { CreateProjectDialog } from "../proyectos/create-project-dialog"
 
-import type { QuoteItem, Condicion, QuoteSource } from "./types"
+import type { QuoteItem, QuoteSource } from "./types"
 export type { QuoteItem, Condicion, QuoteSource } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -47,61 +46,42 @@ type PlantillaEnsayoDetail = PlantillaEnsayoRow & {
   condiciones_ids: string[]
 }
 
-const DEFAULT_CONDICIONES = [
-  "Los precios no incluyen IGV.",
-  "Validez de la oferta: 30 días calendario.",
-  "Forma de pago: 50% al adelanto y saldo contra entrega de informes.",
-  "El tiempo de entrega corre a partir de la recepción conforme de las muestras y pago acordado.",
-]
-
 export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData = null, user, proyectoId, clienteId }: Props) {
   const [numero, setNumero] = useState("")
   const [year, setYear] = useState(new Date().getFullYear())
   const [cliente, setCliente] = useState("")
-  const [clienteIdState, setClienteIdState] = useState<string | null>(clienteId || null)
+  const [, setClienteIdState] = useState<string | null>(clienteId || null)
   const [clienteRuc, setClienteRuc] = useState("")
   const [clienteContacto, setClienteContacto] = useState("")
   const [clienteEmail, setClienteEmail] = useState("")
   const [clienteTelefono, setClienteTelefono] = useState("")
   const [proyectoNombre, setProyectoNombre] = useState("")
-  const [proyectoIdState, setProyectoIdState] = useState<string | null>(proyectoId || null)
+  const [, setProyectoIdState] = useState<string | null>(proyectoId || null)
   const [ubicacion, setUbicacion] = useState("")
   const [proyectosList, setProyectosList] = useState<Array<{ id: string; nombre: string; ubicacion?: string }>>([])
-  const [loadingProyectos, setLoadingProyectos] = useState(false)
   const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false)
-  const [contactosList, setContactosList] = useState<Array<{ id: string; nombre: string; cargo?: string; email?: string; telefono?: string }>>([])
-  const [loadingContactos, setLoadingContactos] = useState(false)
-  const [clienteLegalSelectOpen, setClienteLegalSelectOpen] = useState(false)
-  const [selectedContactoId, setSelectedContactoId] = useState<string | null>(null)
   const [plazoDias, setPlazoDias] = useState<number | "">(15)
   const [condicionPago, setCondicionPago] = useState<string>("50% adelanto y saldo contra entrega")
 
-  const [catalogoCondiciones, setCatalogoCondiciones] = useState<Condicion[]>([])
   const [selectedCondiciones, setSelectedCondiciones] = useState<string[]>([])
-  const [customCondicionText, setCustomCondicionText] = useState("")
 
   const [items, setItems] = useState<QuoteItem[]>([])
-  const [openEnsayo, setOpenEnsayo] = useState(false)
   const [searchEnsayoText, setSearchEnsayoText] = useState("")
-  const [plantillasModalOpen, setPlantillasModalOpen] = useState(false)
   const [plantillas, setPlantillas] = useState<PlantillaEnsayoRow[]>([])
   const [selectedPlantillaId, setSelectedPlantillaId] = useState<string | null>(null)
   const [selectedPlantilla, setSelectedPlantilla] = useState<PlantillaEnsayoDetail | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isImporting, setIsImporting] = useState(false)
   const [isAutoGeneratingNumber, setIsAutoGeneratingNumber] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [clientesSugerencias, setClientesSugerencias] = useState<Array<{ id: string; empresa: string; ruc: string; nombre: string }>>([])
-  const [loadingClientes, setLoadingClientes] = useState(false)
 
   const fetchClientesSugerencias = useCallback(async (query: string) => {
     if (!query || query.trim().length < 2) {
       setClientesSugerencias([])
       return
     }
-    setLoadingClientes(true)
     try {
       const res = await authFetch(`${API_URL}/api/cotizador/clientes-search?q=${encodeURIComponent(query.trim())}`)
       if (res.ok) {
@@ -110,8 +90,6 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
       }
     } catch {
       // Ignore search error
-    } finally {
-      setLoadingClientes(false)
     }
   }, [])
 
@@ -120,7 +98,6 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
       setProyectosList([])
       return
     }
-    setLoadingProyectos(true)
     try {
       const res = await authFetch(`${API_URL}/api/cotizador/proyectos-cliente/${cId}`)
       if (res.ok) {
@@ -129,39 +106,15 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
       }
     } catch {
       setProyectosList([])
-    } finally {
-      setLoadingProyectos(false)
     }
   }, [])
 
   const fetchContactosCliente = useCallback(async (cId: string) => {
-    if (!cId) {
-      setContactosList([])
-      return
-    }
-    setLoadingContactos(true)
+    if (!cId) return
     try {
-      const res = await authFetch(`${API_URL}/api/cotizador/contactos-cliente/${cId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setContactosList(data.contactos || [])
-      }
+      await authFetch(`${API_URL}/api/cotizador/contactos-cliente/${cId}`)
     } catch {
-      setContactosList([])
-    } finally {
-      setLoadingContactos(false)
-    }
-  }, [])
-
-  const loadCatalogoCondiciones = useCallback(async () => {
-    try {
-      const res = await authFetch(`${API_URL}/api/cotizador/condiciones`)
-      if (res.ok) {
-        const data = await res.json()
-        setCatalogoCondiciones(data.condiciones || [])
-      }
-    } catch {
-      // Failed to load catalog
+      // Ignore error
     }
   }, [])
 
@@ -184,12 +137,11 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
 
   useEffect(() => {
     if (open) {
-      void loadCatalogoCondiciones()
       if (!initialData?.numero) {
         void fetchNextQuoteNumber(year)
       }
     }
-  }, [open, year, initialData?.numero, loadCatalogoCondiciones, fetchNextQuoteNumber])
+  }, [open, year, initialData?.numero, fetchNextQuoteNumber])
 
   useEffect(() => {
     if (open && initialData) {
@@ -264,7 +216,7 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
         ...items,
         {
           codigo: ensayo.codigo,
-          descripcion: ensayo.ensayo,
+          descripcion: ensayo.descripcion,
           norma: ensayo.norma,
           acreditado: ensayo.acreditado || "NO",
           costo_unitario: ensayo.precio,
@@ -298,7 +250,7 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
 
     if (!numero || !cliente || items.length === 0) {
       toast.error("Por favor completa los campos obligatorios", {
-        description: "Se requiere Número de Cotización, Empresa Cliente y al menos 1 ensayo.",
+        description: "El número, cliente y al menos un ítem son obligatorios.",
       })
       return
     }
@@ -309,20 +261,20 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
       const payload = {
         numero: parseInt(numero, 10),
         year,
+        fecha: new Date().toISOString().split("T")[0],
         cliente,
-        cliente_id: clienteIdState,
-        proyecto_id: proyectoIdState,
         cliente_ruc: clienteRuc,
         cliente_contacto: clienteContacto,
         cliente_email: clienteEmail,
         cliente_telefono: clienteTelefono,
         proyecto_nombre: proyectoNombre,
         ubicacion,
-        plazo_dias: typeof plazoDias === "number" ? plazoDias : 15,
-        condicion_pago: condicionPago,
         subtotal,
         igv,
         total,
+        estado: "Borrador",
+        plazo_dias: typeof plazoDias === "number" ? plazoDias : 15,
+        condicion_pago: condicionPago,
         items: items.map((it) => ({
           codigo: it.codigo,
           descripcion: it.descripcion,
@@ -332,11 +284,9 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
           cantidad: it.cantidad,
         })),
         condiciones_ids: selectedCondiciones,
-        correo_vendedor: user?.email,
-        vendedor_nombre: user?.name,
       }
 
-      const res = await authFetch(`${API_URL}/api/cotizador/guardar`, {
+      const res = await authFetch(`${API_URL}/api/cotizador/cotizaciones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -347,7 +297,7 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
         throw new Error(errorData.detail || "Error al guardar la cotización")
       }
 
-      const data = await res.json()
+      await res.json()
 
       toast.success("✅ Cotización Generada Exitosamente", {
         description: `COT-${numero}-${year} guardada correctamente.`,
@@ -372,7 +322,6 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
   }
 
   // Plantillas state
-  const [selectedPlantillaConditionIds, setSelectedPlantillaConditionIds] = useState<string[]>([])
   const [showPlantillasModal, setShowPlantillasModal] = useState(false)
   const [loadingPlantillaId, setLoadingPlantillaId] = useState<string | null>(null)
   const [showPlantillaFormModal, setShowPlantillaFormModal] = useState(false)
@@ -407,7 +356,6 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
       if (res.ok) {
         const data = await res.json()
         setSelectedPlantilla(data)
-        setSelectedPlantillaConditionIds(data.condiciones_ids || [])
       }
     } catch {
       toast.error("Error al cargar detalle de plantilla")
@@ -651,23 +599,21 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
                   <Input
                     id="num-cot"
                     value={numero}
-                    onChange={(e) => setNumero(e.target.value.replace(/\D/g, ""))}
-                    placeholder="1101"
-                    className="font-bold text-sm"
-                    required
+                    onChange={(e) => setNumero(e.target.value)}
+                    placeholder="1001"
+                    className="font-mono font-bold text-sm"
                   />
-                  <span className="text-sm font-bold text-muted-foreground">-{year}</span>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="year-select" className="font-semibold">Año Fiscal</Label>
+                <Label htmlFor="year-cot font-semibold">Año *</Label>
                 <Input
-                  id="year-select"
+                  id="year-cot"
                   type="number"
                   value={year}
                   onChange={(e) => setYear(parseInt(e.target.value, 10) || new Date().getFullYear())}
-                  className="mt-1 font-bold text-sm"
+                  className="mt-1 font-mono text-sm font-semibold"
                 />
               </div>
 
@@ -676,21 +622,11 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={openPlantillasModal}
-                  className="w-full h-10 font-medium text-xs gap-1.5"
+                  onClick={() => fetchNextQuoteNumber(year)}
+                  disabled={isAutoGeneratingNumber}
+                  className="w-full text-xs font-semibold"
                 >
-                  <FolderOpen className="h-4 w-4 text-amber-500" />
-                  Plantillas
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-10 font-medium text-xs gap-1.5"
-                >
-                  <FileUp className="h-4 w-4 text-emerald-500" />
-                  Excel
+                  {isAutoGeneratingNumber ? "Generando..." : "Autogenerar N°"}
                 </Button>
               </div>
             </div>
@@ -851,6 +787,38 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Ítems / Ensayos Solicitados</h4>
                 <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        void handleImportFile(file)
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-8 text-xs font-bold gap-1.5"
+                  >
+                    <FileUp className="h-3.5 w-3.5" />
+                    Importar Excel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openPlantillasModal}
+                    className="h-8 text-xs font-bold gap-1.5"
+                  >
+                    <FolderOpen className="h-3.5 w-3.5" />
+                    Plantillas
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -878,7 +846,7 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
                   }}
                   items={ensayosData.map((ens) => ({
                     id: ens.codigo,
-                    label: `${ens.codigo} - ${ens.ensayo}`,
+                    label: `${ens.codigo} - ${ens.descripcion}`,
                     sublabel: `Norma: ${ens.norma} | S/. ${ens.precio.toFixed(2)}`,
                     data: ens,
                   }))}
@@ -1006,6 +974,7 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
         />
       )}
 
+      {/* DIÁLOGO PLANTILLAS */}
       <Dialog open={showPlantillasModal} onOpenChange={setShowPlantillasModal}>
         <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
           <DialogHeader className="p-6 border-b shrink-0">
@@ -1032,9 +1001,19 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
             <div className="col-span-2 p-6 flex flex-col justify-between overflow-y-auto">
               {selectedPlantilla ? (
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-bold">{selectedPlantilla.nombre}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{selectedPlantilla.descripcion || "Sin descripción"}</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold">{selectedPlantilla.nombre}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{selectedPlantilla.descripcion || "Sin descripción"}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={openEditPlantillaForm} className="h-7 px-2 text-xs">
+                        Editar
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={deleteSelectedPlantilla} className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10">
+                        Eliminar
+                      </Button>
+                    </div>
                   </div>
 
                   <Card>
@@ -1073,12 +1052,100 @@ export function CreateQuoteDialog({ open, onOpenChange, onSuccess, initialData =
 
               <DialogFooter className="mt-auto pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowPlantillasModal(false)}>Cancelar</Button>
-                <Button onClick={() => selectedPlantillaId && applyPlantilla(selectedPlantillaId)} disabled={!selectedPlantillaId}>
+                <Button onClick={() => selectedPlantillaId && applyPlantilla(selectedPlantillaId)} disabled={!selectedPlantillaId || loadingPlantillaId !== null}>
+                  {loadingPlantillaId !== null && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                   Usar Plantilla
                 </Button>
               </DialogFooter>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIÁLOGO GUARDAR/EDITAR PLANTILLA */}
+      <Dialog open={showPlantillaFormModal} onOpenChange={setShowPlantillaFormModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{plantillaFormMode === "create" ? "Guardar como Plantilla" : "Editar Plantilla"}</DialogTitle>
+            <DialogDescription>
+              Guarda el listado actual de ensayos y condiciones como plantilla reutilizable.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs font-semibold">Nombre de la Plantilla *</Label>
+              <Input
+                value={plantillaForm.nombre}
+                onChange={(e) => setPlantillaForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Ej. Ensayos Estándar Concreto"
+                className="mt-1 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Descripción</Label>
+              <Input
+                value={plantillaForm.descripcion}
+                onChange={(e) => setPlantillaForm((prev) => ({ ...prev, descripcion: e.target.value }))}
+                placeholder="Ej. Incluye compresión y flexión..."
+                className="mt-1 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowPlantillaFormModal(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={submitPlantillaForm} disabled={savingPlantilla || !plantillaForm.nombre.trim()}>
+              {savingPlantilla && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              {plantillaFormMode === "create" ? "Guardar Plantilla" : "Actualizar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIÁLOGO IMPORTAR EXCEL */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Importar Cotización desde Excel</DialogTitle>
+            <DialogDescription>
+              Confirma la importación del archivo seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2 text-xs">
+            {loadingPreview ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : importPreview ? (
+              <div className="space-y-2">
+                <p className="font-semibold text-foreground">Vista previa del archivo:</p>
+                <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                  <p><strong>Cliente:</strong> {importPreview.cliente || "N/A"}</p>
+                  <p><strong>Items encontrados:</strong> {importPreview.items?.length || 0}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Número Cotización</Label>
+                  <Input
+                    value={importNumero}
+                    onChange={(e) => setImportNumero(e.target.value)}
+                    className="mt-1 text-xs"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Procesando archivo...</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleImportConfirm} disabled={importingExcel || loadingPreview}>
+              {importingExcel && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Confirmar e Importar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

@@ -6,7 +6,8 @@ interface AutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
   onSelect: (item: any) => void;
-  suggestions: any[];
+  suggestions?: any[];
+  items?: any[];
   placeholder?: string;
   className?: string;
   displayField?: string;
@@ -20,6 +21,7 @@ export function AutocompleteInput({
   onChange,
   onSelect,
   suggestions,
+  items,
   placeholder = "Buscar...",
   className,
   displayField = 'descripcion',
@@ -34,15 +36,17 @@ export function AutocompleteInput({
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const rawList = suggestions || items || [];
+
   // Filter suggestions based on input value
   const normalizedValue = value.toLowerCase().trim();
   
   const filteredSuggestions = normalizedValue.length >= minChars 
-    ? suggestions
+    ? rawList
         .filter(item => {
-          const code = String(item[codeField] || '').toLowerCase();
-          const desc = String(item[displayField] || '').toLowerCase();
-          const norma = String(item.norma || '').toLowerCase();
+          const code = String(item[codeField] || item.codigo || item.id || '').toLowerCase();
+          const desc = String(item[displayField] || item.descripcion || item.label || '').toLowerCase();
+          const norma = String(item.norma || item.sublabel || '').toLowerCase();
           
           return code.includes(normalizedValue) ||
             desc.includes(normalizedValue) ||
@@ -197,62 +201,73 @@ export function AutocompleteInput({
       }}>
         {filteredSuggestions.length} resultado{filteredSuggestions.length !== 1 ? 's' : ''}
       </div>
-      {filteredSuggestions.map((item, index) => (
-        <div
-          key={`${String(item[codeField] || 'item')}-${index}`}
-          role="option"
-          aria-selected={highlightedIndex === index}
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            handleSelect(item);
-          }}
-          onMouseEnter={() => setHighlightedIndex(index)}
-          style={{
-            padding: '12px',
-            cursor: 'pointer',
-            backgroundColor: highlightedIndex === index ? '#eff6ff' : 'white',
-            borderBottom: '1px solid #f3f4f6',
-            transition: 'background-color 0.15s'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              backgroundColor: '#dbeafe',
-              color: '#1e40af'
-            }}>
-              {item[codeField]}
-            </span>
-            <span style={{ fontWeight: 500, color: '#111827', fontSize: '14px' }}>
-              {item[displayField]}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
-            {item.norma && <span>📋 {item.norma}</span>}
-            {item.precio !== undefined && <span style={{ color: '#059669', fontWeight: 500 }}>S/. {item.precio}</span>}
-            {item.tiempo && <span>⏱️ {item.tiempo}</span>}
-            {item.acreditado === 'SI' && <span style={{ color: '#2563eb' }}>✓ Acreditado</span>}
-          </div>
-          {item.codigosRelacionados && item.codigosRelacionados.length > 0 && (
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#ea580c', 
-              marginTop: '4px', 
-              backgroundColor: '#fff7ed', 
-              padding: '4px 8px', 
-              borderRadius: '4px' 
-            }}>
-              ⚠️ Requiere: {item.codigosRelacionados.join(', ')}
+      {filteredSuggestions.map((item, index) => {
+        const codeVal = item[codeField] || item.codigo || (item.id && item.label && item.id !== item.label ? item.id : '');
+        const descVal = item[displayField] || item.descripcion || item.label || '';
+        const normaVal = item.norma || (item.sublabel && !item.norma ? item.sublabel : '');
+
+        return (
+          <div
+            key={`${String(codeVal || descVal || 'item')}-${index}`}
+            role="option"
+            aria-selected={highlightedIndex === index}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleSelect(item);
+            }}
+            onMouseEnter={() => setHighlightedIndex(index)}
+            style={{
+              padding: '12px',
+              cursor: 'pointer',
+              backgroundColor: highlightedIndex === index ? '#eff6ff' : 'white',
+              borderBottom: '1px solid #f3f4f6',
+              transition: 'background-color 0.15s'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {codeVal && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  backgroundColor: '#dbeafe',
+                  color: '#1e40af'
+                }}>
+                  {codeVal}
+                </span>
+              )}
+              <span style={{ fontWeight: 500, color: '#111827', fontSize: '14px' }}>
+                {descVal}
+              </span>
             </div>
-          )}
-        </div>
-      ))}
+            {(normaVal || item.precio !== undefined || item.tiempo || item.acreditado === 'SI') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+                {item.norma && <span>📋 {item.norma}</span>}
+                {!item.norma && item.sublabel && <span>{item.sublabel}</span>}
+                {item.precio !== undefined && <span style={{ color: '#059669', fontWeight: 500 }}>S/. {item.precio}</span>}
+                {item.tiempo && <span>⏱️ {item.tiempo}</span>}
+                {item.acreditado === 'SI' && <span style={{ color: '#2563eb' }}>✓ Acreditado</span>}
+              </div>
+            )}
+            {item.codigosRelacionados && item.codigosRelacionados.length > 0 && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#ea580c', 
+                marginTop: '4px', 
+                backgroundColor: '#fff7ed', 
+                padding: '4px 8px', 
+                borderRadius: '4px' 
+              }}>
+                ⚠️ Requiere: {item.codigosRelacionados.join(', ')}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   ) : null;
 
