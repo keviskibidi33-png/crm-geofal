@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { toast } from "sonner"
 import { type User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
