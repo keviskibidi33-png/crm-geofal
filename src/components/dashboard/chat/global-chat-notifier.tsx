@@ -25,7 +25,7 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
 
     async function loadUnreadSummary() {
       try {
-        const res = await authFetch(`${API_URL}/api/chat/my-dms`)
+        const res = await authFetch(`${API_URL}/api/chat/unread-summary`)
         if (res.ok) {
           const data = await res.json()
           if (data && data.unread_counts) {
