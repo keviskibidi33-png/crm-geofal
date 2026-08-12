@@ -37,7 +37,9 @@ import { toast } from "sonner"
 
 export function TracingModule() {
     const { user } = useAuth()
-    const { tracingData, tracingList, loading, loadingList, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
+    const { tracingData: rawTracingData, tracingList: rawTracingList, loading, loadingList, fetchTracing, fetchTracingList, deleteTracing } = useTracing()
+    const tracingData = rawTracingData as any
+    const tracingList = (rawTracingList || []) as any[]
     const [searchTerm, setSearchTerm] = useState("")
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
