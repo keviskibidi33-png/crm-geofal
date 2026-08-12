@@ -393,11 +393,11 @@ export function OTModule() {
         {!loading && total > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50/50">
             <DataTablePagination
-              pageIndex={page - 1}
+              currentPage={page}
               pageSize={limit}
-              pageCount={Math.ceil(total / limit)}
-              totalRows={total}
-              onPageChange={(p) => setPage(p + 1)}
+              totalPages={Math.ceil(total / limit)}
+              totalItems={total}
+              onPageChange={(p) => setPage(p)}
               onPageSizeChange={(s) => {
                 setLimit(s)
                 setPage(1)
@@ -437,7 +437,7 @@ export function OTModule() {
         description={`¿Estás seguro de que deseas eliminar permanentemente la Orden de Trabajo ${deletingOt?.numero_ot}? Esta acción no se puede deshacer.`}
         confirmText="Sí, eliminar OT"
         cancelText="Cancelar"
-        variant="danger"
+        variant="destructive"
         isLoading={deleteLoading}
       />
     </div>
