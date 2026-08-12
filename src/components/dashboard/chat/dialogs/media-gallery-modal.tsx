@@ -49,11 +49,15 @@ export function extractChannelMediaAndFiles(messages: ChatMessage[]): {
   const links: ExtractedMediaItem[] = []
 
   messages.forEach((msg) => {
+    if (!msg) return
+
     if (msg.attachments && Array.isArray(msg.attachments)) {
-      msg.attachments.forEach((att, idx) => {
+      msg.attachments.forEach((att: any, idx: number) => {
+        if (!att) return
+        const attUrl = typeof att.url === "string" ? att.url : ""
         const item: ExtractedMediaItem = {
           id: `${msg.id}_att_${idx}`,
-          url: att.url,
+          url: attUrl,
           name: att.name || (att.type === "image" ? "Imagen compartida" : "Archivo adjunto"),
           type: att.type === "image" ? "image" : "file",
           size: att.size,
@@ -61,20 +65,20 @@ export function extractChannelMediaAndFiles(messages: ChatMessage[]): {
           senderName: msg.senderName || "Usuario",
           messageId: msg.id,
         }
-        if (att.type === "image" || att.url.match(/\.(png|jpg|jpeg|gif|webp|svg)/i)) {
+        if (att.type === "image" || (attUrl && attUrl.match(/\.(png|jpg|jpeg|gif|webp|svg)/i))) {
           images.push(item)
-        } else {
+        } else if (attUrl) {
           documents.push(item)
         }
       })
     }
 
-    if (msg.content) {
+    if (msg.content && typeof msg.content === "string") {
       const urlRegex = /(https?:\/\/[^\s]+)/g
       const matches = msg.content.match(urlRegex)
-      if (matches) {
+      if (matches && Array.isArray(matches)) {
         matches.forEach((url, idx) => {
-          if (url.match(/\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i)) {
+          if (url && typeof url === "string" && url.match(/\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i)) {
             images.push({
               id: `${msg.id}_url_${idx}`,
               url,
@@ -84,7 +88,7 @@ export function extractChannelMediaAndFiles(messages: ChatMessage[]): {
               senderName: msg.senderName || "Usuario",
               messageId: msg.id,
             })
-          } else {
+          } else if (url && typeof url === "string") {
             try {
               const domain = new URL(url).hostname.replace("www.", "")
               links.push({

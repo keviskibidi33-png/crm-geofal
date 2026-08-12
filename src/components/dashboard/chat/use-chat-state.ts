@@ -390,6 +390,20 @@ export function useChatState(user: User, initialChannelId?: string) {
 
     setMessages([])
     fetchChannelMessages()
+
+    const handleFocusOrVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchChannelMessages()
+      }
+    }
+
+    window.addEventListener("focus", handleFocusOrVisibility)
+    document.addEventListener("visibilitychange", handleFocusOrVisibility)
+
+    return () => {
+      window.removeEventListener("focus", handleFocusOrVisibility)
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility)
+    }
   }, [activeChannelId, teamUsers])
 
   // Clear unread counts for active channel (clears "chisme visual" badge)
