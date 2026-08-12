@@ -374,7 +374,7 @@ export function useCommercialTrackingKpis(selectedMonth: string, selectedYear: n
     } finally {
       setIsLoading(false)
     }
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, selectedAdvisor])
 
   useEffect(() => {
     void fetchKpis()

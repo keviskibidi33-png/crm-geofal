@@ -222,6 +222,13 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
     }, 200)
   }, [query, open, getRecentModules, searchModules, fetchRecords])
 
+  const handleSelect = useCallback((item: CommandItem) => {
+    onOpenChange(false)
+    setQuery("")
+    setResults([])
+    setActiveModule(item.module)
+  }, [onOpenChange, setActiveModule])
+
   useEffect(() => {
     if (!open) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -240,14 +247,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [open, results, selectedIndex])
-
-  const handleSelect = (item: CommandItem) => {
-    onOpenChange(false)
-    setQuery("")
-    setResults([])
-    setActiveModule(item.module)
-  }
+  }, [open, results, selectedIndex, handleSelect, onOpenChange])
 
   const renderGroupLabel = (type: string) => {
     switch (type) {
@@ -274,7 +274,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[12vh]">
+    <div className="fixed inset-0 z-200 flex items-start justify-center pt-[12vh]">
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
@@ -306,7 +306,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
           </kbd>
         </div>
 
-        <div className="max-h-[500px] overflow-y-auto command-palette-results">
+        <div className="max-h-125 overflow-y-auto command-palette-results">
           {results.length === 0 && query.trim().length >= 2 && !isSearchingRecords && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Search className="h-8 w-8 text-muted-foreground/30 mb-2" />

@@ -7,7 +7,6 @@ import { DialogFullscreen as Dialog, DialogFullscreenContent as DialogContent } 
 import { Button } from "@/components/ui/button"
 import {
     Clock,
-    CheckCircle2,
     AlertTriangle,
     ExternalLink,
     X,
@@ -24,7 +23,6 @@ import {
 } from "lucide-react"
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabaseClient"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { toast } from "sonner"
@@ -59,9 +57,6 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     /** KPI visibility for this user — loaded from perfiles.show_kpi on mount */
     const [showKpi, setShowKpi] = useState<boolean>(true)
-
-    // KPIs come pre-computed from the hook (lightweight count queries)
-    const stats = { total: kpis.total, atrasados: kpis.atrasados, pendientesEnvio: 0, totalMes: kpis.total }
 
     const canWrite = user.permissions?.comercial?.write === true || user.role === "admin"
 
@@ -134,12 +129,13 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
     // Load show_kpi & tabla_seguimiento flags from perfiles for this user
     useEffect(() => {
         if (!user?.id) return
-        supabase
-            .from("perfiles")
-            .select("show_kpi, tabla_seguimiento")
-            .eq("id", user.id)
-            .single()
-            .then(({ data, error }) => {
+        const loadProfile = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("perfiles")
+                    .select("show_kpi, tabla_seguimiento")
+                    .eq("id", user.id)
+                    .single()
                 if (!error && data) {
                     if (typeof data.show_kpi === "boolean") {
                         setShowKpi(data.show_kpi)
@@ -148,11 +144,12 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
                         setTablaSeguimiento(data.tabla_seguimiento)
                     }
                 }
-            })
-            .catch(() => {
+            } catch {
                 setShowKpi(true)
-            })
-    }, [user?.id, supabase])
+            }
+        }
+        void loadProfile()
+    }, [user?.id])
 
     const handleIframeSessionFailure = useCallback((reason: string) => {
         bridgeWarn("preserving shell session after iframe auth failure", {
