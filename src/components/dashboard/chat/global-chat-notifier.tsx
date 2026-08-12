@@ -109,6 +109,7 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       const senderName = normalizedMsg.senderName
       const channelId = normalizedMsg.channelId
 
+      const isDm = channelId.startsWith("dm_") || channelId.startsWith("dm-")
       const userRole = (user.role || (user as any).rol || "").toLowerCase()
       const isUserAdmin =
         ["admin", "admin_general", "gerencia", "super_admin"].includes(userRole) ||
@@ -211,7 +212,7 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user.id, user.email, user.name, activeModule, onOpenChat])
+  }, [user, activeModule, onOpenChat])
 
   return null
 }
