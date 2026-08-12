@@ -12,6 +12,8 @@ export interface ChatMessage {
   parent_id?: string
   read?: boolean
   isPinned?: boolean
+  reactions?: Record<string, string[]>
+  replyTo?: { id: string; senderName: string; content: string }
 }
 
 export interface ChatChannel {

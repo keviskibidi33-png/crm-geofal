@@ -362,6 +362,7 @@ export function useChatState(user: User, initialChannelId?: string) {
                 content: m.content,
                 attachments: safeAtt,
                 createdAt: m.created_at,
+                parent_id: m.parent_id || m.parentId,
                 read: Boolean(m.is_read || m.read),
               }
             })
@@ -482,6 +483,7 @@ export function useChatState(user: User, initialChannelId?: string) {
           content: newMsg.content || "",
           attachments: safeAtt,
           createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
+          parent_id: newMsg.parent_id || newMsg.parentId,
           read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
         }
 
@@ -620,7 +622,7 @@ export function useChatState(user: User, initialChannelId?: string) {
     }
   }, [isInfoOpen, activeChannel])
 
-  const handleSendMessage = async (attachmentsParam?: any) => {
+  const handleSendMessage = async (attachmentsParam?: any, parentIdParam?: string) => {
     const attachments = Array.isArray(attachmentsParam) ? attachmentsParam : []
     if (!inputMessage.trim() && attachments.length === 0) return
 
@@ -632,6 +634,7 @@ export function useChatState(user: User, initialChannelId?: string) {
       senderAvatar: user.avatar,
       content: inputMessage.trim(),
       attachments,
+      parent_id: parentIdParam,
       createdAt: new Date().toISOString(),
     }
 
@@ -653,6 +656,7 @@ export function useChatState(user: User, initialChannelId?: string) {
           sender_avatar: tempMessage.senderAvatar,
           content: tempMessage.content,
           attachments,
+          parent_id: parentIdParam,
           created_at: tempMessage.createdAt,
         },
       })
@@ -668,6 +672,7 @@ export function useChatState(user: User, initialChannelId?: string) {
           channel_id: activeChannelId,
           content: currentText,
           attachments,
+          parent_id: parentIdParam,
         }),
       })
     } catch (err) {
