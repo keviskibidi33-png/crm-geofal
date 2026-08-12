@@ -269,7 +269,7 @@ export function MediaGalleryModal({
                       alt={img.name}
                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-white text-[10px]">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-white text-[10px]">
                       <p className="font-semibold truncate">{img.name}</p>
                       <p className="text-[9px] text-white/80">{img.senderName}</p>
                     </div>
