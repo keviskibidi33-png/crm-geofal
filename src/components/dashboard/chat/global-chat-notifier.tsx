@@ -178,6 +178,22 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       }
     }
 
+    const handleChannelRead = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail && customEvent.detail.channelId) {
+        const targetId = String(customEvent.detail.channelId)
+        setUnreadCounts((prev) => {
+          const keysToClear = Object.keys(prev).filter((k) => k === targetId || k.replace(/^ch-/, "") === targetId.replace(/^ch-/, ""))
+          if (keysToClear.length === 0) return prev
+          const next = { ...prev }
+          for (const k of keysToClear) delete next[k]
+          return next
+        })
+      }
+    }
+
+    window.addEventListener("crm_chat_channel_read", handleChannelRead)
+
     const channel = supabase
       .channel("chat_global_realtime_stream")
       .on(
@@ -210,6 +226,7 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       })
 
     return () => {
+      window.removeEventListener("crm_chat_channel_read", handleChannelRead)
       supabase.removeChannel(channel)
     }
   }, [user, activeModule, onOpenChat])

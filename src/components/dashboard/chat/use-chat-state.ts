@@ -337,6 +337,7 @@ export function useChatState(user: User, initialChannelId?: string) {
   // 4. Cargar mensajes del canal activo
   useEffect(() => {
     async function fetchChannelMessages() {
+      if (!activeChannelId) return
       setIsLoadingMessages(true)
       try {
         const res = await authFetch(`${API_URL}/api/chat/messages/${activeChannelId}`)
@@ -352,34 +353,32 @@ export function useChatState(user: User, initialChannelId?: string) {
               )
               const rawAtt = m.attachments
               const safeAtt = typeof rawAtt === "string" ? (function() { try { return JSON.parse(rawAtt) } catch { return [] } })() : (Array.isArray(rawAtt) ? rawAtt : [])
+              const rawReactions = m.reactions
+              const safeReactions = typeof rawReactions === "string" ? (function() { try { return JSON.parse(rawReactions) } catch { return {} } })() : (rawReactions && typeof rawReactions === "object" ? rawReactions : {})
 
               return {
                 id: m.id,
                 channelId: m.channel_id,
                 senderId: m.sender_id,
-                senderName: m.sender_name || "Usuario",
+                senderName: userMatch?.name || m.sender_name || "Usuario CRM",
                 senderAvatar: getAvatarUrl(m.sender_avatar) || userMatch?.avatar,
                 content: m.content,
                 attachments: safeAtt,
                 createdAt: m.created_at,
                 parent_id: m.parent_id || m.parentId,
                 read: Boolean(m.is_read || m.read),
+                reactions: safeReactions,
               }
             })
-            setMessages((prev) => {
-              const map = new Map<string, ChatMessage>()
-              for (const m of loadedMessages) {
-                map.set(m.id, m)
-              }
-              for (const m of prev) {
-                if (!map.has(m.id)) {
-                  map.set(m.id, m)
-                }
-              }
-              return Array.from(map.values()).sort(
-                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-              )
+
+            const sorted = [...loadedMessages].sort((a, b) => {
+              const tA = new Date(a.createdAt).getTime()
+              const tB = new Date(b.createdAt).getTime()
+              if (tA !== tB) return tA - tB
+              return (a.id || "").localeCompare(b.id || "")
             })
+
+            setMessages(sorted)
           }
         }
       } catch (err) {
@@ -389,18 +388,27 @@ export function useChatState(user: User, initialChannelId?: string) {
       }
     }
 
+    setMessages([])
     fetchChannelMessages()
   }, [activeChannelId, teamUsers])
 
-  // Clear unread counts for active channel
+  // Clear unread counts for active channel (clears "chisme visual" badge)
   useEffect(() => {
     setUnreadCounts((prev) => {
-      if (!prev[activeChannelId]) return prev
+      const keysToClear = Object.keys(prev).filter((k) => k === activeChannelId || areChannelIdsEqual(k, activeChannelId))
+      if (keysToClear.length === 0) return prev
       const next = { ...prev }
-      delete next[activeChannelId]
+      for (const k of keysToClear) {
+        delete next[k]
+      }
       return next
     })
-  }, [activeChannelId])
+    window.dispatchEvent(
+      new CustomEvent("crm_chat_channel_read", {
+        detail: { channelId: activeChannelId },
+      })
+    )
+  }, [activeChannelId, messages.length])
 
   // Broadcast total unread count to global UI (Sidebar badge)
   useEffect(() => {
@@ -420,14 +428,6 @@ export function useChatState(user: User, initialChannelId?: string) {
       if (!newMsg) return
 
       const msgChannelId = String(newMsg.channel_id || newMsg.channelId || "")
-      console.log(`[ChatRealtime Dual-Stream] Processing incoming message:`, {
-        id: newMsg.id,
-        channel_id: msgChannelId,
-        sender_id: newMsg.sender_id || newMsg.senderId,
-        sender_name: newMsg.sender_name || newMsg.senderName,
-        content: newMsg.content,
-      })
-
       const myEmail = (user.email || "").toLowerCase()
       const myId = String(user.id || "")
 
@@ -473,38 +473,48 @@ export function useChatState(user: User, initialChannelId?: string) {
         )
         const rawAtt = newMsg.attachments
         const safeAtt = typeof rawAtt === "string" ? (function() { try { return JSON.parse(rawAtt) } catch { return [] } })() : (Array.isArray(rawAtt) ? rawAtt : [])
+        const rawReactions = newMsg.reactions
+        const safeReactions = typeof rawReactions === "string" ? (function() { try { return JSON.parse(rawReactions) } catch { return {} } })() : (rawReactions && typeof rawReactions === "object" ? rawReactions : {})
 
         const incomingMsg: ChatMessage = {
           id: newMsg.id,
           channelId: msgChannelId,
           senderId: newMsg.sender_id || newMsg.senderId,
-          senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
+          senderName: senderUser?.name || newMsg.sender_name || newMsg.senderName || "Usuario CRM",
           senderAvatar: getAvatarUrl(newMsg.sender_avatar || newMsg.senderAvatar) || senderUser?.avatar,
           content: newMsg.content || "",
           attachments: safeAtt,
           createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
           parent_id: newMsg.parent_id || newMsg.parentId,
           read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
+          reactions: safeReactions,
         }
 
         setMessages((prev) => {
-          if (prev.some((m) => m.id === incomingMsg.id)) return prev
-
-          // Reemplazar mensaje temporal optimista si coincide en contenido y remitente
-          const tempIndex = prev.findIndex(
-            (m) =>
-              (m.id.startsWith("msg-") || m.id.startsWith("fm-")) &&
-              m.content.trim() === incomingMsg.content.trim() &&
-              (m.senderId === incomingMsg.senderId || m.senderName === incomingMsg.senderName)
-          )
-
-          if (tempIndex !== -1) {
-            const updated = [...prev]
-            updated[tempIndex] = incomingMsg
-            return updated
+          let updatedList: ChatMessage[] = []
+          if (prev.some((m) => m.id === incomingMsg.id)) {
+            updatedList = prev.map((m) => (m.id === incomingMsg.id ? incomingMsg : m))
+          } else {
+            const tempIndex = prev.findIndex(
+              (m) =>
+                (m.id.startsWith("msg-") || m.id.startsWith("fm-")) &&
+                m.content.trim() === incomingMsg.content.trim() &&
+                (m.senderId === incomingMsg.senderId || m.senderName === incomingMsg.senderName)
+            )
+            if (tempIndex !== -1) {
+              updatedList = [...prev]
+              updatedList[tempIndex] = incomingMsg
+            } else {
+              updatedList = [...prev, incomingMsg]
+            }
           }
 
-          return [...prev, incomingMsg]
+          return [...updatedList].sort((a, b) => {
+            const tA = new Date(a.createdAt).getTime()
+            const tB = new Date(b.createdAt).getTime()
+            if (tA !== tB) return tA - tB
+            return (a.id || "").localeCompare(b.id || "")
+          })
         })
         setTimeout(scrollToBottom, 50)
       } else {
@@ -552,6 +562,14 @@ export function useChatState(user: User, initialChannelId?: string) {
       )
       .on("broadcast", { event: "chat_message_broadcast" }, (payload) => {
         processIncomingMessage(payload.payload)
+      })
+      .on("broadcast", { event: "chat_reaction_update" }, (payload) => {
+        const data = payload.payload
+        if (data && data.msgId) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === data.msgId ? { ...m, reactions: data.reactions || {} } : m))
+          )
+        }
       })
       .on("broadcast", { event: "chat_read_receipt" }, (payload) => {
         const data = payload.payload
@@ -916,6 +934,71 @@ export function useChatState(user: User, initialChannelId?: string) {
     setActiveChannelId(dmId)
   }
 
+  const toggleReaction = useCallback(
+    async (msgId: string, emoji: string) => {
+      const userMatch = teamUsers.find(
+        (u) =>
+          u.email.toLowerCase() === String(user.email || "").toLowerCase() ||
+          String(u.id) === String(user.id)
+      )
+      const myName = userMatch?.name || user.name || user.email || "Usuario CRM"
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== msgId) return msg
+          const currentReactions = { ...(msg.reactions || {}) }
+          const userArr = [...(currentReactions[emoji] || [])]
+          const idx = userArr.indexOf(myName)
+          if (idx !== -1) {
+            userArr.splice(idx, 1)
+          } else {
+            userArr.push(myName)
+          }
+          if (userArr.length > 0) {
+            currentReactions[emoji] = userArr
+          } else {
+            delete currentReactions[emoji]
+          }
+          return { ...msg, reactions: currentReactions }
+        })
+      )
+
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/messages/${msgId}/reactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emoji }),
+        })
+
+        let updatedReactions: Record<string, string[]> | null = null
+        if (res.ok) {
+          const data = await res.json()
+          if (data.reactions) {
+            updatedReactions = data.reactions
+            setMessages((prev) =>
+              prev.map((m) => (m.id === msgId ? { ...m, reactions: data.reactions } : m))
+            )
+          }
+        }
+
+        const payload = { msgId, reactions: updatedReactions || {} }
+        supabase.channel(`chat_active_view_${activeChannelId}`).send({
+          type: "broadcast",
+          event: "chat_reaction_update",
+          payload,
+        })
+        supabase.channel("chat_global_realtime_stream").send({
+          type: "broadcast",
+          event: "chat_reaction_update",
+          payload,
+        })
+      } catch (err) {
+        console.warn("Error toggling reaction:", err)
+      }
+    },
+    [activeChannelId, teamUsers, user.email, user.id, user.name]
+  )
+
   const activeMessages = messages.filter((m) => areChannelIdsEqual(m.channelId, activeChannelId))
 
   return {
@@ -979,5 +1062,6 @@ export function useChatState(user: User, initialChannelId?: string) {
     handleToggleChannelPrivacy,
     handleDeleteChannel,
     handleOpenDM,
+    toggleReaction,
   }
 }

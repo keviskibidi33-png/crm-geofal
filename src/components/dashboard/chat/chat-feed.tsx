@@ -57,6 +57,7 @@ interface ChatFeedProps {
   onRemoveMember?: (member: TeamUser) => void
   onTogglePrivacy?: (isPrivate: boolean) => void
   isAdminUser?: boolean
+  toggleReaction?: (msgId: string, emoji: string) => void
 }
 
 export function ChatFeed({
@@ -81,7 +82,8 @@ export function ChatFeed({
   onAddMember,
   onRemoveMember,
   onTogglePrivacy,
-  isAdminUser,
+  isAdminUser = false,
+  toggleReaction,
 }: ChatFeedProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
   const channelPrefix = isDM ? "@" : "#"
@@ -162,6 +164,11 @@ export function ChatFeed({
   }, [activeChannel.id])
 
   const handleToggleReaction = (msgId: string, emoji: string) => {
+    if (toggleReaction) {
+      toggleReaction(msgId, emoji)
+      return
+    }
+
     const myName = user.name || user.email || "Usuario"
     setReactionsMap((prev) => {
       const currentMsgReactions = prev[msgId] || {}
