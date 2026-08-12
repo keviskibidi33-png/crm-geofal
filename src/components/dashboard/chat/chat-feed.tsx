@@ -110,6 +110,30 @@ export function ChatFeed({
     return () => window.removeEventListener("crm_pinned_messages_updated", handleStorageUpdate)
   }, [])
 
+  // Auto-scroll al último mensaje al cambiar de canal o terminar de cargar
+  useEffect(() => {
+    if (activeMessages.length > 0 && messagesEndRef.current) {
+      const doScroll = () => {
+        if (messagesEndRef.current) {
+          const viewport =
+            messagesEndRef.current.closest('[data-slot="scroll-area-viewport"]') ||
+            messagesEndRef.current.closest('.overflow-y-auto') ||
+            messagesEndRef.current.parentElement
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight
+          }
+        }
+      }
+      doScroll()
+      const t1 = setTimeout(doScroll, 60)
+      const t2 = setTimeout(doScroll, 180)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+      }
+    }
+  }, [activeChannel.id, activeMessages.length, isLoadingMessages])
+
   const pinnedMessages = useMemo(() => {
     const channelPinnedIds = pinnedIdsMap[activeChannel.id] || []
     return activeMessages.filter((m) => m.isPinned || channelPinnedIds.includes(m.id))

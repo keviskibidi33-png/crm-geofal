@@ -46,9 +46,12 @@ export function useChatMessages({
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      const container = messagesEndRef.current.parentElement
-      if (container) {
-        container.scrollTop = container.scrollHeight
+      const viewport =
+        messagesEndRef.current.closest('[data-slot="scroll-area-viewport"]') ||
+        messagesEndRef.current.closest('.overflow-y-auto') ||
+        messagesEndRef.current.parentElement
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight
       }
     }
   }
@@ -98,12 +101,15 @@ export function useChatMessages({
             })
 
             setMessages(sorted)
+            setTimeout(scrollToBottom, 50)
+            setTimeout(scrollToBottom, 150)
           }
         }
       } catch (err) {
         console.warn("Error fetching channel messages:", err)
       } finally {
         setIsLoadingMessages(false)
+        setTimeout(scrollToBottom, 80)
       }
     }
 
