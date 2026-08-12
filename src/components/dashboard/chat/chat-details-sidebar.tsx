@@ -227,7 +227,7 @@ export function ChatDetailsSidebar({
 
       {/* ──── VISTA PRINCIPAL (MAIN) ──── */}
       {currentView === "main" && (
-        <ScrollArea className="flex-1 p-4 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6">
           {/* Ficha Principal de Perfil o Canal */}
           <div className="flex flex-col items-center text-center space-y-3 pb-4 border-b border-border">
             <Avatar className="h-20 w-20 border-2 border-primary/20 shadow-md ring-4 ring-background">
@@ -330,58 +330,79 @@ export function ChatDetailsSidebar({
                 <span className="flex items-center gap-2.5 font-medium">
                   <ImageIcon className="h-4 w-4 text-blue-500" /> Archivos y Documentos
                 </span>
-                <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                  {attachments.length}
-                </Badge>
-              </button>
-            </div>
-
-            <div className="h-px bg-border my-3" />
-
-            <div className="space-y-1 text-xs">
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-slate-500" />}
-                <span className="font-medium">Copiar enlace de conversación</span>
-              </button>
-            </div>
-
-            <div className="h-px bg-border my-3" />
-
-            {/* Acciones Críticas */}
-            <div className="space-y-1 text-xs pt-1">
-              <button
-                type="button"
-                onClick={() => toast.info("Reporte enviado al equipo de administración CRM")}
-                className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                <span className="font-medium">Reportar sala o conversación</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="font-medium">Cerrar panel de detalles</span>
               </button>
             </div>
           </div>
-        </ScrollArea>
+
+          {/* Sección de Archivos y Adjuntos */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+              Archivos compartidos ({attachments.length})
+            </h4>
+
+            {attachments.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic px-1">No hay archivos compartidos en esta conversación.</p>
+            ) : (
+              <div className="space-y-1">
+                {attachments.slice(0, 5).map((att, idx) => (
+                  <a
+                    key={idx}
+                    href={att.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-accent/60 transition-colors text-xs font-medium text-foreground group"
+                  >
+                    {att.type === "image" ? (
+                      <ImageIcon className="h-4 w-4 text-sky-500 shrink-0" />
+                    ) : (
+                      <Pin className="h-4 w-4 text-amber-500 shrink-0" />
+                    )}
+                    <span className="truncate flex-1 group-hover:text-primary transition-colors">{att.name}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Opciones de Acciones */}
+          <div className="pt-2 border-t border-border space-y-1 text-xs">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-accent text-foreground transition-colors font-medium"
+            >
+              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+              <span>{copied ? "Enlace copiado" : "Copiar enlace de la sala"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toast.info("Reporte enviado al equipo de administración CRM")}
+              className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-rose-500/10 text-rose-500 transition-colors"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span className="font-medium">Reportar sala o conversación</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full flex items-center gap-2.5 p-2 rounded-md hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="font-medium">Cerrar panel de detalles</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ──── VISTA MIEMBROS / GENTE ──── */}
       {currentView === "members" && (
-        <div className="flex-1 flex flex-col min-h-0 p-4 space-y-4">
+        <div className="flex-1 flex flex-col min-h-0 p-4 space-y-3 overflow-hidden">
           {/* Botón Invitar */}
           <Button
             variant="outline"
-            className="w-full h-9 gap-2 rounded-full border-border hover:bg-accent text-xs font-semibold shadow-xs"
+            className="w-full h-9 gap-2 rounded-full border-border hover:bg-accent text-xs font-semibold shadow-xs shrink-0"
             onClick={() => {
               if (!isUserAdmin) {
                 toast.info("Solo Administradores o Gerencia pueden invitar integrantes al canal.")
@@ -398,7 +419,7 @@ export function ChatDetailsSidebar({
           </Button>
 
           {/* Buscador de Miembros */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar gente..."
@@ -408,83 +429,81 @@ export function ChatDetailsSidebar({
             />
           </div>
 
-          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-1 pt-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground px-1 pt-1 shrink-0">
             {filteredMembers.length} {filteredMembers.length === 1 ? "Miembro" : "Miembros"}
           </div>
 
-          {/* Lista de Miembros */}
-          <ScrollArea className="flex-1 -mx-2 px-2">
-            <div className="space-y-1">
-              {filteredMembers.map((m) => {
-                const online = isUserOnline(m)
-                return (
-                  <div
-                    key={m.id}
-                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/60 transition-colors group overflow-hidden"
+          {/* Lista de Miembros con Scroll Nativo Fluido */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
+            {filteredMembers.map((m) => {
+              const online = isUserOnline(m)
+              return (
+                <div
+                  key={m.id}
+                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent/60 transition-colors group overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMember(m)
+                      setCurrentView("user-detail")
+                    }}
+                    className="flex-1 flex items-center gap-2.5 min-w-0 text-left mr-1 overflow-hidden"
                   >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMember(m)
-                        setCurrentView("user-detail")
+                    <div className="relative shrink-0">
+                      <Avatar className="h-8 w-8 border border-border">
+                        {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
+                        <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
+                          {m.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {online ? (
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" title="En línea (Activo)">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-card shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                        </span>
+                      ) : (
+                        <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card bg-slate-400" title="Desconectado" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors leading-tight">
+                        {m.name}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground min-w-0">
+                        {m.email && <span className="truncate flex-1">{m.email}</span>}
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-bold shrink-0 rounded-sm bg-muted/60 border border-border/40 text-muted-foreground tracking-tight">
+                          {formatRoleLabel(m.role)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isUserAdmin && !isDM && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity ml-1"
+                      title="Expulsar integrante del canal"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveMember?.(m)
                       }}
-                      className="flex-1 flex items-center gap-2.5 min-w-0 text-left mr-1 overflow-hidden"
                     >
-                      <div className="relative shrink-0">
-                        <Avatar className="h-8 w-8 border border-border">
-                          {m.avatar && <AvatarImage src={getAvatarUrl(m.avatar)} alt={m.name} />}
-                          <AvatarFallback className="bg-sky-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-slate-700">
-                            {m.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        {online ? (
-                          <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5" title="En línea (Activo)">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-card shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-                          </span>
-                        ) : (
-                          <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-card bg-slate-400" title="Desconectado" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors leading-tight">
-                          {m.name}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground min-w-0">
-                          {m.email && <span className="truncate flex-1">{m.email}</span>}
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-bold shrink-0 rounded-sm bg-muted/60 border border-border/40 text-muted-foreground tracking-tight">
-                            {formatRoleLabel(m.role)}
-                          </Badge>
-                        </div>
-                      </div>
-                    </button>
-
-                    {isUserAdmin && !isDM && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity ml-1"
-                        title="Expulsar integrante del canal"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onRemoveMember?.(m)
-                        }}
-                      >
-                        <UserX className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </ScrollArea>
+                      <UserX className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
       {/* ──── VISTA DETALLE DE USUARIO ──── */}
       {currentView === "user-detail" && selectedMember && (
-        <ScrollArea className="flex-1 p-4 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
           <div className="flex flex-col items-center text-center space-y-3 pb-4 border-b border-border">
             <Avatar className="h-24 w-24 border-4 border-background shadow-lg ring-2 ring-primary/20">
               {selectedMember.avatar && <AvatarImage src={getAvatarUrl(selectedMember.avatar)} alt={selectedMember.name} />}
@@ -552,7 +571,7 @@ export function ChatDetailsSidebar({
               </Button>
             )}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {/* Modal Invitar Participante */}
