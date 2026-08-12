@@ -109,10 +109,12 @@ export function ChatFeed({
     return () => window.removeEventListener("crm_pinned_messages_updated", handleStorageUpdate)
   }, [])
 
-  const channelPinnedIds = pinnedIdsMap[activeChannel.id] || []
   const pinnedMessages = useMemo(() => {
+    const channelPinnedIds = pinnedIdsMap[activeChannel.id] || []
     return activeMessages.filter((m) => m.isPinned || channelPinnedIds.includes(m.id))
-  }, [activeMessages, channelPinnedIds])
+  }, [activeMessages, pinnedIdsMap, activeChannel.id])
+
+  const channelPinnedIds = pinnedIdsMap[activeChannel.id] || []
 
   const handleTogglePin = (msgId: string) => {
     try {
@@ -323,7 +325,7 @@ export function ChatFeed({
             </div>
             <Button
               variant="ghost"
-              size="xs"
+              size="sm"
               className="h-6 px-2 text-[10px] text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 font-medium shrink-0"
               onClick={() => {
                 setSidebarView("pinned-messages")
