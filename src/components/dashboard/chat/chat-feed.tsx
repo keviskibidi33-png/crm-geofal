@@ -57,6 +57,7 @@ interface ChatFeedProps {
   onTogglePrivacy?: (isPrivate: boolean) => void
   isAdminUser?: boolean
   toggleReaction?: (msgId: string, emoji: string) => void
+  togglePinMessage?: (msgId: string) => void
 }
 
 export function ChatFeed({
@@ -83,6 +84,7 @@ export function ChatFeed({
   onTogglePrivacy,
   isAdminUser = false,
   toggleReaction,
+  togglePinMessage,
 }: ChatFeedProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
   const channelPrefix = isDM ? "@" : "#"
@@ -142,18 +144,22 @@ export function ChatFeed({
   const channelPinnedIds = pinnedIdsMap[activeChannel.id] || []
 
   const handleTogglePin = (msgId: string) => {
-    try {
-      const map = JSON.parse(localStorage.getItem("crm_pinned_messages_map") || "{}")
-      const currentList: string[] = map[activeChannel.id] || []
-      const exists = currentList.includes(msgId)
-      const nextList = exists ? currentList.filter((id) => id !== msgId) : [...currentList, msgId]
-      map[activeChannel.id] = nextList
-      localStorage.setItem("crm_pinned_messages_map", JSON.stringify(map))
-      setPinnedIdsMap(map)
-      window.dispatchEvent(new CustomEvent("crm_pinned_messages_updated"))
-      toast(exists ? "Mensaje desfijado del canal" : "📌 Mensaje fijado al canal")
-    } catch {
-      toast.error("Error al actualizar mensaje fijado")
+    if (togglePinMessage) {
+      togglePinMessage(msgId)
+    } else {
+      try {
+        const map = JSON.parse(localStorage.getItem("crm_pinned_messages_map") || "{}")
+        const currentList: string[] = map[activeChannel.id] || []
+        const exists = currentList.includes(msgId)
+        const nextList = exists ? currentList.filter((id) => id !== msgId) : [...currentList, msgId]
+        map[activeChannel.id] = nextList
+        localStorage.setItem("crm_pinned_messages_map", JSON.stringify(map))
+        setPinnedIdsMap(map)
+        window.dispatchEvent(new CustomEvent("crm_pinned_messages_updated"))
+        toast(exists ? "Mensaje desfijado del canal" : "📌 Mensaje fijado al canal")
+      } catch {
+        toast.error("Error al actualizar mensaje fijado")
+      }
     }
   }
 

@@ -108,6 +108,20 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         processedMsgIdsRef.current = new Set(arr.slice(100))
       }
 
+      const rawReactions = rawMsg.reactions
+      const safeReactions =
+        typeof rawReactions === "string"
+          ? (function () {
+              try {
+                return JSON.parse(rawReactions)
+              } catch {
+                return {}
+              }
+            })()
+          : rawReactions && typeof rawReactions === "object"
+          ? rawReactions
+          : {}
+
       const normalizedMsg = {
         id: String(rawMsg.id),
         channelId: String(rawMsg.channel_id || rawMsg.channelId || "general"),
@@ -120,6 +134,12 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         attachments: rawMsg.attachments || [],
         createdAt: rawMsg.created_at || rawMsg.createdAt || new Date().toISOString(),
         created_at: rawMsg.created_at || rawMsg.createdAt || new Date().toISOString(),
+        parent_id: rawMsg.parent_id || rawMsg.parentId,
+        parentId: rawMsg.parent_id || rawMsg.parentId,
+        is_read: Boolean(rawMsg.is_read || rawMsg.read),
+        reactions: safeReactions,
+        is_pinned: Boolean(rawMsg.is_pinned || rawMsg.isPinned),
+        isPinned: Boolean(rawMsg.is_pinned || rawMsg.isPinned),
       }
 
       const senderId = normalizedMsg.senderId.toLowerCase()
@@ -218,11 +238,30 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "chat_messages",
         },
-        (payload) => processMessage(payload.new)
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            processMessage(payload.new)
+          } else if (payload.eventType === "UPDATE") {
+            const newRow = payload.new
+            if (newRow && newRow.id) {
+              processMessage(newRow)
+              window.dispatchEvent(
+                new CustomEvent("crm_chat_reaction_update", {
+                  detail: { msgId: newRow.id, reactions: newRow.reactions || {} },
+                })
+              )
+              window.dispatchEvent(
+                new CustomEvent("crm_chat_pin_update", {
+                  detail: { msgId: newRow.id, isPinned: Boolean(newRow.is_pinned), channelId: newRow.channel_id },
+                })
+              )
+            }
+          }
+        }
       )
       .on("broadcast", { event: "chat_message_broadcast" }, (payload) => {
         processMessage(payload.payload)
@@ -231,6 +270,15 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
         if (payload.payload) {
           window.dispatchEvent(
             new CustomEvent("crm_chat_reaction_update", {
+              detail: payload.payload,
+            })
+          )
+        }
+      })
+      .on("broadcast", { event: "chat_pin_update" }, (payload) => {
+        if (payload.payload) {
+          window.dispatchEvent(
+            new CustomEvent("crm_chat_pin_update", {
               detail: payload.payload,
             })
           )

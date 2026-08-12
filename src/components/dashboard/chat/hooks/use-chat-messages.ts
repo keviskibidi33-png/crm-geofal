@@ -90,6 +90,7 @@ export function useChatMessages({
                 parent_id: m.parent_id || m.parentId,
                 read: Boolean(m.is_read || m.read),
                 reactions: safeReactions,
+                isPinned: Boolean(m.is_pinned || m.isPinned),
               }
             })
 
@@ -234,6 +235,7 @@ export function useChatMessages({
           parent_id: newMsg.parent_id || newMsg.parentId,
           read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
           reactions: safeReactions,
+          isPinned: Boolean(newMsg.is_pinned || newMsg.isPinned),
         }
 
         setMessages((prev) => {
@@ -300,8 +302,19 @@ export function useChatMessages({
       }
     }
 
+    const handleGlobalPinUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent
+      const data = customEvent.detail
+      if (data && data.msgId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === data.msgId ? { ...m, isPinned: Boolean(data.isPinned) } : m))
+        )
+      }
+    }
+
     window.addEventListener("crm_chat_global_message", handleGlobalMessage)
     window.addEventListener("crm_chat_reaction_update", handleGlobalReaction)
+    window.addEventListener("crm_chat_pin_update", handleGlobalPinUpdate)
 
     const globalChatChannel = supabase
       .channel(`chat_active_view_${activeChannelId}`)
@@ -325,6 +338,14 @@ export function useChatMessages({
           )
         }
       })
+      .on("broadcast", { event: "chat_pin_update" }, (payload) => {
+        const data = payload.payload
+        if (data && data.msgId) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === data.msgId ? { ...m, isPinned: Boolean(data.isPinned) } : m))
+          )
+        }
+      })
       .on("broadcast", { event: "chat_read_receipt" }, (payload) => {
         const data = payload.payload
         if (data && areChannelIdsEqual(data.channel_id, activeChannelId)) {
@@ -338,6 +359,7 @@ export function useChatMessages({
     return () => {
       window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
       window.removeEventListener("crm_chat_reaction_update", handleGlobalReaction)
+      window.removeEventListener("crm_chat_pin_update", handleGlobalPinUpdate)
       supabase.removeChannel(globalChatChannel)
       activeRealtimeChannelRef.current = null
     }
@@ -537,6 +559,61 @@ export function useChatMessages({
     [activeChannelId, teamUsers, user.email, user.id, user.name]
   )
 
+  const togglePinMessage = useCallback(
+    async (msgId: string) => {
+      const targetMsg = messages.find((m) => m.id === msgId)
+      const nextPinned = targetMsg ? !targetMsg.isPinned : true
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === msgId ? { ...msg, isPinned: nextPinned } : msg))
+      )
+
+      try {
+        const map = JSON.parse(localStorage.getItem("crm_pinned_messages_map") || "{}")
+        const currentList: string[] = map[activeChannelId] || []
+        const exists = currentList.includes(msgId)
+        const nextList = exists ? currentList.filter((id) => id !== msgId) : [...currentList, msgId]
+        map[activeChannelId] = nextList
+        localStorage.setItem("crm_pinned_messages_map", JSON.stringify(map))
+        window.dispatchEvent(new CustomEvent("crm_pinned_messages_updated"))
+      } catch {}
+
+      try {
+        const res = await authFetch(`${API_URL}/api/chat/messages/${msgId}/pin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          if (typeof data.is_pinned === "boolean") {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === msgId ? { ...m, isPinned: data.is_pinned } : m))
+            )
+          }
+        }
+
+        const payload = { msgId, isPinned: nextPinned, channelId: activeChannelId }
+        if (activeRealtimeChannelRef.current) {
+          activeRealtimeChannelRef.current.send({
+            type: "broadcast",
+            event: "chat_pin_update",
+            payload,
+          })
+        }
+        window.dispatchEvent(
+          new CustomEvent("crm_chat_pin_update", {
+            detail: payload,
+          })
+        )
+        toast(nextPinned ? "📌 Mensaje fijado al canal" : "Mensaje desfijado del canal")
+      } catch (err) {
+        console.warn("Error toggling message pin:", err)
+      }
+    },
+    [activeChannelId, messages]
+  )
+
   const activeMessages = messages.filter((m) => areChannelIdsEqual(m.channelId, activeChannelId))
 
   return {
@@ -556,5 +633,6 @@ export function useChatMessages({
     handleFileUpload,
     handleTyping,
     toggleReaction,
+    togglePinMessage,
   }
 }

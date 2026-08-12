@@ -57,6 +57,8 @@ export function ComunicacionesModule({ user, initialChannelId }: ComunicacionesM
         onRemoveMember={chat.handleRemoveMemberFromChannel}
         onTogglePrivacy={chat.handleToggleChannelPrivacy}
         isAdminUser={chat.isAdminUser}
+        toggleReaction={chat.toggleReaction}
+        togglePinMessage={chat.togglePinMessage}
       />
 
       {/* ── MODALES Y DIÁLOGOS ── */}
