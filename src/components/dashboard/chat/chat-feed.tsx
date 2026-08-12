@@ -30,7 +30,6 @@ import { type User } from "@/hooks/use-auth"
 import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
 import { UserProfilePopover } from "./dialogs/user-profile-popover"
 import { ChatDetailsSidebar } from "./chat-details-sidebar"
-import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 
 interface ChatFeedProps {
