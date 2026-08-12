@@ -1,6 +1,4 @@
-"use client"
-
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import {
   X,
   Search,
@@ -22,6 +20,9 @@ import {
   ShieldAlert,
   Lock,
   Globe,
+  FileText,
+  Link as LinkIcon,
+  ExternalLink,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/dialog"
 import { type User } from "@/hooks/use-auth"
 import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
+import { extractChannelMediaAndFiles, MediaGalleryModal } from "./dialogs/media-gallery-modal"
 import { toast } from "sonner"
 
 interface ChatDetailsSidebarProps {
@@ -55,9 +57,12 @@ interface ChatDetailsSidebarProps {
   onRemoveMember?: (member: TeamUser) => void
   onTogglePrivacy?: (isPrivate: boolean) => void
   isAdminUser?: boolean
+  onTogglePinMessage?: (messageId: string) => void
+  onSelectImage?: (url: string) => void
+  onScrollToMessage?: (messageId: string) => void
 }
 
-type ViewMode = "main" | "members" | "user-detail"
+type ViewMode = "main" | "members" | "user-detail" | "pinned-messages"
 
 function isUserOnline(user: TeamUser | { status?: string; last_seen_at?: string | null }): boolean {
   if (user.status === "online") return true
@@ -101,6 +106,9 @@ export function ChatDetailsSidebar({
   onRemoveMember,
   onTogglePrivacy,
   isAdminUser,
+  onTogglePinMessage,
+  onSelectImage,
+  onScrollToMessage,
 }: ChatDetailsSidebarProps) {
   const isDM = activeChannel.category === "dm" || activeChannel.id.startsWith("dm-") || activeChannel.id.startsWith("dm_")
   const displayName = isDM && dmTargetUser ? dmTargetUser.name : activeChannel.name
@@ -112,12 +120,30 @@ export function ChatDetailsSidebar({
 
   const [currentView, setCurrentView] = useState<ViewMode>(initialView)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [isMediaGalleryOpen, setIsMediaGalleryOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamUser | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [memberSearch, setMemberSearch] = useState("")
   const [copied, setCopied] = useState(false)
+
+  // Local Pinned Messages Map
+  const [pinnedIdsMap, setPinnedIdsMap] = useState<Record<string, string[]>>(() => {
+    if (typeof window === "undefined") return {}
+    try {
+      return JSON.parse(localStorage.getItem("crm_pinned_messages_map") || "{}")
+    } catch {
+      return {}
+    }
+  })
+
+  const pinnedIds = pinnedIdsMap[activeChannel.id] || []
+  const pinnedMessages = useMemo(() => {
+    return activeMessages.filter((m) => m.isPinned || pinnedIds.includes(m.id))
+  }, [activeMessages, pinnedIds])
+
+  const media = useMemo(() => extractChannelMediaAndFiles(activeMessages), [activeMessages])
 
   useEffect(() => {
     setCurrentView(initialView)
@@ -170,8 +196,23 @@ export function ChatDetailsSidebar({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Count attachments in activeMessages
-  const attachments = activeMessages.flatMap((m) => m.attachments || [])
+  const handleTogglePin = (msgId: string) => {
+    const current = pinnedIdsMap[activeChannel.id] || []
+    const isPinned = current.includes(msgId)
+    const updated = isPinned ? current.filter((id) => id !== msgId) : [...current, msgId]
+    const newMap = { ...pinnedIdsMap, [activeChannel.id]: updated }
+    setPinnedIdsMap(newMap)
+    try {
+      localStorage.setItem("crm_pinned_messages_map", JSON.stringify(newMap))
+    } catch {}
+    if (isPinned) {
+      toast.info("Mensaje desfijado del canal")
+    } else {
+      toast.success("Mensaje fijado en el canal")
+    }
+    onTogglePinMessage?.(msgId)
+  }
+
   const memberList: TeamUser[] = (currentMembers && currentMembers.length > 0) ? currentMembers : (teamUsers.length > 0 ? teamUsers : [])
   const filteredMembers = memberList.filter((m) =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -215,7 +256,11 @@ export function ChatDetailsSidebar({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h3 className="font-bold text-sm text-foreground">
-                {currentView === "members" ? "Gente / Miembros" : "Perfil de Usuario"}
+                {currentView === "members"
+                  ? "Gente / Miembros"
+                  : currentView === "pinned-messages"
+                  ? "Mensajes Fijados"
+                  : "Perfil de Usuario"}
               </h3>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-accent" onClick={onClose}>
@@ -293,7 +338,7 @@ export function ChatDetailsSidebar({
 
             <div className="h-px bg-border my-3" />
 
-            {/* Metadatos y Accesos */}
+            {/* Metadatos y Accesos Directos */}
             <div className="space-y-1 text-xs">
               {!isDM && (
                 <button
@@ -315,50 +360,88 @@ export function ChatDetailsSidebar({
 
               <button
                 type="button"
-                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setCurrentView("pinned-messages")}
+                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <span className="flex items-center gap-2.5 font-medium">
                   <Pin className="h-4 w-4 text-amber-500" /> Mensajes Fijados
                 </span>
-                <span className="text-muted-foreground text-[11px] font-bold">0</span>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-bold">
+                    {pinnedMessages.length}
+                  </Badge>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
 
               <button
                 type="button"
-                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setIsMediaGalleryOpen(true)}
+                className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <span className="flex items-center gap-2.5 font-medium">
-                  <ImageIcon className="h-4 w-4 text-blue-500" /> Archivos y Documentos
+                  <ImageIcon className="h-4 w-4 text-sky-500" /> Archivos y Documentos
                 </span>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-bold">
+                    {media.all.length}
+                  </Badge>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
             </div>
           </div>
 
-          {/* Sección de Archivos y Adjuntos */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-              Archivos compartidos ({attachments.length})
-            </h4>
+          {/* Sección de Archivos y Adjuntos (Vista Previa Estilo WhatsApp) */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Archivos compartidos ({media.all.length})
+              </h4>
+              {media.all.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[11px] text-primary hover:text-primary font-semibold px-2"
+                  onClick={() => setIsMediaGalleryOpen(true)}
+                >
+                  Ver todos <ChevronRight className="h-3 w-3 ml-1" />
+                </Button>
+              )}
+            </div>
 
-            {attachments.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic px-1">No hay archivos compartidos en esta conversación.</p>
+            {media.all.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic px-1">No hay archivos ni multimedia en esta conversación.</p>
             ) : (
               <div className="space-y-1">
-                {attachments.slice(0, 5).map((att, idx) => (
-                  <a
-                    key={idx}
-                    href={att.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-accent/60 transition-colors text-xs font-medium text-foreground group"
+                {media.all.slice(0, 5).map((att) => (
+                  <div
+                    key={att.id}
+                    onClick={() => {
+                      if (att.type === "image") {
+                        onSelectImage?.(att.url)
+                      } else {
+                        window.open(att.url, "_blank")
+                      }
+                    }}
+                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-accent/60 transition-colors text-xs font-medium text-foreground cursor-pointer group"
                   >
                     {att.type === "image" ? (
-                      <ImageIcon className="h-4 w-4 text-sky-500 shrink-0" />
+                      <div className="h-7 w-7 rounded-md bg-muted overflow-hidden shrink-0 border border-border">
+                        <img src={att.url} alt={att.name} className="h-full w-full object-cover" />
+                      </div>
+                    ) : att.type === "link" ? (
+                      <LinkIcon className="h-4 w-4 text-emerald-500 shrink-0" />
                     ) : (
-                      <Pin className="h-4 w-4 text-amber-500 shrink-0" />
+                      <FileText className="h-4 w-4 text-rose-500 shrink-0" />
                     )}
-                    <span className="truncate flex-1 group-hover:text-primary transition-colors">{att.name}</span>
-                  </a>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold group-hover:text-primary transition-colors leading-tight">
+                        {att.name}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground truncate">{att.senderName}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -393,6 +476,64 @@ export function ChatDetailsSidebar({
               <span className="font-medium">Cerrar panel de detalles</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ──── VISTA MENSAJES FIJADOS ──── */}
+      {currentView === "pinned-messages" && (
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+          {pinnedMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
+              <Pin className="h-10 w-10 text-amber-500/40" />
+              <p className="text-xs font-semibold text-foreground">No hay mensajes fijados en este canal.</p>
+              <p className="text-[11px] text-muted-foreground max-w-xs leading-relaxed">
+                Pasa el cursor sobre cualquier mensaje en el chat y presiona el ícono 📌 para fijarlo al canal.
+              </p>
+            </div>
+          ) : (
+            pinnedMessages.map((pm) => (
+              <div key={pm.id} className="p-3 rounded-xl border border-border/80 bg-card hover:bg-accent/30 transition-colors space-y-2 group">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar className="h-6 w-6 border border-border shrink-0">
+                      {pm.senderAvatar && <AvatarImage src={getAvatarUrl(pm.senderAvatar)} />}
+                      <AvatarFallback className="bg-sky-100 text-sky-700 text-[9px] font-bold">
+                        {pm.senderName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-bold truncate text-foreground">{pm.senderName}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {new Date(pm.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+
+                <p className="text-xs text-foreground line-clamp-3 bg-muted/40 p-2 rounded-lg border border-border/40 italic">
+                  "{pm.content}"
+                </p>
+
+                <div className="flex items-center justify-between pt-1 text-[11px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 px-2 font-semibold"
+                    onClick={() => onScrollToMessage?.(pm.id)}
+                  >
+                    Ir al mensaje
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1 text-rose-500 hover:bg-rose-500/10 px-2"
+                    onClick={() => handleTogglePin(pm.id)}
+                  >
+                    <Pin className="h-3 w-3" /> Desfijar
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -621,6 +762,15 @@ export function ChatDetailsSidebar({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Galería Multimedia Tipo WhatsApp */}
+      <MediaGalleryModal
+        isOpen={isMediaGalleryOpen}
+        onClose={() => setIsMediaGalleryOpen(false)}
+        channelName={displayName}
+        activeMessages={activeMessages}
+        onSelectImage={onSelectImage}
+      />
     </div>
   )
 }

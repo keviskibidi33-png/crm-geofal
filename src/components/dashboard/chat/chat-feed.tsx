@@ -245,7 +245,7 @@ export function ChatFeed({
               const displaySenderAvatar = getAvatarUrl(msg.senderAvatar || matchedUser?.avatar)
 
               return (
-                <div key={msg.id} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
+                <div key={msg.id} id={`msg_${msg.id}`} className={`flex gap-3 text-sm group ${isMe ? "flex-row-reverse" : ""}`}>
                   <UserProfilePopover
                     targetUser={popoverUser}
                     currentUser={user}
@@ -421,6 +421,13 @@ export function ChatFeed({
           onRemoveMember={onRemoveMember}
           onTogglePrivacy={onTogglePrivacy}
           isAdminUser={isAdminUser}
+          onSelectImage={setSelectedImage}
+          onScrollToMessage={(msgId) => {
+            const el = document.getElementById(`msg_${msgId}`)
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          }}
         />
       )}
     </div>
