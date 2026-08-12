@@ -287,9 +287,7 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
                   value={activeChannelId}
                   onChange={(e) => {
                     const selId = e.target.value
-                    const found = channels.find((c) => c.id === selId)
                     setActiveChannelId(selId)
-                    setActiveChatName(found ? found.name : `# ${selId}`)
                   }}
                   className="bg-transparent text-xs font-bold text-foreground cursor-pointer focus:outline-none border-b border-border/40 hover:border-primary transition-colors py-0.5"
                 >
