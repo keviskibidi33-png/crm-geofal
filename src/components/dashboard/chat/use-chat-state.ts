@@ -271,6 +271,11 @@ export function useChatState(user: User, initialChannelId?: string) {
               category: c.category || "general",
             }))
             setChannels(apiChannels)
+            setActiveChannelId((currentId) => {
+              if (currentId.startsWith("dm_") || currentId.startsWith("dm-")) return currentId
+              const exists = apiChannels.some((c) => c.id === currentId)
+              return exists ? currentId : (apiChannels[0]?.id || "general")
+            })
           }
         }
 
