@@ -50,11 +50,13 @@ export function TracingModule() {
     const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
     const [loadingRecepcion, setLoadingRecepcion] = useState(false)
 
+    const [isVerificDetailOpen, setIsVerificDetailOpen] = useState(false)
+    const [selectedVerific, setSelectedVerific] = useState<any>(null)
+    const [loadingVerific, setLoadingVerific] = useState(false)
+
     const [isCustomReportOpen, setIsCustomReportOpen] = useState(false)
     const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
     const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
-
-    const printRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         fetchTracingList()
@@ -264,7 +266,7 @@ export function TracingModule() {
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-blue-800/40 relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-linear-to-r from-blue-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-blue-800/40 relative overflow-hidden">
                 <div className="absolute top-0 right-0 translate-x-4 -translate-y-4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="space-y-1 relative z-10">
                     <div className="flex items-center gap-2">
@@ -568,7 +570,7 @@ export function TracingModule() {
                         </div>
                     ) : selectedEnsayo ? (
                         <div className="space-y-4 pt-2">
-                            <div className="bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-indigo-500/10 p-4 rounded-xl border border-blue-500/20 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div className="bg-linear-to-r from-blue-500/10 via-emerald-500/10 to-indigo-500/10 p-4 rounded-xl border border-blue-500/20 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                                 <div>
                                     <span className="text-slate-400 block text-[10px] uppercase">Realizado Por:</span>
                                     <span className="font-bold">{selectedEnsayo.realizado_por || "-"}</span>

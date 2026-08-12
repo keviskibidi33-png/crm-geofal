@@ -51,7 +51,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [estadoFilter, setEstadoFilter] = useState<string>("todos")
   const [clienteFilter, setClienteFilter] = useState<string>("todos")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
@@ -60,12 +60,8 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   // Upload Replace file dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [uploadQuoteTarget, setUploadQuoteTarget] = useState<Quote | null>(null)
-
-  // Import excel modal
-  const [importDialogOpen, setImportDialogOpen] = useState(false)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [importNumero, setImportNumero] = useState("")
-  const [importSelectedCondiciones, setImportSelectedCondiciones] = useState<string[]>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const fetchQuotes = useCallback(async () => {
     setLoading(true)
@@ -226,7 +222,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
       })
 
       if (!res.ok) throw new Error("Error al subir archivo")
-      const data = await res.json()
+      await res.json()
 
       toast.success("Archivo subido con éxito", {
         description: `Se actualizó el documento para COT-${uploadQuoteTarget.numero}.`,
@@ -240,80 +236,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
     } finally {
       setIsUploading(false)
     }
-  }
-
-  const handleImportExcelSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setImportFile(file)
-    setImportDialogOpen(true)
-    setLoadingPreview(true)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const res = await authFetch(`${API_URL}/api/cotizador/preview-import-excel`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) throw new Error("No se pudo analizar el archivo Excel")
-      const data = await res.json()
-
-      setImportPreview(data)
-      setImportNumero(String(data.numero_sugerido || ""))
-      setImportNumeroExists(Boolean(data.numero_existe))
-      if (Array.isArray(data.condiciones_preseleccionadas_ids)) {
-        setImportSelectedCondiciones(data.condiciones_preseleccionadas_ids)
-      }
-    } catch (err: any) {
-      toast.error("Error al previsualizar Excel", { description: err.message })
-      setImportDialogOpen(false)
-    } finally {
-      setLoadingPreview(false)
-    }
-  }
-
-  const confirmImportExcel = async () => {
-    if (!importFile || !importNumero.trim()) return
-
-    setImportingExcel(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", importFile)
-      formData.append("numero_cotizacion", importNumero.trim())
-      if (importSelectedCondiciones.length > 0) {
-        formData.append("condiciones_ids", JSON.stringify(importSelectedCondiciones))
-      }
-
-      const res = await authFetch(`${API_URL}/api/cotizador/importar-excel`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const errData = await res.json()
-        throw new Error(errData.detail || "Error al importar cotización")
-      }
-
-      const data = await res.json()
-      toast.success(`Cotización COT-${data.numero}-${data.year} importada correctamente.`)
-
-      fetchQuotes()
-      setImportDialogOpen(false)
-    } catch (err: any) {
-      toast.error("Error de importación", { description: err.message })
-    } finally {
-      setImportingExcel(false)
-    }
-  }
-
-  const cancelImport = () => {
-    setImportDialogOpen(false)
-    setImportFile(null)
-    setImportPreview(null)
   }
 
   const uniqueClientes = useMemo(() => {
