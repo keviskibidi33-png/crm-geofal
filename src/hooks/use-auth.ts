@@ -444,6 +444,11 @@ async function buildUser(session: any): Promise<User> {
         p.configuracion = { read: true, write: true, delete: false }
         p.comunicaciones = { read: true, write: true, delete: false }
 
+        // Acceso exclusivo a Estadística Laboratorio para rol jefe_laboratorio y bethazabet
+        if (rNorm === "jefe_laboratorio" || normalizedEmail.includes("bethazabet") || normalizedEmail.includes("betha")) {
+            p.estadistica_laboratorio = { read: true, write: false, delete: false }
+        }
+
         // Habilitar control de probetas para todos los usuarios de Oficina Técnica
         if (rNorm === "oficina_tecnica" || rNorm.startsWith("oficina_tecnica")) {
             p.control_probetas = { read: true, write: true, delete: true }

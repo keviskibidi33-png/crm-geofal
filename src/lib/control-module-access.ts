@@ -129,11 +129,18 @@ export function canAccessDashboardModule(
   }
 
 const KPI_AUTHORIZED_IDENTITIES = ["irma.coaquira", "irma", "fabian", "labprueba"]
+const LAB_KPI_AUTHORIZED_IDENTITIES = ["bethazabet", "betha"]
 
 function isKpiAuthorizedEmail(email?: string) {
   if (!email) return false
   const norm = email.toLowerCase().trim()
   return KPI_AUTHORIZED_IDENTITIES.some((id) => norm.includes(id))
+}
+
+function isLabKpiAuthorizedEmail(email?: string) {
+  if (!email) return false
+  const norm = email.toLowerCase().trim()
+  return isKpiAuthorizedEmail(email) || LAB_KPI_AUTHORIZED_IDENTITIES.some((id) => norm.includes(id))
 }
 
   if (activeCheckModule === "configuracion" || activeCheckModule === "comunicaciones") {
@@ -157,13 +164,17 @@ function isKpiAuthorizedEmail(email?: string) {
 
   if (activeCheckModule === "estadistica_laboratorio") {
     if (isComercialDashboardRole(role)) return false
+    const normRole = normalizeRole(role)
     return isAdminDashboardRole(role)
-      || isKpiAuthorizedEmail(email)
+      || normRole === "jefe_laboratorio"
+      || isLabKpiAuthorizedEmail(email)
       || permissions?.estadistica_laboratorio?.read === true
   }
 
   if (activeCheckModule === "estadistica_comercial") {
     if (isComercialDashboardRole(role)) return false
+    const normRole = normalizeRole(role)
+    if (normRole === "jefe_laboratorio") return false
     return isAdminDashboardRole(role)
       || isGerenciaDashboardRole(role)
       || isKpiAuthorizedEmail(email)
@@ -172,6 +183,8 @@ function isKpiAuthorizedEmail(email?: string) {
 
   if (activeCheckModule === "estadistica_gerencia") {
     if (isComercialDashboardRole(role)) return false
+    const normRole = normalizeRole(role)
+    if (normRole === "jefe_laboratorio") return false
     return isAdminDashboardRole(role)
       || isGerenciaDashboardRole(role)
       || isKpiAuthorizedEmail(email)
@@ -180,6 +193,8 @@ function isKpiAuthorizedEmail(email?: string) {
 
   if (activeCheckModule === "gerencia") {
     if (isComercialDashboardRole(role)) return false
+    const normRole = normalizeRole(role)
+    if (normRole === "jefe_laboratorio") return false
     return isAdminDashboardRole(role)
       || isGerenciaDashboardRole(role)
       || isKpiAuthorizedEmail(email)
