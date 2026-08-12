@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Download,
   Loader2,
-  FileUp,
   Pencil,
   Trash2,
   RefreshCw,

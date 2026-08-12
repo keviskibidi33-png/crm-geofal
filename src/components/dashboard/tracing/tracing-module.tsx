@@ -429,10 +429,7 @@ export function TracingModule() {
                                     <p className="text-xs text-slate-400 mt-1">Muestras: {tracingData.recepcion?.muestras_count || 0}</p>
                                 </Card>
 
-                                <Card
-                                    onClick={() => tracingData.verificacion?.id && handleOpenVerificDetail(tracingData.verificacion.id)}
-                                    className="bg-slate-800/60 border-slate-700/60 text-white p-4 cursor-pointer hover:border-emerald-500/60 hover:bg-slate-800 transition-all group"
-                                >
+                                <Card className="bg-slate-800/60 border-slate-700/60 text-white p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Etapa 2: Verificación</span>
                                         <FlaskConical className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
