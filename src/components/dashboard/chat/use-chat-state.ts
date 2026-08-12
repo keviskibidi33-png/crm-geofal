@@ -336,7 +336,20 @@ export function useChatState(user: User, initialChannelId?: string) {
                 read: Boolean(m.is_read || m.read),
               }
             })
-            setMessages(loadedMessages)
+            setMessages((prev) => {
+              const map = new Map<string, ChatMessage>()
+              for (const m of loadedMessages) {
+                map.set(m.id, m)
+              }
+              for (const m of prev) {
+                if (!map.has(m.id)) {
+                  map.set(m.id, m)
+                }
+              }
+              return Array.from(map.values()).sort(
+                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              )
+            })
           }
         }
       } catch (err) {
@@ -429,22 +442,36 @@ export function useChatState(user: User, initialChannelId?: string) {
         const rawAtt = newMsg.attachments
         const safeAtt = typeof rawAtt === "string" ? (function() { try { return JSON.parse(rawAtt) } catch { return [] } })() : (Array.isArray(rawAtt) ? rawAtt : [])
 
+        const incomingMsg: ChatMessage = {
+          id: newMsg.id,
+          channelId: msgChannelId,
+          senderId: newMsg.sender_id || newMsg.senderId,
+          senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
+          senderAvatar: getAvatarUrl(newMsg.sender_avatar || newMsg.senderAvatar) || senderUser?.avatar,
+          content: newMsg.content || "",
+          attachments: safeAtt,
+          createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
+          read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
+        }
+
         setMessages((prev) => {
-          if (prev.some((m) => m.id === newMsg.id)) return prev
-          return [
-            ...prev,
-            {
-              id: newMsg.id,
-              channelId: msgChannelId,
-              senderId: newMsg.sender_id || newMsg.senderId,
-              senderName: newMsg.sender_name || newMsg.senderName || "Usuario CRM",
-              senderAvatar: getAvatarUrl(newMsg.sender_avatar || newMsg.senderAvatar) || senderUser?.avatar,
-              content: newMsg.content,
-              attachments: safeAtt,
-              createdAt: newMsg.created_at || newMsg.createdAt || new Date().toISOString(),
-              read: isCurrentActiveChannel || Boolean(newMsg.is_read || newMsg.read),
-            },
-          ]
+          if (prev.some((m) => m.id === incomingMsg.id)) return prev
+
+          // Reemplazar mensaje temporal optimista si coincide en contenido y remitente
+          const tempIndex = prev.findIndex(
+            (m) =>
+              (m.id.startsWith("msg-") || m.id.startsWith("fm-")) &&
+              m.content.trim() === incomingMsg.content.trim() &&
+              (m.senderId === incomingMsg.senderId || m.senderName === incomingMsg.senderName)
+          )
+
+          if (tempIndex !== -1) {
+            const updated = [...prev]
+            updated[tempIndex] = incomingMsg
+            return updated
+          }
+
+          return [...prev, incomingMsg]
         })
         setTimeout(scrollToBottom, 50)
       } else {
@@ -469,8 +496,18 @@ export function useChatState(user: User, initialChannelId?: string) {
       }
     }
 
+    // Escuchar eventos globales de chat emitidos por GlobalChatNotifier
+    const handleGlobalMessage = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail) {
+        processIncomingMessage(customEvent.detail)
+      }
+    }
+
+    window.addEventListener("crm_chat_global_message", handleGlobalMessage)
+
     const globalChatChannel = supabase
-      .channel("chat_global_realtime_stream")
+      .channel(`chat_active_view_${activeChannelId}`)
       .on(
         "postgres_changes",
         {
@@ -489,11 +526,10 @@ export function useChatState(user: User, initialChannelId?: string) {
           setMessages((prev) => prev.map((m) => ({ ...m, read: true })))
         }
       })
-      .subscribe((status) => {
-        console.log(`[ChatRealtime Audit] Supabase Subscription Status for global stream:`, status)
-      })
+      .subscribe()
 
     return () => {
+      window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
       supabase.removeChannel(globalChatChannel)
     }
   }, [activeChannelId, teamUsers, user.id, user.email, user.name])

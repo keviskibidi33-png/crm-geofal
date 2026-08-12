@@ -18,6 +18,7 @@ import { Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { LoadingScreen } from "@/components/ui/loading-screen"
 import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
+import { GlobalChatNotifier } from "@/components/dashboard/chat/global-chat-notifier"
 
 function DashboardModuleFallback() {
   return (
@@ -655,6 +656,9 @@ export default function DashboardPage() {
       {activeModule !== "comunicaciones" && (
         <FloatingChatWidget user={dashboardUser} onOpenFullModule={() => setActiveModule("comunicaciones")} />
       )}
+
+      {/* Listener Global de Notificaciones y Audio de Chat */}
+      <GlobalChatNotifier user={dashboardUser} activeModule={activeModule} onOpenChat={() => setActiveModule("comunicaciones")} />
 
       {/* Loading Screen Overlay */}
       {showLoadingScreen && <LoadingScreen message="Iniciando sesión..." />}

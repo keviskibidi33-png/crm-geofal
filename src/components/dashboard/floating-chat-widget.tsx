@@ -116,59 +116,66 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
     loadWidgetMessages()
   }, [activeChannelId])
 
-  // 2. Escuchar Supabase Realtime para notificar al widget en vivo
+  // 2. Escuchar eventos globales de chat para actualizar el widget flotante
   useEffect(() => {
-    const channel = supabase
-      .channel("floating_widget_realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (payload) => {
-          const newMsg = payload.new as any
-          const isFromOther =
-            newMsg &&
-            newMsg.sender_id !== user.id &&
-            newMsg.sender_id !== user.email &&
-            newMsg.sender_name !== user.name &&
-            newMsg.sender_name !== user.email
+    const handleGlobalMessage = (e: Event) => {
+      const customEvent = e as CustomEvent
+      const newMsg = customEvent.detail
+      if (!newMsg || !newMsg.id) return
 
-          if (isFromOther) {
-            window.dispatchEvent(
-              new CustomEvent("crm_chat_notification", {
-                detail: {
-                  senderName: newMsg.sender_name || "Usuario CRM",
-                  content: newMsg.content,
-                  channelName: activeChatName,
-                  senderAvatar: newMsg.sender_avatar,
-                },
-              })
-            )
+      const msgChannelId = String(newMsg.channel_id || newMsg.channelId || "")
+      if (msgChannelId !== activeChannelId) return
 
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: newMsg.id,
-                senderName: newMsg.sender_name || "Alerta Sistema",
-                senderAvatar: newMsg.sender_avatar,
-                content: newMsg.content,
-                isMe: false,
-                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                attachmentUrl: newMsg.attachments?.[0]?.url,
-              },
-            ])
+      const senderId = String(newMsg.sender_id || newMsg.senderId || "").toLowerCase()
+      const senderName = newMsg.sender_name || newMsg.senderName || "Usuario CRM"
+      const myEmail = (user.email || "").toLowerCase()
+      const myId = String(user.id || "")
 
-            if (!isOpen || isMinimized) {
-              setUnreadCount((c) => c + 1)
-            }
-          }
+      const isMe =
+        senderId === myId ||
+        senderId === myEmail ||
+        senderName.toLowerCase() === myEmail ||
+        (user.name && senderName === user.name)
+
+      const incomingFloatMsg: FloatingMessage = {
+        id: newMsg.id,
+        senderName,
+        senderAvatar: newMsg.sender_avatar || newMsg.senderAvatar,
+        content: newMsg.content || "",
+        isMe,
+        timestamp: new Date(newMsg.created_at || newMsg.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        attachmentUrl: newMsg.attachments?.[0]?.url,
+      }
+
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === incomingFloatMsg.id)) return prev
+
+        const tempIndex = prev.findIndex(
+          (m) =>
+            m.id.startsWith("fm-") &&
+            m.content.trim() === incomingFloatMsg.content.trim() &&
+            m.isMe === incomingFloatMsg.isMe
+        )
+
+        if (tempIndex !== -1) {
+          const updated = [...prev]
+          updated[tempIndex] = incomingFloatMsg
+          return updated
         }
-      )
-      .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
+        return [...prev, incomingFloatMsg]
+      })
+
+      if (!isMe && (!isOpen || isMinimized)) {
+        setUnreadCount((c) => c + 1)
+      }
     }
-  }, [isOpen, isMinimized, user.id])
+
+    window.addEventListener("crm_chat_global_message", handleGlobalMessage)
+    return () => {
+      window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
+    }
+  }, [isOpen, isMinimized, user.id, user.email, user.name, activeChannelId])
 
   useEffect(() => {
     if (isOpen && !isMinimized) {
