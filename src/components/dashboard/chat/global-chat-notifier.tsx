@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { type User } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
-import { playChatChimeSound, getAvatarUrl, areChannelIdsEqual } from "./types"
+import { playChatChimeSound } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 

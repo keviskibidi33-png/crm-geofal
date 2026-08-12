@@ -7,16 +7,11 @@ import {
   Minus,
   Maximize2,
   Send,
-  Paperclip,
   Image as ImageIcon,
-  Smile,
-  Hash,
-  User as UserIcon,
 } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { type User } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
@@ -36,7 +31,6 @@ interface FloatingMessage {
 }
 
 import { authFetch } from "@/lib/api-auth"
-import { supabase } from "@/lib/supabaseClient"
 
 export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidgetProps) {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -46,7 +40,6 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
   const [unreadCount, setUnreadCount] = useState(0)
 
   const [activeChannelId, setActiveChannelId] = useState("laboratorio")
-  const [activeChatName, setActiveChatName] = useState("# laboratorio-ensayos")
   const [messages, setMessages] = useState<FloatingMessage[]>([])
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([
     { id: "laboratorio", name: "# laboratorio-ensayos" },
@@ -77,7 +70,7 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
       }
     }
     loadChannels()
-  }, [])
+  }, [API_URL])
 
   const [inputText, setInputText] = useState("")
   const chatEndRef = useRef<HTMLDivElement | null>(null)
@@ -95,14 +88,15 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
               senderName: m.sender_name || "Usuario",
               senderAvatar: m.sender_avatar,
               content: m.content,
-              isMe:
+              isMe: Boolean(
                 m.sender_id === user.id ||
                 m.sender_id === user.email ||
                 (m.sender_name && (
                   m.sender_name === user.name ||
                   m.sender_name === user.email ||
                   m.sender_name.toLowerCase() === user.email.toLowerCase()
-                )),
+                ))
+              ),
               timestamp: new Date(m.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
               attachmentUrl: m.attachments?.[0]?.url,
             }))
@@ -114,7 +108,7 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
       }
     }
     loadWidgetMessages()
-  }, [activeChannelId])
+  }, [activeChannelId, API_URL, user.email, user.id, user.name])
 
   // 2. Escuchar eventos globales de chat para actualizar el widget flotante
   useEffect(() => {
@@ -131,11 +125,12 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
       const myEmail = (user.email || "").toLowerCase()
       const myId = String(user.id || "")
 
-      const isMe =
+      const isMe = Boolean(
         senderId === myId ||
         senderId === myEmail ||
         senderName.toLowerCase() === myEmail ||
         (user.name && senderName === user.name)
+      )
 
       const incomingFloatMsg: FloatingMessage = {
         id: newMsg.id,
@@ -357,6 +352,7 @@ export function FloatingChatWidget({ user, onOpenFullModule }: FloatingChatWidge
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   {msg.attachmentUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={msg.attachmentUrl}
                       alt="Adjunto"
