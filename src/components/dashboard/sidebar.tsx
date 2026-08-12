@@ -36,6 +36,7 @@ const modules: { id: ModuleType; label: string; icon: React.ElementType; adminOn
   { id: "clientes", label: "Clientes", icon: Users },
   { id: "proyectos", label: "Proyectos", icon: FolderKanban },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
+  { id: "ot", label: "Orden de Trabajo (OT)", icon: FileText },
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "compresion", label: "F. Probetas", icon: Beaker, adminOnly: true },

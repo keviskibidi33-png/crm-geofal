@@ -8,6 +8,7 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "proyectos", label: "Proyectos" },
   { id: "cotizadora", label: "Cotizadora" },
   { id: "programacion", label: "Programación" },
+  { id: "ot", label: "Orden de Trabajo (OT)" },
   { id: "recepcion", label: "Recepción Probetas" },
   { id: "verificacion_muestras", label: "Verificación Probetas" },
   { id: "compresion", label: "F. Probetas" },

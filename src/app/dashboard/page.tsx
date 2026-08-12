@@ -56,6 +56,7 @@ const CompresionModule = dashboardDynamic(async () => (await import("@/component
 const ControlProbetasModule = dashboardDynamic(async () => (await import("@/components/dashboard/control-probetas-module")).ControlProbetasModule)
 const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
 const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
+const OTModule = dashboardDynamic(async () => (await import("@/components/dashboard/ot-module")).OTModule)
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
 const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
 const TracingModule = dashboardDynamic(async () => (await import("@/components/dashboard/tracing-module")).TracingModule)
@@ -569,6 +570,8 @@ export default function DashboardPage() {
         return <SulMagnesioModule />
       case "angularidad":
         return <AngularidadModule />
+      case "ot":
+        return <OTModule />
       case "estadistica_laboratorio":
         return <LaboratorioStatsModule user={dashboardUser} />
       case "estadistica_comercial":
