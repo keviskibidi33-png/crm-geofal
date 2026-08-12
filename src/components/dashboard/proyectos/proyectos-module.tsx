@@ -9,26 +9,17 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Calendar,
-  Users,
   FileText,
-  DollarSign,
   Pencil,
   Check,
   X,
   CheckCircle2,
   RefreshCw,
-  XCircle,
-  Archive,
   TrendingUp,
   TrendingDown,
   Clock,
   MoreVertical,
-  Eye,
   Trash2,
-  AlertTriangle,
-  ArrowRight,
   Loader2,
   Building,
   MapPin,
@@ -45,16 +36,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -72,13 +59,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Label } from "@/components/ui/label"
 import { CreateProjectDialog } from "./create-project-dialog"
 import { CloseProjectDialog } from "./close-project-dialog"
 import { CreateQuoteDialog } from "../create-quote-dialog"
 import { type User } from "@/hooks/use-auth"
 import { logActionClient as logAction } from "@/lib/audit-client"
-import { ContactSelector } from "../contact-selector"
 
 import type { Project, DbProjectRow, ProjectQuoteHistoryRow } from "./types"
 export type { Project, DbProjectRow, ProjectQuoteHistoryRow } from "./types"
@@ -323,7 +308,7 @@ export function ProyectosModule({ user }: ProyectosModuleProps) {
     if (!confirm(`¿Estás seguro de eliminar el proyecto "${nombre}"?`)) return
 
     try {
-      const result = await deleteProjectAction(id, user.id, user.name)
+      const result = await deleteProjectAction(id)
 
       if (!result.success) {
         throw new Error(result.error)

@@ -6,8 +6,6 @@ import { useReactToPrint } from "react-to-print"
 import { ModernConfirmDialog } from "../modern-confirm-dialog"
 import {
     Search,
-    CheckCircle2,
-    Clock,
     AlertCircle,
     FileText,
     FlaskConical,
@@ -16,18 +14,16 @@ import {
     RefreshCw,
     Eye,
     ChevronRight,
-    Calendar,
     Download,
     Loader2,
     FileSpreadsheet,
     Trash2,
     History
 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -54,19 +50,11 @@ export function TracingModule() {
     const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
     const [loadingRecepcion, setLoadingRecepcion] = useState(false)
 
-    const [isVerificDetailOpen, setIsVerificDetailOpen] = useState(false)
-    const [selectedVerific, setSelectedVerific] = useState<any>(null)
-    const [loadingVerific, setLoadingVerific] = useState(false)
-
     const [isCustomReportOpen, setIsCustomReportOpen] = useState(false)
     const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
     const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
 
     const printRef = useRef<HTMLDivElement>(null)
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: `Trazabilidad_${tracingData?.recepcion?.numero_recepcion || 'LEM'}`,
-    })
 
     useEffect(() => {
         fetchTracingList()
@@ -359,13 +347,13 @@ export function TracingModule() {
                                             {row.numero_recepcion}
                                         </TableCell>
                                         <TableCell className="text-xs">
-                                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[240px]">
-                                                {row.cliente || "Sin cliente"}
-                                            </div>
-                                            <div className="text-[10px] text-slate-500 truncate max-w-[240px]">
-                                                {row.proyecto || "Sin proyecto"}
-                                            </div>
-                                        </TableCell>
+                                             <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-60">
+                                                 {row.cliente || "Sin cliente"}
+                                             </div>
+                                             <div className="text-[10px] text-slate-500 truncate max-w-60">
+                                                 {row.proyecto || "Sin proyecto"}
+                                             </div>
+                                         </TableCell>
                                         <TableCell className="text-center">
                                             {row.recepcion_completada ? (
                                                 <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[10px] font-bold">
@@ -580,7 +568,7 @@ export function TracingModule() {
                         </div>
                     ) : selectedEnsayo ? (
                         <div className="space-y-4 pt-2">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50 text-xs">
+                            <div className="bg-gradient-to-r from-blue-500/10 via-emerald-500/10 to-indigo-500/10 p-4 rounded-xl border border-blue-500/20 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                                 <div>
                                     <span className="text-slate-400 block text-[10px] uppercase">Realizado Por:</span>
                                     <span className="font-bold">{selectedEnsayo.realizado_por || "-"}</span>
@@ -751,7 +739,7 @@ export function TracingModule() {
                                                     <TableCell className="text-xs font-semibold text-slate-700">
                                                         {m.codigo_muestra || m.identificacion_muestra || '-'}
                                                     </TableCell>
-                                                    <TableCell className="text-xs font-normal text-slate-600 max-w-[150px] truncate" title={m.estructura}>
+                                                    <TableCell className="font-mono text-xs max-w-37.5 truncate" title={m.estructura}>
                                                         {m.estructura || '-'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-black text-slate-800 text-center">{m.fc_kg_cm2 || '210'}</TableCell>

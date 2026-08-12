@@ -5,60 +5,33 @@ import {
   Plus,
   FileText,
   Search,
-  LayoutGrid,
-  List,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Calendar,
-  Building,
-  DollarSign,
   Download,
-  Eye,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  ChevronDown,
   Loader2,
   FileUp,
   Pencil,
   Trash2,
-  Copy,
-  FolderOpen,
   RefreshCw,
-  X,
-  Check,
-  Package,
 } from "lucide-react"
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { CreateQuoteDialog } from "./create-quote-dialog"
 import { QuotePreviewPanel } from "./quote-preview-panel"
 import { type User } from "@/hooks/use-auth"
-import { logActionClient as logAction } from "@/lib/audit-client"
 
 import type { Quote } from "./types"
 export type { Quote } from "./types"
@@ -78,9 +51,7 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [estadoFilter, setEstadoFilter] = useState<string>("todos")
   const [clienteFilter, setClienteFilter] = useState<string>("todos")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null)
@@ -89,19 +60,12 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   // Upload Replace file dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [uploadQuoteTarget, setUploadQuoteTarget] = useState<Quote | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
 
   // Import excel modal
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
-  const [importPreview, setImportPreview] = useState<any>(null)
   const [importNumero, setImportNumero] = useState("")
-  const [loadingPreview, setLoadingPreview] = useState(false)
-  const [importingExcel, setImportingExcel] = useState(false)
-  const [importNumeroExists, setImportNumeroExists] = useState(false)
   const [importSelectedCondiciones, setImportSelectedCondiciones] = useState<string[]>([])
-  const [importCondicionSearch, setImportCondicionSearch] = useState("")
 
   const fetchQuotes = useCallback(async () => {
     setLoading(true)
