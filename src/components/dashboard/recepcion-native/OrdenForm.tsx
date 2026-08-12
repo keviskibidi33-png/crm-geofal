@@ -1019,20 +1019,59 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
                     <tr className="bg-muted/50 text-[10px] uppercase font-black tracking-widest border-b">
                       <th className="px-4 py-3 w-12 text-center">N°</th>
                       <th className="px-2 py-3 w-36">Código LEM</th>
-                      <th className="px-2 py-3 w-40">Código</th>
-                      <th className="px-2 py-3 w-48">Estructura</th>
-                      <th className="px-2 py-3 w-16 text-center">F&apos;c</th>
-                      <th className="px-2 py-3 w-24 text-center">Fecha moldeo</th>
-                      <th className="px-2 py-3 w-20 text-center">Hora Moldeo</th>
-                      <th className="px-2 py-3 w-12 text-center">Edad</th>
-                      <th className="px-2 py-3 w-24 text-center">Fecha rotura</th>
-                      <th className="px-2 py-3 w-16 text-center">Densidad</th>
+                      {(watch("tipo_recepcion") || "CONCRETO") === "CONCRETO" && (
+                        <>
+                          <th className="px-2 py-3 w-40">Código</th>
+                          <th className="px-2 py-3 w-48">Estructura</th>
+                          <th className="px-2 py-3 w-16 text-center">F&apos;c</th>
+                          <th className="px-2 py-3 w-24 text-center">Fecha moldeo</th>
+                          <th className="px-2 py-3 w-20 text-center">Hora Moldeo</th>
+                          <th className="px-2 py-3 w-12 text-center">Edad</th>
+                          <th className="px-2 py-3 w-24 text-center">Fecha rotura</th>
+                          <th className="px-2 py-3 w-16 text-center">Densidad</th>
+                        </>
+                      )}
+                      {(watch("tipo_recepcion") || "CONCRETO") === "ROCA" && (
+                        <>
+                          <th className="px-2 py-3 w-48">Identificación Muestra</th>
+                          <th className="px-2 py-3 w-36">Tamaño (cm) / Peso (kg)</th>
+                          <th className="px-2 py-3 w-36">Procedencia</th>
+                          <th className="px-2 py-3 w-48">Ensayos Requeridos</th>
+                          <th className="px-2 py-3 w-36">Norma Requerida</th>
+                        </>
+                      )}
+                      {(watch("tipo_recepcion") || "CONCRETO") === "ALBANILERIA" && (
+                        <>
+                          <th className="px-2 py-3 w-52">Descripción Muestra (Marca/Tipo)</th>
+                          <th className="px-2 py-3 w-24">Cantidad</th>
+                          <th className="px-2 py-3 w-48">Ensayos Requeridos</th>
+                          <th className="px-2 py-3 w-36">Norma Requerida</th>
+                        </>
+                      )}
+                      {(watch("tipo_recepcion") || "CONCRETO") === "AGUA" && (
+                        <>
+                          <th className="px-2 py-3 w-48">Identificación Muestra</th>
+                          <th className="px-2 py-3 w-28">Cantidad (L)</th>
+                          <th className="px-2 py-3 w-36">Procedencia</th>
+                          <th className="px-2 py-3 w-48">Ensayos Requeridos</th>
+                          <th className="px-2 py-3 w-36">Norma Requerida</th>
+                        </>
+                      )}
+                      {(watch("tipo_recepcion") || "CONCRETO") === "SUELO_AGREGADO" && (
+                        <>
+                          <th className="px-2 py-3 w-48">Identificación Muestra</th>
+                          <th className="px-2 py-3 w-36">Procedencia</th>
+                          <th className="px-2 py-3 w-28">Cantidad (kg)</th>
+                          <th className="px-2 py-3 w-52">Ensayos Requeridos</th>
+                        </>
+                      )}
                       <th className="px-4 py-3 w-12 text-center" />
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {fields.map((field, index) => {
                       const sampleErrors = (errors.muestras as any)?.[index];
+                      const activeTipo = watch("tipo_recepcion") || "CONCRETO";
                       return (
                         <tr
                           key={field.id}
@@ -1084,160 +1123,241 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
                               placeholder="1483"
                             />
                           </td>
-                          <td className="px-1 py-2">
-                            <textarea
-                              {...register(
-                                `muestras.${index}.identificacion_muestra`
-                              )}
-                              rows={1}
-                              onInput={(e) => {
-                                const t = e.currentTarget;
-                                t.style.height = "auto";
-                                t.style.height = t.scrollHeight + "px";
-                              }}
-                              ref={(el) => {
-                                register(
-                                  `muestras.${index}.identificacion_muestra`
-                                ).ref(el);
-                                if (el) {
-                                  el.style.height = "auto";
-                                  el.style.height = el.scrollHeight + "px";
-                                }
-                              }}
-                              className={`w-full px-2 py-1.5 text-xs font-bold uppercase border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background resize-none ${
-                                sampleErrors?.identificacion_muestra
-                                  ? "border-destructive"
-                                  : "border-input"
-                              }`}
-                              placeholder="BD C62 (2X1)"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <textarea
-                              {...register(`muestras.${index}.estructura`)}
-                              rows={1}
-                              onInput={(e) => {
-                                const t = e.currentTarget;
-                                t.style.height = "auto";
-                                t.style.height = t.scrollHeight + "px";
-                              }}
-                              ref={(el) => {
-                                register(`muestras.${index}.estructura`).ref(el);
-                                if (el) {
-                                  el.style.height = "auto";
-                                  el.style.height = el.scrollHeight + "px";
-                                }
-                              }}
-                              className={`w-full px-2 py-1.5 text-xs font-bold uppercase border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background resize-none ${
-                                sampleErrors?.estructura
-                                  ? "border-destructive"
-                                  : "border-input"
-                              }`}
-                              placeholder="BANCODUCTO"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <Input
-                              {...register(`muestras.${index}.fc_kg_cm2`)}
-                              className={`w-16 mx-auto text-xs font-black text-center ${
-                                sampleErrors?.fc_kg_cm2 ? "border-destructive" : ""
-                              }`}
-                              placeholder="-"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <Input
-                              {...register(`muestras.${index}.fecha_moldeo`)}
-                              onBlur={(e) => {
-                                register(
-                                  `muestras.${index}.fecha_moldeo`
-                                ).onBlur(e);
-                                handleSmartDate(
-                                  e,
-                                  `muestras.${index}.fecha_moldeo`
-                                );
-                              }}
-                              className={`w-24 mx-auto text-xs font-bold text-center ${
-                                sampleErrors?.fecha_moldeo
-                                  ? "border-destructive"
-                                  : ""
-                              }`}
-                              placeholder="YYYY/MM/DD"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <Controller
-                              name={`muestras.${index}.hora_moldeo`}
-                              control={control}
-                              render={({ field: hField }) => (
-                                <Input
-                                  value={hField.value || ""}
-                                  onChange={(e) => {
-                                    const v = e.target.value.replace(/[^\d:]/g, "");
-                                    const dg = v.replace(/:/g, "");
-                                    if (dg.length <= 6) {
-                                      let formatted = "";
-                                      for (let i = 0; i < dg.length; i++) {
-                                        if (i === 2 || i === 4)
-                                          formatted += ":";
-                                        formatted += dg[i];
-                                      }
-                                      hField.onChange(formatted);
-                                    }
-                                  }}
-                                  placeholder="00:00:00"
-                                  className={`w-20 mx-auto text-xs font-bold text-center ${
-                                    sampleErrors?.hora_moldeo
-                                      ? "border-destructive"
-                                      : ""
-                                  }`}
-                                  inputMode="numeric"
-                                  maxLength={8}
+                          {activeTipo === "CONCRETO" && (
+                            <>
+                              <td className="px-1 py-2">
+                                <textarea
+                                  {...register(`muestras.${index}.identificacion_muestra`)}
+                                  rows={1}
+                                  className="w-full px-2 py-1.5 text-xs font-bold uppercase border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background resize-none border-input"
+                                  placeholder="BD C62 (2X1)"
                                 />
-                              )}
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <Input
-                              {...register(`muestras.${index}.edad`)}
-                              className={`w-12 mx-auto text-xs font-bold text-center ${
-                                sampleErrors?.edad ? "border-destructive" : ""
-                              }`}
-                              placeholder="-"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <Input
-                              {...register(`muestras.${index}.fecha_rotura`)}
-                              onBlur={(e) => {
-                                register(
-                                  `muestras.${index}.fecha_rotura`
-                                ).onBlur(e);
-                                handleSmartDate(
-                                  e,
-                                  `muestras.${index}.fecha_rotura`
-                                );
-                              }}
-                              className={`w-24 mx-auto text-xs font-bold text-center ${
-                                sampleErrors?.fecha_rotura
-                                  ? "border-destructive"
-                                  : ""
-                              }`}
-                              placeholder="YYYY/MM/DD"
-                            />
-                          </td>
-                          <td className="px-1 py-2">
-                            <select
-                              {...register(
-                                `muestras.${index}.requiere_densidad`
-                              )}
-                              className="w-16 mx-auto block px-2 py-1.5 text-[10px] font-black uppercase border border-input rounded-lg bg-background cursor-pointer text-center"
-                            >
-                              <option value="">-</option>
-                              <option value="false">NO</option>
-                              <option value="true">SI</option>
-                            </select>
-                          </td>
+                              </td>
+                              <td className="px-1 py-2">
+                                <textarea
+                                  {...register(`muestras.${index}.estructura`)}
+                                  rows={1}
+                                  className="w-full px-2 py-1.5 text-xs font-bold uppercase border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background resize-none border-input"
+                                  placeholder="BANCODUCTO"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.fc_kg_cm2`)}
+                                  className="w-16 mx-auto text-xs font-black text-center"
+                                  placeholder="-"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.fecha_moldeo`)}
+                                  onBlur={(e) => {
+                                    register(`muestras.${index}.fecha_moldeo`).onBlur(e);
+                                    handleSmartDate(e, `muestras.${index}.fecha_moldeo`);
+                                  }}
+                                  className="w-24 mx-auto text-xs font-bold text-center"
+                                  placeholder="YYYY/MM/DD"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Controller
+                                  name={`muestras.${index}.hora_moldeo`}
+                                  control={control}
+                                  render={({ field: hField }) => (
+                                    <Input
+                                      value={hField.value || ""}
+                                      onChange={(e) => {
+                                        const v = e.target.value.replace(/[^\d:]/g, "");
+                                        const dg = v.replace(/:/g, "");
+                                        if (dg.length <= 6) {
+                                          let formatted = "";
+                                          for (let i = 0; i < dg.length; i++) {
+                                            if (i === 2 || i === 4) formatted += ":";
+                                            formatted += dg[i];
+                                          }
+                                          hField.onChange(formatted);
+                                        }
+                                      }}
+                                      placeholder="00:00:00"
+                                      className="w-20 mx-auto text-xs font-bold text-center"
+                                      inputMode="numeric"
+                                      maxLength={8}
+                                    />
+                                  )}
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.edad`)}
+                                  className="w-12 mx-auto text-xs font-bold text-center"
+                                  placeholder="-"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.fecha_rotura`)}
+                                  onBlur={(e) => {
+                                    register(`muestras.${index}.fecha_rotura`).onBlur(e);
+                                    handleSmartDate(e, `muestras.${index}.fecha_rotura`);
+                                  }}
+                                  className="w-24 mx-auto text-xs font-bold text-center"
+                                  placeholder="YYYY/MM/DD"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <select
+                                  {...register(`muestras.${index}.requiere_densidad`)}
+                                  className="w-16 mx-auto block px-2 py-1.5 text-[10px] font-black uppercase border border-input rounded-lg bg-background cursor-pointer text-center"
+                                >
+                                  <option value="">-</option>
+                                  <option value="false">NO</option>
+                                  <option value="true">SI</option>
+                                </select>
+                              </td>
+                            </>
+                          )}
+                          {activeTipo === "ROCA" && (
+                            <>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.identificacion_muestra`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="MUESTRA M-01"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.tamano_peso`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="5.2 KG"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.procedencia`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="CANTERA X"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.ensayos_requeridos`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="COMPRESIÓN SIMPLE"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.norma_requerida`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="ASTM D7012"
+                                />
+                              </td>
+                            </>
+                          )}
+                          {activeTipo === "ALBANILERIA" && (
+                            <>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.descripcion_muestra`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="LADRILLO KING KONG 18 HUECOS"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.cantidad`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="10 UNID"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.ensayos_requeridos`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="COMPRESIÓN LADRILLO"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.norma_requerida`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="NTP 399.613"
+                                />
+                              </td>
+                            </>
+                          )}
+                          {activeTipo === "AGUA" && (
+                            <>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.identificacion_muestra`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="MUESTRA AGUA POZO 01"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.cantidad`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="5 L"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.procedencia`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="OBRA SANTA ROSA"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.ensayos_requeridos`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="ANÁLISIS QUÍMICO COMPLETO"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.norma_requerida`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="NTP 339.088"
+                                />
+                              </td>
+                            </>
+                          )}
+                          {activeTipo === "SUELO_AGREGADO" && (
+                            <>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.identificacion_muestra`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="M-01 C-01 (0.00-1.50 M)"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.procedencia`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="CALICATA 01"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.cantidad`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="50 KG"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  {...register(`muestras.${index}.ensayos_requeridos`)}
+                                  className="w-full text-xs font-bold uppercase"
+                                  placeholder="SUCS, GRANULOMETRÍA, PROCTOR, CBR"
+                                />
+                              </td>
+                            </>
+                          )}
                           <td className="px-4 py-2 text-center">
                             <div className="flex items-center gap-1">
                               <Button

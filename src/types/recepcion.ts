@@ -4,13 +4,19 @@ export interface MuestraConcreto {
   codigo_muestra?: string;
   codigo_muestra_lem?: string;
   identificacion_muestra: string;
-  estructura: string;
-  fc_kg_cm2: number;
-  fecha_moldeo: string;
+  estructura?: string;
+  fc_kg_cm2?: number | null;
+  fecha_moldeo?: string;
   hora_moldeo?: string;
-  edad: number;
-  fecha_rotura: string;
-  requiere_densidad: boolean;
+  edad?: number | null;
+  fecha_rotura?: string;
+  requiere_densidad?: boolean;
+  tamano_peso?: string;
+  procedencia?: string;
+  descripcion_muestra?: string;
+  cantidad?: string;
+  ensayos_requeridos?: string;
+  norma_requerida?: string;
 }
 
 export interface RecepcionMuestraData {
@@ -18,6 +24,9 @@ export interface RecepcionMuestraData {
   numero_ot: string;
   numero_recepcion: string;
   numero_cotizacion?: string;
+  tipo_recepcion?: string;
+  codigo_laboratorio?: string;
+  version?: string;
   cliente: string;
   domicilio_legal: string;
   ruc: string;
@@ -45,6 +54,7 @@ export interface RecepcionFilters {
   fecha_desde?: string;
   fecha_hasta?: string;
   estado?: string;
+  tipo_recepcion?: string;
 }
 
 export interface BackendValidationIssue {

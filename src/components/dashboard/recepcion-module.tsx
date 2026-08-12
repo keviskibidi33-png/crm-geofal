@@ -28,6 +28,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+    const [selectedTipo, setSelectedTipo] = useState<string>("ALL")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(25)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -141,8 +142,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             page: currentPage,
             pageSize,
             search: debouncedSearchTerm,
+            tipo_recepcion: selectedTipo,
         })
-    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize])
+    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize, selectedTipo])
 
     useEffect(() => {
         if (!frontendOrigin) return
@@ -187,8 +189,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             page: currentPage,
             pageSize,
             search: debouncedSearchTerm,
+            tipo_recepcion: selectedTipo,
         })
-    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize])
+    }, [currentPage, debouncedSearchTerm, fetchRecepciones, pageSize, selectedTipo])
 
 
     // Listen for close message from Iframe
@@ -265,7 +268,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
 
     const handleEdit = (recepcion: Recepcion) => {
         if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
             return
         }
         setEditId(recepcion.id)
@@ -276,7 +279,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
 
     const handleCreate = () => {
         if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
             return
         }
         setEditId(null)
@@ -287,7 +290,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
 
     const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!canWrite) {
-            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepcion Probetas." })
+            toast.error("Acceso denegado", { description: "Solo tienes permisos de lectura en Recepción." })
             if (fileInputRef.current) fileInputRef.current.value = ""
             return
         }
@@ -296,7 +299,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         if (!file) return
 
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xlsm')) {
-            toast.error("Solo se permiten archivos Excel (.xlsx, .xlsm)")
+            toast.error("Formato no válido", { description: "Por favor selecciona un archivo Excel (.xlsx o .xlsm)" })
             return
         }
 
@@ -350,7 +353,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
 
         const success = await deleteRecepcion(id)
         if (success) {
-            toast.success("Recepción Probetas eliminada correctamente")
+            toast.success("Recepción eliminada correctamente")
             if (selectedRecepcion?.id === id) {
                 setIsDetailOpen(false)
             }
@@ -362,50 +365,6 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         } else {
             toast.error("Error al eliminar recepción")
         }
-    }
-
-    const handleDownloadExcel = async (id: number) => {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-        try {
-            const response = await authFetch(`${API_URL}/api/recepcion/${id}/excel`)
-            if (response.ok) {
-                const blob = await response.blob()
-                const url = window.URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                
-                // Try to get filename from headers
-                const contentDisposition = response.headers.get('Content-Disposition')
-                let filename = `Recepcion-${id}.xlsx`
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="?([^"]+)"?/)
-                    if (match && match[1]) filename = match[1]
-                }
-                
-                a.download = filename
-                document.body.appendChild(a)
-                a.click()
-                a.remove()
-                window.URL.revokeObjectURL(url)
-            } else {
-                toast.error("Error al descargar el archivo")
-            }
-        } catch (error) {
-            console.error("Download error:", error)
-            toast.error("Error de conexión al descargar")
-        }
-    }
-
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "-"
-        const parts = dateStr.split('/')
-        if (parts.length === 3) {
-            const day = parts[0].padStart(2, '0')
-            const month = parts[1].padStart(2, '0')
-            const year = parts[2]
-            return `${day}/${month}/${year}`
-        }
-        return dateStr
     }
 
     const openDetail = useCallback(async (recepcion: Recepcion) => {
@@ -441,8 +400,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Recepción Probetas</h1>
-                    <p className="text-muted-foreground">Gestiona los registros de ingreso y órdenes de trabajo</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Recepciones Generales</h1>
+                    <p className="text-muted-foreground">Gestiona los registros de ingreso y órdenes de trabajo de laboratorios</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <input
@@ -462,20 +421,20 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
                             {isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                            Importar Recepción Probetas
+                            Importar Recepción
                         </Button>
                     )}
                     {canWrite && (
                         <Button onClick={handleCreate} className="gap-2">
                             <Plus className="h-4 w-4" />
-                            Nueva Recepción Probetas
+                            Nueva Recepción
                         </Button>
                     )}
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -485,6 +444,24 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                         className="pl-9"
                     />
                 </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground uppercase whitespace-nowrap">Tipo:</span>
+                    <select
+                        value={selectedTipo}
+                        onChange={(e) => {
+                            setSelectedTipo(e.target.value)
+                            setCurrentPage(1)
+                        }}
+                        className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs font-semibold shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                        <option value="ALL">Todos los tipos</option>
+                        <option value="CONCRETO">F-LEM-P-01.02 Concreto (Probetas)</option>
+                        <option value="ROCA">F-LEM-P-01.04 Muestras de Roca</option>
+                        <option value="ALBANILERIA">F-LEM-P-01.05 Muestras de Albañilería</option>
+                        <option value="AGUA">F-LEM-P-01.06 Muestras de Agua</option>
+                        <option value="SUELO_AGREGADO">F-LEM-P-01.13 Suelo y Agregado</option>
+                    </select>
+                </div>
             </div>
 
             {/* Content (Table) */}
@@ -492,7 +469,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[120px]">Recepción Probetas</TableHead>
+                            <TableHead className="w-[180px]">Recepción N°</TableHead>
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
                             <TableHead className="text-center">Muestras</TableHead>
@@ -515,7 +492,20 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                         ) : (
                             recepciones.map((item) => (
                                 <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { void openDetail(item) }}>
-                                    <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
+                                    <TableCell className="font-bold text-primary">
+                                        <div className="flex items-center gap-2">
+                                            <span>{item.numero_recepcion}</span>
+                                            {item.tipo_recepcion && (
+                                                <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground">
+                                                    {item.tipo_recepcion === "CONCRETO" ? "Concreto" :
+                                                     item.tipo_recepcion === "ROCA" ? "Roca" :
+                                                     item.tipo_recepcion === "ALBANILERIA" ? "Albañilería" :
+                                                     item.tipo_recepcion === "AGUA" ? "Agua" :
+                                                     item.tipo_recepcion === "SUELO_AGREGADO" ? "Suelo/Agregado" : item.tipo_recepcion}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="max-w-[200px] truncate" title={item.cliente}>
                                         {item.cliente}
                                     </TableCell>

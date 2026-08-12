@@ -253,40 +253,24 @@ export const sampleSchema = z
       z.number().int().positive().optional()
     ),
     codigo_muestra_lem: z.string().optional(),
-    identificacion_muestra: z.string().min(1, "Identificación Requerida"),
-    estructura: z.string().min(1, "Estructura Requerida"),
+    identificacion_muestra: z.string().optional().default(""),
+    estructura: z.string().optional().default(""),
     fc_kg_cm2: z.preprocess(
-      (val) => (val === null || val === undefined ? "" : val),
-      z
-        .union([z.number(), z.string()])
-        .refine((val) => Number(val) > 0, {
-          message: "F'c Requerido (mayor a 0)",
-        })
-        .transform((val) => Number(val))
+      (val) => (val === null || val === undefined || val === "" ? undefined : val),
+      z.union([z.number(), z.string()]).optional().transform((val) => (val !== undefined ? Number(val) : undefined))
     ),
     fecha_moldeo: z.preprocess(
       normalizeDateInput,
-      z
-        .string()
-        .min(1, "Fecha de moldeo Requerida")
-        .regex(/^\d{4}\/\d{2}\/\d{2}$/, "Formato YYYY/MM/DD")
+      z.string().optional().default("")
     ),
     hora_moldeo: z.string().optional(),
     edad: z.preprocess(
-      (val) => (val === null || val === undefined ? "" : val),
-      z
-        .union([z.number(), z.string()])
-        .refine((val) => Number(val) >= 1, {
-          message: "Edad Requerida (mínimo 1)",
-        })
-        .transform((val) => Number(val))
+      (val) => (val === null || val === undefined || val === "" ? undefined : val),
+      z.union([z.number(), z.string()]).optional().transform((val) => (val !== undefined ? Number(val) : undefined))
     ),
     fecha_rotura: z.preprocess(
       normalizeDateInput,
-      z
-        .string()
-        .min(1, "Fecha de rotura Requerida")
-        .regex(/^\d{4}\/\d{2}\/\d{2}$/, "Formato YYYY/MM/DD")
+      z.string().optional().default("")
     ),
     requiere_densidad: z.preprocess(
       (val) => (val === "" || val === undefined ? undefined : val),
@@ -295,6 +279,12 @@ export const sampleSchema = z
         .optional()
         .transform((val) => val === true || val === "true")
     ),
+    tamano_peso: z.string().optional().default(""),
+    procedencia: z.string().optional().default(""),
+    descripcion_muestra: z.string().optional().default(""),
+    cantidad: z.string().optional().default(""),
+    ensayos_requeridos: z.string().optional().default(""),
+    norma_requerida: z.string().optional().default(""),
   })
   .superRefine((data, ctx) => {
     if (data.fecha_moldeo && isDateWithinDays(data.fecha_moldeo, 3)) {
@@ -316,6 +306,9 @@ export const formSchema = z
       (val) => (val === null ? undefined : val),
       z.string().optional()
     ),
+    tipo_recepcion: z.string().optional().default("CONCRETO"),
+    codigo_laboratorio: z.string().optional().default("F-LEM-P-01.02"),
+    version: z.string().optional().default("07"),
     cliente: z.string().min(1, "Cliente Requerido"),
     domicilio_legal: z.string().min(1, "Requerido"),
     ruc: z.string().trim().regex(/^\d{8,20}$/, "RUC inválido"),

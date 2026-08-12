@@ -22,6 +22,7 @@ export interface Recepcion {
     numero_ot: string
     numero_recepcion: string
     numero_cotizacion?: string
+    tipo_recepcion?: string
 
     // Project Info
     cliente?: string
@@ -66,6 +67,7 @@ export interface FetchRecepcionesParams {
     page?: number
     pageSize?: number
     search?: string
+    tipo_recepcion?: string
 }
 
 const DEFAULT_PAGE_SIZE = 25
@@ -115,6 +117,7 @@ export function useRecepciones() {
         page: 1,
         pageSize: DEFAULT_PAGE_SIZE,
         search: "",
+        tipo_recepcion: "",
     })
 
     // Unified Backend URL
@@ -125,6 +128,7 @@ export function useRecepciones() {
             page: Math.max(1, Number(params.page ?? lastQueryRef.current.page ?? 1)),
             pageSize: Math.max(1, Math.min(100, Number(params.pageSize ?? lastQueryRef.current.pageSize ?? DEFAULT_PAGE_SIZE))),
             search: String(params.search ?? lastQueryRef.current.search ?? "").trim(),
+            tipo_recepcion: String(params.tipo_recepcion ?? lastQueryRef.current.tipo_recepcion ?? "").trim(),
         }
         lastQueryRef.current = nextQuery
 
@@ -136,6 +140,9 @@ export function useRecepciones() {
             url.searchParams.set("page_size", String(nextQuery.pageSize))
             if (nextQuery.search) {
                 url.searchParams.set("q", nextQuery.search)
+            }
+            if (nextQuery.tipo_recepcion && nextQuery.tipo_recepcion !== "ALL") {
+                url.searchParams.set("tipo_recepcion", nextQuery.tipo_recepcion)
             }
 
             const res = await authFetch(url.toString(), {
@@ -164,6 +171,7 @@ export function useRecepciones() {
                 page: nextPagination.page,
                 pageSize: nextPagination.pageSize,
                 search: nextQuery.search,
+                tipo_recepcion: nextQuery.tipo_recepcion,
             }
         } catch (err: any) {
             console.error(err)
