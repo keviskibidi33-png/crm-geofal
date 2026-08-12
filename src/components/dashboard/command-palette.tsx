@@ -9,6 +9,8 @@ import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
+import { getAllAppModules } from "@/lib/sidebar-modules"
+
 interface CommandItem {
   id: string
   type: "module" | "cliente" | "proyecto" | "cotizacion" | "recepcion"
@@ -17,64 +19,6 @@ interface CommandItem {
   module: ModuleType
   recordId?: number
 }
-
-const ALL_MODULES: { id: ModuleType; label: string; icon: React.ElementType }[] = [
-  { id: "tracing", label: "Seguimiento", icon: Activity },
-  { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
-  { id: "clientes", label: "Clientes", icon: Users },
-  { id: "proyectos", label: "Proyectos", icon: FolderKanban },
-  { id: "cotizadora", label: "Cotizadora", icon: FileText },
-  { id: "recepcion", label: "Recepción Probetas", icon: TestTube },
-  { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList },
-  { id: "compresion", label: "F. Probetas", icon: Beaker },
-  { id: "control_probetas", label: "Control Probetas", icon: Calendar },
-  { id: "huanta_probetas", label: "Laboratorio Huanta", icon: Beaker },
-  { id: "humedad", label: "Humedad Suelo", icon: Beaker },
-  { id: "cont_humedad", label: "Humedad AG", icon: Beaker },
-  { id: "cbr", label: "CBR", icon: Beaker },
-  { id: "proctor", label: "Proctor", icon: Beaker },
-  { id: "llp", label: "Limite", icon: Beaker },
-  { id: "gran_suelo", label: "Gran Suelo", icon: Beaker },
-  { id: "gran_agregado", label: "Gran Agregado", icon: Beaker },
-  { id: "cont_mat_organica", label: "M. Organica", icon: Beaker },
-  { id: "terrones_fino_grueso", label: "Terrones", icon: Beaker },
-  { id: "azul_metileno", label: "Azul Metileno", icon: Beaker },
-  { id: "part_livianas", label: "Part. Livianas", icon: Beaker },
-  { id: "imp_organicas", label: "Imp. Organicas", icon: Beaker },
-  { id: "sul_magnesio", label: "Sulf. Magnesio", icon: Beaker },
-  { id: "angularidad", label: "Angularidad", icon: Beaker },
-  { id: "abra", label: "Abrasión Mayores", icon: Beaker },
-  { id: "abrass", label: "Abrasión Menores", icon: Beaker },
-  { id: "peso_unitario", label: "Peso Unitario", icon: Beaker },
-  { id: "tamiz", label: "Malla 200", icon: Beaker },
-  { id: "planas", label: "Planas", icon: Beaker },
-  { id: "caras", label: "Caras", icon: Beaker },
-  { id: "equi_arena", label: "E.Arena", icon: Beaker },
-  { id: "ge_fino", label: "GE Fino", icon: Beaker },
-  { id: "ge_grueso", label: "GE Grueso", icon: Beaker },
-  { id: "cd", label: "Corte", icon: Beaker },
-  { id: "ph", label: "PH Suelo", icon: Beaker },
-  { id: "cloro_soluble", label: "Cloruro Suelo", icon: Beaker },
-  { id: "sales_solubles", label: "Sales Suelo", icon: Beaker },
-  { id: "sulfatos_solubles", label: "Sulfato Suelo", icon: Beaker },
-  { id: "compresion_no_confinada", label: "C. No Confinada", icon: Beaker },
-  { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
-  { id: "control_ambiental",          label: "Control Ambiental — Temperatura y Humedad", icon: Thermometer },
-  { id: "control_ambiental_balanzas", label: "Control Ambiental — Verificación Balanzas",  icon: Scale },
-  { id: "comercial", label: "Control Comercial", icon: ClipboardList },
-  { id: "administracion", label: "Control Administración", icon: Shield },
-  { id: "usuarios", label: "Usuarios", icon: Shield },
-  { id: "permisos", label: "Permisos", icon: Shield },
-  { id: "auditoria", label: "Auditoría", icon: Activity },
-  { id: "configuracion", label: "Configuración", icon: Settings },
-]
-
-const KPI_MODULES: { id: ModuleType; label: string; icon: React.ElementType }[] = [
-  { id: "estadistica_laboratorio", label: "Estadistica Laboratorio", icon: FlaskConical },
-  { id: "estadistica_comercial", label: "Estadistica Comercial", icon: TrendingUp },
-  { id: "estadistica_gerencia", label: "KPIs Administración — En desarrollo", icon: Shield },
-  { id: "gerencia", label: "Gerencia", icon: BarChart3 },
-]
 
 const FREQ_KEY = "crm-module-frequency"
 
@@ -88,7 +32,7 @@ function getFrequency(): Record<string, number> {
 }
 
 function getModuleIcon(id: ModuleType) {
-  const found = [...ALL_MODULES, ...KPI_MODULES].find((m) => m.id === id)
+  const found = getAllAppModules().find((m) => m.id === id)
   if (found) {
     const Icon = found.icon
     return <Icon className="h-4 w-4" />
@@ -119,7 +63,7 @@ export function CommandPalette({ open, onOpenChange, setActiveModule, user }: Co
     const role = user.role?.toLowerCase() || ""
     const isAdmin = role === "admin" || role === "admin_general"
 
-    const all = [...ALL_MODULES, ...KPI_MODULES]
+    const all = getAllAppModules()
     if (isAdmin) return all
 
     return all.filter((m) => {
