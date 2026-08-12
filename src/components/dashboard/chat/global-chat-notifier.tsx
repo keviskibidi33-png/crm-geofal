@@ -109,6 +109,15 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       const senderName = normalizedMsg.senderName
       const channelId = normalizedMsg.channelId
 
+      const isDm = channelId.startsWith("dm_") || channelId.startsWith("dm-")
+      if (isDm) {
+        const delimiter = channelId.startsWith("dm_") ? "_" : "-"
+        const prefix = channelId.startsWith("dm_") ? "dm_" : "dm-"
+        const parts = channelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
+        const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
+        if (!isUserInDm) return
+      }
+
       const isFromMe =
         senderId === myId ||
         senderId === myEmail ||

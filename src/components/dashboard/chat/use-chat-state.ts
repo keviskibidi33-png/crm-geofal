@@ -406,32 +406,34 @@ export function useChatState(user: User, initialChannelId?: string) {
       const myEmail = (user.email || "").toLowerCase()
       const myId = String(user.id || "")
 
-      // Si es un mensaje DM (dm_ o dm-)
-      if (msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")) {
+      const isDm = msgChannelId.startsWith("dm_") || msgChannelId.startsWith("dm-")
+      if (isDm) {
         const delimiter = msgChannelId.startsWith("dm_") ? "_" : "-"
         const prefix = msgChannelId.startsWith("dm_") ? "dm_" : "dm-"
         const parts = msgChannelId.replace(prefix, "").split(delimiter).map((p) => p.toLowerCase())
         const isUserInDm = parts.includes(myEmail) || parts.includes(myId)
+        if (!isUserInDm) return
 
-        if (isUserInDm) {
-          const otherUser = teamUsers.find(
-            (u) =>
-              parts.includes(u.email.toLowerCase()) &&
-              u.email.toLowerCase() !== myEmail &&
-              String(u.id) !== myId
-          )
-          const senderUser = teamUsers.find(
-            (u) =>
-              u.email.toLowerCase() === String(newMsg.sender_id || newMsg.senderId || "").toLowerCase() ||
-              u.email.toLowerCase() === String(newMsg.sender_name || newMsg.senderName || "").toLowerCase() ||
-              String(u.id) === String(newMsg.sender_id || newMsg.senderId)
-          )
+        const otherUser = teamUsers.find(
+          (u) =>
+            parts.includes(u.email.toLowerCase()) &&
+            u.email.toLowerCase() !== myEmail &&
+            String(u.id) !== myId
+        )
+        const senderUser = teamUsers.find(
+          (u) =>
+            u.email.toLowerCase() === String(newMsg.sender_id || newMsg.senderId || "").toLowerCase() ||
+            u.email.toLowerCase() === String(newMsg.sender_name || newMsg.senderName || "").toLowerCase() ||
+            String(u.id) === String(newMsg.sender_id || newMsg.senderId)
+        )
 
-          const targetUserId = otherUser?.id || senderUser?.id
-          if (targetUserId) {
-            setStartedDmUserIds((prev) => (prev.includes(targetUserId) ? [targetUserId, ...prev.filter((id) => id !== targetUserId)] : [targetUserId, ...prev]))
-          }
+        const targetUserId = otherUser?.id || senderUser?.id
+        if (targetUserId) {
+          setStartedDmUserIds((prev) => (prev.includes(targetUserId) ? [targetUserId, ...prev.filter((id) => id !== targetUserId)] : [targetUserId, ...prev]))
         }
+      } else {
+        const isAccessibleChannel = channels.some((c) => c.id === msgChannelId)
+        if (!isAccessibleChannel) return
       }
 
       const isCurrentActiveChannel = areChannelIdsEqual(msgChannelId, activeChannelId)
