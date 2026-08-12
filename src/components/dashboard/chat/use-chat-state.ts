@@ -108,23 +108,42 @@ export function useChatState(user: User, initialChannelId?: string) {
   }, [channels, activeChannelId, teamUsers, user.id, user.email])
 
   const currentMemberEmails = useMemo(() => {
-    if (channelMembersMap[activeChannelId] && channelMembersMap[activeChannelId].length > 0) {
-      return channelMembersMap[activeChannelId]
+    const fetchedMembers = channelMembersMap[activeChannelId]
+    if (fetchedMembers && fetchedMembers.length > 0) {
+      return fetchedMembers.map((e) => String(e).toLowerCase())
     }
-    if (activeChannelId === "general") {
-      return teamUsers.map((u) => u.email)
+
+    if (activeChannelId === "general" || !activeChannel.isPrivate) {
+      return teamUsers.map((u) => (u.email || u.id || "").toLowerCase()).filter(Boolean)
     }
+
+    const defaultRolesMap: Record<string, string[]> = {
+      ventas: ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial"],
+      laboratorio: ["admin", "admin_general", "gerencia", "super_admin", "laboratorio", "jefe_laboratorio", "jefe_de_laboratorio", "tecnico", "tecnico_suelos"],
+      informes: ["admin", "admin_general", "gerencia", "super_admin", "comercial", "auxiliar_comercial", "laboratorio", "jefe_laboratorio"],
+      alertas: ["admin", "admin_general", "gerencia", "super_admin"],
+    }
+
+    const allowedRoles = defaultRolesMap[activeChannelId] || ["admin", "admin_general", "gerencia", "super_admin"]
+
     return teamUsers
-      .filter((u) => ["admin", "admin_general", "gerencia", "super_admin"].includes((u.role || "").toLowerCase()))
-      .map((u) => u.email)
-  }, [channelMembersMap, activeChannelId, teamUsers])
+      .filter((u) => allowedRoles.includes((u.role || "").toLowerCase()))
+      .map((u) => (u.email || u.id || "").toLowerCase())
+      .filter(Boolean)
+  }, [channelMembersMap, activeChannelId, activeChannel, teamUsers])
 
   const currentMembers = useMemo(() => {
-    return teamUsers.filter((u) => currentMemberEmails.includes(u.email) || currentMemberEmails.includes(u.id))
+    const ids = currentMemberEmails.map((e) => String(e).toLowerCase())
+    return teamUsers.filter(
+      (u) => ids.includes((u.email || "").toLowerCase()) || ids.includes(String(u.id || "").toLowerCase())
+    )
   }, [teamUsers, currentMemberEmails])
 
   const availableUsersToAdd = useMemo(() => {
-    return teamUsers.filter((u) => !currentMemberEmails.includes(u.email) && !currentMemberEmails.includes(u.id))
+    const ids = currentMemberEmails.map((e) => String(e).toLowerCase())
+    return teamUsers.filter(
+      (u) => !ids.includes((u.email || "").toLowerCase()) && !ids.includes(String(u.id || "").toLowerCase())
+    )
   }, [teamUsers, currentMemberEmails])
 
   const scrollToBottom = () => {
