@@ -163,7 +163,7 @@ function SmartIframe({ src, title }: SmartIframeProps) {
 }
 
 export function LLPModule() {
-    const LLP_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_LLP_MODE || "iframe") as "native" | "iframe"
+    const LLP_MODE: "native" | "iframe" = (process.env.NEXT_PUBLIC_LLP_MODE || "native") as "native" | "iframe"
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     useEffect(() => {

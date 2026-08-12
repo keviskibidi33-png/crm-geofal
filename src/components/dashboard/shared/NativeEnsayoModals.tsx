@@ -74,7 +74,7 @@ export function NativeEnsayoModals({
 }
 
 export function useNativeEnsayoMode(config: EnsayoModuleConfig) {
-  const MODE: "native" | "iframe" = (process.env[config.envModeKey] || "iframe") as "native" | "iframe"
+  const MODE: "native" | "iframe" = (process.env[config.envModeKey] || "native") as "native" | "iframe"
   const [nativeMode, setNativeMode] = useState<ModalMode>(null)
   const [nativeEnsayoId, setNativeEnsayoId] = useState<number | null>(null)
 
