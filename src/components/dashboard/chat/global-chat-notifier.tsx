@@ -208,6 +208,15 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       .on("broadcast", { event: "chat_message_broadcast" }, (payload) => {
         processMessage(payload.payload)
       })
+      .on("broadcast", { event: "chat_reaction_update" }, (payload) => {
+        if (payload.payload) {
+          window.dispatchEvent(
+            new CustomEvent("crm_chat_reaction_update", {
+              detail: payload.payload,
+            })
+          )
+        }
+      })
       .on("broadcast", { event: "chat_read_receipt" }, (payload) => {
         const data = payload.payload
         if (data && data.channel_id) {

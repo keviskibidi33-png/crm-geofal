@@ -547,7 +547,18 @@ export function useChatState(user: User, initialChannelId?: string) {
       }
     }
 
+    const handleGlobalReaction = (e: Event) => {
+      const customEvent = e as CustomEvent
+      const data = customEvent.detail
+      if (data && data.msgId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === data.msgId ? { ...m, reactions: data.reactions || {} } : m))
+        )
+      }
+    }
+
     window.addEventListener("crm_chat_global_message", handleGlobalMessage)
+    window.addEventListener("crm_chat_reaction_update", handleGlobalReaction)
 
     const globalChatChannel = supabase
       .channel(`chat_active_view_${activeChannelId}`)
@@ -581,6 +592,7 @@ export function useChatState(user: User, initialChannelId?: string) {
 
     return () => {
       window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
+      window.removeEventListener("crm_chat_reaction_update", handleGlobalReaction)
       supabase.removeChannel(globalChatChannel)
     }
   }, [activeChannelId, teamUsers, user.id, user.email, user.name, channels])

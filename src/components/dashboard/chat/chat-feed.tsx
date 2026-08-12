@@ -134,72 +134,10 @@ export function ChatFeed({
     }
   }
 
-  // Sync Reactions map
-  const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, string[]>>>(() => {
-    if (typeof window === "undefined") return {}
-    try {
-      return JSON.parse(localStorage.getItem("crm_chat_reactions_map") || "{}")
-    } catch {
-      return {}
-    }
-  })
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`reactions_${activeChannel.id}`)
-      .on("broadcast", { event: "reaction_change" }, (payload) => {
-        const { msgId, nextMsgReactions } = payload.payload || {}
-        if (msgId && nextMsgReactions) {
-          setReactionsMap((prev) => ({
-            ...prev,
-            [msgId]: nextMsgReactions,
-          }))
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [activeChannel.id])
-
   const handleToggleReaction = (msgId: string, emoji: string) => {
     if (toggleReaction) {
       toggleReaction(msgId, emoji)
-      return
     }
-
-    const myName = user.name || user.email || "Usuario"
-    setReactionsMap((prev) => {
-      const currentMsgReactions = prev[msgId] || {}
-      const currentUsers = currentMsgReactions[emoji] || []
-      const hasReacted = currentUsers.includes(myName)
-      const newUsers = hasReacted
-        ? currentUsers.filter((u) => u !== myName)
-        : [...currentUsers, myName]
-
-      const nextMsgReactions = { ...currentMsgReactions }
-      if (newUsers.length > 0) {
-        nextMsgReactions[emoji] = newUsers
-      } else {
-        delete nextMsgReactions[emoji]
-      }
-
-      const nextMap = { ...prev, [msgId]: nextMsgReactions }
-      try {
-        localStorage.setItem("crm_chat_reactions_map", JSON.stringify(nextMap))
-      } catch {}
-
-      try {
-        supabase.channel(`reactions_${activeChannel.id}`).send({
-          type: "broadcast",
-          event: "reaction_change",
-          payload: { msgId, nextMsgReactions },
-        })
-      } catch {}
-
-      return nextMap
-    })
   }
 
   const dmTargetUser = isDM
@@ -412,7 +350,7 @@ export function ChatFeed({
 
                 // Citar mensaje padre si existe respuesta
                 const parentMsg = msg.parent_id ? activeMessages.find((m) => m.id === msg.parent_id) : null
-                const msgReactions = reactionsMap[msg.id] || {}
+                const msgReactions = msg.reactions || {}
 
                 return (
                   <div key={msg.id} id={`msg_${msg.id}`} className={`flex gap-3 text-sm group relative ${isMe ? "flex-row-reverse" : ""}`}>
@@ -587,8 +525,14 @@ export function ChatFeed({
                       {Object.keys(msgReactions).length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {Object.entries(msgReactions).map(([emoji, usersArr]) => {
-                            const myName = user.name || user.email || "Usuario"
-                            const hasReacted = usersArr.includes(myName)
+                            const myEmail = (user.email || "").toLowerCase()
+                            const myName = (user.name || "").toLowerCase()
+                            const myId = String(user.id || "")
+                            const arr = Array.isArray(usersArr) ? usersArr : []
+                            const hasReacted = arr.some((u) => {
+                              const val = String(u).toLowerCase()
+                              return val === myEmail || val === myName || val === myId || (matchedUser && val === matchedUser.name.toLowerCase())
+                            })
                             return (
                               <button
                                 key={emoji}
