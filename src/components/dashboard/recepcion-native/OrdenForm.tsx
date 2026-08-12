@@ -35,6 +35,7 @@ import {
 } from "@/lib/recepcion-validators";
 import { useFormPersist } from "@/hooks/use-form-persist";
 import { useEnterTableNavigation } from "@/hooks/use-enter-table-navigation";
+import { TIPO_RECEPCION_CONFIG } from "@/types/recepcion";
 
 import {
   Dialog,

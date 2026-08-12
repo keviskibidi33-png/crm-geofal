@@ -58,8 +58,41 @@ export interface RecepcionFilters {
 }
 
 export interface BackendValidationIssue {
-  loc?: Array<string | number>;
+  loc?: (string | number)[];
   msg?: string;
   type?: string;
   ctx?: Record<string, unknown>;
 }
+
+export const TIPO_RECEPCION_CONFIG: Record<string, { label: string; codigo: string; version: string; template: string }> = {
+  CONCRETO: {
+    label: "CONCRETO (F-LEM-P-01.02 V07)",
+    codigo: "F-LEM-P-01.02",
+    version: "07",
+    template: "F-LEM-P-01.02 V07 RECEPCIÓN CONCRETO.xls",
+  },
+  ROCA: {
+    label: "ROCA (F-LEM-P-01.04 V05)",
+    codigo: "F-LEM-P-01.04",
+    version: "05",
+    template: "F-LEM-P-01.04 V05 RECEPCIÓN DE MUESTRAS DE ROCA.XLSX",
+  },
+  ALBANILERIA: {
+    label: "ALBAÑILERÍA (F-LEM-P-01.05 V04)",
+    codigo: "F-LEM-P-01.05",
+    version: "04",
+    template: "F-LEM-P-01.05 V04 RECEPCIÓN DE MUESTRAS DE ALBAÑILERIA.xlsx",
+  },
+  AGUA: {
+    label: "AGUA (F-LEM-P-01.06 V04)",
+    codigo: "F-LEM-P-01.06",
+    version: "04",
+    template: "F-LEM-P-01.06 V04 RECEPCIÓN DE MUESTRAS DE AGUA.xlsx",
+  },
+  SUELO_AGREGADO: {
+    label: "SUELO Y AGREGADO (F-LEM-P-01.13 V01)",
+    codigo: "F-LEM-P-01.13",
+    version: "01",
+    template: "F-LEM-P-01.13 V01 RECEP. SU Y AG.XLSX",
+  },
+};
