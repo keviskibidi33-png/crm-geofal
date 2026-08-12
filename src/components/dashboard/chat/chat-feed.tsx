@@ -352,54 +352,7 @@ export function ChatFeed({
                 const msgReactions = msg.reactions || {}
 
                 return (
-                  <div key={msg.id} id={`msg_${msg.id}`} className={`flex gap-3 text-sm group relative ${isMe ? "flex-row-reverse" : ""}`}>
-                    {/* Barra de Acciones Flotante al Pasar el Cursor */}
-                    <div
-                      className={`absolute -top-3.5 ${
-                        isMe ? "left-12" : "right-12"
-                      } opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border shadow-md rounded-full px-2 py-0.5 flex items-center gap-1 z-20`}
-                    >
-                      {/* Reaccionar Emoji */}
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground transition-colors" title="Reaccionar con emoji">
-                            <Smile className="h-3.5 w-3.5" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-1.5 flex gap-1 shadow-lg border border-border bg-card rounded-full" side="top">
-                          {["👍", "❤️", "😂", "😮", "😢", "🙏", "🚀", "🔥"].map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={() => handleToggleReaction(msg.id, emoji)}
-                              className="p-1 hover:bg-accent rounded-full text-base hover:scale-125 transition-transform"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </PopoverContent>
-                      </Popover>
-
-                      {/* Responder */}
-                      <button
-                        onClick={() => setReplyingToMessage(msg)}
-                        className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground transition-colors"
-                        title="Responder mensaje"
-                      >
-                        <Reply className="h-3.5 w-3.5" />
-                      </button>
-
-                      {/* Fijar */}
-                      <button
-                        onClick={() => handleTogglePin(msg.id)}
-                        className={`p-1 hover:bg-accent rounded-full transition-colors ${
-                          isPinned ? "text-amber-500 font-bold" : "text-muted-foreground hover:text-foreground"
-                        }`}
-                        title={isPinned ? "Desfijar mensaje" : "Fijar mensaje al canal"}
-                      >
-                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-amber-500/20 rotate-45" : ""}`} />
-                      </button>
-                    </div>
-
+                  <div key={msg.id} id={`msg_${msg.id}`} className={`flex gap-3 text-sm relative ${isMe ? "flex-row-reverse" : ""}`}>
                     <UserProfilePopover
                       targetUser={popoverUser}
                       currentUser={user}
@@ -415,7 +368,53 @@ export function ChatFeed({
                       </Avatar>
                     </UserProfilePopover>
 
-                    <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
+                    <div className={`flex flex-col max-w-[75%] relative group/bubble ${isMe ? "items-end" : "items-start"}`}>
+                      {/* Barra de Acciones Flotante al Pasar el Cursor */}
+                      <div
+                        className={`absolute -top-3 ${
+                          isMe ? "right-2" : "left-2"
+                        } opacity-0 group-hover/bubble:opacity-100 transition-opacity bg-card border border-border shadow-md rounded-full px-2 py-0.5 flex items-center gap-1 z-20`}
+                      >
+                        {/* Reaccionar Emoji */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground transition-colors" title="Reaccionar con emoji">
+                              <Smile className="h-3.5 w-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-1.5 flex gap-1 shadow-lg border border-border bg-card rounded-full" side="top">
+                            {["👍", "❤️", "😂", "😮", "😢", "🙏", "🚀", "🔥"].map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                className="p-1 hover:bg-accent rounded-full text-base hover:scale-125 transition-transform"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+
+                        {/* Responder */}
+                        <button
+                          onClick={() => setReplyingToMessage(msg)}
+                          className="p-1 hover:bg-accent rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                          title="Responder mensaje"
+                        >
+                          <Reply className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* Fijar */}
+                        <button
+                          onClick={() => handleTogglePin(msg.id)}
+                          className={`p-1 hover:bg-accent rounded-full transition-colors ${
+                            isPinned ? "text-amber-500 font-bold" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                          title={isPinned ? "Desfijar mensaje" : "Fijar mensaje al canal"}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-amber-500/20 rotate-45" : ""}`} />
+                        </button>
+                      </div>
                       <div className="flex items-center gap-2 mb-1">
                         <UserProfilePopover
                           targetUser={popoverUser}

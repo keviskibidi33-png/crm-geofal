@@ -42,9 +42,15 @@ export function useChatMessages({
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const activeRealtimeChannelRef = useRef<any>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
   }
 
   // 1. Cargar mensajes del canal activo
@@ -321,10 +327,13 @@ export function useChatMessages({
       })
       .subscribe()
 
+    activeRealtimeChannelRef.current = globalChatChannel
+
     return () => {
       window.removeEventListener("crm_chat_global_message", handleGlobalMessage)
       window.removeEventListener("crm_chat_reaction_update", handleGlobalReaction)
       supabase.removeChannel(globalChatChannel)
+      activeRealtimeChannelRef.current = null
     }
   }, [activeChannelId, teamUsers, user.id, user.email, user.name, channels, setStartedDmUserIds])
 
@@ -395,12 +404,13 @@ export function useChatMessages({
             prev.map((m) => (m.id === tempId ? confirmedMsg : m))
           )
 
-          const broadcastChannel = supabase.channel("chat_global_realtime_stream")
-          broadcastChannel.send({
-            type: "broadcast",
-            event: "chat_message_broadcast",
-            payload: data.message,
-          })
+          if (activeRealtimeChannelRef.current) {
+            activeRealtimeChannelRef.current.send({
+              type: "broadcast",
+              event: "chat_message_broadcast",
+              payload: data.message,
+            })
+          }
         }
       }
     } catch (err) {
@@ -440,12 +450,13 @@ export function useChatMessages({
 
   const handleTyping = () => {
     const myName = user.name || user.email || "Usuario"
-    const channel = supabase.channel(`typing_${activeChannelId}`)
-    channel.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { user: myName },
-    })
+    if (activeRealtimeChannelRef.current) {
+      activeRealtimeChannelRef.current.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { user: myName },
+      })
+    }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     typingTimeoutRef.current = setTimeout(() => {
@@ -501,16 +512,18 @@ export function useChatMessages({
         }
 
         const payload = { msgId, reactions: updatedReactions || {} }
-        supabase.channel(`chat_active_view_${activeChannelId}`).send({
-          type: "broadcast",
-          event: "chat_reaction_update",
-          payload,
-        })
-        supabase.channel("chat_global_realtime_stream").send({
-          type: "broadcast",
-          event: "chat_reaction_update",
-          payload,
-        })
+        if (activeRealtimeChannelRef.current) {
+          activeRealtimeChannelRef.current.send({
+            type: "broadcast",
+            event: "chat_reaction_update",
+            payload,
+          })
+        }
+        window.dispatchEvent(
+          new CustomEvent("crm_chat_reaction_update", {
+            detail: payload,
+          })
+        )
       } catch (err) {
         console.warn("Error toggling reaction:", err)
       }
