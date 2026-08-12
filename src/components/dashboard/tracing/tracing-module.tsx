@@ -49,10 +49,6 @@ export function TracingModule() {
     const [selectedRecepcion, setSelectedRecepcion] = useState<any>(null)
     const [loadingRecepcion, setLoadingRecepcion] = useState(false)
 
-    const [isVerificDetailOpen, setIsVerificDetailOpen] = useState(false)
-    const [selectedVerific, setSelectedVerific] = useState<any>(null)
-    const [loadingVerific, setLoadingVerific] = useState(false)
-
     const [isCustomReportOpen, setIsCustomReportOpen] = useState(false)
     const [selectedProbetasIds, setSelectedProbetasIds] = useState<number[]>([])
     const [generatingCustomReport, setGeneratingCustomReport] = useState(false)
@@ -138,29 +134,6 @@ export function TracingModule() {
             setIsRecepcionDetailOpen(false)
         } finally {
             setLoadingRecepcion(false)
-        }
-    }
-
-    const handleOpenVerificDetail = async (verificId: string) => {
-        setLoadingVerific(true)
-        setIsVerificDetailOpen(true)
-        setSelectedVerific(null)
-
-        try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.geofal.com.pe'
-            const res = await authFetch(`${API_URL}/api/verificacion-muestras/${verificId}`)
-            if (!res.ok) {
-                throw new Error("No se pudo obtener la información de la verificación.")
-            }
-            const data = await res.json()
-            setSelectedVerific(data)
-        } catch (err: any) {
-            toast.error("Error al cargar verificación", {
-                description: err.message || "No se pudo conectar con el servidor.",
-            })
-            setIsVerificDetailOpen(false)
-        } finally {
-            setLoadingVerific(false)
         }
     }
 

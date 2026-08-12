@@ -229,7 +229,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
 
       fetchQuotes()
       setUploadDialogOpen(false)
-      setSelectedFile(null)
     } catch (err: any) {
       toast.error("Error al reemplazar archivo", { description: err.message })
     } finally {
@@ -300,25 +299,6 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <label htmlFor="excel-import-input">
-            <Button
-              asChild
-              variant="outline"
-              className="w-full sm:w-auto font-bold text-xs h-10 px-4 rounded-xl cursor-pointer"
-            >
-              <div>
-                <FileUp className="mr-2 h-4 w-4 text-emerald-500" /> Importar Excel
-              </div>
-            </Button>
-          </label>
-          <input
-            id="excel-import-input"
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={handleImportExcelSelect}
-          />
-
           <Button
             onClick={() => {
               setEditingQuote(null)
