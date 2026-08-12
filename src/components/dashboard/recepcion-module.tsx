@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -36,6 +36,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [isImporting, setIsImporting] = useState(false)
+    const [isImportTypeModalOpen, setIsImportTypeModalOpen] = useState(false)
+    const [selectedImportTipo, setSelectedImportTipo] = useState<string>("AUTO")
     const [importedData, setImportedData] = useState<any>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
@@ -187,9 +189,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             }
 
             const resData = await response.json()
+            const payloadData = resData.data || {}
+            if (selectedImportTipo && selectedImportTipo !== "AUTO") {
+                payloadData.tipo_recepcion = selectedImportTipo
+            }
             toast.success("Excel leído correctamente. Revisa los datos en el formulario.")
 
-            setImportedData(resData.data)
+            setImportedData(payloadData)
             setEditId(null)
             setIsModalOpen(true)
         } catch (err: any) {
@@ -275,7 +281,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => setIsImportTypeModalOpen(true)}
                                 disabled={isImporting}
                                 className="gap-2 text-xs font-bold border-green-600/30 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
                             >
@@ -564,6 +570,114 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             onClose={() => setIsDetailOpen(false)}
                         />
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal para Selección del Tipo de Recepción a Importar */}
+            <Dialog open={isImportTypeModalOpen} onOpenChange={setIsImportTypeModalOpen}>
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-bold">
+                            <Upload className="h-5 w-5 text-green-600" />
+                            Importar Recepción desde Excel
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Selecciona la categoría del tipo de recepción a importar para procesar el formato adecuado o usa Auto-detectar.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-2">
+                        {[
+                            {
+                                id: "AUTO",
+                                label: "Auto-detectar",
+                                desc: "Detección automática por formato de plantilla",
+                                icon: Sparkles,
+                                color: "text-indigo-600 bg-indigo-50 border-indigo-200",
+                            },
+                            {
+                                id: "CONCRETO",
+                                label: "Concreto / Probetas",
+                                desc: "Probetas, cilindros y prismas (F-LEM-P-01.02)",
+                                icon: Building2,
+                                color: "text-blue-600 bg-blue-50 border-blue-200",
+                            },
+                            {
+                                id: "SUELO_AGREGADO",
+                                label: "Suelo y Agregados",
+                                desc: "Suelos, agregados y densidades (F-LEM-P-01.01)",
+                                icon: Mountain,
+                                color: "text-amber-600 bg-amber-50 border-amber-200",
+                            },
+                            {
+                                id: "ROCA",
+                                label: "Roca / Núcleos",
+                                desc: "Testigos y especímenes de roca (F-LEM-P-01.03)",
+                                icon: Gem,
+                                color: "text-slate-700 bg-slate-100 border-slate-300",
+                            },
+                            {
+                                id: "ALBANILERIA",
+                                label: "Albañilería",
+                                desc: "Ladrillos, bloques y muretes (F-LEM-P-01.04)",
+                                icon: Boxes,
+                                color: "text-rose-600 bg-rose-50 border-rose-200",
+                            },
+                            {
+                                id: "AGUA",
+                                label: "Agua",
+                                desc: "Muestras de agua para ensayo (F-LEM-P-01.05)",
+                                icon: Droplets,
+                                color: "text-cyan-600 bg-cyan-50 border-cyan-200",
+                            },
+                        ].map((item) => {
+                            const IconComponent = item.icon
+                            const isSelected = selectedImportTipo === item.id
+                            return (
+                                <div
+                                    key={item.id}
+                                    onClick={() => setSelectedImportTipo(item.id)}
+                                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex items-start gap-3 relative ${
+                                        isSelected
+                                            ? "border-primary bg-primary/5 shadow-sm"
+                                            : "border-border hover:border-primary/50 hover:bg-accent/50"
+                                    }`}
+                                >
+                                    <div className={`p-2 rounded-md ${item.color} flex-shrink-0`}>
+                                        <IconComponent className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0 pr-4">
+                                        <div className="text-xs font-bold leading-none text-foreground">{item.label}</div>
+                                        <div className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{item.desc}</div>
+                                    </div>
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                                            <Check className="h-2.5 w-2.5" />
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+                        <Button variant="outline" size="sm" onClick={() => setIsImportTypeModalOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="gap-2 bg-green-600 hover:bg-green-700 text-white font-bold"
+                            onClick={() => {
+                                setIsImportTypeModalOpen(false)
+                                setTimeout(() => {
+                                    fileInputRef.current?.click()
+                                }, 100)
+                            }}
+                        >
+                            <Upload className="h-4 w-4" />
+                            Seleccionar Archivo Excel...
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
