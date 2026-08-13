@@ -193,54 +193,46 @@ function isSale(row: SeguimientoRow) {
 }
 
 function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {
-  const categoryText = normalizeText(
-    `${row.categoria_servicio ?? ""} ${row.categoria_cliente ?? ""} ${row.servicio_solicitado ?? ""}`
+  // 1. Strict priority for explicit categoria_cliente / categoria_servicio selection
+  const explicitCategory = normalizeText(
+    `${row.categoria_cliente ?? ""} ${row.categoria_servicio ?? ""}`
   )
 
-  if (!categoryText) return null
+  if (explicitCategory) {
+    if (explicitCategory.includes("CATEGORIA 1") || /\bDEN\b/.test(explicitCategory)) {
+      return "DEN"
+    }
+    if (explicitCategory.includes("CATEGORIA 2") || /\bPROB\b/.test(explicitCategory)) {
+      return "PROB"
+    }
+    if (explicitCategory.includes("CATEGORIA 3") || /\bEMS\b/.test(explicitCategory)) {
+      return "EMS"
+    }
+    if (explicitCategory.includes("CATEGORIA 4") || /\bALQ\b/.test(explicitCategory)) {
+      return "ALQ"
+    }
+    if (explicitCategory.includes("CATEGORIA 5") || /\bENS\s*\.?\s*V\.?\b/.test(explicitCategory)) {
+      return "ENS.V."
+    }
+  }
 
-  // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES, DENSIMETRO, CLIENTE 1, CATEGORIA 1, CAT 1
-  if (
-    /\bDEN\b/.test(categoryText) ||
-    /DENSIDA|DENSIME/.test(categoryText) ||
-    /CLIENTE\s*1\b|CATEGORIA\s*1\b|CAT\s*1\b/.test(categoryText)
-  ) {
+  // 2. Fallback only if no explicit category is assigned
+  const serviceText = normalizeText(row.servicio_solicitado ?? "")
+  if (!serviceText) return null
+
+  if (/DENSIDA|DENSIME|\bDEN\b/.test(serviceText)) {
     return "DEN"
   }
-
-  // Categoría 2 (PROB): PROB, PROBETA, PROBETAS, COMPRESION, ROTURA, CLIENTE 2, CATEGORIA 2, CAT 2
-  if (
-    /\bPROB\b/.test(categoryText) ||
-    /PROBETA|ROTURA|COMPRESION/.test(categoryText) ||
-    /CLIENTE\s*2\b|CATEGORIA\s*2\b|CAT\s*2\b/.test(categoryText)
-  ) {
+  if (/PROBETA|ROTURA.*PROB|COMPRESION.*PROB|\bPROB\b/.test(serviceText)) {
     return "PROB"
   }
-
-  // Categoría 3 (EMS): EMS, ESTUDIOS DE SUELOS, ENSAYOS DE SUELOS, CLIENTE 3, CATEGORIA 3, CAT 3
-  if (
-    /\bEMS\b/.test(categoryText) ||
-    /ESTUDIOS DE SUELOS|ENSAYOS DE SUELOS|SUELOS/.test(categoryText) ||
-    /CLIENTE\s*3\b|CATEGORIA\s*3\b|CAT\s*3\b/.test(categoryText)
-  ) {
+  if (/ESTUDIO.*SUELO|ENSAYO.*SUELO|SUELOS|\bEMS\b/.test(serviceText)) {
     return "EMS"
   }
-
-  // Categoría 4 (ALQ): ALQ, ALQUILER, CLIENTE 4, CATEGORIA 4, CAT 4
-  if (
-    /\bALQ\b/.test(categoryText) ||
-    /ALQUILER/.test(categoryText) ||
-    /CLIENTE\s*4\b|CATEGORIA\s*4\b|CAT\s*4\b/.test(categoryText)
-  ) {
+  if (/ALQUILER|\bALQ\b/.test(serviceText)) {
     return "ALQ"
   }
-
-  // Categoría 5 (ENS.V.): ENS.V., ENSAYOS DE LABORATORIO, MEZCLA, AGREGADO, LADRILLOS, CORTE DIRECTO, PROCTOR, BLOQUE, ROCA, CLIENTE 5, CATEGORIA 5, CAT 5
-  if (
-    /\bENS\s*\.?\s*V\.?\b/.test(categoryText) ||
-    /ENSAYO|MEZCLA|AGREGADO|LADRILLO|CORTE DIRECTO|PROCTOR|BLOQUE|ROCA|LABORATORIO/.test(categoryText) ||
-    /CLIENTE\s*5\b|CATEGORIA\s*5\b|CAT\s*5\b/.test(categoryText)
-  ) {
+  if (/ENSAYO|MEZCLA|AGREGADO|LADRILLO|CORTE DIRECTO|PROCTOR|BLOQUE|ROCA|LABORATORIO|\bENS\s*\.?\s*V\.?\b/.test(serviceText)) {
     return "ENS.V."
   }
 
