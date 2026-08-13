@@ -3,6 +3,7 @@ import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import FormatConfirmModal from "../shared/FormatConfirmModal"
 import FormActionDock from "../shared/FormActionDock"
+import UnsavedChangesModal from "../shared/UnsavedChangesModal"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -289,6 +290,19 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
     const [ensayoId, setEnsayoId] = useState<number | null>(editId || null)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
+
+    const isDirty = useMemo(() => {
+        return JSON.stringify(form) !== JSON.stringify(initialState())
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     const [muestraInput, setMuestraInput] = useState('')
     const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('AG')
@@ -597,7 +611,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1135,6 +1149,21 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                     setPendingFormatAction(null)
                     void save(shouldDownload)
                 }}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void save(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
         </div>
     )

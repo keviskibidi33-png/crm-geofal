@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Beaker, Download, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 
 // --- Local Types ---
 export interface SalesSolublesCapsula {
@@ -425,9 +426,22 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
     const [ensayoId, setEnsayoId] = useState<number | null>(initialEnsayoId ?? null)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const [showDraftBanner, setShowDraftBanner] = useState(false)
     const [draftData, setDraftData] = useState<FormState | null>(null)
     const tableFieldRefs = useRef<Record<string, TableFieldElement | null>>({})
+
+    const isDirty = useMemo(() => {
+        return JSON.stringify(form) !== JSON.stringify(initialState())
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     useEffect(() => {
         if (ensayoId) return
@@ -670,7 +684,7 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1132,7 +1146,21 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
                     void save(shouldDownload)
                 }}
             />
-
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void save(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
+            />
         </div>
     )
 }

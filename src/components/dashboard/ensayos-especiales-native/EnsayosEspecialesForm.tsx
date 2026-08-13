@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Beaker, Download, Loader2, RotateCcw, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 import { getModuleConfigBySlug } from './config'
 import {
     DEFAULT_DENSE_INPUT_CLASS,
@@ -115,7 +116,22 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
     const [form, setForm] = useState<ModuleFormState>({})
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const draftKeyRef = useRef<string | null>(null)
+
+    const isDirty = useMemo(() => {
+        if (!moduleConfig) return false
+        const defaultState = moduleConfig.derive(moduleConfig.defaultState())
+        return JSON.stringify(form) !== JSON.stringify(defaultState)
+    }, [form, moduleConfig])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     useEffect(() => {
         const config = getModuleConfigBySlug(moduleSlug)
@@ -359,7 +375,7 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -416,6 +432,21 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
                 onSaveAndDownload={() => void save(true)}
                 onClear={clearAll}
                 loading={loading}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void save(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
         </div>
     )

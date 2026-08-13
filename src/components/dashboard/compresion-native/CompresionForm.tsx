@@ -35,6 +35,7 @@ import {
   X,
 } from "lucide-react"
 import FormActionDock from "../shared/FormActionDock"
+import UnsavedChangesModal from "../shared/UnsavedChangesModal"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -208,7 +209,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     getValues,
     watch,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -238,6 +239,17 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   const searchRef = useRef<HTMLDivElement>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
+
+  const formHasChanges = isDirty || hasSavedData
+
+  const handleRequestClose = useCallback(() => {
+    if (formHasChanges) {
+      setIsUnsavedChangesModalOpen(true)
+    } else {
+      onClose?.()
+    }
+  }, [formHasChanges, onClose])
 
   // Confirm modals
   const [showClearDraftConfirm, setShowClearDraftConfirm] = useState(false)
@@ -708,7 +720,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
             {onClose && (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleRequestClose}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none ml-2"
                 title="Regresar al Dashboard"
               >
@@ -1315,6 +1327,24 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
           </div>
         </div>
       )}
+
+      {/* Unsaved Changes Warning Modal */}
+      <UnsavedChangesModal
+        open={isUnsavedChangesModalOpen}
+        onClose={() => setIsUnsavedChangesModalOpen(false)}
+        onDiscard={() => {
+          setIsUnsavedChangesModalOpen(false)
+          clearSavedData()
+          onClose?.()
+        }}
+        onSave={() => {
+          void onSubmit(getValues(), false).then(() => {
+            setIsUnsavedChangesModalOpen(false)
+            onClose?.()
+          })
+        }}
+        isSaving={isSubmitting}
+      />
     </div>
   )
 }

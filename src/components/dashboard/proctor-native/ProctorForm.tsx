@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Beaker, Trash2, X } from 'lucide-react'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---
@@ -739,12 +740,26 @@ export default function ProctorForm({
     const [loading, setLoading] = useState(false)
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(editId ?? null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const [showDraftBanner, setShowDraftBanner] = useState(false)
     const [draftData, setDraftData] = useState<ProctorPayload | null>(null)
     const [isClearDraftModalOpen, setIsClearDraftModalOpen] = useState(false)
     const hydratedFromServerRef = useRef<ProctorPayload | null>(null)
     const restoredDraftKeysRef = useRef<Set<string>>(new Set())
     const draftStorageKey = useMemo(() => getDraftStorageKey(editingEnsayoId), [editingEnsayoId])
+
+    const isDirty = useMemo(() => {
+        const base = hydratedFromServerRef.current || buildInitialState()
+        return !areFormsEquivalent(form, base)
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     const set = useCallback(<K extends keyof ProctorPayload>(key: K, value: ProctorPayload[K]) => {
         setForm(prev => ({ ...prev, [key]: value }))
@@ -1190,7 +1205,7 @@ export default function ProctorForm({
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1534,6 +1549,22 @@ export default function ProctorForm({
                 cancelText="Cancelar"
                 onConfirm={confirmClearLocalData}
                 onCancel={() => setIsClearDraftModalOpen(false)}
+            />
+
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void handleSave(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
             </div>
         </div>

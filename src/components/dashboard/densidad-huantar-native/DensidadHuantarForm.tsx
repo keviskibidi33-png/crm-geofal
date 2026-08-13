@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { createPortal } from "react-dom"
 import FormActionDock from "../shared/FormActionDock"
+import UnsavedChangesModal from "../shared/UnsavedChangesModal"
 
 interface DensidadHuantarPuntoState {
     punto_numero: number
@@ -246,6 +247,14 @@ export default function DensidadHuantarForm({
         const sameAsServer = hydratedFromServerRef.current && JSON.stringify(form) === JSON.stringify(hydratedFromServerRef.current)
         return !isInitial && !sameAsServer
     }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsCloseConfirmOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     // beforeunload warning effect
     useEffect(() => {
@@ -637,13 +646,7 @@ export default function DensidadHuantarForm({
                     {onClose && (
                         <button 
                             type="button"
-                            onClick={() => {
-                                if (isDirty) {
-                                    setIsCloseConfirmOpen(true)
-                                } else {
-                                    onClose()
-                                }
-                            }}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1538,82 +1541,24 @@ export default function DensidadHuantarForm({
             )}
 
             {/* Close Pending Changes Modal */}
-            <PendingChangesCloseModal
-                isOpen={isCloseConfirmOpen}
+            <UnsavedChangesModal
+                open={isCloseConfirmOpen}
                 onClose={() => setIsCloseConfirmOpen(false)}
-                onSave={() => {
-                    setIsCloseConfirmOpen(false)
-                    void handleSave(false)
-                }}
                 onDiscard={() => {
                     localStorage.removeItem(draftStorageKey)
                     setIsCloseConfirmOpen(false)
                     if (onClose) onClose()
                 }}
+                onSave={() => {
+                    void handleSave(false).then(() => {
+                        setIsCloseConfirmOpen(false)
+                        if (onClose) onClose()
+                    })
+                }}
+                isSaving={loading}
             />
             </div>
         </div>
-    )
-}
-
-// Modal de Cambios Pendientes al Cerrar
-function PendingChangesCloseModal({
-    isOpen,
-    onClose,
-    onSave,
-    onDiscard,
-}: {
-    isOpen: boolean
-    onClose: () => void
-    onSave: () => void
-    onDiscard: () => void
-}) {
-    if (!isOpen) return null
-
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                        <AlertCircle className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900">Tienes cambios pendientes</h3>
-                        <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                            Has realizado modificaciones en el informe de Densidad Huantar. ¿Deseas guardar los cambios antes de salir o descartarlos?
-                        </p>
-                    </div>
-                </div>
-                <div className="mt-6 flex justify-end gap-2">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onDiscard}
-                        className="h-10 px-4 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium transition"
-                    >
-                        Descartar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onSave}
-                        className="h-10 px-4 rounded-lg text-white text-sm font-semibold transition"
-                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                    >
-                        Guardar informe
-                    </button>
-                </div>
-            </div>
-        </div>,
-        document.body,
     )
 }
 

@@ -3,6 +3,7 @@ import { Beaker, Download, Loader2, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 
 const buildFormatPreview = (sampleCode: string | undefined, materialCode: 'SU' | 'AG', ensayo: string) => {
     const currentYear = new Date().getFullYear().toString().slice(-2)
@@ -299,6 +300,19 @@ export default function PlanasForm({ editId, onClose, onSaved }: PlanasFormProps
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
     const [ensayoId, setEnsayoId] = useState<number | null>(editId ?? null)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
+
+    const isDirty = useMemo(() => {
+        return JSON.stringify(form) !== JSON.stringify(initialState())
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     useEffect(() => {
         setEnsayoId(editId ?? null)
@@ -498,7 +512,7 @@ export default function PlanasForm({ editId, onClose, onSaved }: PlanasFormProps
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1074,6 +1088,21 @@ export default function PlanasForm({ editId, onClose, onSaved }: PlanasFormProps
                 onSaveAndDownload={() => void save(true)}
                 onClear={clearAll}
                 loading={loading}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void save(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
         </div>
     )

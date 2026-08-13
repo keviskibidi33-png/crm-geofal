@@ -5,6 +5,7 @@ import { ChevronDown, Download, Loader2, Droplets, FlaskConical, Trash2, X } fro
 import TMCalculator from './TMCalculator'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---
@@ -440,9 +441,23 @@ export default function HumedadForm({
     const [showDraftBanner, setShowDraftBanner] = useState(false)
     const [draftData, setDraftData] = useState<HumedadFormState | null>(null)
     const [isClearDraftModalOpen, setIsClearDraftModalOpen] = useState(false)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const hydratedFromServerRef = useRef<HumedadFormState | null>(null)
     const restoredDraftKeysRef = useRef<Set<string>>(new Set())
     const draftStorageKey = useMemo(() => getDraftStorageKey(editingEnsayoId), [editingEnsayoId])
+
+    const isDirty = useMemo(() => {
+        const base = hydratedFromServerRef.current || INITIAL_STATE
+        return !areFormsEquivalent(form, base)
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     // ── Helpers ───────────────────────────────────────────────────────
     const set = useCallback(<K extends keyof HumedadFormState>(key: K, value: HumedadFormState[K]) => {
@@ -773,7 +788,8 @@ export default function HumedadForm({
                     </div>
                     {onClose && (
                         <button
-                            onClick={onClose}
+                            type="button"
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1152,6 +1168,21 @@ export default function HumedadForm({
                     setPendingFormatAction(null)
                     void handleSave(shouldDownload)
                 }}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void handleSave(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
             </div>
         </div>

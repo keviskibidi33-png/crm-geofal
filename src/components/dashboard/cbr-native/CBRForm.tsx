@@ -5,6 +5,7 @@ import { ChevronDown, Download, Loader2, FlaskConical, Gauge, X } from 'lucide-r
 import { authFetch } from '@/lib/api-auth'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 
 // --- Local Types ---
 export interface CBRLecturaPenetracionRow {
@@ -653,11 +654,25 @@ export default function CBRForm({
     const [loading, setLoading] = useState(false)
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(editId ?? null)
     const [loadingEnsayo, setLoadingEnsayo] = useState(false)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const [showDraftBanner, setShowDraftBanner] = useState(false)
     const [draftData, setDraftData] = useState<CBRPayload | null>(null)
     const draftStorageKey = useMemo(() => getDraftStorageKey(editingEnsayoId), [editingEnsayoId])
     const hydratedFromServerRef = useRef<CBRPayload | null>(null)
     const restoredDraftKeysRef = useRef<Set<string>>(new Set())
+
+    const isDirty = useMemo(() => {
+        const base = hydratedFromServerRef.current || buildInitialState()
+        return !areCBRFormsEquivalent(form, base)
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     const [muestraInput, setMuestraInput] = useState('')
     const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('SU')
@@ -1099,7 +1114,7 @@ export default function CBRForm({
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1682,6 +1697,21 @@ export default function CBRForm({
                     setPendingFormatAction(null)
                     void handleSave(shouldDownload)
                 }}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void handleSave(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
         </div>
     </div>

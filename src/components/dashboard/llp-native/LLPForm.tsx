@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Beaker, ChevronDown, Download, Loader2, Trash2, X } from 'lucide-react'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
 import FormActionDock from '../shared/FormActionDock'
+import UnsavedChangesModal from '../shared/UnsavedChangesModal'
 import { authFetch } from '@/lib/api-auth'
 import { toast } from 'sonner'
 
@@ -369,8 +370,8 @@ const avg = (values: Array<number | null | undefined>) => {
 
 interface LLPFormProps {
     editId?: number
-    onClose: () => void
-    onSaveSuccess: () => void
+    onClose?: () => void
+    onSaveSuccess?: () => void
 }
 
 export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps) {
@@ -378,10 +379,23 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
     const [editingEnsayoId, setEditingEnsayoId] = useState<number | null>(editId ?? null)
+    const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
     const currentYear = getCurrentYearShort()
     const [muestraInput, setMuestraInput] = useState('')
     const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('SU')
     const [muestraYear, setMuestraYear] = useState(() => new Date().getFullYear().toString().slice(-2))
+
+    const isDirty = useMemo(() => {
+        return JSON.stringify(form) !== JSON.stringify(initialState())
+    }, [form])
+
+    const handleRequestClose = useCallback(() => {
+        if (isDirty) {
+            setIsUnsavedChangesModalOpen(true)
+        } else {
+            onClose?.()
+        }
+    }, [isDirty, onClose])
 
     const calc = useMemo(() => form.puntos.map(p => compute(p)), [form.puntos])
     const llCheckRows = useMemo(() => {
@@ -681,7 +695,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                     {onClose && (
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleRequestClose}
                             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
@@ -1170,6 +1184,21 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                     setPendingFormatAction(null)
                     void save(shouldDownload)
                 }}
+            />
+            <UnsavedChangesModal
+                open={isUnsavedChangesModalOpen}
+                onClose={() => setIsUnsavedChangesModalOpen(false)}
+                onDiscard={() => {
+                    setIsUnsavedChangesModalOpen(false)
+                    onClose?.()
+                }}
+                onSave={() => {
+                    void save(false).then(() => {
+                        setIsUnsavedChangesModalOpen(false)
+                        onClose?.()
+                    })
+                }}
+                isSaving={loading}
             />
             </div>
         </div>
