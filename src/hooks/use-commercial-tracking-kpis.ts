@@ -185,11 +185,7 @@ function isSentQuote(row: SeguimientoRow) {
 
 function isSale(row: SeguimientoRow) {
   const estadoSegNorm = normalizeText(row.estado_seguimiento)
-  return (
-    estadoSegNorm.includes("VENTA") ||
-    estadoSegNorm.includes("GANADO") ||
-    estadoSegNorm.includes("VENDIDO")
-  )
+  return estadoSegNorm === "VENTA"
 }
 
 function resolveSeguimientoCategory(row: SeguimientoRow): CategoryKey | null {

@@ -442,7 +442,7 @@ export function useKpisData(): KpisData {
       })
       const montoVenta = seguimientos.filter((r: any) => {
         const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
-        const isSale = estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+        const isSale = estadoSeguimiento === "VENTA"
         return isSale && parseMoney(r.costo_cotiz_sin_igv) > 0
       })
 
@@ -454,7 +454,7 @@ export function useKpisData(): KpisData {
       const nuevos = seguimientos.filter((r: any) => {
         const contactDate = parseNormalizedDate(r.fecha_contacto)
         const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
-        const isSale = estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")
+        const isSale = estadoSeguimiento === "VENTA"
         return !!contactDate && isSale
       })
 
