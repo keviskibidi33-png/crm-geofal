@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent a
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Beaker, Trash2, X } from 'lucide-react'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
+import FormActionDock from '../shared/FormActionDock'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---
@@ -1169,32 +1170,34 @@ export default function ProctorForm({
     }, [buildPayload, closeParentModalIfEmbedded, downloadBlob, draftStorageKey, editingEnsayoId, form.excluyo_material_muestra, form.muestra, form.numero_ot, form.observaciones, form.realizado_por, onSaveSuccess])
 
     return (
-        <div className="max-w-[1780px] mx-auto p-4 md:p-6">
-            <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Beaker className="h-6 w-6 text-primary" />
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Proctor Modificado — ASTM D1557-12(2021)
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Formato Oficial F-LEM-P-SU-20.01</p>
+                            {editingEnsayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">Editando ensayo #{editingEnsayoId}</p>
+                            )}
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-foreground">
-                            Proctor Modificado - ASTM D1557-12(2021)
-                        </h1>
-                        <p className="text-sm text-muted-foreground">Formulario operativo alineado al formato de hoja oficial</p>
-                        {editingEnsayoId && (
-                            <p className="text-xs text-primary font-medium mt-1">Editando ensayo #{editingEnsayoId}</p>
-                        )}
-                    </div>
+                    {onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
-                        title="Regresar al Dashboard"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                )}
-            </div>
 
             <div>
                 {showDraftBanner ? (
@@ -1501,24 +1504,14 @@ export default function ProctorForm({
                     </div>
                 </Section>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <button
-                        onClick={handleClearLocalData}
-                        disabled={loading}
-                        className="h-11 rounded-lg border border-input bg-background text-foreground font-medium hover:bg-muted/60 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Limpiar datos
-                    </button>
-                    <button onClick={() => setPendingFormatAction(false)} disabled={loading} className="h-11 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : 'Guardar'}
-                    </button>
-                    <button onClick={() => setPendingFormatAction(true)} disabled={loading} className="h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</> : <><Download className="h-4 w-4" /> Guardar y Descargar</>}
-                    </button>
                 </div>
             </div>
-            </div>
+            <FormActionDock
+                onSave={() => setPendingFormatAction(false)}
+                onSaveAndDownload={() => setPendingFormatAction(true)}
+                onClear={handleClearLocalData}
+                loading={loading}
+            />
 
             <FormatConfirmModal
                 open={pendingFormatAction !== null}
@@ -1542,6 +1535,7 @@ export default function ProctorForm({
                 onConfirm={confirmClearLocalData}
                 onCancel={() => setIsClearDraftModalOpen(false)}
             />
+            </div>
         </div>
     )
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
-import { Download, Loader2, Save, Trash2, X } from 'lucide-react'
+import { Beaker, Download, Loader2, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
+import FormActionDock from '../shared/FormActionDock'
 
 const buildFormatPreview = (sampleCode: string | undefined, materialCode: 'SU' | 'AG', ensayo: string) => {
     const currentYear = new Date().getFullYear().toString().slice(-2)
@@ -505,23 +506,33 @@ export default function CarasForm({ editId, onClose, onSaved }: CarasFormProps) 
     )
 
     return (
-        <div className="caras-page min-h-screen bg-[#e9ecef] px-2 py-4 md:px-4 overflow-y-auto">
-            <div className="mx-auto max-w-[1600px] space-y-3">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-3">
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
+                        </div>
                         <div>
-                            <h1 className="text-base font-semibold text-slate-900 md:text-lg">CARAS FRACTURADAS ASTM D5821</h1>
-                            <p className="text-xs text-slate-600">Replica del formato Excel oficial</p>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Caras Fracturadas — ASTM D5821-13
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Formato Oficial F-LEM-P-AG-25.01</p>
+                            {editingEnsayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                                    Editando ensayo #{editingEnsayoId}
+                                </p>
+                            )}
                         </div>
                     </div>
                     {onClose && (
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
                             title="Regresar al Dashboard"
                         >
-                            <X className="h-5 w-5" />
+                            <X className="h-4 w-4" />
                         </button>
                     )}
                 </div>
@@ -797,43 +808,13 @@ export default function CarasForm({ editId, onClose, onSaved }: CarasFormProps) 
                     </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-                    <button
-                        onClick={clearAll}
-                        type="button"
-                        className="flex h-10 items-center justify-center gap-1.5 border border-[#4b4b4b] bg-white text-[12px] font-semibold text-black hover:bg-[#f2f2f2]"
-                    >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Limpiar
-                    </button>
-                    <button
-                        onClick={() => void save(false)}
-                        disabled={loading}
-                        type="button"
-                        className="flex h-10 items-center justify-center gap-2 border border-[#4b4b4b] bg-white text-[12px] font-semibold text-black hover:bg-[#f2f2f2] disabled:opacity-60"
-                    >
-                        {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Guardando...</> : <><Save className="h-4 w-4" />Guardar</>}
-                    </button>
-                    <button
-                        onClick={() => void save(true)}
-                        disabled={loading}
-                        type="button"
-                        className="flex h-10 items-center justify-center gap-1.5 border border-[#4b4b4b] bg-black text-[12px] font-semibold text-white hover:bg-[#1f1f1f] disabled:opacity-60"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                Procesando...
-                            </>
-                        ) : (
-                            <>
-                                <Download className="h-3.5 w-3.5" />
-                                Guardar y Exportar
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
+            <FormActionDock
+                onSave={() => void save(false)}
+                onSaveAndDownload={() => void save(true)}
+                onClear={clearAll}
+                loading={loading}
+            />
         </div>
     )
 }

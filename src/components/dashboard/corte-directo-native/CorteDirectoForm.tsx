@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { authFetch } from "@/lib/api-auth"
 import FormatConfirmModal from "../shared/FormatConfirmModal"
+import FormActionDock from "../shared/FormActionDock"
 
 // --- Types ---
 export type CdHumedadPunto = {
@@ -651,26 +652,37 @@ export default function CorteDirectoForm({
   const resolvedHumedadPuntos = form.humedad_puntos.map(resolveHumedadPoint)
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col overflow-y-auto">
-      {/* Header Bar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <Beaker className="h-6 w-6 text-indigo-600" />
-          <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight sm:text-lg">CORTE DIRECTO - NTP 339.171</h1>
-            <p className="text-xs text-slate-500">Módulo nativo del CRM</p>
+    <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+              <Beaker className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                Corte Directo — NTP 339.171 / ASTM D3080
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">Formato Oficial de Ensayo de Corte Directo</p>
+              {ensayoId && (
+                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                  Editando ensayo #{ensayoId}
+                </p>
+              )}
+            </div>
           </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+              title="Regresar al Dashboard"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <button
-          onClick={handleClose}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
-          title="Regresar al Dashboard"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-6">
         <div className="mx-auto max-w-[1200px] space-y-4">
           {showDraftBanner ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2">
@@ -1095,47 +1107,12 @@ export default function CorteDirectoForm({
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <button
-                  onClick={clearAll}
-                  disabled={loading}
-                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 shadow-sm transition hover:bg-slate-100 disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Limpiar todo
-                </button>
-                <button
-                  onClick={() => setPendingFormatAction(false)}
-                  disabled={loading}
-                  className="h-11 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    "Guardar"
-                  )}
-                </button>
-                <button
-                  onClick={() => setPendingFormatAction(true)}
-                  disabled={loading}
-                  className="h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Guardar y Descargar
-                    </>
-                  )}
-                </button>
-              </div>
+              <FormActionDock
+                onSave={() => setPendingFormatAction(false)}
+                onSaveAndDownload={() => setPendingFormatAction(true)}
+                onClear={clearAll}
+                loading={loading}
+              />
             </div>
           </div>
         </div>

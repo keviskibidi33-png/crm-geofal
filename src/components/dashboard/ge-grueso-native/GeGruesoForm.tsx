@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Beaker, Download, Loader2, Save, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
+import FormActionDock from "../shared/FormActionDock"
 
 const buildFormatPreview = (sampleCode: string | undefined, materialCode: 'SU' | 'AG', ensayo: string) => {
     const currentYear = new Date().getFullYear().toString().slice(-2)
@@ -634,25 +635,37 @@ export default function GeGruesoForm({ editId, onClose, onSaved }: GeGruesoFormP
   const text = "h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500/35"
   const topHeaders = ["MUESTRA", "N° OT", "FECHA", "REALIZADO"]
 
-  return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-6 overflow-y-auto">
-      <div className="mx-auto max-w-[1280px] space-y-4">
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-slate-50"><Beaker className="h-5 w-5 text-slate-900" /></div>
-            <div><h1 className="text-base font-semibold text-slate-900 md:text-lg">GE Grueso - ASTM C127-25</h1><p className="text-xs text-slate-600">Formato fiel a plantilla Excel</p></div>
-          </div>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none"
-              title="Regresar al Dashboard"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </div>
+    return (
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Gravedad Específica Grueso — ASTM C127-25
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Formato Oficial F-LEM-P-AG-19.01</p>
+                            {ensayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                                    Editando ensayo #{ensayoId}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    {onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
 
         {loadingEdit ? <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm"><Loader2 className="h-4 w-4 animate-spin" />Cargando ensayo...</div> : null}
 
@@ -898,12 +911,13 @@ export default function GeGruesoForm({ editId, onClose, onSaved }: GeGruesoFormP
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <button type="button" className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-60" onClick={clear} disabled={loading}><span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Limpiar</span></button>
-          <button type="button" className="h-10 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-60" onClick={() => void save(false)} disabled={loading}>{loading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Guardando...</span> : <span className="inline-flex items-center gap-2"><Save className="h-4 w-4" />Guardar</span>}</button>
-          <button type="button" className="h-10 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-60" onClick={() => void save(true)} disabled={loading}><span className="inline-flex items-center gap-2">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Guardar y Exportar</span></button>
-        </div>
       </div>
+      <FormActionDock
+        onSave={() => void save(false)}
+        onSaveAndDownload={() => void save(true)}
+        onClear={clear}
+        loading={loading}
+      />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Beaker, Download, Loader2, Trash2 } from "lucide-react"
+import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import FormatConfirmModal from "../shared/FormatConfirmModal"
+import FormActionDock from "../shared/FormActionDock"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -451,21 +452,33 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
         'h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35'
 
     return (
-        <div className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-6 min-h-0">
-            <div className="mx-auto max-w-[1280px] space-y-4">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-slate-50">
-                            <Beaker className="h-5 w-5 text-slate-900" />
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
                         </div>
                         <div>
-                            <h1 className="text-base font-semibold text-slate-900 md:text-lg">ABRA - ASTM C535-16 (NATIVO)</h1>
-                            <p className="text-xs text-slate-600">Réplica del formato Excel oficial</p>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Abrasión Los Ángeles (Menor 1 1/2&quot;) — ASTM C131/C131M
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Formato Oficial F-LEM-P-AG-26.01</p>
+                            {ensayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                                    Editando ensayo #{ensayoId}
+                                </p>
+                            )}
                         </div>
                     </div>
                     {onClose && (
-                        <button onClick={onClose} className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 shadow-sm transition-colors">
-                            Cerrar
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-4 w-4" />
                         </button>
                     )}
                 </div>
@@ -893,49 +906,13 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <button
-                        onClick={clearAll}
-                        disabled={loading}
-                        className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 shadow-sm transition hover:bg-slate-100 disabled:opacity-50"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Limpiar todo
-                    </button>
-                    <button
-                        onClick={() => setPendingFormatAction(false)}
-                        disabled={loading}
-                        className="h-11 rounded-lg bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Guardando...
-                            </>
-                        ) : (
-                            'Guardar'
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setPendingFormatAction(true)}
-                        disabled={loading}
-                        className="h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Procesando...
-                            </>
-                        ) : (
-                            <>
-                                <Download className="h-4 w-4" />
-                                Guardar y Descargar
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
-
+            <FormActionDock
+                onSave={() => setPendingFormatAction(false)}
+                onSaveAndDownload={() => setPendingFormatAction(true)}
+                onClear={clearAll}
+                loading={loading}
+            />
             <FormatConfirmModal
                 open={pendingFormatAction !== null}
                 formatLabel={buildFormatPreview(form.muestra, muestraType, 'ABRA')}

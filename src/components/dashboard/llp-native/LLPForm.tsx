@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Beaker, ChevronDown, Download, Loader2, Trash2, X } from 'lucide-react'
 import FormatConfirmModal from '../shared/FormatConfirmModal'
+import FormActionDock from '../shared/FormActionDock'
 import { authFetch } from '@/lib/api-auth'
 import { toast } from 'sonner'
 
@@ -658,25 +659,36 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
     )
 
     return (
-        <div data-form-overlay className="max-w-[1780px] w-full mx-auto p-4 md:p-6 bg-slate-100 min-h-screen">
-            <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Beaker className="h-6 w-6 text-primary" />
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Límite Líquido / Límite Plástico — ASTM D4318-17e1
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Formato Oficial F-LEM-P-SU-23.01</p>
+                            {editingEnsayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                                    Editando ensayo #{editingEnsayoId}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-foreground">Limite Liquido / Limite Plastico - ASTM D4318-17e1</h1>
-                        <p className="text-sm text-muted-foreground">Formulario operativo LLP</p>
-                    </div>
+                    {onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
-                <button
-                    onClick={onClose}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition shadow-sm"
-                >
-                    <X className="h-4 w-4" />
-                    Volver
-                </button>
-            </div>
 
             <div>
                 <div className="space-y-5">
@@ -1138,13 +1150,14 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <button onClick={clearAll} disabled={loading} className="h-11 rounded-lg border border-input bg-white text-foreground font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"><Trash2 className="h-4 w-4" />Limpiar todo</button>
-                        <button onClick={() => setPendingFormatAction(false)} disabled={loading} className="h-11 rounded-lg border border-[#0089b3] text-[#0089b3] bg-white font-semibold hover:bg-[#0089b3]/5 transition-colors disabled:opacity-50 shadow-sm">{loading ? 'Guardando...' : 'Guardar'}</button>
-                        <button onClick={() => setPendingFormatAction(true)} disabled={loading} className="h-11 rounded-lg bg-[#0089b3] text-white font-semibold hover:bg-[#007499] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm">{loading ? <><Loader2 className="h-4 w-4 animate-spin" />Procesando...</> : <><Download className="h-4 w-4" />Guardar y descargar Excel</>}</button>
-                    </div>
                 </div>
             </div>
+            <FormActionDock
+                onSave={() => setPendingFormatAction(false)}
+                onSaveAndDownload={() => setPendingFormatAction(true)}
+                onClear={clearAll}
+                loading={loading}
+            />
             
             <FormatConfirmModal
                 open={pendingFormatAction !== null}
@@ -1158,6 +1171,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                     void save(shouldDownload)
                 }}
             />
+            </div>
         </div>
     )
 }

@@ -5,6 +5,7 @@ import { FlaskConical, Beaker, Loader2, Download, Trash2, X, Search, AlertCircle
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { createPortal } from "react-dom"
+import FormActionDock from "../shared/FormActionDock"
 
 interface DensidadHuantarPuntoState {
     punto_numero: number
@@ -614,34 +615,42 @@ export default function DensidadHuantarForm({
     }, [form])
 
     return (
-        <div className="max-w-[1780px] mx-auto p-4 md:p-6 pb-20">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319 / 0.12)', color: 'lab(48.477% -35.0644 -41.4319)' }}>
-                        <FlaskConical className="h-6 w-6" />
+        <div className="min-h-screen bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-28">
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                            <Beaker className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                Densidad Huantar — Cono de Arena (ASTM D1556)
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium">Control de Compactación y Densidad In Situ</p>
+                            {ensayoId && (
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                                    Editando Ensayo #{ensayoId}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900">Densidad Huantar — Cono de Arena</h1>
-                        <p className="text-sm text-slate-500">Módulo nativo de control de compactación</p>
-                        {ensayoId && <p className="text-xs font-semibold mt-1" style={{ color: 'lab(48.477% -35.0644 -41.4319)' }}>Editando Ensayo #{ensayoId}</p>}
-                    </div>
+                    {onClose && (
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                if (isDirty) {
+                                    setIsCloseConfirmOpen(true)
+                                } else {
+                                    onClose()
+                                }
+                            }}
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
+                            title="Regresar al Dashboard"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
-                {onClose && (
-                    <button 
-                        onClick={() => {
-                            if (isDirty) {
-                                setIsCloseConfirmOpen(true)
-                            } else {
-                                onClose()
-                            }
-                        }}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 shadow-sm transition"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                )}
-            </div>
 
             {/* Draft banner */}
             {showDraftBanner && draftData && (
@@ -1494,47 +1503,13 @@ export default function DensidadHuantarForm({
                     </div>
                 </div>
 
-                {/* Footer Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
-                    <button
-                        onClick={handleClearLocalData}
-                        disabled={loading}
-                        className="h-11 px-6 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg shadow-sm transition flex items-center justify-center gap-2"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Limpiar Datos
-                    </button>
-                    <div className="flex-1" />
-                    <button
-                        onClick={() => setPendingFormatAction(false)}
-                        disabled={loading}
-                        className="h-11 px-6 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg shadow-sm transition flex items-center justify-center gap-2"
-                    >
-                        {loading && pendingFormatAction === false ? (
-                            <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</>
-                        ) : (
-                            "Guardar Borrador"
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setPendingFormatAction(true)}
-                        disabled={loading}
-                        className="h-11 px-6 text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-2"
-                        style={{ backgroundColor: 'lab(48.477% -35.0644 -41.4319)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.88' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                    >
-                        {loading && pendingFormatAction === true ? (
-                            <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
-                        ) : (
-                            <>
-                                <Download className="h-4 w-4" />
-                                Guardar y Descargar Excel
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
+            <FormActionDock
+                onSave={() => setPendingFormatAction(false)}
+                onSaveAndDownload={() => setPendingFormatAction(true)}
+                onClear={handleClearLocalData}
+                loading={loading}
+            />
 
             {/* Clear Draft Confirm Modal */}
             <ConfirmActionModal
@@ -1576,6 +1551,7 @@ export default function DensidadHuantarForm({
                     if (onClose) onClose()
                 }}
             />
+            </div>
         </div>
     )
 }

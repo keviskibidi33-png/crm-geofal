@@ -31,7 +31,10 @@ import {
   Plus,
   Download,
   CheckCircle2,
+  Beaker,
+  X,
 } from "lucide-react"
+import FormActionDock from "../shared/FormActionDock"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -643,13 +646,26 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-6 py-4 border-b bg-muted/30 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">
-            {editId ? "Editar F. Probetas" : "Nuevo F. Probetas"}
-          </h2>
+    <div className="flex flex-col flex-1 overflow-hidden pb-28">
+      {/* Modern Header */}
+      <div className="shrink-0 p-4 sm:p-6 bg-slate-50/70 border-b border-slate-200/80 space-y-4">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+              <Beaker className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                Compresión de Probetas de Concreto — ASTM C39 / NTP 339.034
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">Formato Oficial de Ensayo a Compresión</p>
+              {editId && (
+                <p className="text-xs text-blue-600 font-semibold mt-0.5">
+                  Editando ensayo #{editId}
+                </p>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             {editId ? (
               <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 font-bold text-xs">
@@ -661,7 +677,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               </Badge>
             ) : null}
             {traceStatus?.exists && (
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Traza:</span>
                 <div className="flex items-center gap-1">
                   {[
@@ -688,6 +704,16 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                   })}
                 </div>
               </div>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none ml-2"
+                title="Regresar al Dashboard"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
@@ -1208,73 +1234,12 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="shrink-0 px-6 py-4 border-t bg-muted/30 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          {hasSavedData && !editId && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowClearDraftConfirm(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Eliminar borrador
-            </Button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {editId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void handleDownloadExcel()}
-              disabled={downloading}
-            >
-              {downloading ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-1" />
-              )}
-              Excel
-            </Button>
-          )}
-          <Button
-            type="button"
-            onClick={() => void onSubmit(getValues(), false)}
-            disabled={isSubmitting}
-            size="sm"
-            variant="secondary"
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 mr-1" />
-            )}
-            Guardar
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void onSubmit(getValues(), true)}
-            disabled={isSubmitting || downloading}
-            size="sm"
-            className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
-          >
-            {downloading || isSubmitting ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-1" />
-            )}
-            Guardar y Exportar
-          </Button>
-          {onClose && (
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-              Cerrar
-            </Button>
-          )}
-        </div>
-      </div>
+      <FormActionDock
+        onSave={() => void onSubmit(getValues(), false)}
+        onSaveAndDownload={() => void onSubmit(getValues(), true)}
+        onClear={hasSavedData && !editId ? () => setShowClearDraftConfirm(true) : undefined}
+        loading={isSubmitting || downloading}
+      />
 
       {/* Clear Draft Confirmation */}
       <AlertDialog open={showClearDraftConfirm} onOpenChange={setShowClearDraftConfirm}>
