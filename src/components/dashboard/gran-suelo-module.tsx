@@ -206,13 +206,18 @@ export function GranSueloModule() {
     return () => window.removeEventListener("message", handleMessage)
   }, [fetchEnsayos, closeNativeModal])
 
+  const [modalIframeSrc, setModalIframeSrc] = useState<string>("")
+
   const openNewEnsayo = async () => {
     if (isNative) {
       nativeNew()
       return
     }
-    await syncIframeToken()
+    const freshToken = await syncIframeToken()
     setEditingEnsayoId(null)
+    const url = new URL(FRONTEND_URL)
+    if (freshToken) url.searchParams.set("token", freshToken)
+    setModalIframeSrc(url.toString())
     setIsModalOpen(true)
   }
 
@@ -222,7 +227,11 @@ export function GranSueloModule() {
       nativeEdit(id)
       return
     }
-    await syncIframeToken()
+    const freshToken = await syncIframeToken()
+    const url = new URL(FRONTEND_URL)
+    if (freshToken) url.searchParams.set("token", freshToken)
+    url.searchParams.set("ensayo_id", String(id))
+    setModalIframeSrc(url.toString())
     setIsModalOpen(true)
   }
 
@@ -301,32 +310,35 @@ export function GranSueloModule() {
     setIsDeleteConfirmOpen(true)
   }
 
-  const handleDeleteEnsayo = useCallback(
-    async () => {
-      if (!deletingEnsayoId) return
-      
-      const id = deletingEnsayoId
-      try {
-        const res = await authFetch(`${API_URL}/api/gran-suelo/${id}`, { method: "DELETE" })
-        if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
-        setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de GRANULOMETRIA SUELOS ASTM D6913/D6913M-17 enviado a papelera.")
-        setIsDeleteConfirmOpen(false)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Error desconocido"
-        toast.error(message)
-      } finally {
-        setDeletingEnsayoId(null)
-      }
-    },
-    [API_URL, deletingEnsayoId],
-  )
+  const handleDeleteEnsayo = async () => {
+    if (!deletingEnsayoId) return
+    try {
+      const res = await authFetch(`${API_URL}/api/gran-suelo/${deletingEnsayoId}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) throw new Error("No se pudo eliminar el ensayo.")
+      toast.success("Ensayo movido a la papelera correctamente.")
+      setIsDeleteConfirmOpen(false)
+      setDeletingEnsayoId(null)
+      setDeleteConfirmInput("")
+      void fetchEnsayos()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error desconocido"
+      toast.error(message)
+    }
+  }
 
-  const filtered = ensayos.filter((e) => {
-    const term = search.trim().toLowerCase()
-    if (!term) return true
-    return (e.muestra || e.cliente || "").toLowerCase().includes(term) || (e.numero_ot || "").toLowerCase().includes(term)
-  })
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return ensayos
+    return ensayos.filter((item) => {
+      const muestra = (item.muestra || "").toLowerCase()
+      const cliente = (item.cliente || "").toLowerCase()
+      const ot = (item.numero_ot || "").toLowerCase()
+      const num = (item.numero_ensayo || "").toLowerCase()
+      return muestra.includes(q) || cliente.includes(q) || ot.includes(q) || num.includes(q)
+    })
+  }, [ensayos, search])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -336,13 +348,7 @@ export function GranSueloModule() {
     setCurrentPage(1)
   }, [search])
 
-  const activeEnsayoId = editingEnsayoId || nativeEnsayoId
-  const iframeSrc = useMemo(() => {
-    const url = new URL(FRONTEND_URL)
-    if (token) url.searchParams.set("token", token)
-    if (activeEnsayoId) url.searchParams.set("ensayo_id", String(activeEnsayoId))
-    return url.toString()
-  }, [FRONTEND_URL, token, activeEnsayoId])
+  const iframeSrc = modalIframeSrc || `${FRONTEND_URL}?token=${token || ""}`
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
