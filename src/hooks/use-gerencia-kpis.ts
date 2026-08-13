@@ -301,7 +301,7 @@ export function useGerenciaKpis() {
           averageTicket: clients > 0 ? accumulator.income / clients : 0,
         }
       })
-      const totalAverageTicket = categories.reduce((sum, category) => sum + category.averageTicket, 0)
+      const totalAverageTicket = totalClients > 0 ? totalIncome / totalClients : 0
 
       let yesCount = 0
       let noCount = 0
