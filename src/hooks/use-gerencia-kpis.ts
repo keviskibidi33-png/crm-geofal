@@ -149,8 +149,8 @@ function resolveControlCommercialCategory(row: ControlCommercialRow): CategoryKe
     // Categoría 4 (ALQ): ALQUILER, ALQ
     if (/\bALQ\b|ALQUILER/.test(sampleCode)) return "ALQ"
 
-    // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES
-    if (/\bDEN\b|DENSIDAD/.test(sampleCode)) return "DEN"
+    // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES, DENSIDA, DENSIMETRO
+    if (/DENSIDA|DENSIME|\bDEN\b/.test(sampleCode)) return "DEN"
 
     // Categoría 3 (EMS): EMS, MECANICA DE SUELOS, ESTUDIO DE SUELOS
     if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(sampleCode)) return "EMS"
@@ -172,7 +172,7 @@ function resolveControlCommercialCategory(row: ControlCommercialRow): CategoryKe
 
   if (/\bALQ\b|ALQUILER/.test(fallbackText)) return "ALQ"
   if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(fallbackText)) return "EMS"
-  if (/DENSIDAD|\bDEN\b/.test(fallbackText)) return "DEN"
+  if (/DENSIDA|DENSIME|\bDEN\b/.test(fallbackText)) return "DEN"
   if (/PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA|\bCO\b/.test(fallbackText)) return "PROB"
 
   return "ENS.V."
