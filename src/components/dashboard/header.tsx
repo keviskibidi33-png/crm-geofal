@@ -71,10 +71,22 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   const notificationIdsRef = useRef<Set<string>>(new Set())
   const notificationsInitializedRef = useRef(false)
   const bellSoundRef = useRef<AudioContext | null>(null)
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
   const isAdmin = isAdminDashboardRole(user.role)
   const isCommercialNotificationsRole = isComercialDashboardRole(user.role)
   const isLaboratoryNotifications = isLaboratoryNotificationsRole(user.role)
   const showNotifications = true
+
+  useEffect(() => {
+    const handleUnreadCount = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail && typeof customEvent.detail.count === "number") {
+        setUnreadChatCount(customEvent.detail.count)
+      }
+    }
+    window.addEventListener("crm_chat_unread_count", handleUnreadCount)
+    return () => window.removeEventListener("crm_chat_unread_count", handleUnreadCount)
+  }, [])
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -346,6 +358,7 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   }, [fetchNotifications, isAdmin, isCommercialNotificationsRole, isLaboratoryNotifications, user.id])
 
   const openNotificationCount = notifications.filter((item) => item.status === "open" || !item.status).length
+  const totalNotificationBadgeCount = openNotificationCount + unreadChatCount
   const acknowledgedNotificationCount = notifications.filter((item) => item.status === "acknowledged").length
   const resolvedNotificationCount = historyNotifications.length
   const activeNotifications = useMemo(
@@ -399,9 +412,9 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
                 >
                   <Bell className="h-5 w-5 text-muted-foreground" />
                 </span>
-                {openNotificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                    {openNotificationCount > 9 ? "9+" : openNotificationCount}
+                {totalNotificationBadgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center shadow-xs">
+                    {totalNotificationBadgeCount > 99 ? "99+" : totalNotificationBadgeCount}
                   </span>
                 )}
                 <span className="sr-only">Notificaciones</span>

@@ -197,18 +197,6 @@ export function GlobalChatNotifier({ user, activeModule, onOpenChat }: GlobalCha
       if (!isFromMe) {
         playChatChimeSound()
 
-        if (activeModule !== "comunicaciones") {
-          const displaySender = senderName.split(" ")[0] || "Usuario"
-          toast(`💬 Mensaje de @${displaySender}`, {
-            description: normalizedMsg.content.length > 70 ? `${normalizedMsg.content.slice(0, 70)}...` : normalizedMsg.content || "Nuevo mensaje recibido",
-            action: {
-              label: "Ver chat",
-              onClick: () => onOpenChat(),
-            },
-            duration: 5000,
-          })
-        }
-
         setUnreadCounts((prev) => ({
           ...prev,
           [channelId]: (prev[channelId] || 0) + 1,
