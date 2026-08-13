@@ -293,7 +293,6 @@ export function SulfatosSolublesModule() {
       }
       if (event.data?.type === "SAVED_AND_DOWNLOADED" || (event.data?.type === "CLOSE_MODAL" && event.data?.action === "download")) {
         setEditingEnsayoId(null)
-        closeNativeModal()
         setIsModalOpen(false)
         void fetchEnsayos()
       }

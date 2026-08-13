@@ -78,31 +78,19 @@ const EQUIPO_OPTIONS = Object.entries(EQUIPO_NOMBRES).map(([codigo, nombre]) => 
   label: `${codigo} - ${nombre}`,
 }))
 
-const optionalNumberSchema = z.preprocess((value) => {
-  if (value === "" || value === null || value === undefined) return null
-  if (typeof value === "number" && Number.isNaN(value)) return null
-  if (typeof value === "string") {
-    const trimmed = value.trim()
-    if (trimmed === "") return null
-    const parsed = Number(trimmed)
-    return Number.isNaN(parsed) ? value : parsed
-  }
-  return value
-}, z.number().nullable().optional())
-
 // Zod schema
 const itemSchema = z.object({
-  item: z.coerce.number().int().min(1),
+  item: z.number().int().min(1),
   codigo_lem: z.string().min(1, "Requerido"),
   fecha_ensayo_programado: z.string().nullable().optional(),
   fecha_ensayo: z.string().nullable().optional(),
   hora_ensayo: z.string().nullable().optional(),
-  carga_maxima: optionalNumberSchema,
+  carga_maxima: z.number().nullable().optional(),
   tipo_fractura: z.string().nullable().optional(),
   defectos: z.string().nullable().optional(),
   defectos_custom: z.string().nullable().optional(),
-  diametro: optionalNumberSchema,
-  area: optionalNumberSchema,
+  diametro: z.number().nullable().optional(),
+  area: z.number().nullable().optional(),
   realizado: z.string().nullable().optional(),
   revisado: z.string().nullable().optional(),
   fecha_revisado: z.string().nullable().optional(),
@@ -1235,7 +1223,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               Excel
             </Button>
           )}
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} size="sm">
+          <Button onClick={() => void onSubmit(getValues())} disabled={isSubmitting} size="sm">
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (

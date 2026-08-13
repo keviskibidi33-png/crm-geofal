@@ -1,6 +1,6 @@
-
 "use client"
 
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus, Droplets, Loader2, RefreshCw, Search, Eye, Pencil, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -18,8 +18,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
-import { getModuleConfig } from "./shared/native-ensayo-config"
-import { NativeEnsayoModals, useNativeEnsayoMode } from "./shared/NativeEnsayoModals"
+import ContHumedadForm from "./cont-humedad-native/ContHumedadForm"
 
 interface EnsayoSummary {
   id: number
@@ -41,9 +40,6 @@ interface EnsayoDetail extends EnsayoSummary {
 }
 
 export function ContHumedadModule() {
-  const config = useMemo(() => getModuleConfig("cont-humedad"), [])
-  const { isNative, nativeMode, nativeEnsayoId, openNewEnsayo: nativeNew, openEditEnsayo: nativeEdit, openDetail: nativeDetailN, closeNativeModal } = useNativeEnsayoMode(config)
-
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [token, setToken] = useState<string | null>(null)
@@ -60,94 +56,7 @@ export function ContHumedadModule() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
 
-  const FRONTEND_URL = (
-    process.env.NEXT_PUBLIC_CONT_HUMEDAD_FRONTEND_URL ||
-    process.env.NEXT_PUBLIC_CONT_HUMEDAD_URL ||
-    "https://cont-humedad.geofal.com.pe"
-  ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-
-  const syncIframeToken = async (): Promise<string | null> => {
-    const getStoredAccessToken = (): string | null => {
-      if (typeof window === "undefined") return null
-
-      const direct = localStorage.getItem("token")
-      if (direct) return direct
-
-      const extractToken = (parsed: any): string | null => {
-        if (!parsed) return null
-        if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-        if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
-        if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
-        if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
-        return null
-      }
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
-
-        const raw = localStorage.getItem(key)
-        if (!raw) continue
-
-        try {
-          const parsed = JSON.parse(raw)
-          const token = extractToken(parsed)
-          if (token) return token
-        } catch {
-          // ignore malformed entries
-        }
-      }
-
-      return null
-    }
-
-    const isTokenExpiringSoon = (jwt: string | null, skewMs = 60_000): boolean => {
-      if (!jwt) return true
-
-      try {
-        const [, payload] = jwt.split(".")
-        if (!payload) return true
-
-        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
-        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
-        const parsed = JSON.parse(window.atob(padded))
-        const expMs = typeof parsed?.exp === "number" ? parsed.exp * 1000 : null
-
-        if (!expMs) return true
-        return expMs <= Date.now() + skewMs
-      } catch {
-        return true
-      }
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const sessionToken = session?.access_token ?? null
-    const localToken = getStoredAccessToken()
-    let freshToken = !isTokenExpiringSoon(sessionToken)
-      ? sessionToken
-      : !isTokenExpiringSoon(localToken)
-        ? localToken
-        : null
-
-    if (!freshToken) {
-      try {
-        const { data } = await supabase.auth.refreshSession()
-        freshToken = data?.session?.access_token ?? getStoredAccessToken()
-      } catch {
-        freshToken = getStoredAccessToken()
-      }
-    }
-
-    if (freshToken && typeof window !== "undefined") {
-      localStorage.setItem("token", freshToken)
-    }
-
-    setToken(freshToken)
-    return freshToken
-  }
 
   const fetchEnsayos = useCallback(async (): Promise<boolean> => {
     setLoading(true)
@@ -160,7 +69,7 @@ export function ContHumedadModule() {
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching PH ensayos", err)
+      console.error("Error fetching Cont Humedad ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -169,68 +78,19 @@ export function ContHumedadModule() {
 
   useEffect(() => {
     void fetchEnsayos()
-    void syncIframeToken()
   }, [fetchEnsayos])
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID" || event.data?.type === "CLOSE_MODAL") {
-        const savedId = Number(event.data?.ensayoId || event.data?.ensayo_id || event.data?.id)
-        if (Number.isInteger(savedId) && savedId > 0) {
-          setEditingEnsayoId(savedId)
-        }
-        void fetchEnsayos()
-      }
-      if (event.data?.type === "SAVED_AND_DOWNLOADED" || (event.data?.type === "CLOSE_MODAL" && event.data?.action === "download")) {
-        setEditingEnsayoId(null)
-        closeNativeModal()
-        setIsModalOpen(false)
-        void fetchEnsayos()
-      }
-      if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
-        syncIframeToken().then((freshToken) => {
-          if (freshToken && event.source) {
-            ;(event.source as Window).postMessage(
-              {
-                type: "TOKEN_REFRESH",
-                token: freshToken,
-                requestId: typeof event.data?.requestId === "string" ? event.data.requestId : undefined,
-              },
-              event.origin || "*",
-            )
-          }
-        })
-      }
-    }
-    window.addEventListener("message", handleMessage)
-    return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos, closeNativeModal])
-
-  const openNewEnsayo = async () => {
-    if (isNative) {
-      nativeNew()
-      return
-    }
-    await syncIframeToken()
+  const openNewEnsayo = () => {
     setEditingEnsayoId(null)
     setIsModalOpen(true)
   }
 
-  const openEditEnsayo = async (id: number) => {
+  const openEditEnsayo = (id: number) => {
     setEditingEnsayoId(id)
-    if (isNative) {
-      nativeEdit(id)
-      return
-    }
-    await syncIframeToken()
     setIsModalOpen(true)
   }
 
   const doOpenDetail = async (id: number) => {
-    if (isNative) {
-      nativeDetailN(id)
-      return
-    }
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/cont-humedad/${id}?_ts=${Date.now()}`, { cache: "no-store" })
@@ -335,14 +195,6 @@ export function ContHumedadModule() {
   useEffect(() => {
     setCurrentPage(1)
   }, [search])
-
-  const activeEnsayoId = editingEnsayoId || nativeEnsayoId
-  const iframeSrc = useMemo(() => {
-    const url = new URL(FRONTEND_URL)
-    if (token) url.searchParams.set("token", token)
-    if (activeEnsayoId) url.searchParams.set("ensayo_id", String(activeEnsayoId))
-    return url.toString()
-  }, [FRONTEND_URL, token, activeEnsayoId])
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
@@ -465,52 +317,19 @@ export function ContHumedadModule() {
         )}
       </div>
 
-      {isNative ? (
-        <NativeEnsayoModals
-          mode={nativeMode}
-          ensayoId={nativeEnsayoId}
-          config={config}
-          apiUrl={API_URL}
-          iframeSrc={iframeSrc}
-          iframeTitle="Contenido de Humedad AG CRM"
-          onClose={() => { setEditingEnsayoId(null); closeNativeModal() }}
-          onSaved={() => { setEditingEnsayoId(null); closeNativeModal(); void fetchEnsayos() }}
-        />
-      ) : (
-        <>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-              <DialogHeader className="hidden">
-                <DialogTitle>Ensayo Contenido de Humedad AG</DialogTitle>
-                <DialogDescription>Formulario Contenido de Humedad AG</DialogDescription>
-              </DialogHeader>
-              <iframe src={iframeSrc} className="w-full h-full border-none" title="Contenido de Humedad AG CRM" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-            <DialogContent className="max-w-xl">
-              <DialogHeader>
-                <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-                <DialogDescription>Informacion guardada del Ensayo Contenido de Humedad AG.</DialogDescription>
-              </DialogHeader>
-              {selectedDetail ? (
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
-                  <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
-                  <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
-                  <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
-                  <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
-                  <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
-                  <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
-              )}
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
+          <DialogHeader className="hidden">
+            <DialogTitle>Ensayo Contenido de Humedad AG</DialogTitle>
+            <DialogDescription>Formulario Contenido de Humedad AG</DialogDescription>
+          </DialogHeader>
+          <ContHumedadForm
+            editId={editingEnsayoId}
+            onClose={() => setIsModalOpen(false)}
+            onSaved={fetchEnsayos}
+          />
+        </DialogContent>
+      </Dialog>
 
       <ModernConfirmDialog
         open={isDeleteConfirmOpen}

@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Dumbbell, Loader2, RefreshCw, Search, Eye, Pencil, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
-import { supabase } from "@/lib/supabaseClient"
 import { toast } from "sonner"
 import {
   Table,
@@ -18,8 +17,7 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { authFetch } from "@/lib/api-auth"
-import { getModuleConfig } from "./shared/native-ensayo-config"
-import { NativeEnsayoModals, useNativeEnsayoMode } from "./shared/NativeEnsayoModals"
+import CompresionNoConfinadaForm from "./compresion-no-confinada-native/CompresionNoConfinadaForm"
 
 interface EnsayoSummary {
   id: number
@@ -41,12 +39,8 @@ interface EnsayoDetail extends EnsayoSummary {
 }
 
 export function CompresionNoConfinadaModule() {
-  const config = useMemo(() => getModuleConfig("compresion-no-confinada"), [])
-  const { isNative, nativeMode, nativeEnsayoId, openNewEnsayo: nativeNew, openEditEnsayo: nativeEdit, openDetail: nativeDetailN, closeNativeModal } = useNativeEnsayoMode(config)
-
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [token, setToken] = useState<string | null>(null)
   const [ensayos, setEnsayos] = useState<EnsayoSummary[]>([])
   const [selectedDetail, setSelectedDetail] = useState<EnsayoDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -60,94 +54,7 @@ export function CompresionNoConfinadaModule() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 100
 
-  const FRONTEND_URL = (
-    process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_FRONTEND_URL ||
-    process.env.NEXT_PUBLIC_COMPRESION_NO_CONFINADA_URL ||
-    "https://compresion-no-confinada.geofal.com.pe"
-  ).replace(/\/+$|\/$/g, "")
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
-
-  const syncIframeToken = async (): Promise<string | null> => {
-    const getStoredAccessToken = (): string | null => {
-      if (typeof window === "undefined") return null
-
-      const direct = localStorage.getItem("token")
-      if (direct) return direct
-
-      const extractToken = (parsed: any): string | null => {
-        if (!parsed) return null
-        if (typeof parsed?.access_token === "string" && parsed.access_token) return parsed.access_token
-        if (typeof parsed?.currentSession?.access_token === "string" && parsed.currentSession.access_token) return parsed.currentSession.access_token
-        if (typeof parsed?.session?.access_token === "string" && parsed.session.access_token) return parsed.session.access_token
-        if (Array.isArray(parsed) && typeof parsed[0]?.access_token === "string" && parsed[0].access_token) return parsed[0].access_token
-        return null
-      }
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue
-
-        const raw = localStorage.getItem(key)
-        if (!raw) continue
-
-        try {
-          const parsed = JSON.parse(raw)
-          const token = extractToken(parsed)
-          if (token) return token
-        } catch {
-          // ignore malformed entries
-        }
-      }
-
-      return null
-    }
-
-    const isTokenExpiringSoon = (jwt: string | null, skewMs = 60_000): boolean => {
-      if (!jwt) return true
-
-      try {
-        const [, payload] = jwt.split(".")
-        if (!payload) return true
-
-        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/")
-        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
-        const parsed = JSON.parse(window.atob(padded))
-        const expMs = typeof parsed?.exp === "number" ? parsed.exp * 1000 : null
-
-        if (!expMs) return true
-        return expMs <= Date.now() + skewMs
-      } catch {
-        return true
-      }
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const sessionToken = session?.access_token ?? null
-    const localToken = getStoredAccessToken()
-    let freshToken = !isTokenExpiringSoon(sessionToken)
-      ? sessionToken
-      : !isTokenExpiringSoon(localToken)
-        ? localToken
-        : null
-
-    if (!freshToken) {
-      try {
-        const { data } = await supabase.auth.refreshSession()
-        freshToken = data?.session?.access_token ?? getStoredAccessToken()
-      } catch {
-        freshToken = getStoredAccessToken()
-      }
-    }
-
-    if (freshToken && typeof window !== "undefined") {
-      localStorage.setItem("token", freshToken)
-    }
-
-    setToken(freshToken)
-    return freshToken
-  }
 
   const fetchEnsayos = useCallback(async (): Promise<boolean> => {
     setLoading(true)
@@ -160,7 +67,7 @@ export function CompresionNoConfinadaModule() {
       setEnsayos(data)
       return true
     } catch (err) {
-      console.error("Error fetching PH ensayos", err)
+      console.error("Error fetching Compresion No Confinada ensayos", err)
       return false
     } finally {
       setLoading(false)
@@ -169,68 +76,19 @@ export function CompresionNoConfinadaModule() {
 
   useEffect(() => {
     void fetchEnsayos()
-    void syncIframeToken()
   }, [fetchEnsayos])
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID" || event.data?.type === "CLOSE_MODAL") {
-        const savedId = Number(event.data?.ensayoId || event.data?.ensayo_id || event.data?.id)
-        if (Number.isInteger(savedId) && savedId > 0) {
-          setEditingEnsayoId(savedId)
-        }
-        void fetchEnsayos()
-      }
-      if (event.data?.type === "SAVED_AND_DOWNLOADED" || (event.data?.type === "CLOSE_MODAL" && event.data?.action === "download")) {
-        setEditingEnsayoId(null)
-        closeNativeModal()
-        setIsModalOpen(false)
-        void fetchEnsayos()
-      }
-      if (event.data?.type === "TOKEN_REFRESH_REQUEST" && event.source) {
-        syncIframeToken().then((freshToken) => {
-          if (freshToken && event.source) {
-            ;(event.source as Window).postMessage(
-              {
-                type: "TOKEN_REFRESH",
-                token: freshToken,
-                requestId: typeof event.data?.requestId === "string" ? event.data.requestId : undefined,
-              },
-              event.origin || "*",
-            )
-          }
-        })
-      }
-    }
-    window.addEventListener("message", handleMessage)
-    return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos, closeNativeModal])
-
-  const openNewEnsayo = async () => {
-    if (isNative) {
-      nativeNew()
-      return
-    }
-    await syncIframeToken()
+  const openNewEnsayo = () => {
     setEditingEnsayoId(null)
     setIsModalOpen(true)
   }
 
-  const openEditEnsayo = async (id: number) => {
+  const openEditEnsayo = (id: number) => {
     setEditingEnsayoId(id)
-    if (isNative) {
-      nativeEdit(id)
-      return
-    }
-    await syncIframeToken()
     setIsModalOpen(true)
   }
 
   const doOpenDetail = async (id: number) => {
-    if (isNative) {
-      nativeDetailN(id)
-      return
-    }
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/compresion-no-confinada/${id}?_ts=${Date.now()}`, { cache: "no-store" })
@@ -252,7 +110,7 @@ export function CompresionNoConfinadaModule() {
     try {
       const ok = await fetchEnsayos()
       toast[ok ? "success" : "error"](
-        ok ? "Tabla de C. No Confinada actualizada." : "No se pudo actualizar la tabla de C. No Confinada.",
+        ok ? "Tabla de Compresión No Confinada actualizada." : "No se pudo actualizar la tabla de Compresión No Confinada.",
       )
     } finally {
       setRefreshingTable(false)
@@ -275,7 +133,7 @@ export function CompresionNoConfinadaModule() {
       if (!res.ok) throw new Error("No se pudo descargar el reporte.")
       const blob = await res.blob()
       const contentDisposition = res.headers.get("content-disposition")
-      let filename = `COMP_NO_CONF_${muestraCodigo || id}.xlsx`
+      let filename = `COMPRESION_NO_CONFINADA_${muestraCodigo || id}.xlsx`
       if (contentDisposition && contentDisposition.includes("filename=")) {
         const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/)
         if (match && match[1]) filename = match[1]
@@ -310,7 +168,7 @@ export function CompresionNoConfinadaModule() {
         const res = await authFetch(`${API_URL}/api/compresion-no-confinada/${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("No se pudo enviar a papelera el ensayo.")
         setEnsayos((prev) => prev.filter((row) => row.id !== id))
-        toast.success("Ensayo de C. No Confinada enviado a papelera.")
+        toast.success("Ensayo de Compresión No Confinada enviado a papelera.")
         setIsDeleteConfirmOpen(false)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido"
@@ -336,14 +194,6 @@ export function CompresionNoConfinadaModule() {
     setCurrentPage(1)
   }, [search])
 
-  const activeEnsayoId = editingEnsayoId || nativeEnsayoId
-  const iframeSrc = useMemo(() => {
-    const url = new URL(FRONTEND_URL)
-    if (token) url.searchParams.set("token", token)
-    if (activeEnsayoId) url.searchParams.set("ensayo_id", String(activeEnsayoId))
-    return url.toString()
-  }, [FRONTEND_URL, token, activeEnsayoId])
-
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
     const parsed = new Date(value)
@@ -356,11 +206,11 @@ export function CompresionNoConfinadaModule() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div className="shrink-0 p-2 rounded-lg bg-primary/10">
-            <Beaker className="h-6 w-6 text-primary" />
+            <Dumbbell className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">C. No Confinada</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Ensayo de compresion no confinada en suelos.</p>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-tight wrap-break-word">Compresión No Confinada NTP 339.167</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Resistencia a la compresión no confinada de suelos cohesivos.</p>
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
@@ -386,7 +236,7 @@ export function CompresionNoConfinadaModule() {
 
       <div className="border rounded-xl shadow-sm bg-white">
         <div className="px-4 py-3 border-b bg-slate-50/70 rounded-t-xl">
-          <h3 className="text-sm font-semibold text-slate-900">Historial C. No Confinada</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Historial Compresión No Confinada NTP 339.167</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
         <Table className="min-w-[860px]">
@@ -433,6 +283,9 @@ export function CompresionNoConfinadaModule() {
                       >
                         {downloadingId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
+                      <Button variant="ghost" size="icon" onClick={() => void doOpenDetail(ensayo.id)} title="Ver detalle">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)} title="Editar ensayo">
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
@@ -442,14 +295,14 @@ export function CompresionNoConfinadaModule() {
                         disabled={deletingEnsayoId === ensayo.id}
                         title="Eliminar ensayo"
                       >
-                        {deletingEnsayoId === ensayo.id && isDeleteConfirmOpen ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deletingEnsayoId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
           </TableBody>
-          <TableCaption className="text-xs text-muted-foreground">C. No Confinada - listado con busqueda y acceso rapido.</TableCaption>
+          <TableCaption className="text-xs text-muted-foreground">Compresión No Confinada NTP 339.167 - listado con busqueda y acceso rapido.</TableCaption>
         </Table>
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
@@ -465,58 +318,47 @@ export function CompresionNoConfinadaModule() {
         )}
       </div>
 
-      {isNative ? (
-        <NativeEnsayoModals
-          mode={nativeMode}
-          ensayoId={nativeEnsayoId}
-          config={config}
-          apiUrl={API_URL}
-          iframeSrc={iframeSrc}
-          iframeTitle="Compresion No Confinada CRM"
-          onClose={() => { setEditingEnsayoId(null); closeNativeModal() }}
-          onSaved={() => { setEditingEnsayoId(null); closeNativeModal(); void fetchEnsayos() }}
-        />
-      ) : (
-        <>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden">
-              <DialogHeader className="hidden">
-                <DialogTitle>Ensayo C. No Confinada</DialogTitle>
-                <DialogDescription>Formulario C. No Confinada</DialogDescription>
-              </DialogHeader>
-              <iframe src={iframeSrc} className="w-full h-full border-none" title="C. No Confinada CRM" />
-            </DialogContent>
-          </Dialog>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
+          <DialogHeader className="hidden">
+            <DialogTitle>Ensayo Compresión No Confinada NTP 339.167</DialogTitle>
+            <DialogDescription>Formulario Compresión No Confinada NTP 339.167</DialogDescription>
+          </DialogHeader>
+          <CompresionNoConfinadaForm
+            editId={editingEnsayoId}
+            onClose={() => setIsModalOpen(false)}
+            onSaved={fetchEnsayos}
+          />
+        </DialogContent>
+      </Dialog>
 
-          <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-            <DialogContent className="max-w-xl">
-              <DialogHeader>
-                <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
-                <DialogDescription>Informacion guardada del Ensayo C. No Confinada.</DialogDescription>
-              </DialogHeader>
-              {selectedDetail ? (
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
-                  <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
-                  <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
-                  <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
-                  <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
-                  <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
-                  <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
-              )}
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Detalle de Ensayo #{selectedDetail?.id ?? "-"}</DialogTitle>
+            <DialogDescription>Informacion guardada del Ensayo Compresión No Confinada NTP 339.167.</DialogDescription>
+          </DialogHeader>
+          {selectedDetail ? (
+            <div className="space-y-2 text-sm">
+              <p><span className="font-semibold">Codigo de Muestra:</span> {selectedDetail.muestra || selectedDetail.cliente || "-"}</p>
+              <p><span className="font-semibold">N OT:</span> {selectedDetail.numero_ot || "-"}</p>
+              <p><span className="font-semibold">N Ensayo:</span> {selectedDetail.numero_ensayo || "-"}</p>
+              <p><span className="font-semibold">Estado:</span> {selectedDetail.estado || "-"}</p>
+              <p><span className="font-semibold">Fecha Documento:</span> {formatDate(selectedDetail.fecha_documento)}</p>
+              <p><span className="font-semibold">Realizado por:</span> {selectedDetail.payload?.realizado_por || "-"}</p>
+              <p><span className="font-semibold">Observaciones:</span> {selectedDetail.payload?.observaciones || "-"}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin detalle disponible.</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ModernConfirmDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleDeleteEnsayo}
-        title="Eliminar Ensayo de C. No Confinada"
+        title="Eliminar Ensayo de Compresión No Confinada NTP 339.167"
         description="¿Estás seguro de que deseas enviar este ensayo a la papelera? Esta acción se puede deshacer después, pero requiere confirmación."
         confirmText="Eliminar"
         showInput={true}

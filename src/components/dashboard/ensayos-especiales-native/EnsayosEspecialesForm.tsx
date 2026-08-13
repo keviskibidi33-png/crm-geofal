@@ -86,6 +86,12 @@ async function saveAndDownload(apiSlug: string, payload: Record<string, unknown>
     return { blob, filename }
 }
 
+const toNullableNumber = (value: string): number | null => {
+    if (!value.trim()) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+}
+
 const alignmentClass = (align?: InputOptions['align']) => {
     if (align === 'center') return 'text-center'
     if (align === 'right') return 'text-right'
@@ -147,8 +153,18 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
             setLoadingEdit(true)
             try {
                 const detail = await getEnsayoDetail(moduleConfig.apiSlug, ensayoId)
-                if (!cancelled && detail.payload) {
-                    setForm(moduleConfig.derive({ ...moduleConfig.defaultState(), ...detail.payload }))
+                if (!cancelled && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const merged = {
+                        ...moduleConfig.defaultState(),
+                        muestra: (detail as any).muestra || payload.muestra || "",
+                        numero_ot: (detail as any).numero_ot || payload.numero_ot || "",
+                        cliente: (detail as any).cliente || payload.cliente || "",
+                        fecha_ensayo: (detail as any).fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
+                    }
+                    setForm(moduleConfig.derive(merged))
                 }
             } catch {
                 toast.error(`No se pudo cargar ensayo de ${moduleConfig.title.toLowerCase()}.`)
@@ -199,17 +215,12 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
 
     const renderNumber = useCallback((path: string, options: InputOptions = {}) => (
         <input
+            className={`${DEFAULT_DENSE_INPUT_CLASS} ${alignmentClass(options.align || 'right')} ${options.className || ''}`.trim()}
             type="number"
-            className={`${DEFAULT_DENSE_INPUT_CLASS} ${alignmentClass(options.align ?? 'center')} ${options.className || ''}`.trim()}
+            step="any"
             value={numberValue(path) ?? ''}
-            onChange={(event) => {
-                const raw = event.target.value
-                setField(path, raw === '' ? null : Number(raw))
-            }}
+            onChange={(event) => setField(path, toNullableNumber(event.target.value))}
             placeholder={options.placeholder}
-            step={options.step || 'any'}
-            min={options.min}
-            max={options.max}
             autoComplete="off"
             data-lpignore="true"
         />
@@ -286,22 +297,25 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
                     blob,
                     filename || `${buildFormatPreview(String(payload.muestra), moduleConfig.materialCode, moduleConfig.downloadLabel)}.xlsx`,
                 )
+                localStorage.removeItem(`${moduleConfig.draftKey}:${ensayoId ?? 'new'}`)
+                if (onSaveSuccess) {
+                    onSaveSuccess()
+                } else if (onClose) {
+                    onClose()
+                } else {
+                    if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
+                }
+                toast.success(`${moduleConfig.title} guardado y descargado.`)
             } else {
-                await saveEnsayo(moduleConfig.apiSlug, payload, ensayoId ?? undefined)
+                const saveRes = await saveEnsayo(moduleConfig.apiSlug, payload, ensayoId ?? undefined)
+                const newSavedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || ensayoId
+                if (newSavedId) setEnsayoId(newSavedId)
+                localStorage.removeItem(`${moduleConfig.draftKey}:new`)
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: newSavedId }, '*')
+                }
+                toast.success(`${moduleConfig.title} guardado. Puedes seguir editando.`)
             }
-
-            localStorage.removeItem(`${moduleConfig.draftKey}:${ensayoId ?? 'new'}`)
-            setForm(moduleConfig.derive(moduleConfig.defaultState()))
-            setEnsayoId(null)
-            
-            if (onSaveSuccess) {
-                onSaveSuccess()
-            } else if (onClose) {
-                onClose()
-            } else {
-                if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
-            }
-            toast.success(download ? `${moduleConfig.title} guardado y descargado.` : `${moduleConfig.title} guardado.`)
         } catch (error) {
             const message = error instanceof Error ? error.message : `No se pudo generar ${moduleConfig.title}.`
             toast.error(message)

@@ -430,15 +430,14 @@ export function OTModule() {
 
       {/* CONFIRMACION ELIMINACION */}
       <ModernConfirmDialog
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
         onConfirm={handleConfirmDelete}
         title="¿Eliminar Orden de Trabajo?"
         description={`¿Estás seguro de que deseas eliminar permanentemente la Orden de Trabajo ${deletingOt?.numero_ot}? Esta acción no se puede deshacer.`}
         confirmText="Sí, eliminar OT"
         cancelText="Cancelar"
         variant="destructive"
-        isLoading={deleteLoading}
       />
     </div>
   )

@@ -454,24 +454,18 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
             setLoadingEdit(true)
             try {
                 const detail = await getEnsayoDetail(ensayoId)
-                const payload = detail.payload || (detail as any)
-                if (!cancel && payload) {
-                    const serverState = hydrateForm(payload)
-                    const rawDraft = localStorage.getItem(`${DRAFT_KEY}:${ensayoId}`)
-                    if (rawDraft) {
-                        try {
-                            const parsedDraft = JSON.parse(rawDraft) as Partial<SalesSolublesPayload>
-                            const draftState = hydrateForm(parsedDraft)
-                            if (JSON.stringify(draftState) !== JSON.stringify(serverState)) {
-                                setDraftData(draftState)
-                                setShowDraftBanner(true)
-                            } else {
-                                localStorage.removeItem(`${DRAFT_KEY}:${ensayoId}`)
-                            }
-                        } catch {
-                            // Ignored
-                        }
+                if (!cancel && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const merged = {
+                        ...initialState(),
+                        muestra: (detail as any).muestra || payload.muestra || "",
+                        numero_ot: (detail as any).numero_ot || payload.numero_ot || "",
+                        cliente: (detail as any).cliente || payload.cliente || "",
+                        fecha_ensayo: (detail as any).fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
                     }
+                    const serverState = hydrateForm(merged)
                     setForm(serverState)
                 }
             } catch {

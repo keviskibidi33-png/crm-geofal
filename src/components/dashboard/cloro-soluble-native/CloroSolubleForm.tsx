@@ -460,23 +460,18 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
             setLoadingEdit(true)
             try {
                 const detail = await getEnsayoDetail(ensayoId)
-                if (!cancel && detail.payload) {
-                    const serverState = hydrateForm(detail.payload)
-                    const rawDraft = localStorage.getItem(`${DRAFT_KEY}:${ensayoId}`)
-                    if (rawDraft) {
-                        try {
-                            const parsedDraft = JSON.parse(rawDraft) as Partial<CloroSolublePayload>
-                            const draftState = hydrateForm(parsedDraft)
-                            if (JSON.stringify(draftState) !== JSON.stringify(serverState)) {
-                                setDraftData(draftState)
-                                setShowDraftBanner(true)
-                            } else {
-                                localStorage.removeItem(`${DRAFT_KEY}:${ensayoId}`)
-                            }
-                        } catch {
-                            // Ignored
-                        }
+                if (!cancel && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const merged = {
+                        ...initialState(),
+                        muestra: (detail as any).muestra || payload.muestra || "",
+                        numero_ot: (detail as any).numero_ot || payload.numero_ot || "",
+                        cliente: (detail as any).cliente || payload.cliente || "",
+                        fecha_ensayo: (detail as any).fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
                     }
+                    const serverState = hydrateForm(merged)
                     setForm(serverState)
                 }
             } catch {
@@ -586,12 +581,10 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
                     contenido_cloruros_ppm: resultadoPrincipal.contenido_cloruros_ppm,
                 }
 
-                let savedId = ensayoId
                 if (download) {
                     const downloadResult = await saveAndDownload(payload, ensayoId ?? undefined)
-                    const blob = downloadResult instanceof Blob ? downloadResult : downloadResult.blob
-                    const filename = downloadResult instanceof Blob ? undefined : downloadResult.filename
-                    savedId = downloadResult instanceof Blob ? ensayoId : (downloadResult.ensayoId ?? ensayoId)
+                    const blob = downloadResult.blob
+                    const filename = downloadResult.filename
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
                     a.href = url
@@ -610,7 +603,7 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
                     toast.success('Cloruros solubles guardado y descargado.')
                 } else {
                     const saveRes = await saveEnsayo(payload, ensayoId ?? undefined)
-                    savedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || ensayoId
+                    const savedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || ensayoId
                     if (savedId) setEnsayoId(savedId)
                     localStorage.removeItem(`${DRAFT_KEY}:new`)
                     if (window.parent !== window) window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: savedId }, '*')

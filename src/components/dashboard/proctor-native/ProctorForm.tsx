@@ -952,36 +952,27 @@ export default function ProctorForm({
             setLoadingEnsayo(true)
             try {
                 const detail: ProctorEnsayoDetail = await getProctorEnsayoDetail(editingEnsayoId)
-                const payload = detail.payload || (detail as any)
-                if (!payload) {
-                    toast.error('El ensayo seleccionado no tiene payload guardado para edicion.')
-                    return
-                }
-
-                if (!cancelled) {
-                    const nextState = hydrateProctorFormState(payload)
-                    hydratedFromServerRef.current = nextState
-
-                    // Compare with local draft
-                    const rawDraft = localStorage.getItem(draftStorageKey)
-                    if (rawDraft) {
-                        try {
-                            const parsed = JSON.parse(rawDraft) as ProctorDraftSnapshot
-                            if (parsed && typeof parsed === 'object' && typeof parsed.form === 'object') {
-                                const draftState = hydrateProctorFormState(parsed.form)
-                                if (!areFormsEquivalent(draftState, nextState)) {
-                                    setDraftData(draftState)
-                                    setShowDraftBanner(true)
-                                } else {
-                                    localStorage.removeItem(draftStorageKey)
-                                }
-                            }
-                        } catch {
-                            // Ignored
-                        }
+                if (!cancelled && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const merged = {
+                        ...buildInitialState(),
+                        muestra: detail.muestra || payload.muestra || "",
+                        numero_ot: detail.numero_ot || payload.numero_ot || "",
+                        cliente: detail.cliente || payload.cliente || "",
+                        fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
                     }
-
+                    const nextState = hydrateProctorFormState(merged)
+                    hydratedFromServerRef.current = nextState
                     setForm(nextState)
+
+                    if (nextState.muestra) {
+                        const { number, type, year } = parseMuestraCode(nextState.muestra, 'SU')
+                        setMuestraInput(number)
+                        setMuestraType(type)
+                        setMuestraYear(year || new Date().getFullYear().toString().slice(-2))
+                    }
                 }
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : 'Error desconocido'

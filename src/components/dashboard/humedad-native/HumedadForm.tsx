@@ -549,33 +549,19 @@ export default function HumedadForm({
             setLoadingEnsayo(true)
             try {
                 const detail: HumedadEnsayoDetail = await getHumedadEnsayoDetail(editingEnsayoId)
-                if (!detail.payload) {
-                    toast.error('El ensayo seleccionado no tiene payload guardado para edición.')
-                    return
-                }
-                if (!cancelled) {
-                    const hydrated = hydrateHumedadFormState(detail.payload as Partial<HumedadFormState>)
-                    hydratedFromServerRef.current = hydrated
-
-                    // Compare with local draft
-                    const rawDraft = localStorage.getItem(draftStorageKey)
-                    if (rawDraft) {
-                        try {
-                            const parsed = JSON.parse(rawDraft) as HumedadDraftSnapshot
-                            if (parsed && typeof parsed === 'object' && typeof parsed.form === 'object') {
-                                const draftState = hydrateHumedadFormState(parsed.form)
-                                if (!areFormsEquivalent(draftState, hydrated)) {
-                                    setDraftData(draftState)
-                                    setShowDraftBanner(true)
-                                } else {
-                                    localStorage.removeItem(draftStorageKey)
-                                }
-                            }
-                        } catch {
-                            // Ignored
-                        }
+                if (!cancelled && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const mergedData = {
+                        ...INITIAL_STATE,
+                        muestra: detail.muestra || payload.muestra || "",
+                        numero_ot: detail.numero_ot || payload.numero_ot || "",
+                        cliente: detail.cliente || payload.cliente || "",
+                        fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
                     }
-
+                    const hydrated = hydrateHumedadFormState(mergedData as Partial<HumedadFormState>)
+                    hydratedFromServerRef.current = hydrated
                     setForm(hydrated)
                 }
             } catch (err: unknown) {

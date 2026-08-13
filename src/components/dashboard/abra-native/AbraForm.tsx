@@ -245,27 +245,23 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
     const [form, setForm] = useState<AbraPayload>(() => initialState())
     const [loading, setLoading] = useState(false)
     const [loadingEdit, setLoadingEdit] = useState(false)
-    const [ensayoId] = useState<number | null>(editId || null)
+    const [ensayoId, setEnsayoId] = useState<number | null>(editId || null)
 
     const [muestraInput, setMuestraInput] = useState('')
-    const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('SU')
+    const [muestraType, setMuestraType] = useState<'SU' | 'AG'>('AG')
     const [muestraYear, setMuestraYear] = useState(() => new Date().getFullYear().toString().slice(-2))
 
     useEffect(() => {
-        if (form.muestra && !muestraInput) {
-            const { number, type, year } = parseMuestraCode(form.muestra, 'SU')
+        setEnsayoId(editId || null)
+    }, [editId])
+
+    useEffect(() => {
+        if (form.muestra) {
+            const { number, type, year } = parseMuestraCode(form.muestra, 'AG')
             const currentYear = new Date().getFullYear().toString().slice(-2)
             setMuestraInput(number)
             setMuestraType(type)
             setMuestraYear(year || currentYear)
-        }
-    }, [form.muestra, muestraInput])
-
-    useEffect(() => {
-        if (!form.muestra) {
-            setMuestraInput('')
-            setMuestraType('SU')
-            setMuestraYear(new Date().getFullYear().toString().slice(-2))
         }
     }, [form.muestra])
 
@@ -306,12 +302,14 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
     }
 
     useEffect(() => {
-        const raw = localStorage.getItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
-        if (!raw) return
-        try {
-            setForm({ ...initialState(), ...JSON.parse(raw) })
-        } catch {
-            // ignore draft corruption
+        if (!ensayoId) {
+            const raw = localStorage.getItem(`${DRAFT_KEY}:new`)
+            if (!raw) return
+            try {
+                setForm({ ...initialState(), ...JSON.parse(raw) })
+            } catch {
+                // ignore draft corruption
+            }
         }
     }, [ensayoId])
 
@@ -332,7 +330,24 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                 const res = await authFetch(`${API_URL}/api/abra/${ensayoId}`)
                 if (!res.ok) throw new Error("Error loading detail")
                 const detail = await res.json()
-                if (!cancel && detail.payload) setForm({ ...initialState(), ...detail.payload })
+                if (!cancel && detail) {
+                    const payload = detail.payload || {}
+                    const mergedForm: AbraPayload = {
+                        ...initialState(),
+                        muestra: detail.muestra || payload.muestra || "",
+                        numero_ot: detail.numero_ot || payload.numero_ot || "",
+                        fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
+                    }
+                    setForm(mergedForm)
+                    if (mergedForm.muestra) {
+                        const { number, type, year } = parseMuestraCode(mergedForm.muestra, 'AG')
+                        setMuestraInput(number)
+                        setMuestraType(type)
+                        setMuestraYear(year || new Date().getFullYear().toString().slice(-2))
+                    }
+                }
             } catch {
                 toast.error('No se pudo cargar ensayo ABRA.')
             } finally {
@@ -374,6 +389,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
         if (!window.confirm('Se limpiarán los datos no guardados. ¿Deseas continuar?')) return
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
         setForm(initialState())
+        setMuestraInput('')
     }, [ensayoId])
 
     const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
@@ -401,6 +417,11 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                 a.download = filename
                 a.click()
                 URL.revokeObjectURL(url)
+
+                localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
+                toast.success('ABRA guardado y descargado correctamente.')
+                onSaved?.()
+                onClose?.()
             } else {
                 const res = await authFetch(`${API_URL}/api/abra/excel?download=false${ensayoId ? `&ensayo_id=${ensayoId}` : ""}`, {
                     method: "POST",
@@ -408,16 +429,17 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                     body: JSON.stringify(form)
                 })
                 if (!res.ok) throw new Error("Save failed")
+                const saveRes = await res.json().catch(() => ({}))
+                const savedId = saveRes.id || saveRes.ensayoId || ensayoId
+                if (savedId && savedId !== ensayoId) {
+                    setEnsayoId(savedId)
+                }
+                localStorage.removeItem(`${DRAFT_KEY}:new`)
+                toast.success('ABRA guardado en base de datos. Puede continuar editando.')
+                onSaved?.()
             }
-
-            localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
-            setForm(initialState())
-            
-            toast.success(download ? 'ABRA guardado y descargado.' : 'ABRA guardado.')
-            onSaved?.()
-            onClose?.()
         } catch {
-            toast.error('No se pudo generar ABRA.')
+            toast.error('No se pudo guardar/generar ABRA.')
         } finally {
             setLoading(false)
         }

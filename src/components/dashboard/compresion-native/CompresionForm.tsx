@@ -78,31 +78,19 @@ const EQUIPO_OPTIONS = Object.entries(EQUIPO_NOMBRES).map(([codigo, nombre]) => 
   label: `${codigo} - ${nombre}`,
 }))
 
-const optionalNumberSchema = z.preprocess((value) => {
-  if (value === "" || value === null || value === undefined) return null
-  if (typeof value === "number" && Number.isNaN(value)) return null
-  if (typeof value === "string") {
-    const trimmed = value.trim()
-    if (trimmed === "") return null
-    const parsed = Number(trimmed)
-    return Number.isNaN(parsed) ? value : parsed
-  }
-  return value
-}, z.number().nullable().optional())
-
 // Zod schema
 const itemSchema = z.object({
-  item: z.coerce.number().int().min(1),
+  item: z.number().int().min(1),
   codigo_lem: z.string().min(1, "Requerido"),
   fecha_ensayo_programado: z.string().nullable().optional(),
   fecha_ensayo: z.string().nullable().optional(),
   hora_ensayo: z.string().nullable().optional(),
-  carga_maxima: optionalNumberSchema,
+  carga_maxima: z.number().nullable().optional(),
   tipo_fractura: z.string().nullable().optional(),
   defectos: z.string().nullable().optional(),
   defectos_custom: z.string().nullable().optional(),
-  diametro: optionalNumberSchema,
-  area: optionalNumberSchema,
+  diametro: z.number().nullable().optional(),
+  area: z.number().nullable().optional(),
   realizado: z.string().nullable().optional(),
   revisado: z.string().nullable().optional(),
   fecha_revisado: z.string().nullable().optional(),
@@ -281,7 +269,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
           nota: data.nota || "",
           items:
             data.items?.map((item: any, idx: number) => ({
-              item: item.item || idx + 1,
+              item: Number(item.item || idx + 1),
               codigo_lem: item.codigo_lem || "",
               fecha_ensayo_programado: item.fecha_ensayo_programado
                 ? String(item.fecha_ensayo_programado).split("T")[0]
@@ -290,12 +278,12 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                 ? String(item.fecha_ensayo).split("T")[0]
                 : null,
               hora_ensayo: item.hora_ensayo || null,
-              carga_maxima: item.carga_maxima ?? null,
+              carga_maxima: item.carga_maxima != null ? Number(item.carga_maxima) : null,
               tipo_fractura: item.tipo_fractura || null,
               defectos: item.defectos || null,
               defectos_custom: item.defectos_custom || null,
-              diametro: item.diametro ?? null,
-              area: item.area ?? null,
+              diametro: item.diametro != null ? Number(item.diametro) : null,
+              area: item.area != null ? Number(item.area) : null,
               realizado: item.realizado || null,
               revisado: item.revisado || null,
               fecha_revisado: item.fecha_revisado
@@ -525,7 +513,13 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     }
   }
 
-  const onSubmit = async (data: FormData) => {
+  const [currentId, setCurrentId] = useState<number | null>(editId || null)
+
+  useEffect(() => {
+    setCurrentId(editId || null)
+  }, [editId])
+
+  const onSubmit = async (data: FormData, shouldDownload = false) => {
     const sanitized = sanitizeItems(data.items)
     if (sanitized.length === 0) {
       toast.error("Debe completar al menos una fila válida")
@@ -549,10 +543,11 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     }
 
     try {
-      const url = editId
-        ? `${API_URL}/api/compresion/${editId}`
+      const targetId = currentId || editId
+      const url = targetId
+        ? `${API_URL}/api/compresion/${targetId}`
         : `${API_URL}/api/compresion/`
-      const method = editId ? "PUT" : "POST"
+      const method = targetId ? "PUT" : "POST"
       const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -560,10 +555,20 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
       })
 
       if (res.ok) {
-        toast.success(editId ? "Ensayo actualizado correctamente" : "Ensayo creado correctamente")
+        const savedData = await res.json().catch(() => ({}))
+        const newId = savedData.id || targetId
+        if (newId) setCurrentId(newId)
+
         clearSavedData()
         onSaved?.()
-        onClose?.()
+
+        if (shouldDownload && newId) {
+          toast.success("Ensayo guardado. Descargando Excel...")
+          await handleDownloadExcel(newId)
+          onClose?.()
+        } else {
+          toast.success(targetId ? "Ensayo actualizado en base de datos. Puede seguir editando." : "Ensayo guardado en base de datos. Puede seguir editando.")
+        }
       } else {
         let errMsg = `Error ${res.status}: ${res.statusText}`
         try {
@@ -579,35 +584,35 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     }
   }
 
-  const handleDownloadExcel = async () => {
-    if (!editId) {
+  const handleDownloadExcel = async (overrideId?: number) => {
+    const targetId = overrideId || currentId || editId
+    if (!targetId) {
       toast.error("Guarde primero el ensayo")
       return
     }
     setDownloading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/compresion/${editId}/excel`)
+      const res = await authFetch(`${API_URL}/api/compresion/${targetId}/excel`)
       if (res.ok) {
         const blob = await res.blob()
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
         const cd = res.headers.get("Content-Disposition")
-        let filename = `Compresion-${editId}.xlsx`
+        let filename = `Compresion-${targetId}.xlsx`
         if (cd) {
           const match = cd.match(/filename="?([^"]+)"?/)
           if (match?.[1]) filename = match[1]
         }
         a.download = filename
-        document.body.appendChild(a)
         a.click()
-        a.remove()
         window.URL.revokeObjectURL(url)
+        toast.success("Reporte descargado")
       } else {
-        toast.error("Error al descargar")
+        toast.error("Error al descargar Excel")
       }
     } catch {
-      toast.error("Error de conexión")
+      toast.error("Error de conexión al descargar")
     } finally {
       setDownloading(false)
     }
@@ -1224,7 +1229,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleDownloadExcel}
+              onClick={() => void handleDownloadExcel()}
               disabled={downloading}
             >
               {downloading ? (
@@ -1235,16 +1240,36 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               Excel
             </Button>
           )}
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} size="sm">
+          <Button
+            type="button"
+            onClick={() => void onSubmit(getValues(), false)}
+            disabled={isSubmitting}
+            size="sm"
+            variant="secondary"
+          >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <CheckCircle2 className="h-4 w-4 mr-1" />
             )}
-            {editId ? "Actualizar" : "Guardar"}
+            Guardar
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void onSubmit(getValues(), true)}
+            disabled={isSubmitting || downloading}
+            size="sm"
+            className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+          >
+            {downloading || isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Guardar y Exportar
           </Button>
           {onClose && (
-            <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               Cerrar
             </Button>
           )}

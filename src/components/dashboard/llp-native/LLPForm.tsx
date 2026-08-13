@@ -525,8 +525,26 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
             setLoadingEdit(true)
             try {
                 const detail = await getLLPEnsayoDetail(editingEnsayoId)
-                const payload = detail.payload || (detail as any)
-                if (!cancelled && payload) setForm(normalizeForm(payload))
+                if (!cancelled && detail) {
+                    const payload = detail.payload || (detail as any)
+                    const merged = {
+                        ...initialState(),
+                        muestra: detail.muestra || payload.muestra || "",
+                        numero_ot: detail.numero_ot || payload.numero_ot || "",
+                        cliente: detail.cliente || payload.cliente || "",
+                        fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
+                    }
+                    const normalized = normalizeForm(merged)
+                    setForm(normalized)
+                    if (normalized.muestra) {
+                        const { number, type, year } = parseMuestraCode(normalized.muestra, 'SU')
+                        setMuestraInput(number)
+                        setMuestraType(type)
+                        setMuestraYear(year || new Date().getFullYear().toString().slice(-2))
+                    }
+                }
             } catch { toast.error('No se pudo cargar ensayo LLP para edición.') } finally {
                 if (!cancelled) setLoadingEdit(false)
             }

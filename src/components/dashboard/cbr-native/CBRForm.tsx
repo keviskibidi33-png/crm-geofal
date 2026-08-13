@@ -909,34 +909,27 @@ export default function CBRForm({
             setLoadingEnsayo(true)
             try {
                 const detail: CBREnsayoDetail = await getCBREnsayoDetail(editingEnsayoId)
-                if (!detail.payload) {
-                    toast.error('El ensayo seleccionado no tiene payload guardado para edicion.')
-                    return
-                }
-                if (!cancelled) {
-                    const nextState = hydrateCBRFormSnapshot(detail.payload)
-                    hydratedFromServerRef.current = nextState
-
-                    // Compare with local draft
-                    const rawDraft = localStorage.getItem(draftStorageKey)
-                    if (rawDraft) {
-                        try {
-                            const parsed = JSON.parse(rawDraft) as CBRDraftSnapshot
-                            if (parsed && typeof parsed === 'object' && typeof parsed.form === 'object') {
-                                const draftState = hydrateCBRFormSnapshot(parsed.form)
-                                if (!areCBRFormsEquivalent(draftState, nextState)) {
-                                    setDraftData(draftState)
-                                    setShowDraftBanner(true)
-                                } else {
-                                    localStorage.removeItem(draftStorageKey)
-                                }
-                            }
-                        } catch {
-                            // Ignored
-                        }
+                if (!cancelled && detail) {
+                    const payload: Record<string, any> = (detail.payload as Record<string, any>) || {}
+                    const mergedData = {
+                        ...buildInitialState(),
+                        muestra: detail.muestra || payload.muestra || "",
+                        numero_ot: detail.numero_ot || payload.numero_ot || "",
+                        cliente: detail.cliente || payload.cliente || "",
+                        fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || "",
+                        realizado_por: payload.realizado_por || "OPERADOR",
+                        ...payload,
                     }
-
+                    const nextState = hydrateCBRFormSnapshot(mergedData)
+                    hydratedFromServerRef.current = nextState
                     setForm(nextState)
+
+                    if (nextState.muestra) {
+                        const { number, type, year } = parseMuestraCode(nextState.muestra, 'SU')
+                        setMuestraInput(number)
+                        setMuestraType(type)
+                        setMuestraYear(year || new Date().getFullYear().toString().slice(-2))
+                    }
                 }
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Error desconocido'

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Plus, Gauge, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2, Download, X } from "lucide-react"
+import { Plus, Gauge, Loader2, AlertCircle, RefreshCw, Search, Eye, Pencil, Trash2, Download, X, FlaskConical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
