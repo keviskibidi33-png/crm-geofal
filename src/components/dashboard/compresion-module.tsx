@@ -306,9 +306,17 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
     // Listen for close message from Iframe
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'CLOSE_MODAL') {
+            if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID" || event.data?.type === "CLOSE_MODAL") {
+                const savedId = Number(event.data?.ensayoId || event.data?.ensayo_id || event.data?.id)
+                if (Number.isInteger(savedId) && savedId > 0) {
+                    setNativeEditId(savedId)
+                }
+                void fetchEnsayos()
+            }
+            if (event.data?.type === "SAVED_AND_DOWNLOADED" || (event.data?.type === "CLOSE_MODAL" && event.data?.action === "download")) {
+                setNativeEditId(null)
                 setIsModalOpen(false)
-                fetchEnsayos() // Refresh list after modal closes
+                void fetchEnsayos()
             }
             // Auto-refresh: iframe requests a fresh token before expiry
             if (event.data?.type === 'TOKEN_REFRESH_REQUEST' && event.source) {
@@ -330,7 +338,39 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
         return () => window.removeEventListener("message", handleMessage)
     }, [fetchEnsayos])
 
-    const handleOpenModal = async (path: string) => {
+    const [downloadingId, setDownloadingId] = useState<number | null>(null)
+
+    const handleDownloadRow = async (id: number, codigo?: string | null) => {
+        if (downloadingId) return
+        setDownloadingId(id)
+        toast.loading("Descargando reporte Excel...", { id: `download-${id}` })
+        try {
+            const url = `${API_URL}/api/compresion/${id}/excel`
+            const res = await authFetch(url)
+            if (!res.ok) throw new Error("No se pudo descargar el reporte.")
+            const blob = await res.blob()
+            const contentDisposition = res.headers.get("content-disposition")
+            let filename = `COMPRESION_${codigo || id}.xlsx`
+            if (contentDisposition && contentDisposition.includes("filename=")) {
+                const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/)
+                if (match && match[1]) filename = match[1]
+            }
+            const blobUrl = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = blobUrl
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(blobUrl)
+            toast.success("Reporte descargado correctamente.", { id: `download-${id}` })
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Error al descargar"
+            toast.error(msg, { id: `download-${id}` })
+        } finally {
+            setDownloadingId(null)
+        }
+    }
+
+    const handleOpenModal = (path: string = "/compresion") => {
         if (!canWrite) {
             toast.error("Acceso denegado", { description: "No tienes permisos para editar F. Probetas." })
             return
@@ -620,6 +660,16 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                     </TableCell>
                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-end items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+                                                onClick={() => void handleDownloadRow(item.id, item.numero_ot || item.numero_recepcion)}
+                                                disabled={downloadingId === item.id}
+                                                title="Descargar Excel"
+                                            >
+                                                {downloadingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                            </Button>
                                             <Button variant="ghost" size="icon" onClick={() => handleViewDetails(item)}>
                                                 <Eye className="h-4 w-4 text-muted-foreground" />
                                             </Button>

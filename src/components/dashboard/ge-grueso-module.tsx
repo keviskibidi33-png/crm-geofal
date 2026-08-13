@@ -1,8 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { Plus, Weight, Loader2, RefreshCw, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { Plus, Weight, Loader2, RefreshCw, Search, Eye, Pencil, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
@@ -175,14 +174,14 @@ export function GeGruesoModule() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID") {
+      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID" || event.data?.type === "CLOSE_MODAL") {
         const savedId = Number(event.data?.ensayoId || event.data?.ensayo_id || event.data?.id)
         if (Number.isInteger(savedId) && savedId > 0) {
           setEditingEnsayoId(savedId)
         }
         void fetchEnsayos()
       }
-      if (event.data?.type === "CLOSE_MODAL" || event.data?.type === "SAVED_AND_DOWNLOADED") {
+      if (event.data?.type === "SAVED_AND_DOWNLOADED" || (event.data?.type === "CLOSE_MODAL" && event.data?.action === "download")) {
         setEditingEnsayoId(null)
         closeNativeModal()
         setIsModalOpen(false)
@@ -259,6 +258,42 @@ export function GeGruesoModule() {
       setRefreshingTable(false)
     }
   }, [fetchEnsayos, loading, refreshingTable])
+
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
+
+  const handleDownloadRow = async (id: number, muestraCodigo?: string | null) => {
+    if (downloadingId) return
+    setDownloadingId(id)
+    toast.loading("Descargando reporte Excel...", { id: `download-${id}` })
+    try {
+      const url = `${API_URL}/api/ge-grueso/excel?download=true&ensayo_id=${id}`
+      const res = await authFetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error("No se pudo descargar el reporte.")
+      const blob = await res.blob()
+      const contentDisposition = res.headers.get("content-disposition")
+      let filename = `GE_GRUESO_${muestraCodigo || id}.xlsx`
+      if (contentDisposition && contentDisposition.includes("filename=")) {
+        const match = contentDisposition.match(/filename=["']?([^"';]+)["']?/)
+        if (match && match[1]) filename = match[1]
+      }
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = blobUrl
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(blobUrl)
+      toast.success("Reporte descargado correctamente.", { id: `download-${id}` })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al descargar"
+      toast.error(msg, { id: `download-${id}` })
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const confirmDelete = (id: number) => {
     setDeletingEnsayoId(id)
@@ -388,16 +423,24 @@ export function GeGruesoModule() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" disabled={detailLoading} onClick={() => void doOpenDetail(ensayo.id)}>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+                        onClick={() => void handleDownloadRow(ensayo.id, ensayo.muestra)}
+                        disabled={downloadingId === ensayo.id}
+                        title="Descargar Excel"
+                      >
+                        {downloadingId === ensayo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => void openEditEnsayo(ensayo.id)} title="Editar ensayo">
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
                       <Button
                         variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => confirmDelete(ensayo.id)}
                         disabled={deletingEnsayoId === ensayo.id}
+                        title="Eliminar ensayo"
                       >
                         {deletingEnsayoId === ensayo.id && isDeleteConfirmOpen ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </Button>
