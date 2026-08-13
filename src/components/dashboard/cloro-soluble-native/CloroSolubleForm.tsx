@@ -586,30 +586,36 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
                     contenido_cloruros_ppm: resultadoPrincipal.contenido_cloruros_ppm,
                 }
 
+                let savedId = ensayoId
                 if (download) {
                     const downloadResult = await saveAndDownload(payload, ensayoId ?? undefined)
                     const blob = downloadResult instanceof Blob ? downloadResult : downloadResult.blob
                     const filename = downloadResult instanceof Blob ? undefined : downloadResult.filename
+                    savedId = downloadResult instanceof Blob ? ensayoId : (downloadResult.ensayoId ?? ensayoId)
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
                     a.href = url
                     a.download = filename || `${buildFormatPreview(form.muestra, 'SU', 'CLORO SOLUBLE')}.xlsx`
                     a.click()
                     URL.revokeObjectURL(url)
+
+                    localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
+                    if (onSaveSuccess) {
+                        onSaveSuccess()
+                    } else if (onClose) {
+                        onClose()
+                    } else {
+                        if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
+                    }
+                    toast.success('Cloruros solubles guardado y descargado.')
                 } else {
-                    await saveEnsayo(payload, ensayoId ?? undefined)
+                    const saveRes = await saveEnsayo(payload, ensayoId ?? undefined)
+                    savedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || ensayoId
+                    if (savedId) setEnsayoId(savedId)
+                    localStorage.removeItem(`${DRAFT_KEY}:new`)
+                    if (window.parent !== window) window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: savedId }, '*')
+                    toast.success('Cloruros solubles guardado. Puedes seguir editando.')
                 }
-                localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
-                setForm(initialState())
-                setEnsayoId(null)
-                if (onSaveSuccess) {
-                    onSaveSuccess()
-                } else if (onClose) {
-                    onClose()
-                } else {
-                    if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
-                }
-                toast.success(download ? 'Cloruros solubles guardado y descargado.' : 'Cloruros solubles guardado.')
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'No se pudo generar Cloruros Solubles.'
                 toast.error(msg)

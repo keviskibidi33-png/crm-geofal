@@ -730,20 +730,27 @@ export default function HumedadForm({
                 const { blob, filename } = await saveAndDownloadHumedadExcel(payload, editingEnsayoId ?? undefined)
                 downloadBlob(blob, filename || buildHumedadExportFilename(payload.muestra))
                 toast.success(editingEnsayoId ? 'Formato actualizado y descargado.' : 'Formato guardado y descargado.')
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem(draftStorageKey)
+                }
+                if (onSaveSuccess) {
+                    onSaveSuccess()
+                } else {
+                    closeParentModalIfEmbedded()
+                }
             } else {
-                await saveHumedadEnsayo(payload, editingEnsayoId ?? undefined)
-                toast.success(editingEnsayoId ? 'Formato actualizado correctamente.' : 'Formato guardado correctamente.')
-            }
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem(draftStorageKey)
-            }
-            hydratedFromServerRef.current = null
-            setForm({ ...INITIAL_STATE })
-            setEditingEnsayoId(null)
-            if (onSaveSuccess) {
-                onSaveSuccess()
-            } else {
-                closeParentModalIfEmbedded()
+                const saveRes = await saveHumedadEnsayo(payload, editingEnsayoId ?? undefined)
+                const newSavedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || editingEnsayoId
+                if (newSavedId) {
+                    setEditingEnsayoId(newSavedId)
+                }
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem(draftStorageKey)
+                }
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: newSavedId }, '*')
+                }
+                toast.success(editingEnsayoId ? 'Formato actualizado correctamente.' : 'Formato guardado correctamente. Puedes seguir editando.')
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Error desconocido'

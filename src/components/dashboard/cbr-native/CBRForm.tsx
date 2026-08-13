@@ -1047,18 +1047,23 @@ export default function CBRForm({
                 const { blob, filename } = await saveAndDownloadCBRExcel(payload, editingEnsayoId ?? undefined)
                 downloadBlob(blob, filename || `${buildFormatPreview(form.muestra, muestraType, 'CBR')}.xlsx`)
                 toast.success(editingEnsayoId ? 'Formato CBR actualizado y descargado.' : 'Formato CBR guardado y descargado.')
+                localStorage.removeItem(draftStorageKey)
+                if (onSaveSuccess) {
+                    onSaveSuccess()
+                } else {
+                    closeParentModalIfEmbedded()
+                }
             } else {
-                await saveCBREnsayo(payload, editingEnsayoId ?? undefined)
-                toast.success(editingEnsayoId ? 'Formato CBR actualizado correctamente.' : 'Formato CBR guardado correctamente.')
-            }
-
-            localStorage.removeItem(draftStorageKey)
-            setForm(buildInitialState())
-            setEditingEnsayoId(null)
-            if (onSaveSuccess) {
-                onSaveSuccess()
-            } else {
-                closeParentModalIfEmbedded()
+                const saveRes = await saveCBREnsayo(payload, editingEnsayoId ?? undefined)
+                const newSavedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || editingEnsayoId
+                if (newSavedId) {
+                    setEditingEnsayoId(newSavedId)
+                }
+                localStorage.removeItem(draftStorageKey)
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: newSavedId }, '*')
+                }
+                toast.success(editingEnsayoId ? 'Formato CBR actualizado correctamente.' : 'Formato CBR guardado correctamente. Puedes seguir editando.')
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Error desconocido'

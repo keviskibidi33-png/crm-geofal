@@ -175,8 +175,16 @@ export function GeGruesoModule() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID") { void fetchEnsayos() }
-      if (event.data?.type === "CLOSE_MODAL") {
+      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID") {
+        const savedId = Number(event.data?.ensayoId || event.data?.ensayo_id || event.data?.id)
+        if (Number.isInteger(savedId) && savedId > 0) {
+          setEditingEnsayoId(savedId)
+        }
+        void fetchEnsayos()
+      }
+      if (event.data?.type === "CLOSE_MODAL" || event.data?.type === "SAVED_AND_DOWNLOADED") {
+        setEditingEnsayoId(null)
+        closeNativeModal()
         setIsModalOpen(false)
         void fetchEnsayos()
       }
@@ -197,7 +205,7 @@ export function GeGruesoModule() {
     }
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [fetchEnsayos])
+  }, [fetchEnsayos, closeNativeModal])
 
   const openNewEnsayo = async () => {
     if (isNative) {

@@ -596,30 +596,36 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
                     contenido_sales_ppm: capsulaPrincipal.contenido_sales_ppm,
                 }
 
+                let savedId = ensayoId
                 if (download) {
                     const downloadResult = await saveAndDownload(payload, ensayoId ?? undefined)
                     const blob = downloadResult instanceof Blob ? downloadResult : downloadResult.blob
                     const filename = downloadResult instanceof Blob ? undefined : downloadResult.filename
+                    savedId = downloadResult instanceof Blob ? ensayoId : ((downloadResult as any).ensayoId ?? ensayoId)
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
                     a.href = url
                     a.download = filename || `${buildFormatPreview(form.muestra, 'SU', 'SALES SOLUBLES')}.xlsx`
                     a.click()
                     URL.revokeObjectURL(url)
+
+                    localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
+                    if (onSaveSuccess) {
+                        onSaveSuccess()
+                    } else if (onClose) {
+                        onClose()
+                    } else {
+                        if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
+                    }
+                    toast.success('Sales solubles guardado y descargado.')
                 } else {
-                    await saveEnsayo(payload, ensayoId ?? undefined)
+                    const saveRes = await saveEnsayo(payload, ensayoId ?? undefined)
+                    savedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || ensayoId
+                    if (savedId) setEnsayoId(savedId)
+                    localStorage.removeItem(`${DRAFT_KEY}:new`)
+                    if (window.parent !== window) window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: savedId }, '*')
+                    toast.success('Sales solubles guardado. Puedes seguir editando.')
                 }
-                localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
-                setForm(initialState())
-                setEnsayoId(null)
-                if (onSaveSuccess) {
-                    onSaveSuccess()
-                } else if (onClose) {
-                    onClose()
-                } else {
-                    if (window.parent !== window) window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')
-                }
-                toast.success(download ? 'Sales solubles guardado y descargado.' : 'Sales solubles guardado.')
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'No se pudo generar Sales Solubles.'
                 toast.error(msg)

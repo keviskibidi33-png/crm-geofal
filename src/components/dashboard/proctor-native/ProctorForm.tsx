@@ -1147,21 +1147,27 @@ export default function ProctorForm({
                 const { blob, filename } = await saveAndDownloadProctorExcel(payload, editingEnsayoId ?? undefined)
                 downloadBlob(blob, filename || `${buildFormatPreview(form.muestra, 'SU', 'PROCTOR')}.xlsx`)
                 toast.success(editingEnsayoId ? 'Formato Proctor actualizado y descargado.' : 'Formato Proctor guardado y descargado.')
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem(draftStorageKey)
+                }
+                if (onSaveSuccess) {
+                    onSaveSuccess()
+                } else {
+                    closeParentModalIfEmbedded()
+                }
             } else {
-                await saveProctorEnsayo(payload, editingEnsayoId ?? undefined)
-                toast.success(editingEnsayoId ? 'Formato Proctor actualizado correctamente.' : 'Formato Proctor guardado correctamente.')
-            }
-
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem(draftStorageKey)
-            }
-            hydratedFromServerRef.current = null
-            setForm(buildInitialState())
-            setEditingEnsayoId(null)
-            if (onSaveSuccess) {
-                onSaveSuccess()
-            } else {
-                closeParentModalIfEmbedded()
+                const saveRes = await saveProctorEnsayo(payload, editingEnsayoId ?? undefined)
+                const newSavedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || editingEnsayoId
+                if (newSavedId) {
+                    setEditingEnsayoId(newSavedId)
+                }
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem(draftStorageKey)
+                }
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: newSavedId }, '*')
+                }
+                toast.success(editingEnsayoId ? 'Formato Proctor actualizado correctamente.' : 'Formato Proctor guardado correctamente. Puedes seguir editando.')
             }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Error desconocido'

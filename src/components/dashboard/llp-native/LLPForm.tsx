@@ -571,14 +571,19 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                 a.download = filename || `${buildFormatPreview(form.muestra, muestraType, 'LLP')}.xlsx`
                 a.click()
                 URL.revokeObjectURL(url)
+                localStorage.removeItem(`${DRAFT_KEY}:${editingEnsayoId ?? 'new'}`)
+                if (onSaveSuccess) onSaveSuccess()
+                toast.success('LLP guardado y descargado.')
             } else {
-                await saveLLPEnsayo(payload, editingEnsayoId ?? undefined)
+                const saveRes = await saveLLPEnsayo(payload, editingEnsayoId ?? undefined)
+                const newSavedId = (saveRes as any)?.ensayoId || (saveRes as any)?.id || editingEnsayoId
+                if (newSavedId) setEditingEnsayoId(newSavedId)
+                localStorage.removeItem(`${DRAFT_KEY}:new`)
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'ENSAYO_SAVED', ensayoId: newSavedId }, '*')
+                }
+                toast.success('LLP guardado correctamente. Puedes seguir editando.')
             }
-            localStorage.removeItem(`${DRAFT_KEY}:${editingEnsayoId ?? 'new'}`)
-            setForm(initialState())
-            setEditingEnsayoId(null)
-            onSaveSuccess()
-            toast.success(download ? 'LLP guardado y descargado.' : 'LLP guardado.')
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : 'Error desconocido'
             toast.error(`Error guardando LLP: ${msg}`)
