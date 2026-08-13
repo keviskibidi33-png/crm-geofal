@@ -23,9 +23,13 @@ export async function buildAuthHeaders(extraHeaders: HeadersInit = {}): Promise<
 
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
     let finalInput = input
+    const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/\/+$/, "")
+
     if (typeof finalInput === "string") {
         if (finalInput.startsWith("http://api.geofal.com.pe")) {
             finalInput = finalInput.replace("http://api.geofal.com.pe", "https://api.geofal.com.pe")
+        } else if (finalInput.startsWith("/")) {
+            finalInput = `${API_BASE}${finalInput}`
         }
     } else if (finalInput instanceof URL) {
         if (finalInput.href.startsWith("http://api.geofal.com.pe")) {

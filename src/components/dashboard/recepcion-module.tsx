@@ -178,7 +178,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
         formData.append("file", file)
 
         try {
-            const response = await authFetch("/api/recepcion/import-excel", {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+            const response = await authFetch(`${API_URL}/api/recepcion/import-excel`, {
                 method: "POST",
                 body: formData,
             })
