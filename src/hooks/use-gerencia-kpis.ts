@@ -34,6 +34,7 @@ interface ControlCommercialRow {
   codigo_muestra: string | null
   cliente_nombre: string | null
   descripcion_servicio: string | null
+  proyecto: string | null
   costo_servicio: string | number | null
   evidencia_solicitud_envio: string | null
   activo: boolean | null
@@ -141,13 +142,39 @@ function calcPercentage(value: number, total: number) {
 function resolveControlCommercialCategory(row: ControlCommercialRow): CategoryKey | null {
   const sampleCode = normalizeText(row.codigo_muestra)
   const serviceDescription = normalizeText(row.descripcion_servicio)
-  const categoryText = `${sampleCode} ${serviceDescription}`.trim()
-  if (!categoryText) return null
+  const project = normalizeText(row.proyecto)
 
-  if (/DENSIDAD|\bDEN\b/.test(categoryText)) return "DEN"
-  if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(categoryText)) return "EMS"
-  if (/\bALQ\b|ALQUILER/.test(categoryText)) return "ALQ"
-  if (/PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA|\bCO\b/.test(categoryText)) return "PROB"
+  // 1. Clasificación Primaria: Por CODIGO MUESTRA de Laboratorio
+  if (sampleCode && !/^[-_.\s]+$/.test(sampleCode)) {
+    // Categoría 4 (ALQ): ALQUILER, ALQ
+    if (/\bALQ\b|ALQUILER/.test(sampleCode)) return "ALQ"
+
+    // Categoría 1 (DEN): DEN, DENSIDAD, DENSIDADES
+    if (/\bDEN\b|DENSIDAD/.test(sampleCode)) return "DEN"
+
+    // Categoría 3 (EMS): EMS, MECANICA DE SUELOS, ESTUDIO DE SUELOS
+    if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(sampleCode)) return "EMS"
+
+    // Categoría 2 (PROB): CO, PROBETA, CONCRETO, CILINDRO, COMPRESION, ROTURA
+    if (
+      /\bCO\b|[-_]CO[-_]|[-_]CO\d+|\bCO[-_]\d+|\bCO\d+|PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA/.test(sampleCode)
+    ) {
+      return "PROB"
+    }
+
+    // Cualquier otro código de muestra de Laboratorio (SU-..., AG-..., CH-..., HUM-..., M-..., etc.) es ENSAYOS VARIOS
+    return "ENS.V."
+  }
+
+  // 2. Clasificación Secundaria (Fallback): Si no hay código de muestra, usar proyecto y descripción
+  const fallbackText = `${project} ${serviceDescription}`.trim()
+  if (!fallbackText || /^[-_.\s]+$/.test(fallbackText)) return null
+
+  if (/\bALQ\b|ALQUILER/.test(fallbackText)) return "ALQ"
+  if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(fallbackText)) return "EMS"
+  if (/DENSIDAD|\bDEN\b/.test(fallbackText)) return "DEN"
+  if (/PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA|\bCO\b/.test(fallbackText)) return "PROB"
+
   return "ENS.V."
 }
 
@@ -190,7 +217,7 @@ async function fetchControlCommercialRows(startDate: string, endDate: string) {
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
       .from("cuadro_control")
-      .select("codigo_muestra,cliente_nombre,descripcion_servicio,costo_servicio,evidencia_solicitud_envio,activo")
+      .select("codigo_muestra,cliente_nombre,descripcion_servicio,proyecto,costo_servicio,evidencia_solicitud_envio,activo")
       .gte("fecha_recepcion", startDate)
       .lt("fecha_recepcion", endDate)
       .range(from, from + pageSize - 1)

@@ -50,16 +50,33 @@ function calcPercentage(value, total) {
 }
 
 function resolveControlCommercialCategory(row) {
-  const sampleCode = normalizeText(row.codigo_muestra)
-  const serviceDescription = normalizeText(row.descripcion_servicio)
-  const categoryText = `${sampleCode} ${serviceDescription}`.trim()
-  if (!categoryText) return null
+  const sampleCode = normalizeText(row.codigo_muestra);
+  const serviceDescription = normalizeText(row.descripcion_servicio);
+  const project = normalizeText(row.proyecto);
 
-  if (/DENSIDAD|\bDEN\b/.test(categoryText)) return "DEN"
-  if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(categoryText)) return "EMS"
-  if (/\bALQ\b|ALQUILER/.test(categoryText)) return "ALQ"
-  if (/PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA|\bCO\b/.test(categoryText)) return "PROB"
-  return "ENS.V."
+  // 1. Clasificación Primaria: Por CODIGO MUESTRA de Laboratorio
+  if (sampleCode && !/^[-_.\s]+$/.test(sampleCode)) {
+    if (/\bALQ\b|ALQUILER/.test(sampleCode)) return "ALQ";
+    if (/\bDEN\b|DENSIDAD/.test(sampleCode)) return "DEN";
+    if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(sampleCode)) return "EMS";
+    if (
+      /\bCO\b|[-_]CO[-_]|[-_]CO\d+|\bCO[-_]\d+|\bCO\d+|PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA/.test(sampleCode)
+    ) {
+      return "PROB";
+    }
+    return "ENS.V.";
+  }
+
+  // 2. Clasificación Secundaria (Fallback): Si no hay código de muestra, usar proyecto y descripción
+  const fallbackText = `${project} ${serviceDescription}`.trim();
+  if (!fallbackText || /^[-_.\s]+$/.test(fallbackText)) return null;
+
+  if (/\bALQ\b|ALQUILER/.test(fallbackText)) return "ALQ";
+  if (/\bEMS\b|MECANICA DE SUELOS|ESTUDIO DE SUELOS/.test(fallbackText)) return "EMS";
+  if (/DENSIDAD|\bDEN\b/.test(fallbackText)) return "DEN";
+  if (/PROBETA|CONCRETO|CILINDRO|COMPRESION|ROTURA|\bCO\b/.test(fallbackText)) return "PROB";
+
+  return "ENS.V.";
 }
 
 function resolveClientKey(value) {
@@ -98,12 +115,20 @@ function runTests() {
 
   // 2. Category Resolution Tests
   console.log("\n2. Pruebas de Clasificación por Categorías:")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "ALQUILER 2", descripcion_servicio: "PROBETAS Y DENSIDAD", proyecto: "ALQUILER" }) === "ALQ", "Categoría ALQ prioritario (MAKIBER con probetas y densidad)")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "ALQUILER 1", descripcion_servicio: "PROBETAS", proyecto: "ALQUILER" }) === "ALQ", "Categoría ALQ prioritario (ALMASA con probetas)")
   assert(resolveControlCommercialCategory({ codigo_muestra: "2026-DEN-01", descripcion_servicio: "" }) === "DEN", "Categoría DEN por código")
-  assert(resolveControlCommercialCategory({ codigo_muestra: "", descripcion_servicio: "ENSAYO DE DENSIDAD DE CAMPO" }) === "DEN", "Categoría DEN por descripción")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "", descripcion_servicio: "ENSAYO DE DENSIDAD DE CAMPO" }) === "DEN", "Categoría DEN por descripción fallback")
   assert(resolveControlCommercialCategory({ codigo_muestra: "2026-EMS-05", descripcion_servicio: "" }) === "EMS", "Categoría EMS por código")
   assert(resolveControlCommercialCategory({ codigo_muestra: "PROBETA-01", descripcion_servicio: "COMPRESION DE CONCRETO" }) === "PROB", "Categoría PROB por probeta/concreto")
-  assert(resolveControlCommercialCategory({ codigo_muestra: "ALQ-EQUIPO", descripcion_servicio: "ALQUILER DE EQUIPO" }) === "ALQ", "Categoría ALQ por alquiler")
-  assert(resolveControlCommercialCategory({ codigo_muestra: "SU-123", descripcion_servicio: "CONTENIDO DE HUMEDAD" }) === "ENS.V.", "Categoría fallback ENS.V.")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "4259-CO-25", descripcion_servicio: "ROTURA DE TESTIGOS" }) === "PROB", "Categoría PROB por formato LEM (4259-CO-25)")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "CO-101", descripcion_servicio: "" }) === "PROB", "Categoría PROB por código CO-101")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "ALQ-EQUIPO", descripcion_servicio: "ALQUILER DE EQUIPO" }) === "ALQ", "Categoría ALQ por código ALQ")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "SU-123", descripcion_servicio: "CONTENIDO DE HUMEDAD" }) === "ENS.V.", "Categoría fallback ENS.V. para SU-123")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "AG-05", descripcion_servicio: "ANALISIS GRANULOMETRICO" }) === "ENS.V.", "Categoría fallback ENS.V. para AG-05")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "", proyecto: "ALQUILER", descripcion_servicio: "ALQUILER DE EQUIPOS" }) === "ALQ", "Categoría ALQ por fallback de proyecto")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "", proyecto: "ESTUDIO DE SUELOS", descripcion_servicio: "MECANICA DE SUELOS" }) === "EMS", "Categoría EMS por fallback de proyecto")
+  assert(resolveControlCommercialCategory({ codigo_muestra: "", proyecto: "OBRA TAL", descripcion_servicio: "DENSIDADES DE CAMPO" }) === "DEN", "Categoría DEN por fallback de descripción")
 
   // 3. Client Key Resolution Tests
   console.log("\n3. Pruebas de Sanitización de Clientes:")
