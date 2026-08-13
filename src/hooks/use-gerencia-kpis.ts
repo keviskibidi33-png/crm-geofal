@@ -103,8 +103,13 @@ function normalizeText(value: unknown) {
 }
 
 function parseMoney(value: unknown) {
-  const raw = String(value ?? "").trim().replace(/[^0-9.,-]/g, "")
-  if (!raw) return 0
+  if (value === null || value === undefined) return 0
+  let str = String(value).trim()
+  if (!str || str === "-") return 0
+
+  str = str.replace(/^(S\/\.?|\$|PEN|USD)\s*/i, "").trim()
+  const raw = str.replace(/[^0-9.,-]/g, "")
+  if (!raw || raw === "-") return 0
 
   const sign = raw.startsWith("-") ? -1 : 1
   const unsigned = raw.replace(/-/g, "")
