@@ -370,7 +370,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
         }
     }
 
-    const handleOpenModal = (path: string = "/compresion") => {
+    const handleOpenModal = async (path: string = "/compresion") => {
         if (!canWrite) {
             toast.error("Acceso denegado", { description: "No tienes permisos para editar F. Probetas." })
             return
