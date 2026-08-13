@@ -190,7 +190,10 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             }
 
             const resData = await response.json()
-            const payloadData = resData.data || {}
+            // Backend returns parsed data directly at root level (not wrapped in { data: ... })
+            const payloadData = (resData && typeof resData === 'object' && !Array.isArray(resData))
+                ? resData
+                : {}
             if (selectedImportTipo && selectedImportTipo !== "AUTO") {
                 payloadData.tipo_recepcion = selectedImportTipo
             }
