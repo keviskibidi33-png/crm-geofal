@@ -114,11 +114,34 @@ if (typeof window !== "undefined") {
   window.addEventListener("click", unlock, { once: true })
 }
 
+export function isSoundNotificationsEnabled(): boolean {
+  if (typeof window === "undefined") return true
+  try {
+    const mainSetting = localStorage.getItem("crm_sound_enabled")
+    const chatSetting = localStorage.getItem("crm_chat_sound_enabled")
+    return mainSetting !== "false" && chatSetting !== "false"
+  } catch {
+    return true
+  }
+}
+
+export function setSoundNotificationsEnabled(enabled: boolean): void {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem("crm_sound_enabled", String(enabled))
+    localStorage.setItem("crm_chat_sound_enabled", String(enabled))
+    window.dispatchEvent(
+      new CustomEvent("crm_sound_setting_changed", { detail: { enabled } })
+    )
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function playChatChimeSound(): void {
   if (typeof window === "undefined") return
   try {
-    const soundEnabled = localStorage.getItem("crm_chat_sound_enabled") !== "false"
-    if (!soundEnabled) return
+    if (!isSoundNotificationsEnabled()) return
 
     const ctx = getUnlockedAudioContext()
     if (!ctx) return

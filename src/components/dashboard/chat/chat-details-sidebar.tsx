@@ -40,7 +40,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { type User } from "@/hooks/use-auth"
-import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl } from "./types"
+import { type ChatChannel, type ChatMessage, type TeamUser, getAvatarUrl, isSoundNotificationsEnabled, setSoundNotificationsEnabled } from "./types"
 import { extractChannelMediaAndFiles, MediaGalleryModal } from "./dialogs/media-gallery-modal"
 import { toast } from "sonner"
 
@@ -156,11 +156,22 @@ export function ChatDetailsSidebar({
       const favs = JSON.parse(localStorage.getItem("crm_chat_favorites") || "[]")
       setIsFavorite(favs.includes(activeChannel.id))
 
-      const sound = localStorage.getItem("crm_chat_sound_enabled")
-      setSoundEnabled(sound !== "false")
+      setSoundEnabled(isSoundNotificationsEnabled())
     } catch {
       // Ignore storage errors
     }
+
+    const handleSoundSetting = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail && typeof customEvent.detail.enabled === "boolean") {
+        setSoundEnabled(customEvent.detail.enabled)
+      } else {
+        setSoundEnabled(isSoundNotificationsEnabled())
+      }
+    }
+
+    window.addEventListener("crm_sound_setting_changed", handleSoundSetting)
+    return () => window.removeEventListener("crm_sound_setting_changed", handleSoundSetting)
   }, [activeChannel.id])
 
   const toggleFavorite = (checked: boolean) => {
@@ -183,7 +194,7 @@ export function ChatDetailsSidebar({
 
   const toggleSound = (checked: boolean) => {
     setSoundEnabled(checked)
-    localStorage.setItem("crm_chat_sound_enabled", String(checked))
+    setSoundNotificationsEnabled(checked)
     if (checked) {
       toast.success("Notificaciones sonoras activadas")
     } else {
