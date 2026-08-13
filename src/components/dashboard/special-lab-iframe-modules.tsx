@@ -458,6 +458,7 @@ function SpecialLabModule({ config }: { config: SpecialModuleConfig }) {
     const handleMessage = (event: MessageEvent) => {
       if (allowedIframeOrigins.size > 0 && !allowedIframeOrigins.has(event.origin)) return
 
+      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID") { void fetchEnsayos() }
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
         void fetchEnsayos()

@@ -285,6 +285,7 @@ export function SulfatosSolublesModule() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "ENSAYO_SAVED" || event.data?.type === "REFRESH_GRID") { void fetchEnsayos() }
       if (event.data?.type === "CLOSE_MODAL") {
         setIsModalOpen(false)
         void fetchEnsayos()
