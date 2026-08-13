@@ -199,18 +199,30 @@ export function EquiArenaModule() {
   }, [fetchEnsayos])
 
   const openNewEnsayo = async () => {
+    if (isNative) {
+      nativeNew()
+      return
+    }
     await syncIframeToken()
     setEditingEnsayoId(null)
     setIsModalOpen(true)
   }
 
   const openEditEnsayo = async (id: number) => {
+    if (isNative) {
+      nativeEdit(id)
+      return
+    }
     await syncIframeToken()
     setEditingEnsayoId(id)
     setIsModalOpen(true)
   }
 
   const doOpenDetail = async (id: number) => {
+    if (isNative) {
+      nativeDetailN(id)
+      return
+    }
     setDetailLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/equi-arena/${id}?_ts=${Date.now()}`, { cache: "no-store" })
