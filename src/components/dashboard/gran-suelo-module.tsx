@@ -210,12 +210,12 @@ export function GranSueloModule() {
   }
 
   const openEditEnsayo = async (id: number) => {
+    setEditingEnsayoId(id)
     if (isNative) {
       nativeEdit(id)
       return
     }
     await syncIframeToken()
-    setEditingEnsayoId(id)
     setIsModalOpen(true)
   }
 
@@ -293,12 +293,13 @@ export function GranSueloModule() {
     setCurrentPage(1)
   }, [search])
 
+  const activeEnsayoId = editingEnsayoId || nativeEnsayoId
   const iframeSrc = useMemo(() => {
     const url = new URL(FRONTEND_URL)
     if (token) url.searchParams.set("token", token)
-    if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
+    if (activeEnsayoId) url.searchParams.set("ensayo_id", String(activeEnsayoId))
     return url.toString()
-  }, [FRONTEND_URL, token, editingEnsayoId])
+  }, [FRONTEND_URL, token, activeEnsayoId])
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
@@ -420,9 +421,9 @@ export function GranSueloModule() {
           config={config}
           apiUrl={API_URL}
           iframeSrc={iframeSrc}
-          iframeTitle="GRANULOMETRIA SUELOS ASTM D6913/D6913M-17 CRM"
-          onClose={closeNativeModal}
-          onSaved={() => { closeNativeModal(); void fetchEnsayos() }}
+          iframeTitle="Granulometria Suelo CRM"
+          onClose={() => { setEditingEnsayoId(null); closeNativeModal() }}
+          onSaved={() => { setEditingEnsayoId(null); closeNativeModal(); void fetchEnsayos() }}
         />
       ) : (
         <>

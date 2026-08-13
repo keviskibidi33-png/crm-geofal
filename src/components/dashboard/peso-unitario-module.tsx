@@ -210,12 +210,12 @@ export function PesoUnitarioModule() {
   }
 
   const openEditEnsayo = async (id: number) => {
+    setEditingEnsayoId(id)
     if (isNative) {
       nativeEdit(id)
       return
     }
     await syncIframeToken()
-    setEditingEnsayoId(id)
     setIsModalOpen(true)
   }
 
@@ -293,12 +293,13 @@ export function PesoUnitarioModule() {
     setCurrentPage(1)
   }, [search])
 
+  const activeEnsayoId = editingEnsayoId || nativeEnsayoId
   const iframeSrc = useMemo(() => {
     const url = new URL(FRONTEND_URL)
     if (token) url.searchParams.set("token", token)
-    if (editingEnsayoId) url.searchParams.set("ensayo_id", String(editingEnsayoId))
+    if (activeEnsayoId) url.searchParams.set("ensayo_id", String(activeEnsayoId))
     return url.toString()
-  }, [FRONTEND_URL, token, editingEnsayoId])
+  }, [FRONTEND_URL, token, activeEnsayoId])
 
   const formatDate = useCallback((value?: string | null) => {
     if (!value) return "-"
@@ -421,8 +422,8 @@ export function PesoUnitarioModule() {
           apiUrl={API_URL}
           iframeSrc={iframeSrc}
           iframeTitle="Peso Unitario CRM"
-          onClose={closeNativeModal}
-          onSaved={() => { closeNativeModal(); void fetchEnsayos() }}
+          onClose={() => { setEditingEnsayoId(null); closeNativeModal() }}
+          onSaved={() => { setEditingEnsayoId(null); closeNativeModal(); void fetchEnsayos() }}
         />
       ) : (
         <>

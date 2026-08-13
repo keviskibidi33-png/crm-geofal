@@ -454,8 +454,9 @@ export default function SalesSolublesForm({ ensayoId: initialEnsayoId, onClose, 
             setLoadingEdit(true)
             try {
                 const detail = await getEnsayoDetail(ensayoId)
-                if (!cancel && detail.payload) {
-                    const serverState = hydrateForm(detail.payload)
+                const payload = detail.payload || (detail as any)
+                if (!cancel && payload) {
+                    const serverState = hydrateForm(payload)
                     const rawDraft = localStorage.getItem(`${DRAFT_KEY}:${ensayoId}`)
                     if (rawDraft) {
                         try {

@@ -525,7 +525,8 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
             setLoadingEdit(true)
             try {
                 const detail = await getLLPEnsayoDetail(editingEnsayoId)
-                if (!cancelled && detail.payload) setForm(normalizeForm(detail.payload))
+                const payload = detail.payload || (detail as any)
+                if (!cancelled && payload) setForm(normalizeForm(payload))
             } catch { toast.error('No se pudo cargar ensayo LLP para edición.') } finally {
                 if (!cancelled) setLoadingEdit(false)
             }

@@ -952,13 +952,14 @@ export default function ProctorForm({
             setLoadingEnsayo(true)
             try {
                 const detail: ProctorEnsayoDetail = await getProctorEnsayoDetail(editingEnsayoId)
-                if (!detail.payload) {
+                const payload = detail.payload || (detail as any)
+                if (!payload) {
                     toast.error('El ensayo seleccionado no tiene payload guardado para edicion.')
                     return
                 }
 
                 if (!cancelled) {
-                    const nextState = hydrateProctorFormState(detail.payload)
+                    const nextState = hydrateProctorFormState(payload)
                     hydratedFromServerRef.current = nextState
 
                     // Compare with local draft
