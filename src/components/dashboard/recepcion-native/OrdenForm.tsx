@@ -248,12 +248,21 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
   useEffect(() => {
     if (existingOrden) {
       reset(existingOrden);
+      if (Array.isArray(existingOrden.muestras) && existingOrden.muestras.length > 0) {
+        const formatted = existingOrden.muestras.map((m: any, idx: number) => ({
+          ...m,
+          item_numero: m.item_numero || idx + 1,
+          fecha_moldeo: m.fecha_moldeo ? normalizeImportedDate(m.fecha_moldeo) : "",
+          fecha_rotura: m.fecha_rotura ? normalizeImportedDate(m.fecha_rotura) : "",
+        }));
+        replace(formatted as any);
+      }
       if (existingOrden.cliente) {
         isSelectionRef.current = true;
         setClienteSearch(existingOrden.cliente);
       }
     }
-  }, [existingOrden, reset]);
+  }, [existingOrden, reset, replace]);
 
   useEffect(() => {
     if (importedData && !isEditMode) {
