@@ -430,7 +430,10 @@ export function useKpisData(): KpisData {
       const seguimientos = seguimientosMes
       const hasQuoteNumber = (value: unknown) => {
         const quoteNumber = String(value ?? "").trim()
-        return quoteNumber !== "" && quoteNumber !== "-"
+        if (!quoteNumber || quoteNumber === "-") return false
+        // Excluir placeholders de fecha (ej: 04/08, 02/06, 04-08)
+        if (/^\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?$/.test(quoteNumber)) return false
+        return true
       }
       const montoEnviada = seguimientos.filter((r: any) => {
         const estadoCliente = normalizeState(r.estado_cliente)

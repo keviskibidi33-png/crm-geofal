@@ -134,7 +134,10 @@ function calcPercentage(value: number, total: number) {
 
 function hasQuoteNumber(value: unknown) {
   const normalized = normalizeText(value)
-  return normalized !== "" && normalized !== "-"
+  if (!normalized || normalized === "-") return false
+  // Excluir placeholders de fecha ingresados provisionalmente por los asesores (ej: 04/08, 02/06, 04-08)
+  if (/^\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?$/.test(normalized)) return false
+  return true
 }
 
 function toIsoDatePart(value: unknown): string | null {
@@ -172,25 +175,17 @@ function getRowDate(row: SeguimientoRow): string | null {
 
 function isSentQuote(row: SeguimientoRow) {
   const estadoClientNorm = normalizeText(row.estado_cliente)
-  const estadoSegNorm = normalizeText(row.estado_seguimiento)
   const isSent =
     estadoClientNorm.includes("COTIZACION") ||
     estadoClientNorm.includes("COTIZADO") ||
-    estadoClientNorm.includes("ENVIAD") ||
-    estadoSegNorm.includes("COTIZACION") ||
-    estadoSegNorm.includes("COTIZADO") ||
-    estadoSegNorm.includes("ENVIAD")
+    estadoClientNorm.includes("ENVIAD")
 
   return isSent && hasQuoteNumber(row.numero_cotizacion)
 }
 
 function isSale(row: SeguimientoRow) {
-  const estadoClientNorm = normalizeText(row.estado_cliente)
   const estadoSegNorm = normalizeText(row.estado_seguimiento)
   return (
-    estadoClientNorm.includes("VENTA") ||
-    estadoClientNorm.includes("GANADO") ||
-    estadoClientNorm.includes("VENDIDO") ||
     estadoSegNorm.includes("VENTA") ||
     estadoSegNorm.includes("GANADO") ||
     estadoSegNorm.includes("VENDIDO")
