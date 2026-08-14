@@ -250,13 +250,25 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
         url.searchParams.set("role", user.role)
         url.searchParams.set("canWrite", String(canWrite))
         url.searchParams.set("isAdmin", String(isAdmin))
-        // Pass the user's display name so the iframe can resolve advisor scope synchronously
-        // without waiting for an async Supabase DB fetch
+        if (user.email) {
+            url.searchParams.set("email", user.email)
+            url.searchParams.set("userEmail", user.email)
+        }
         if (user.name) {
             url.searchParams.set("userName", user.name)
         } else if (user.email) {
             url.searchParams.set("userName", user.email)
         }
+
+        const isAdvisor2 = !!user.email?.toLowerCase().includes("asesorcomercial2")
+        if (isAdvisor2) {
+            url.searchParams.set("isAsesorComercial2", "true")
+            url.searchParams.set("canViewCom", "false")
+            url.searchParams.set("canViewPublicidad", "false")
+            url.searchParams.set("canViewTabla1", "false")
+            url.searchParams.set("canViewTabla2", "true")
+        }
+
         if (iframeToken) {
             url.searchParams.set("token", iframeToken)
         } else {
@@ -287,7 +299,6 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
 
     const quickLinks: Array<{ id: ModuleType; label: string; icon: typeof Users }> = [
         { id: "clientes", label: "Clientes", icon: Users },
-        { id: "proyectos", label: "Proyectos", icon: FolderKanban },
         { id: "cotizadora", label: "Cotizadora", icon: FileText },
     ]
 

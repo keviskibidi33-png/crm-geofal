@@ -37,7 +37,6 @@ const quickAccessByRole: Record<string, { label: string; module: ModuleType }[]>
   ],
   administrativo: [
     { label: "Gerencia", module: "gerencia" },
-    { label: "Proyectos", module: "proyectos" },
     { label: "Control Administración", module: "administracion" },
   ],
   laboratorio: [

@@ -5,14 +5,12 @@ type ControlModuleType = Extract<ModuleType, "laboratorio" | "comercial" | "admi
 
 const RESTRICTED_TECHNICAL_DASHBOARD_MODULES = new Set<ModuleType>([
   "clientes",
-  "proyectos",
   "cotizadora",
   "programacion",
 ])
 
 const COMMERCIAL_BUSINESS_MODULES = new Set<ModuleType>([
   "clientes",
-  "proyectos",
   "cotizadora",
 ])
 
@@ -109,6 +107,17 @@ export function canAccessDashboardModule(
 ) {
   if (module === "home") {
     return true
+  }
+
+  if ((module as string) === "proyectos") {
+    return false
+  }
+
+  // Restrict specific user 'asesorcomercial2@geofal.com.pe' from 'clientes'
+  if (email && email.toLowerCase().trim().includes("asesorcomercial2")) {
+    if (module === "clientes") {
+      return false
+    }
   }
 
   // Restrict specific user 'techuant@geofal.com.pe' to only Huanta modules and configuracion

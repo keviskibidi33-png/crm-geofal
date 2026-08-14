@@ -29,8 +29,6 @@ import {
   Search,
   Trash2,
   Plus,
-  Download,
-  CheckCircle2,
   Beaker,
   X,
 } from "lucide-react"
@@ -204,7 +202,6 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   const {
     register,
     control,
-    handleSubmit,
     setValue,
     getValues,
     watch,
@@ -729,7 +726,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
         </div>
 
         {/* Encabezado / Parámetros Generales */}
-        <div className="bg-card border border-border bg-white rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+        <div className="bg-card border border-border rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative" ref={searchRef}>
               <Label className="text-xs font-bold uppercase text-muted-foreground">
@@ -910,7 +907,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               <Textarea
                 {...register("nota")}
                 placeholder="Observaciones..."
-                className="mt-1 min-h-[36px]"
+                className="mt-1 min-h-9"
                 rows={1}
               />
             </div>
@@ -919,7 +916,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
 
         {/* Traceability Status Card */}
         {traceStatus?.exists && (
-          <div className="bg-card border border-border bg-white rounded-lg shadow-xs px-5 py-3.5">
+          <div className="bg-card border border-border rounded-lg shadow-xs px-5 py-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
@@ -988,7 +985,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
         )}
 
         {/* Items Table Card */}
-        <div className="bg-card border border-border bg-white rounded-lg shadow-xs p-4 sm:p-5">
+        <div className="bg-card border border-border rounded-lg shadow-xs p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold uppercase text-muted-foreground">
               Resultados de Compresión ({fields.length})
@@ -1028,7 +1025,6 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
               </thead>
               <tbody>
                 {fields.map((field, index) => {
-                  const item = items[index]
                   return (
                     <tr key={field.id} className="border-t hover:bg-muted/30">
                       <td className="px-2 py-2">
@@ -1273,7 +1269,7 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
 
       {/* Delete Item Inline Confirmation */}
       {deleteItemTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50">
           <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-sm mx-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold mb-2">Eliminar fila</h3>
             <p className="text-sm text-muted-foreground mb-4">

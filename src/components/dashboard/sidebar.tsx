@@ -23,7 +23,6 @@ import {
   Briefcase,
   MapPin,
   Pin,
-  GripVertical,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -83,7 +82,11 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     (items: SidebarModuleItem[]) => {
       const isAdmin = isAdminDashboardRole(user.role)
       return items.filter((item) => {
-        if (isAdmin) return true
+        if ((item.id as string) === "proyectos") return false
+        if (isAdmin) {
+          if (item.id === "usuarios" || item.id === "auditoria") return true
+          return canAccessDashboardModule(item.id, user.role, user.permissions, user.email)
+        }
         if (item.id === "usuarios" || item.id === "auditoria") return false
         return canAccessDashboardModule(item.id, user.role, user.permissions, user.email)
       })

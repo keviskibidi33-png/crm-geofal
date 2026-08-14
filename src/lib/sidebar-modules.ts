@@ -46,10 +46,8 @@ export interface SidebarModuleGroup {
 // ── 1. Comercial ──────────────────────────────────────────────────
 export const COMERCIAL_MODULES: SidebarModuleItem[] = [
   { id: "clientes", label: "Clientes", icon: Users },
-  { id: "proyectos", label: "Proyectos", icon: FolderKanban },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
-  { id: "ot", label: "Orden de Trabajo (OT)", icon: FileText },
 ]
 
 // ── 2. Concretos ──────────────────────────────────────────────────
@@ -65,6 +63,7 @@ export const CONCRETOS_MODULES: SidebarModuleItem[] = [
 export const LAB_LIMA_MAIN_MODULES: SidebarModuleItem[] = [
   { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
+  { id: "ot", label: "Orden de Trabajo (OT)", icon: FileText },
   { id: "control_ambiental", label: "Temperatura / Humedad", icon: Thermometer },
   { id: "control_ambiental_balanzas", label: "Balanzas", icon: Scale },
 ]
@@ -206,6 +205,7 @@ export function getAllAppModules(): SidebarModuleItem[] {
   // 3. Auto-descubrir cualquier nuevo módulo presente en PERMISSION_MODULE_CATALOG
   for (const catItem of PERMISSION_MODULE_CATALOG) {
     const moduleId = catItem.id as ModuleType
+    if (moduleId === "proyectos") continue
     if (!registeredMap.has(moduleId)) {
       registeredMap.set(moduleId, {
         id: moduleId,
