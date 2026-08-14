@@ -22,6 +22,7 @@ import {
   FlaskConical,
   Briefcase,
   MapPin,
+  Pin,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -55,6 +56,8 @@ interface SidebarProps {
   collapsed: boolean
   onToggleCollapse: () => void
 }
+
+const PINNED_STORAGE_KEY = "geofal_sidebar_pinned_panels"
 
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
   const brandRef = React.useRef<HTMLButtonElement | null>(null)
@@ -130,6 +133,42 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     [accessibleAdmin, activeModule]
   )
 
+  // ── Estado de paneles fijados (Pin) con persistencia en localStorage ────────
+  const [pinnedGroups, setPinnedGroups] = React.useState<Record<string, boolean>>({})
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PINNED_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (typeof parsed === "object" && parsed !== null) {
+          setPinnedGroups(parsed)
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const togglePinGroup = React.useCallback(
+    (groupId: string, setExpandedFn: React.Dispatch<React.SetStateAction<boolean>>) => {
+      setPinnedGroups((prev) => {
+        const nextState = !prev[groupId]
+        const updated = { ...prev, [groupId]: nextState }
+        try {
+          localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(updated))
+        } catch {
+          // ignore
+        }
+        if (nextState) {
+          setExpandedFn(true)
+        }
+        return updated
+      })
+    },
+    []
+  )
+
   // ── Estados de acordeones colapsables ───────────────────────────────────────
   const [comercialExpanded, setComercialExpanded] = React.useState(isComercialActive || false)
   const [concretosExpanded, setConcretosExpanded] = React.useState(isConcretosActive || false)
@@ -139,16 +178,53 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive || false)
   const [adminExpanded, setAdminExpanded] = React.useState(isAdminActive || false)
 
-  // Auto-expansión cuando el módulo activo cambia
+  // Auto-expansión cuando el módulo activo cambia o cuando el grupo está fijado
   React.useEffect(() => {
-    if (isComercialActive) setComercialExpanded(true)
-    if (isConcretosActive) setConcretosExpanded(true)
-    if (isLabLimaActive) setLabLimaExpanded(true)
-    if (isEnsayosActive) setEnsayosExpanded(true)
-    if (isHuantaActive) setHuantaExpanded(true)
-    if (isKpiActive) setKpiExpanded(true)
-    if (isAdminActive) setAdminExpanded(true)
-  }, [isComercialActive, isConcretosActive, isLabLimaActive, isEnsayosActive, isHuantaActive, isKpiActive, isAdminActive])
+    if (isComercialActive || pinnedGroups.comercial) setComercialExpanded(true)
+    if (isConcretosActive || pinnedGroups.concretos) setConcretosExpanded(true)
+    if (isLabLimaActive || pinnedGroups.lab_lima) setLabLimaExpanded(true)
+    if (isEnsayosActive || pinnedGroups.ensayos) setEnsayosExpanded(true)
+    if (isHuantaActive || pinnedGroups.huanta) setHuantaExpanded(true)
+    if (isKpiActive || pinnedGroups.kpi) setKpiExpanded(true)
+    if (isAdminActive || pinnedGroups.admin) setAdminExpanded(true)
+  }, [
+    isComercialActive,
+    isConcretosActive,
+    isLabLimaActive,
+    isEnsayosActive,
+    isHuantaActive,
+    isKpiActive,
+    isAdminActive,
+    pinnedGroups,
+  ])
+
+  // Helper para renderizar el botón de Pin pequeño junto al título
+  const renderPinButton = (
+    groupId: string,
+    setExpandedFn: React.Dispatch<React.SetStateAction<boolean>>,
+    label: string
+  ) => {
+    const isPinned = !!pinnedGroups[groupId]
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          togglePinGroup(groupId, setExpandedFn)
+        }}
+        title={isPinned ? `Desfijar ${label}` : `Fijar ${label} abierto`}
+        className={cn(
+          "flex h-5.5 w-5.5 items-center justify-center rounded-md transition-all text-xs shrink-0 mr-1",
+          isPinned
+            ? "text-blue-600 bg-blue-50/90 border border-blue-200/80 shadow-2xs dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800 opacity-100"
+            : "text-muted-foreground/40 hover:text-blue-600 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 opacity-70 group-hover/header:opacity-100"
+        )}
+        aria-label={isPinned ? `Desfijar ${label}` : `Fijar ${label}`}
+      >
+        <Pin className={cn("h-3 w-3 transition-transform", isPinned ? "fill-current" : "")} />
+      </button>
+    )
+  }
 
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)
 
@@ -539,7 +615,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setComercialExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isComercialActive && !comercialExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -547,6 +623,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <Briefcase className={cn("h-4.5 w-4.5 shrink-0", isComercialActive ? "text-primary" : "text-blue-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Comercial</span>
+                    {renderPinButton("comercial", setComercialExpanded, "Comercial")}
                     {comercialExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
@@ -584,7 +661,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setConcretosExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isConcretosActive && !concretosExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -592,6 +669,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <TestTube className={cn("h-4.5 w-4.5 shrink-0", isConcretosActive ? "text-primary" : "text-amber-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Concretos</span>
+                    {renderPinButton("concretos", setConcretosExpanded, "Concretos")}
                     {concretosExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
@@ -629,7 +707,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setLabLimaExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isLabLimaActive && !labLimaExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -637,6 +715,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <FlaskConical className={cn("h-4.5 w-4.5 shrink-0", isLabLimaActive ? "text-primary" : "text-emerald-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Lab. Lima</span>
+                    {renderPinButton("lab_lima", setLabLimaExpanded, "Lab. Lima")}
                     {labLimaExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
@@ -657,7 +736,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                             type="button"
                             onClick={() => setEnsayosExpanded((prev) => !prev)}
                             className={cn(
-                              "w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-200 gap-2 px-2.5 py-1.5 text-left",
+                              "group/header w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-200 gap-2 px-2.5 py-1.5 text-left",
                               isEnsayosActive && !ensayosExpanded
                                 ? "bg-sidebar-accent/60 text-primary font-bold"
                                 : "text-sidebar-foreground/75 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
@@ -668,6 +747,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sidebar-accent text-muted-foreground">
                               {accessibleLabLimaEnsayos.length}
                             </span>
+                            {renderPinButton("ensayos", setEnsayosExpanded, "Ensayos & Suelos")}
                             {ensayosExpanded ? (
                               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             ) : (
@@ -753,7 +833,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setHuantaExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isHuantaActive && !huantaExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -761,6 +841,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <MapPin className={cn("h-4.5 w-4.5 shrink-0", isHuantaActive ? "text-primary" : "text-rose-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Lab. Huanta</span>
+                    {renderPinButton("huanta", setHuantaExpanded, "Lab. Huanta")}
                     {huantaExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
@@ -798,7 +879,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setKpiExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isKpiActive && !kpiExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -806,6 +887,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <BarChart3 className={cn("h-4.5 w-4.5 shrink-0", isKpiActive ? "text-primary" : "text-violet-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Estadísticas & KPIs</span>
+                    {renderPinButton("kpi", setKpiExpanded, "Estadísticas & KPIs")}
                     {kpiExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
@@ -843,7 +925,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     type="button"
                     onClick={() => setAdminExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      "group/header w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
                       isAdminActive && !adminExpanded
                         ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -851,6 +933,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                   >
                     <Shield className={cn("h-4.5 w-4.5 shrink-0", isAdminActive ? "text-primary" : "text-slate-500")} />
                     <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Administración</span>
+                    {renderPinButton("admin", setAdminExpanded, "Administración")}
                     {adminExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     ) : (
