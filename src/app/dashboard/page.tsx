@@ -409,7 +409,7 @@ export default function DashboardPage() {
       case "comunicaciones":
         return <ComunicacionesModule user={dashboardUser} />
       case "kanban":
-        return <KanbanModule user={dashboardUser} onOpenChatWithCard={() => setActiveModule("comunicaciones")} />
+        return <KanbanModule user={dashboardUser} />
       case "home":
         return <DashboardHomeModule user={dashboardUser} onNavigateModule={setActiveModule} />
       case "proyectos":
@@ -655,13 +655,12 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Widget Flotante de Chat Facebook Messenger Mode (Oculto en módulo de Comunicaciones) */}
-      {activeModule !== "comunicaciones" && (
+      {/* Widget Flotante de Chat y Notifier Global (Desactivados temporalmente hasta nuevo aviso) */}
+      {/* {activeModule !== "comunicaciones" && (
         <FloatingChatWidget user={dashboardUser} onOpenFullModule={() => setActiveModule("comunicaciones")} />
-      )}
+      )} */}
 
-      {/* Listener Global de Notificaciones y Audio de Chat */}
-      <GlobalChatNotifier user={dashboardUser} activeModule={activeModule} onOpenChat={() => setActiveModule("comunicaciones")} />
+      {/* <GlobalChatNotifier user={dashboardUser} activeModule={activeModule} onOpenChat={() => setActiveModule("comunicaciones")} /> */}
 
       {/* Loading Screen Overlay */}
       {showLoadingScreen && <LoadingScreen message="Iniciando sesión..." />}

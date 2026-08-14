@@ -30,7 +30,7 @@ export interface SidebarModuleItem {
 
 export const SIDEBAR_MODULES: SidebarModuleItem[] = [
   { id: "tracing", label: "Seguimiento", icon: Activity },
-  { id: "comunicaciones", label: "Comunicaciones", icon: MessageSquare },
+  // { id: "comunicaciones", label: "Comunicaciones", icon: MessageSquare }, // Desactivado temporalmente hasta nuevo aviso
   { id: "kanban", label: "Tableros Kanban", icon: FolderKanban },
   { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
   { id: "clientes", label: "Clientes", icon: Users },
