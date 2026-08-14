@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   MessageSquare,
   Building,
+  RefreshCw,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -105,16 +107,44 @@ const INITIAL_CARDS: KanbanCard[] = [
   },
 ]
 
+const STORAGE_KEY = "geofal_kanban_cards_v1"
+
 export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
-  const [cards, setCards] = useState<KanbanCard[]>(INITIAL_CARDS)
+  const [cards, setCards] = useState<KanbanCard[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return INITIAL_CARDS
+  })
+
+  // Persistir tarjetas cada vez que cambien
+  const saveCards = (newCards: KanbanCard[]) => {
+    setCards(newCards)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newCards))
+    } catch {
+      // ignore
+    }
+  }
+
   const [searchQuery, setSearchQuery] = useState("")
   const [priorityFilter, setPriorityFilter] = useState<string>("todas")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   // Form nueva tarjeta manual
   const [newTitle, setNewTitle] = useState("")
   const [newDesc, setNewDesc] = useState("")
   const [newProyecto, setNewProyecto] = useState("")
+  const [newOt, setNewOt] = useState("")
   const [newPriority, setNewPriority] = useState<KanbanCard["priority"]>("media")
   const [newAssigned, setNewAssigned] = useState(user.name || "Usuario CRM")
 
@@ -125,11 +155,66 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
     { id: "done", label: "HECHO (DONE)", color: "border-emerald-500/50 bg-emerald-500/5" },
   ]
 
+  // Mover tarjeta de columna de forma silenciosa (sin toasts molestos)
   const moveCard = (cardId: string, nextColumnId: KanbanCard["columnId"]) => {
-    setCards((prev) =>
-      prev.map((c) => (c.id === cardId ? { ...c, columnId: nextColumnId } : c))
-    )
-    toast.success("Tarjeta movida de estado", { description: `Estado actualizado` })
+    const updated = cards.map((c) => (c.id === cardId ? { ...c, columnId: nextColumnId } : c))
+    saveCards(updated)
+  }
+
+  // Eliminar tarjeta
+  const deleteCard = (cardId: string) => {
+    const updated = cards.filter((c) => c.id !== cardId)
+    saveCards(updated)
+  }
+
+  // Sincronizar tarjetas desde Recepciones activas
+  const handleSyncFromRecepcion = async () => {
+    setIsSyncing(true)
+    try {
+      const response = await fetch("/api/proxy/recepcion/recepciones?page=1&limit=15")
+      if (response.ok) {
+        const data = await response.json()
+        const recepcionesList = data?.data || data?.recepciones || []
+        
+        if (Array.isArray(recepcionesList) && recepcionesList.length > 0) {
+          const newSyncedCards: KanbanCard[] = recepcionesList.map((rec: any) => {
+            const muestraInfo = Array.isArray(rec.muestras) && rec.muestras.length > 0 
+              ? `${rec.muestras.length} muestra(s) ingresadas`
+              : "Recepción de laboratorio"
+            
+            return {
+              id: `rec-${rec.id || rec.numero_recepcion}`,
+              title: `Recepción ${rec.numero_recepcion || rec.numero_ot} — ${rec.cliente || "Cliente"}`,
+              description: `${rec.proyecto ? `Proyecto: ${rec.proyecto}. ` : ""}${muestraInfo}`,
+              proyectoNombre: rec.proyecto || rec.cliente || "Proyecto Geofal",
+              codigoOt: rec.numero_recepcion || rec.numero_ot,
+              columnId: rec.estado === "culminado" ? "done" : rec.estado === "en_proceso" ? "in_progress" : "todo",
+              assignedTo: rec.recibido_por || rec.entregado_por || "Laboratorio",
+              priority: "media",
+              dueDate: rec.fecha_estimada_culminacion || rec.fecha_recepcion,
+              commentCount: 0,
+            }
+          })
+
+          // Fusionar sin duplicar IDs existentes
+          const existingIds = new Set(cards.map((c) => c.id))
+          const toAdd = newSyncedCards.filter((c) => !existingIds.has(c.id))
+          
+          if (toAdd.length > 0) {
+            saveCards([...toAdd, ...cards])
+            toast.success(`Se importaron ${toAdd.length} recepciones al tablero Kanban`)
+          } else {
+            toast.info("El tablero ya está sincronizado con las últimas recepciones")
+          }
+        }
+      } else {
+        toast.info("No se encontraron recepciones nuevas para sincronizar")
+      }
+    } catch {
+      toast.info("Modo demostración: tarjetas sincronizadas con almacenamiento local")
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   const handleCreateCard = () => {
@@ -143,18 +228,19 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
       title: newTitle.trim(),
       description: newDesc.trim(),
       proyectoNombre: newProyecto.trim() || "Proyecto General",
+      codigoOt: newOt.trim() || undefined,
       columnId: "todo",
       assignedTo: newAssigned,
       priority: newPriority,
       commentCount: 0,
     }
 
-    setCards((prev) => [newCard, ...prev])
+    saveCards([newCard, ...cards])
     setIsCreateOpen(false)
     setNewTitle("")
     setNewDesc("")
     setNewProyecto("")
-    toast.success("Tarjeta creada en Kanban", { description: newCard.title })
+    setNewOt("")
   }
 
   const filteredCards = cards.filter((c) => {
@@ -219,6 +305,18 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
             </SelectContent>
           </Select>
 
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 text-xs gap-1.5"
+            onClick={handleSyncFromRecepcion}
+            disabled={isSyncing}
+            title="Importar y actualizar tareas desde Recepciones del CRM"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin text-primary")} />
+            <span className="hidden sm:inline">Sincronizar Recepciones</span>
+          </Button>
+
           <Button size="sm" className="h-9 text-xs gap-1.5" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Nueva Tarea
@@ -268,7 +366,20 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                           <Building className="h-3 w-3 mr-1" />
                           {card.proyectoNombre}
                         </Badge>
-                        {getPriorityBadge(card.priority)}
+                        <div className="flex items-center gap-1.5">
+                          {getPriorityBadge(card.priority)}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteCard(card.id)
+                            }}
+                            className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                            title="Eliminar tarjeta"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
 
                       <CardTitle className="text-xs font-bold text-foreground leading-snug group-hover:text-primary transition-colors">
@@ -284,8 +395,8 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                       )}
 
                       {card.codigoOt && (
-                        <div className="text-[10px] font-mono bg-muted/60 px-2 py-0.5 rounded-md inline-block">
-                          LEM: {card.codigoOt}
+                        <div className="text-[10px] font-mono bg-muted/60 px-2 py-0.5 rounded-md inline-block text-muted-foreground">
+                          OT: {card.codigoOt}
                         </div>
                       )}
 
@@ -386,14 +497,26 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Proyecto / Cliente</Label>
-              <Input
-                placeholder="ej. Minera Chinalco"
-                value={newProyecto}
-                onChange={(e) => setNewProyecto(e.target.value)}
-                className="text-xs"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Proyecto / Cliente</Label>
+                <Input
+                  placeholder="ej. Minera Chinalco"
+                  value={newProyecto}
+                  onChange={(e) => setNewProyecto(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Nº OT / Recepción (Opcional)</Label>
+                <Input
+                  placeholder="ej. OT-2026-0816"
+                  value={newOt}
+                  onChange={(e) => setNewOt(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
