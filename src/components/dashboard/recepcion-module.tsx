@@ -54,6 +54,15 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             : undefined
     const defaultTipo = scope === "concreto" ? "CONCRETO" : "SUELO_AGREGADO"
 
+    // Sincronizar selectedTipo cuando cambia el scope
+    useEffect(() => {
+        const nextTipo = scope === "concreto" ? "CONCRETO" : scope === "lima" ? "LIMA_ALL" : "ALL"
+        setSelectedTipo(nextTipo)
+        setCurrentPage(1)
+        setSearchTerm("")
+        setDebouncedSearchTerm("")
+    }, [scope])
+
     const refreshCurrentPage = useCallback(() => {
         void fetchRecepciones({
             page: currentPage,

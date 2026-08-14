@@ -144,9 +144,11 @@ export function useRecepciones() {
             if (nextQuery.tipo_recepcion && nextQuery.tipo_recepcion !== "ALL") {
                 url.searchParams.set("tipo_recepcion", nextQuery.tipo_recepcion)
             }
+            url.searchParams.set("_t", String(Date.now()))
 
             const res = await authFetch(url.toString(), {
                 method: "GET",
+                cache: "no-store",
             })
 
             if (!res.ok) throw new Error("Error fetching recepciones")

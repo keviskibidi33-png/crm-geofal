@@ -421,6 +421,7 @@ export default function DashboardPage() {
       case "recepcion":
         return (
           <RecepcionModule
+            key="recepcion_concreto"
             scope="concreto"
             focusRecepcionId={pendingLabNotification?.module === "recepcion" ? pendingLabNotification.recordId : null}
             onFocusHandled={() => setPendingLabNotification(null)}
@@ -429,6 +430,7 @@ export default function DashboardPage() {
       case "recepcion_lima":
         return (
           <RecepcionModule
+            key="recepcion_lima"
             scope="lima"
             focusRecepcionId={pendingLabNotification?.module === "recepcion_lima" ? pendingLabNotification.recordId : null}
             onFocusHandled={() => setPendingLabNotification(null)}
