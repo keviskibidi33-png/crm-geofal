@@ -20,13 +20,15 @@ import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 interface RecepcionModuleProps {
     focusRecepcionId?: number | null
     onFocusHandled?: () => void
+    scope?: "concreto" | "lima" | "all"
 }
 
-export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionModuleProps) {
+export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all" }: RecepcionModuleProps) {
     const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
-    const [selectedTipo, setSelectedTipo] = useState<string>("ALL")
+    const initialSelectedTipo = scope === "concreto" ? "CONCRETO" : scope === "lima" ? "LIMA_ALL" : "ALL"
+    const [selectedTipo, setSelectedTipo] = useState<string>(initialSelectedTipo)
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(25)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -42,8 +44,15 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
-    const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true
-    const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true
+    const canWrite = user?.role === "admin" || user?.permissions?.recepcion?.write === true || user?.permissions?.recepcion_lima?.write === true
+    const canDelete = user?.role === "admin" || user?.permissions?.recepcion?.delete === true || user?.permissions?.recepcion_lima?.delete === true
+
+    const allowedTipos = scope === "concreto" 
+        ? ["CONCRETO"] 
+        : scope === "lima" 
+            ? ["SUELO_AGREGADO", "ROCA", "ALBANILERIA", "AGUA"] 
+            : undefined
+    const defaultTipo = scope === "concreto" ? "CONCRETO" : "SUELO_AGREGADO"
 
     const refreshCurrentPage = useCallback(() => {
         void fetchRecepciones({
@@ -255,10 +264,18 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-2xl font-black text-foreground uppercase tracking-tight flex items-center gap-2">
-                        Recepciones Generales
+                        {scope === "concreto" 
+                            ? "Recepción de Probetas" 
+                            : scope === "lima" 
+                                ? "Recepción Lab. Lima" 
+                                : "Recepciones Generales"}
                     </h1>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                        Gestión unificada de recepciones de laboratorio (Concreto, Roca, Albañilería, Agua, Suelo/Agregado)
+                        {scope === "concreto" 
+                            ? "Gestión de recepciones de probetas de concreto (F-LEM-P-01.02)" 
+                            : scope === "lima" 
+                                ? "Gestión de recepciones de suelos, agregados, rocas, albañilería y agua" 
+                                : "Gestión unificada de recepciones de laboratorio (Concreto, Roca, Albañilería, Agua, Suelo/Agregado)"}
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -298,7 +315,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             </Button>
                             <Button onClick={handleCreateNew} size="sm" className="gap-2 text-xs font-bold">
                                 <Plus className="h-4 w-4" />
-                                Nueva Recepción
+                                {scope === "concreto" ? "Nueva Recepción Probetas" : "Nueva Recepción"}
                             </Button>
                         </>
                     )}
@@ -318,24 +335,38 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                 </div>
 
                 {/* Dropdown de tipo de recepción en la lista */}
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <span className="text-xs font-bold text-muted-foreground uppercase whitespace-nowrap">Tipo:</span>
-                    <select
-                        value={selectedTipo}
-                        onChange={(e) => {
-                            setSelectedTipo(e.target.value)
-                            setCurrentPage(1)
-                        }}
-                        className="h-9 rounded-md border bg-background px-3 text-xs font-bold uppercase text-foreground focus:outline-none cursor-pointer"
-                    >
-                        <option value="ALL">Todos los formatos</option>
-                        <option value="CONCRETO">Concreto (F-LEM-P-01.02)</option>
-                        <option value="ROCA">Roca (F-LEM-P-01.04)</option>
-                        <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
-                        <option value="AGUA">Agua (F-LEM-P-01.06)</option>
-                        <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
-                    </select>
-                </div>
+                {scope !== "concreto" && (
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <span className="text-xs font-bold text-muted-foreground uppercase whitespace-nowrap">Tipo:</span>
+                        <select
+                            value={selectedTipo}
+                            onChange={(e) => {
+                                setSelectedTipo(e.target.value)
+                                setCurrentPage(1)
+                            }}
+                            className="h-9 rounded-md border bg-background px-3 text-xs font-bold uppercase text-foreground focus:outline-none cursor-pointer"
+                        >
+                            {scope === "lima" ? (
+                                <>
+                                    <option value="LIMA_ALL">Todos los formatos de Lima</option>
+                                    <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
+                                    <option value="ROCA">Roca (F-LEM-P-01.04)</option>
+                                    <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
+                                    <option value="AGUA">Agua (F-LEM-P-01.06)</option>
+                                </>
+                            ) : (
+                                <>
+                                    <option value="ALL">Todos los formatos</option>
+                                    <option value="CONCRETO">Concreto (F-LEM-P-01.02)</option>
+                                    <option value="ROCA">Roca (F-LEM-P-01.04)</option>
+                                    <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
+                                    <option value="AGUA">Agua (F-LEM-P-01.06)</option>
+                                    <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
+                                </>
+                            )}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Table */}
@@ -528,6 +559,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             mode={editId ? "edit" : "create"}
                             editId={editId ?? undefined}
                             importedData={importedData}
+                            defaultTipo={defaultTipo}
+                            allowedTipos={allowedTipos}
                             onClose={(reason) => {
                                 if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
                                 else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
@@ -583,7 +616,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-base font-bold">
                             <Upload className="h-5 w-5 text-green-600" />
-                            Importar Recepción desde Excel
+                            {scope === "concreto" ? "Importar Recepción de Probetas" : "Importar Recepción desde Excel"}
                         </DialogTitle>
                         <DialogDescription className="text-xs">
                             Selecciona la categoría del tipo de recepción a importar para procesar el formato adecuado o usa Auto-detectar.
@@ -609,32 +642,34 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled }: RecepcionM
                             {
                                 id: "SUELO_AGREGADO",
                                 label: "Suelo y Agregados",
-                                desc: "Suelos, agregados y densidades (F-LEM-P-01.01)",
+                                desc: "Suelos, agregados y densidades (F-LEM-P-01.13)",
                                 icon: Mountain,
                                 color: "text-amber-600 bg-amber-50 border-amber-200",
                             },
                             {
                                 id: "ROCA",
                                 label: "Roca / Núcleos",
-                                desc: "Testigos y especímenes de roca (F-LEM-P-01.03)",
+                                desc: "Testigos y especímenes de roca (F-LEM-P-01.04)",
                                 icon: Gem,
                                 color: "text-slate-700 bg-slate-100 border-slate-300",
                             },
                             {
                                 id: "ALBANILERIA",
                                 label: "Albañilería",
-                                desc: "Ladrillos, bloques y muretes (F-LEM-P-01.04)",
+                                desc: "Ladrillos, bloques y muretes (F-LEM-P-01.05)",
                                 icon: Boxes,
                                 color: "text-rose-600 bg-rose-50 border-rose-200",
                             },
                             {
                                 id: "AGUA",
                                 label: "Agua",
-                                desc: "Muestras de agua para ensayo (F-LEM-P-01.05)",
+                                desc: "Muestras de agua para ensayo (F-LEM-P-01.06)",
                                 icon: Droplets,
                                 color: "text-cyan-600 bg-cyan-50 border-cyan-200",
                             },
-                        ].map((item) => {
+                        ]
+                        .filter((item) => item.id === "AUTO" || !allowedTipos || allowedTipos.includes(item.id))
+                        .map((item) => {
                             const IconComponent = item.icon
                             const isSelected = selectedImportTipo === item.id
                             return (

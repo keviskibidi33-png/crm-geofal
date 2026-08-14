@@ -67,10 +67,12 @@ interface OrdenFormProps {
   mode: "create" | "edit";
   editId?: number;
   importedData?: Record<string, unknown> | null;
+  defaultTipo?: string;
+  allowedTipos?: string[];
   onClose: (reason?: "created" | "updated") => void;
 }
 
-export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProps) {
+export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipos, onClose }: OrdenFormProps) {
   const isEditMode = mode === "edit";
   const id = editId;
   const queryClient = useQueryClient();
@@ -84,12 +86,18 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
     formatos?: { recepcion: boolean; verificacion: boolean; compresion: boolean };
   }>({ estado: "idle" });
 
+  const initialTipo = defaultTipo || (allowedTipos && allowedTipos[0]) || "CONCRETO";
+  const initialCfg = TIPO_RECEPCION_CONFIG[initialTipo] || TIPO_RECEPCION_CONFIG["CONCRETO"];
+
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       numero_ot: "",
       numero_recepcion: "",
       numero_cotizacion: "",
+      tipo_recepcion: initialTipo,
+      codigo_laboratorio: initialCfg.codigo,
+      version: initialCfg.version,
       cliente: "",
       domicilio_legal: "",
       ruc: "",
@@ -757,11 +765,21 @@ export function OrdenForm({ mode, editId, importedData, onClose }: OrdenFormProp
                   }}
                   className="h-7 bg-transparent text-xs font-black uppercase text-foreground focus:outline-none cursor-pointer"
                 >
-                  <option value="CONCRETO">Concreto (Probetas)</option>
-                  <option value="ROCA">Muestras de Roca</option>
-                  <option value="ALBANILERIA">Muestras de Albañilería</option>
-                  <option value="AGUA">Muestras de Agua</option>
-                  <option value="SUELO_AGREGADO">Suelo y Agregado</option>
+                  {(!allowedTipos || allowedTipos.includes("CONCRETO")) && (
+                    <option value="CONCRETO">Concreto (Probetas)</option>
+                  )}
+                  {(!allowedTipos || allowedTipos.includes("SUELO_AGREGADO")) && (
+                    <option value="SUELO_AGREGADO">Suelo y Agregado</option>
+                  )}
+                  {(!allowedTipos || allowedTipos.includes("ROCA")) && (
+                    <option value="ROCA">Muestras de Roca</option>
+                  )}
+                  {(!allowedTipos || allowedTipos.includes("ALBANILERIA")) && (
+                    <option value="ALBANILERIA">Muestras de Albañilería</option>
+                  )}
+                  {(!allowedTipos || allowedTipos.includes("AGUA")) && (
+                    <option value="AGUA">Muestras de Agua</option>
+                  )}
                 </select>
               </div>
             </div>

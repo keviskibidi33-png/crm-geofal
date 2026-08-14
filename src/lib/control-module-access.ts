@@ -139,6 +139,9 @@ export function canAccessDashboardModule(
   if (module === "huanta_probetas" || module === "huanta_compresion" || module === "huanta_seguimiento") {
     activeCheckModule = "densidad_huantar";
   }
+  if (module === "recepcion_lima") {
+    activeCheckModule = "recepcion";
+  }
 
 const KPI_AUTHORIZED_IDENTITIES = ["irma.coaquira", "irma", "fabian", "labprueba"]
 const LAB_KPI_AUTHORIZED_IDENTITIES = ["bethazabet", "betha"]
