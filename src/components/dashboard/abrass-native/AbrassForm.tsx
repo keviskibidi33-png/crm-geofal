@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
-import FormatConfirmModal from "../shared/FormatConfirmModal"
-import FormActionDock from "../shared/FormActionDock"
-import UnsavedChangesModal from "../shared/UnsavedChangesModal"
+import { ConfirmActionModal, FormActionDock, FormatConfirmModal, UnsavedChangesModal, useConfirmDialog } from "../shared"
 import { authFetch } from "@/lib/api-auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
@@ -516,12 +514,18 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
         })
     }, [])
 
-    const clearAll = useCallback(() => {
-        if (!window.confirm('Se limpiarán los datos no guardados. ¿Deseas continuar?')) return
+    const confirmReset = useCallback(() => {
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
         setForm(initialState())
         setMuestraInput('')
     }, [ensayoId])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const save = useCallback(async (download: boolean) => {
         if (!form.muestra || !form.numero_ot || !form.realizado_por) return toast.error('Complete Muestra, N OT y Realizado por.')
@@ -1135,8 +1139,17 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
             <FormActionDock
                 onSave={() => setPendingFormatAction(false)}
                 onSaveAndDownload={() => setPendingFormatAction(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <FormatConfirmModal
                 open={pendingFormatAction !== null}

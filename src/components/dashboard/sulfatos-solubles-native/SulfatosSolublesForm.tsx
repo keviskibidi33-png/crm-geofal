@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Beaker, Download, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormatConfirmModal from '../shared/FormatConfirmModal'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, FormatConfirmModal, UnsavedChangesModal, useConfirmDialog } from '../shared'
 
 // --- Local Types ---
 export interface SulfatosSolublesPayload {
@@ -366,11 +364,17 @@ export default function SulfatosSolublesForm({ ensayoId: initialEnsayoId, onClos
         setForm((prev) => ({ ...prev, [key]: value }))
     }, [])
 
-    const clearAll = useCallback(() => {
-        if (!window.confirm('Se limpiaran los datos no guardados. Deseas continuar?')) return
+    const confirmReset = useCallback(() => {
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
         setForm(initialState())
     }, [ensayoId])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const computedTitulacion = useMemo(() => {
         if (form.volumen_agua_ml == null || form.peso_suelo_seco_g == null || form.alicuota_tomada_ml == null) return null
@@ -883,8 +887,17 @@ export default function SulfatosSolublesForm({ ensayoId: initialEnsayoId, onClos
             <FormActionDock
                 onSave={() => setPendingFormatAction(false)}
                 onSaveAndDownload={() => setPendingFormatAction(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <FormatConfirmModal
                 open={pendingFormatAction !== null}

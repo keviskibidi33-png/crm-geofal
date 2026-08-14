@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Beaker, Download, Loader2, Trash2, X } from "lucide-react"
 import { authFetch } from "@/lib/api-auth"
-import FormatConfirmModal from "../shared/FormatConfirmModal"
-import FormActionDock from "../shared/FormActionDock"
-import UnsavedChangesModal from "../shared/UnsavedChangesModal"
+import { ConfirmActionModal, FormatConfirmModal, FormActionDock, UnsavedChangesModal, useConfirmDialog } from "../shared"
 
 // --- Types ---
 export type CdHumedadPunto = {
@@ -578,11 +576,17 @@ export default function CorteDirectoForm({
     [focusNextTableField, focusTableField]
   )
 
-  const clearAll = useCallback(() => {
-    if (!window.confirm("Se limpiarán los datos no guardados. ¿Deseas continuar?")) return
+  const confirmReset = useCallback(() => {
     localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? "new"}`)
     setForm(initialState())
   }, [ensayoId])
+
+  const {
+    isOpen: isClearDraftModalOpen,
+    openDialog: handleRequestClear,
+    closeDialog: handleCancelClear,
+    handleConfirm: handleConfirmClear,
+  } = useConfirmDialog(confirmReset)
 
   const [pendingFormatAction, setPendingFormatAction] = useState<boolean | null>(null)
 
@@ -1124,13 +1128,22 @@ export default function CorteDirectoForm({
               <FormActionDock
                 onSave={() => setPendingFormatAction(false)}
                 onSaveAndDownload={() => setPendingFormatAction(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
               />
             </div>
           </div>
         </div>
       </div>
+      <ConfirmActionModal
+        isOpen={isClearDraftModalOpen}
+        title="Limpiar datos no guardados"
+        message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+        confirmText="Sí, limpiar"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmClear}
+        onCancel={handleCancelClear}
+      />
       <FormatConfirmModal
         open={pendingFormatAction !== null}
         formatLabel={buildFormatPreview(form.muestra, "SU", "CD")}

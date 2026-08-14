@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { Beaker, Download, Loader2, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, UnsavedChangesModal, useConfirmDialog } from '../shared'
 
 const buildFormatPreview = (sampleCode: string | undefined, materialCode: 'SU' | 'AG', ensayo: string) => {
     const currentYear = new Date().getFullYear().toString().slice(-2)
@@ -399,11 +398,17 @@ export default function CompresionNoConfinadaForm({ editId, onClose, onSaved }: 
         [focusNextTableField, focusTableField],
     )
 
-    const clearAll = useCallback(() => {
-        if (!window.confirm('Se limpiaran los datos no guardados. Deseas continuar?')) return
+    const confirmReset = useCallback(() => {
         localStorage.removeItem(`${DRAFT_KEY}:${editingEnsayoId ?? 'new'}`)
         setForm(initialState())
     }, [editingEnsayoId])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const pesoAgua = useMemo(() => {
         if (form.tara_suelo_humedo_g == null || form.tara_suelo_seco_g == null) return null
@@ -999,8 +1004,17 @@ export default function CompresionNoConfinadaForm({ editId, onClose, onSaved }: 
             <FormActionDock
                 onSave={() => void save(false)}
                 onSaveAndDownload={() => void save(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <UnsavedChangesModal
                 open={isUnsavedChangesModalOpen}

@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Beaker, Download, Loader2, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, UnsavedChangesModal, useConfirmDialog } from '../shared'
 
 const buildFormatPreview = (sampleCode: string | undefined, materialCode: 'SU' | 'AG', ensayo: string) => {
     const currentYear = new Date().getFullYear().toString().slice(-2)
@@ -383,11 +382,17 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
         setForm((prev) => ({ ...prev, [k]: v }))
     }, [])
 
-    const clearAll = useCallback(() => {
-        if (!window.confirm('Se limpiaran los datos no guardados. Deseas continuar?')) return
+    const confirmReset = useCallback(() => {
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
         setForm(initialState())
     }, [ensayoId])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const save = useCallback(async (download: boolean) => {
         if (!form.muestra || !form.numero_ot || !form.realizado_por) return toast.error('Complete Muestra, N OT y Realizado por.')
@@ -725,8 +730,17 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
             <FormActionDock
                 onSave={() => void save(false)}
                 onSaveAndDownload={() => void save(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <UnsavedChangesModal
                 open={isUnsavedChangesModalOpen}

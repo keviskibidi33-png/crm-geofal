@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { Beaker, Download, Loader2, Lock, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormatConfirmModal from '../shared/FormatConfirmModal'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, FormatConfirmModal, UnsavedChangesModal, useConfirmDialog } from '../shared'
 
 // --- Local Types ---
 export interface CloroSolubleResultado {
@@ -554,11 +552,17 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
         [focusNextTableField, focusTableField],
     )
 
-    const clearAll = useCallback(() => {
-        if (!window.confirm('Se limpiaran los datos no guardados. Deseas continuar?')) return
+    const confirmReset = useCallback(() => {
         localStorage.removeItem(`${DRAFT_KEY}:${ensayoId ?? 'new'}`)
         setForm(initialState())
     }, [ensayoId])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const resolvedTitulacion = FIXED_SHARED_VALUES.titulacion_suelo_g
     const resolvedResultados = form.resultados.map((resultado) =>
@@ -1068,8 +1072,17 @@ export default function CloroSolubleForm({ ensayoId: initialEnsayoId, onClose, o
             <FormActionDock
                 onSave={() => setPendingFormatAction(false)}
                 onSaveAndDownload={() => setPendingFormatAction(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <FormatConfirmModal
                 open={pendingFormatAction !== null}

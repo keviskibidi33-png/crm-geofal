@@ -2,9 +2,7 @@ import { createPortal } from 'react-dom'
 import { useState, useMemo, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, Download, Loader2, FlaskConical, Beaker, Trash2, X } from 'lucide-react'
-import FormatConfirmModal from '../shared/FormatConfirmModal'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, FormatConfirmModal, UnsavedChangesModal } from '../shared'
 import { authFetch } from '@/lib/api-auth'
 
 // --- Local Types ---
@@ -1568,67 +1566,6 @@ export default function ProctorForm({
             />
             </div>
         </div>
-    )
-}
-
-function ConfirmActionModal({
-    isOpen,
-    title,
-    message,
-    confirmText,
-    cancelText,
-    onConfirm,
-    onCancel,
-}: {
-    isOpen: boolean
-    title: string
-    message: string
-    confirmText: string
-    cancelText: string
-    onConfirm: () => void
-    onCancel: () => void
-}) {
-    if (!isOpen) return null
-
-    return createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label={title}>
-            <button
-                type="button"
-                className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default"
-                onClick={onCancel}
-                aria-label="Cerrar modal"
-            />
-            <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl">
-                <div className="px-6 pt-6 pb-4">
-                    <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                            <Trash2 className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-                            <p className="text-sm leading-relaxed text-muted-foreground">{message}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="px-6 pb-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        className="h-10 px-4 rounded-lg border border-input bg-background text-foreground text-sm font-medium hover:bg-muted/60 transition-colors"
-                    >
-                        {cancelText}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onConfirm}
-                        className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-                    >
-                        {confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>,
-        document.body,
     )
 }
 

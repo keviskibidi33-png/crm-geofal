@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Beaker, Download, Loader2, RotateCcw, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
-import FormActionDock from '../shared/FormActionDock'
-import UnsavedChangesModal from '../shared/UnsavedChangesModal'
+import { ConfirmActionModal, FormActionDock, UnsavedChangesModal, useConfirmDialog } from '../shared'
 import { getModuleConfigBySlug } from './config'
 import {
     DEFAULT_DENSE_INPUT_CLASS,
@@ -291,12 +290,18 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
         numberValue,
     }
 
-    const clearAll = useCallback(() => {
+    const confirmReset = useCallback(() => {
         if (!moduleConfig) return
-        if (!window.confirm('Se limpiaran los datos no guardados. Deseas continuar?')) return
         localStorage.removeItem(`${moduleConfig.draftKey}:${ensayoId ?? 'new'}`)
         setForm(moduleConfig.derive(moduleConfig.defaultState()))
     }, [ensayoId, moduleConfig])
+
+    const {
+        isOpen: isClearDraftModalOpen,
+        openDialog: handleRequestClear,
+        closeDialog: handleCancelClear,
+        handleConfirm: handleConfirmClear,
+    } = useConfirmDialog(confirmReset)
 
     const save = useCallback(async (download: boolean) => {
         if (!moduleConfig) return
@@ -430,8 +435,17 @@ export default function EnsayosEspecialesForm({ ensayoId: initialEnsayoId, modul
             <FormActionDock
                 onSave={() => void save(false)}
                 onSaveAndDownload={() => void save(true)}
-                onClear={clearAll}
+                onClear={handleRequestClear}
                 loading={loading}
+            />
+            <ConfirmActionModal
+                isOpen={isClearDraftModalOpen}
+                title="Limpiar datos no guardados"
+                message="Se limpiarán los datos no guardados. ¿Deseas continuar?"
+                confirmText="Sí, limpiar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmClear}
+                onCancel={handleCancelClear}
             />
             <UnsavedChangesModal
                 open={isUnsavedChangesModalOpen}
