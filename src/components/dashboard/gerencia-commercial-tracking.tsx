@@ -202,7 +202,7 @@ export function GerenciaCommercialTracking({
         </span>
       </div>
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
-        <span className="font-bold text-slate-800">Reglas:</span> Cotización enviada usa Estado cliente = Cotización enviada, número de cotización y monto válido. Venta usa Estado seguimiento = Venta. Leads cuentan registros con número de cotización y Cliente nuevos los registros en Venta.
+        <span className="font-bold text-slate-800">Reglas:</span> Cotización enviada usa Fecha de contacto + costo sin IGV + categoría cliente. Venta usa Estado seguimiento = Venta. Leads cuentan registros con número de cotización y Cliente nuevos los registros en Venta.
       </div>
       <AmountTable
         title="Cotización enviada"

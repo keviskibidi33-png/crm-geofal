@@ -173,14 +173,11 @@ function getRowDate(row: SeguimientoRow): string | null {
   )
 }
 
-function isSentQuote(row: SeguimientoRow) {
-  const estadoClientNorm = normalizeText(row.estado_cliente)
-  const isSent =
-    estadoClientNorm.includes("COTIZACION") ||
-    estadoClientNorm.includes("COTIZADO") ||
-    estadoClientNorm.includes("ENVIAD")
-
-  return isSent && hasQuoteNumber(row.numero_cotizacion)
+/**
+ * Cotización enviada se alimenta del patrón: Fecha de contacto + costo sin IGV + categoría cliente.
+ */
+function isSentQuote(_row: SeguimientoRow) {
+  return true
 }
 
 function isSale(row: SeguimientoRow) {

@@ -436,9 +436,7 @@ export function useKpisData(): KpisData {
         return true
       }
       const montoEnviada = seguimientos.filter((r: any) => {
-        const estadoCliente = normalizeState(r.estado_cliente)
-        const isSent = estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA")
-        return isSent && hasQuoteNumber(r.numero_cotizacion) && parseMoney(r.costo_cotiz_sin_igv) > 0
+        return parseMoney(r.costo_cotiz_sin_igv) > 0
       })
       const montoVenta = seguimientos.filter((r: any) => {
         const estadoSeguimiento = resolveSeguimientoState(r.estado_seguimiento)
@@ -493,9 +491,7 @@ export function useKpisData(): KpisData {
         const estadoCliente = normalizeState(row.estado_cliente)
         const estadoSeguimiento = resolveSeguimientoState(row.estado_seguimiento)
         const monto = parseMoney(row.costo_cotiz_sin_igv)
-        const isSentQuote = (estadoCliente === "COTIZACION ENVIADA" || estadoCliente.includes("COTIZACION ENVIADA"))
-          && hasQuoteNumber(row.numero_cotizacion)
-          && monto > 0
+        const isSentQuote = monto > 0
         if (isSentQuote) week.cotizacionEnviada += monto
         if ((estadoSeguimiento === "VENTA" || estadoSeguimiento.includes("VENTA")) && monto > 0) week.venta += monto
         if (hasQuoteNumber(row.numero_cotizacion)) week.leads += 1
