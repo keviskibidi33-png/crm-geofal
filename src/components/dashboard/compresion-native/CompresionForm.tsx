@@ -661,67 +661,65 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
     <div className="min-h-full bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-36">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Modern Header */}
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
-              <Beaker className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-                Compresión de Probetas de Concreto — ASTM C39 / NTP 339.034
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">Formato Oficial de Ensayo a Compresión</p>
-              {editId && (
-                <p className="text-xs text-blue-600 font-semibold mt-0.5">
-                  Editando ensayo #{editId}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {editId ? (
-              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 font-bold text-xs">
-                ✎ EDITANDO
-              </Badge>
-            ) : hasSavedData ? (
-              <Badge variant="secondary" className="text-xs">
-                Borrador guardado
-              </Badge>
-            ) : null}
-            {traceStatus?.exists && (
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">Traza:</span>
-                <div className="flex items-center gap-1">
-                  {[
-                    { key: "recepcion", label: "REC" },
-                    { key: "verificacion", label: "VER" },
-                    { key: "compresion", label: "COM" },
-                  ].map((stage) => {
-                    const status = traceStatus[stage.key]?.status || "pendiente"
-                    return (
-                      <Badge
-                        key={stage.key}
-                        variant="outline"
-                        className={`text-[9px] font-black uppercase ${
-                          status === "completado"
-                            ? "border-green-300 text-green-700 bg-green-50"
-                            : status === "en_proceso"
-                            ? "border-yellow-300 text-yellow-700 bg-yellow-50"
-                            : "border-slate-300 text-slate-600 bg-slate-50"
-                        }`}
-                      >
-                        {stage.label}: {status}
-                      </Badge>
-                    )
-                  })}
-                </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3.5 min-w-0 flex-1">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 mt-0.5">
+                <Beaker className="h-5 w-5" />
               </div>
-            )}
+              <div className="min-w-0 flex-1">
+                {/* Meta y Badges arriba del título */}
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  {editId ? (
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 font-bold text-xs">
+                      ✎ EDITANDO #{editId}
+                    </Badge>
+                  ) : hasSavedData ? (
+                    <Badge variant="secondary" className="text-xs">
+                      Borrador guardado
+                    </Badge>
+                  ) : null}
+                  {traceStatus?.exists && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Traza:</span>
+                      {[
+                        { key: "recepcion", label: "REC" },
+                        { key: "verificacion", label: "VER" },
+                        { key: "compresion", label: "COM" },
+                      ].map((stage) => {
+                        const status = traceStatus[stage.key]?.status || "pendiente"
+                        return (
+                          <Badge
+                            key={stage.key}
+                            variant="outline"
+                            className={`text-[9px] font-black uppercase ${
+                              status === "completado"
+                                ? "border-green-300 text-green-700 bg-green-50"
+                                : status === "en_proceso"
+                                ? "border-yellow-300 text-yellow-700 bg-yellow-50"
+                                : "border-slate-300 text-slate-600 bg-slate-50"
+                            }`}
+                          >
+                            {stage.label}: {status}
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 leading-tight">
+                  Compresión de Probetas de Concreto — ASTM C39 / NTP 339.034
+                </h1>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Formato Oficial de Ensayo a Compresión</p>
+              </div>
+            </div>
+
             {onClose && (
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none ml-2"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:bg-slate-100 hover:text-slate-900 focus:outline-none ml-2"
                 title="Regresar al Dashboard"
               >
                 <X className="h-4 w-4" />

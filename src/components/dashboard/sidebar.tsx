@@ -344,6 +344,47 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     )
   }
 
+  // ── Renderizador de ítem individual de nivel superior ─────────────────────
+  const renderSingleModuleItem = (item: SidebarModuleItem, defaultColorClass = "text-primary") => {
+    const ItemIcon = item.icon
+    const isActive = activeModule === item.id
+    const readOnly = isModuleReadOnly(item.id)
+
+    if (collapsed) {
+      return renderCollapsedGroupButton(
+        `${item.id}_collapsed`,
+        item.label,
+        ItemIcon,
+        isActive,
+        item.id,
+      )
+    }
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => handleModuleClick(item.id)}
+        className={cn(
+          "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5 text-left",
+          isActive
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+        )}
+      >
+        <ItemIcon className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-primary" : defaultColorClass)} />
+        <span className="flex-1 truncate font-semibold text-xs tracking-wide">{item.label}</span>
+        {item.status ? (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">
+            {item.status}
+          </span>
+        ) : null}
+        {readOnly && <Eye className="h-3 w-3 text-amber-500/70 shrink-0" />}
+        {!readOnly && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
+      </button>
+    )
+  }
+
   // ── Renderizador de botón colapsado con tooltip ────────────────────────────
   const renderCollapsedGroupButton = (
     key: string,
@@ -372,6 +413,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
       </TooltipContent>
     </Tooltip>
   )
+
+  const labLimaTotalCount = accessibleLabLimaMain.length + accessibleLabLimaEnsayos.length
+  const singleLabLimaItem = accessibleLabLimaMain[0] || accessibleLabLimaEnsayos[0]
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -478,7 +522,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 1. GRUPO COMERCIAL                                             */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {accessibleComercial.length > 0 && (
+          {accessibleComercial.length === 1 && renderSingleModuleItem(accessibleComercial[0], "text-blue-500")}
+          {accessibleComercial.length > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
@@ -522,7 +567,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 2. GRUPO CONCRETOS                                             */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {accessibleConcretos.length > 0 && (
+          {accessibleConcretos.length === 1 && renderSingleModuleItem(accessibleConcretos[0], "text-amber-500")}
+          {accessibleConcretos.length > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
@@ -566,7 +612,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 3. GRUPO LAB. LIMA (Control + Ensayos)                         */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {(accessibleLabLimaMain.length > 0 || accessibleLabLimaEnsayos.length > 0) && (
+          {labLimaTotalCount === 1 && singleLabLimaItem && renderSingleModuleItem(singleLabLimaItem, "text-emerald-500")}
+          {labLimaTotalCount > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
@@ -602,8 +649,9 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                       {/* Módulos Principales de Control */}
                       {accessibleLabLimaMain.map(renderSubmoduleButton)}
 
-                      {/* Sub-acordeón de Ensayos Geomecánicos / Químicos */}
-                      {accessibleLabLimaEnsayos.length > 0 && (
+                      {/* Sub-acordeón de Ensayos si hay más de 1, o botón directo si es solo 1 */}
+                      {accessibleLabLimaEnsayos.length === 1 && renderSubmoduleButton(accessibleLabLimaEnsayos[0])}
+                      {accessibleLabLimaEnsayos.length > 1 && (
                         <div className="pt-1">
                           <button
                             type="button"
@@ -688,7 +736,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 5. LAB. HUANTA                                                 */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {accessibleHuanta.length > 0 && (
+          {accessibleHuanta.length === 1 && renderSingleModuleItem(accessibleHuanta[0], "text-rose-500")}
+          {accessibleHuanta.length > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
@@ -732,7 +781,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 6. ESTADÍSTICAS & KPIS                                         */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {accessibleKpis.length > 0 && (
+          {accessibleKpis.length === 1 && renderSingleModuleItem(accessibleKpis[0], "text-violet-500")}
+          {accessibleKpis.length > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
@@ -776,7 +826,8 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
           {/* ═══════════════════════════════════════════════════════════════ */}
           {/* 7. ADMINISTRACIÓN & SISTEMA                                    */}
           {/* ═══════════════════════════════════════════════════════════════ */}
-          {accessibleAdmin.length > 0 && (
+          {accessibleAdmin.length === 1 && renderSingleModuleItem(accessibleAdmin[0], "text-slate-500")}
+          {accessibleAdmin.length > 1 && (
             <>
               {collapsed ? (
                 renderCollapsedGroupButton(
