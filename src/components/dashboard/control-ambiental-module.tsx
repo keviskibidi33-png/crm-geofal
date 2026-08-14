@@ -130,14 +130,15 @@ const DEFAULT_AREAS = [
 ]
 
 const DEFAULT_BALANZAS = [
-  { codigo: "EQP-0046", nombre: "BALANZA 0.1g (Recepcion / Suelos)", ubi: "Area de Recepción de muestras", cap: 15000, masa: 2000, tol: 0.5 },
-  { codigo: "EQP-0045", nombre: "BALANZA 0.01g (Ensayos Físicos / Límite Líquido)", ubi: "Área de Ensayos físicos", cap: 5000, masa: 1000, tol: 0.1 },
-  { codigo: "EQP-0054", nombre: "BALANZA 1g (Proctor / Peso Unitario)", ubi: "Area de Lavado y compactación", cap: 20000, masa: 5000, tol: 1.0 },
-  { codigo: "EQP-0090", nombre: "BALANZA 0.1g (Peso Específico Finos)", ubi: "Área de Ensayos físicos", cap: 1000, masa: 500, tol: 0.05 },
-  { codigo: "EQP-0059", nombre: "BALANZA 10g (Peso Unitario 10g)", ubi: "Area de Lavado y compactación", cap: 30000, masa: 10000, tol: 2.0 },
-  { codigo: "EQP-0050", nombre: "BALANZA 1g (Gravedad Específica Agregado Grueso)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
-  { codigo: "EQP-0044", nombre: "BALANZA 0.0001g (Analítica)", ubi: "Area de Ensayos especiales", cap: 300, masa: 100, tol: 0.005 },
-  { codigo: "EQP-0047", nombre: "BALANZA 0.1g (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
+  { codigo: "EQP-0019", nombre: "BALANZA (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
+  { codigo: "EQP-0045", nombre: "BALANZA 0.01g (Ensayos Especiales)", ubi: "Area de Ensayos especiales", cap: 5000, masa: 1000, tol: 0.1 },
+  { codigo: "EQP-0046", nombre: "BALANZA 0.1g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 15000, masa: 2000, tol: 0.5 },
+  { codigo: "EQP-0054", nombre: "BALANZA 1g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
+  { codigo: "EQP-0059", nombre: "BALANZA 10g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 30000, masa: 10000, tol: 2.0 },
+  { codigo: "EQP-0090", nombre: "BALANZA 0.1g (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 1000, masa: 500, tol: 0.05 },
+  { codigo: "EQP-0093", nombre: "BALANZA (Densidad / Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
+  { codigo: "EQP-0147", nombre: "BALANZA (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
+  { codigo: "EQP-0005", nombre: "BALANZA (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 15000, masa: 2000, tol: 0.5 },
 ]
 
 const REALIZADO_POR_LIST = ["BEATRIZ"]
