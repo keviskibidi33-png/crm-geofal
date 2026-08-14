@@ -4,7 +4,34 @@ import * as React from "react"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
-import { Users, FileText, Settings, ChevronRight, ChevronDown, FolderKanban, Shield, Activity, ClipboardList, LogOut, Sun, Moon, TestTube, Beaker, PanelLeftClose, PanelLeft, Eye, Calendar, BarChart3, FlaskConical, TrendingUp, Thermometer, Scale, MessageSquare } from "lucide-react"
+import {
+  Users,
+  FileText,
+  Settings,
+  ChevronRight,
+  ChevronDown,
+  FolderKanban,
+  Shield,
+  Activity,
+  ClipboardList,
+  LogOut,
+  Sun,
+  Moon,
+  TestTube,
+  Beaker,
+  PanelLeftClose,
+  PanelLeft,
+  Eye,
+  Calendar,
+  BarChart3,
+  FlaskConical,
+  TrendingUp,
+  Thermometer,
+  Scale,
+  Briefcase,
+  MapPin,
+  Sparkles,
+} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -19,6 +46,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useTheme } from "@/components/theme-provider"
 import { useAuth, type ModuleType, type User } from "@/hooks/use-auth"
 import { canAccessDashboardModule, isAdminDashboardRole } from "@/lib/control-module-access"
+import {
+  COMERCIAL_MODULES,
+  CONCRETOS_MODULES,
+  LAB_LIMA_MAIN_MODULES,
+  LAB_LIMA_ENSAYOS_MODULES,
+  LAB_HUANTA_MODULES,
+  SIDEBAR_KPI_MODULES,
+  ADMIN_MODULES,
+  type SidebarModuleItem,
+} from "@/lib/sidebar-modules"
 
 interface SidebarProps {
   activeModule: ModuleType
@@ -28,8 +65,6 @@ interface SidebarProps {
   onToggleCollapse: () => void
 }
 
-import { SIDEBAR_MODULES as modules, SIDEBAR_KPI_MODULES as kpiModules } from "@/lib/sidebar-modules"
-
 export function DashboardSidebar({ activeModule, setActiveModule, user, collapsed, onToggleCollapse }: SidebarProps) {
   const brandRef = React.useRef<HTMLButtonElement | null>(null)
   const brandBubbleRef = React.useRef<HTMLDivElement | null>(null)
@@ -37,55 +72,92 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
   const [brandBubblePos, setBrandBubblePos] = React.useState({ x: 0, y: 0 })
   const [viewport, setViewport] = React.useState({ width: 1280, height: 720 })
 
-  const huantaSubmodules = React.useMemo(() => [
-    { id: "huanta_probetas", label: "Control Probetas", icon: Calendar },
-    { id: "huanta_compresion", label: "Compresión Huanta", icon: Beaker },
-    { id: "densidad_huantar", label: "Densidad Huanta", icon: Beaker },
-    { id: "huanta_seguimiento", label: "Seguimiento Huanta", icon: Activity },
-  ], [])
-
-  const isHuantaActive = React.useMemo(() =>
-    ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule),
-    [activeModule]
+  // ── Helper de filtrado por permisos ─────────────────────────────────────────
+  const filterByAccess = React.useCallback(
+    (items: SidebarModuleItem[]) => {
+      const isAdmin = isAdminDashboardRole(user.role)
+      return items.filter((item) => {
+        if (isAdmin) return true
+        if (item.id === "usuarios" || item.id === "auditoria") return false
+        return canAccessDashboardModule(item.id, user.role, user.permissions, user.email)
+      })
+    },
+    [user.email, user.permissions, user.role]
   )
 
-  const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive)
-
-  const ambientalSubmodules = React.useMemo(() => [
-    { id: "control_ambiental",          label: "Temperatura / Humedad", icon: Thermometer },
-    { id: "control_ambiental_balanzas", label: "Balanzas",               icon: Scale },
-  ], [])
-
-  const isAmbientalActive = React.useMemo(() =>
-    ["control_ambiental", "control_ambiental_balanzas"].includes(activeModule),
-    [activeModule]
+  const isModuleReadOnly = React.useCallback(
+    (moduleId: ModuleType): boolean => {
+      const isAdmin = isAdminDashboardRole(user.role)
+      if (isAdmin) return false
+      const perm = user.permissions?.[moduleId]
+      return perm?.read === true && perm?.write !== true
+    },
+    [user.permissions, user.role]
   )
 
-  const [ambientalExpanded, setAmbientalExpanded] = React.useState(isAmbientalActive)
+  // ── Listas accesibles por categoría ─────────────────────────────────────────
+  const accessibleComercial = React.useMemo(() => filterByAccess(COMERCIAL_MODULES), [filterByAccess])
+  const accessibleConcretos = React.useMemo(() => filterByAccess(CONCRETOS_MODULES), [filterByAccess])
+  const accessibleLabLimaMain = React.useMemo(() => filterByAccess(LAB_LIMA_MAIN_MODULES), [filterByAccess])
+  const accessibleLabLimaEnsayos = React.useMemo(() => filterByAccess(LAB_LIMA_ENSAYOS_MODULES), [filterByAccess])
+  const accessibleHuanta = React.useMemo(() => filterByAccess(LAB_HUANTA_MODULES), [filterByAccess])
+  const accessibleKpis = React.useMemo(() => filterByAccess(SIDEBAR_KPI_MODULES), [filterByAccess])
+  const accessibleAdmin = React.useMemo(() => filterByAccess(ADMIN_MODULES), [filterByAccess])
+  const hasKanbanAccess = React.useMemo(() => {
+    const isAdmin = isAdminDashboardRole(user.role)
+    if (isAdmin) return true
+    return canAccessDashboardModule("kanban", user.role, user.permissions, user.email)
+  }, [user.email, user.permissions, user.role])
 
-  const accessibleKpiModules = React.useMemo(
-    () => kpiModules.filter((module) => canAccessDashboardModule(module.id, user.role, user.permissions, user.email)),
-    [user.email, user.permissions, user.role],
+  // ── Detección de módulo activo por grupo ────────────────────────────────────
+  const isComercialActive = React.useMemo(
+    () => accessibleComercial.some((m) => m.id === activeModule),
+    [accessibleComercial, activeModule]
   )
-
+  const isConcretosActive = React.useMemo(
+    () => accessibleConcretos.some((m) => m.id === activeModule),
+    [accessibleConcretos, activeModule]
+  )
+  const isEnsayosActive = React.useMemo(
+    () => accessibleLabLimaEnsayos.some((m) => m.id === activeModule),
+    [accessibleLabLimaEnsayos, activeModule]
+  )
+  const isLabLimaActive = React.useMemo(
+    () => accessibleLabLimaMain.some((m) => m.id === activeModule) || isEnsayosActive,
+    [accessibleLabLimaMain, isEnsayosActive, activeModule]
+  )
+  const isHuantaActive = React.useMemo(
+    () => accessibleHuanta.some((m) => m.id === activeModule),
+    [accessibleHuanta, activeModule]
+  )
   const isKpiActive = React.useMemo(
-    () => accessibleKpiModules.some((module) => module.id === activeModule),
-    [accessibleKpiModules, activeModule],
+    () => accessibleKpis.some((m) => m.id === activeModule),
+    [accessibleKpis, activeModule]
+  )
+  const isAdminActive = React.useMemo(
+    () => accessibleAdmin.some((m) => m.id === activeModule),
+    [accessibleAdmin, activeModule]
   )
 
-  const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive)
+  // ── Estados de acordeones colapsables ───────────────────────────────────────
+  const [comercialExpanded, setComercialExpanded] = React.useState(isComercialActive || false)
+  const [concretosExpanded, setConcretosExpanded] = React.useState(isConcretosActive || false)
+  const [labLimaExpanded, setLabLimaExpanded] = React.useState(isLabLimaActive || false)
+  const [ensayosExpanded, setEnsayosExpanded] = React.useState(isEnsayosActive || false)
+  const [huantaExpanded, setHuantaExpanded] = React.useState(isHuantaActive || false)
+  const [kpiExpanded, setKpiExpanded] = React.useState(isKpiActive || false)
+  const [adminExpanded, setAdminExpanded] = React.useState(isAdminActive || false)
 
+  // Auto-expansión cuando el módulo activo cambia
   React.useEffect(() => {
+    if (isComercialActive) setComercialExpanded(true)
+    if (isConcretosActive) setConcretosExpanded(true)
+    if (isLabLimaActive) setLabLimaExpanded(true)
+    if (isEnsayosActive) setEnsayosExpanded(true)
     if (isHuantaActive) setHuantaExpanded(true)
-  }, [isHuantaActive])
-
-  React.useEffect(() => {
     if (isKpiActive) setKpiExpanded(true)
-  }, [isKpiActive])
-
-  React.useEffect(() => {
-    if (isAmbientalActive) setAmbientalExpanded(true)
-  }, [isAmbientalActive])
+    if (isAdminActive) setAdminExpanded(true)
+  }, [isComercialActive, isConcretosActive, isLabLimaActive, isEnsayosActive, isHuantaActive, isKpiActive, isAdminActive])
 
   const [isTabletLayout, setIsTabletLayout] = React.useState(false)
 
@@ -116,23 +188,6 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     window.addEventListener("resize", updateViewport)
     return () => window.removeEventListener("resize", updateViewport)
   }, [])
-
-  // Use granular permissions for filtering
-  // Admin maintains full access fallback, but ideally should have all permissions true in DB
-  const filteredModules = modules.filter((module) => {
-    const isAdmin = isAdminDashboardRole(user.role)
-
-    if (isAdmin) return true
-    if (module.id === "usuarios" || module.id === "auditoria") return false
-    return canAccessDashboardModule(module.id, user.role, user.permissions, user.email)
-  })
-
-  const isModuleReadOnly = (moduleId: ModuleType): boolean => {
-    const isAdmin = isAdminDashboardRole(user.role)
-    if (isAdmin) return false
-    const perm = user.permissions?.[moduleId]
-    return perm?.read === true && perm?.write !== true
-  }
 
   const { theme, setTheme } = useTheme()
   const { signOut } = useAuth()
@@ -248,11 +303,7 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
                     : "border-muted-foreground/50 text-muted-foreground",
                 )}
               >
-                {user.roleLabel || (
-                  user.role === "admin"
-                    ? "Administrador"
-                    : user.role
-                )}
+                {user.roleLabel || (user.role === "admin" ? "Administrador" : user.role)}
               </Badge>
             </div>
           </button>
@@ -283,406 +334,518 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     </DropdownMenu>
   )
 
+  // ── Renderizador de ítem de submódulo individual ───────────────────────────
+  const renderSubmoduleButton = (sub: SidebarModuleItem) => {
+    const SubIcon = sub.icon
+    const isSubActive = activeModule === sub.id
+    const readOnly = isModuleReadOnly(sub.id)
+
+    return (
+      <button
+        key={sub.id}
+        type="button"
+        onClick={() => handleModuleClick(sub.id)}
+        className={cn(
+          "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2 text-left",
+          isSubActive
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+        )}
+      >
+        <SubIcon className={cn("h-4 w-4 shrink-0", isSubActive ? "text-primary" : "text-muted-foreground")} />
+        <span className="flex-1 truncate">{sub.label}</span>
+        {sub.status ? (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">
+            {sub.status}
+          </span>
+        ) : null}
+        {readOnly && <Eye className="h-3 w-3 text-amber-500/70 shrink-0" />}
+        {!readOnly && isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
+      </button>
+    )
+  }
+
+  // ── Renderizador de botón colapsado con tooltip ────────────────────────────
+  const renderCollapsedGroupButton = (
+    key: string,
+    label: string,
+    Icon: React.ElementType,
+    isActive: boolean,
+    firstAccessibleModuleId?: ModuleType,
+  ) => (
+    <Tooltip key={key}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => firstAccessibleModuleId && handleModuleClick(firstAccessibleModuleId)}
+          className={cn(
+            "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
+            isActive
+              ? "bg-sidebar-accent text-primary shadow-xs"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+          )}
+        >
+          <Icon className="h-5 w-5 shrink-0" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        <p className="font-semibold">{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+
   return (
     <TooltipProvider delayDuration={0}>
-    <aside className={cn(
-      "h-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0",
-      collapsed ? "w-17" : isTabletLayout ? "w-56" : "w-64"
-    )}>
-      {/* Logo + Collapse Toggle */}
-      <div className="border-b border-sidebar-border shrink-0">
-        <button
-          ref={brandRef}
-          type="button"
-          onClick={handleBrandClick}
-          onContextMenu={handleBrandContextMenu}
-          className={cn(
-            "group w-full flex items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            collapsed ? "p-3 justify-center" : "p-6 gap-3 text-left",
-          )}
-          aria-label="Volver al último módulo abierto"
-          title="Ir al último módulo abierto"
-        >
-          <Image
-            src="/logo-geofal.svg"
-            alt="Geofal CRM"
-            width={160}
-            height={40}
+      <aside
+        className={cn(
+          "h-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden transition-all duration-300 ease-in-out shrink-0",
+          collapsed ? "w-17" : isTabletLayout ? "w-56" : "w-64",
+        )}
+      >
+        {/* Logo + Collapse Toggle */}
+        <div className="border-b border-sidebar-border shrink-0">
+          <button
+            ref={brandRef}
+            type="button"
+            onClick={handleBrandClick}
+            onContextMenu={handleBrandContextMenu}
             className={cn(
-              "shrink-0 transition-transform duration-200 ease-out group-hover:scale-105",
-              collapsed ? "h-8 w-auto" : "h-10 w-auto",
+              "group w-full flex items-center transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              collapsed ? "p-3 justify-center" : "p-6 gap-3 text-left",
             )}
-            priority
-          />
-          {!collapsed && (
-            <div className="min-w-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
-              <h1 className="font-semibold text-sidebar-foreground truncate">Geofal CRM</h1>
-              <p className="text-xs text-muted-foreground truncate">Panel Administrativo</p>
-            </div>
-          )}
-        </button>
-        <button
-          onClick={onToggleCollapse}
-          className="w-full flex items-center justify-center py-1.5 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors border-t border-sidebar-border"
-        >
-          {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </button>
-
-        {brandBubbleOpen && (
-          <div
-            ref={brandBubbleRef}
-            className="fixed z-80 min-w-52 rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
-            style={{
-              left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 220)),
-              top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 152)),
-            }}
+            aria-label="Volver al inicio"
+            title="Ir a inicio del CRM"
           >
-            <div className="px-3 py-2 border-b border-sidebar-border bg-linear-to-r from-primary/10 to-transparent">
-              <div className="flex items-center gap-2.5">
-                <Image src="/logo-geofal.svg" alt="Geofal CRM" width={30} height={30} className="h-7.5 w-7.5" />
-                <div className="min-w-0">
-                  <p className="text-[13px] font-bold text-foreground truncate leading-tight">Geofal CRM</p>
-                  <p className="text-[10px] text-muted-foreground truncate leading-tight">Acciones rápidas</p>
+            <Image
+              src="/logo-geofal.svg"
+              alt="Geofal CRM"
+              width={160}
+              height={40}
+              className={cn(
+                "shrink-0 transition-transform duration-200 ease-out group-hover:scale-105",
+                collapsed ? "h-8 w-auto" : "h-10 w-auto",
+              )}
+              priority
+            />
+            {!collapsed && (
+              <div className="min-w-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
+                <h1 className="font-semibold text-sidebar-foreground truncate">Geofal CRM</h1>
+                <p className="text-xs text-muted-foreground truncate">Panel Central</p>
+              </div>
+            )}
+          </button>
+          <button
+            onClick={onToggleCollapse}
+            className="w-full flex items-center justify-center py-1.5 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors border-t border-sidebar-border"
+          >
+            {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </button>
+
+          {brandBubbleOpen && (
+            <div
+              ref={brandBubbleRef}
+              className="fixed z-80 min-w-52 rounded-2xl border border-sidebar-border bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+              style={{
+                left: Math.min(brandBubblePos.x, Math.max(16, viewport.width - 220)),
+                top: Math.min(brandBubblePos.y, Math.max(16, viewport.height - 152)),
+              }}
+            >
+              <div className="px-3 py-2 border-b border-sidebar-border bg-linear-to-r from-primary/10 to-transparent">
+                <div className="flex items-center gap-2.5">
+                  <Image src="/logo-geofal.svg" alt="Geofal CRM" width={30} height={30} className="h-7.5 w-7.5" />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-foreground truncate leading-tight">Geofal CRM</p>
+                    <p className="text-[10px] text-muted-foreground truncate leading-tight">Acciones rápidas</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-2 space-y-1">
-              <button
-                type="button"
-                onClick={openCrmInNewTab}
-                className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-primary/10 text-primary text-xs">+</span>
-                <span>Abrir otra pestaña del CRM</span>
-              </button>
-              <button
-                type="button"
-                onClick={reloadWithoutCache}
-                className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 text-xs">↻</span>
-                <span>Recargar sin caché</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* User Profile (Top on Tablet) */}
-      {isTabletLayout && (
-        <div className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
-          {renderProfileDropdown()}
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className={cn("flex-1 min-h-0 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent", collapsed ? "p-2" : "p-4")}>
-        {/* KPIs Section - Collapsed */}
-        {collapsed && accessibleKpiModules.length > 0 && (
-          <Tooltip key="kpi_collapsed">
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setKpiExpanded(true)}
-                className={cn(
-                  "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
-                  isKpiActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                )}
-              >
-                <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              <p>Estadisticas & KPIs</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* KPIs Section - Expanded */}
-        {!collapsed && accessibleKpiModules.length > 0 && (
-          <div className="space-y-1">
-            <button
-              type="button"
-              onClick={() => setKpiExpanded(prev => !prev)}
-              className={cn(
-                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
-                isKpiActive && !kpiExpanded
-                  ? "bg-sidebar-accent/40 text-sidebar-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-              )}
-            >
-              <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
-              <span className="flex-1 text-left truncate font-semibold">Estadisticas & KPIs</span>
-              {kpiExpanded ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              )}
-            </button>
-
-            {kpiExpanded && (
-              <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
-                {accessibleKpiModules.map((sub) => {
-                  const SubIcon = sub.icon
-                  const isSubActive = activeModule === sub.id
-                  return (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      onClick={() => handleModuleClick(sub.id)}
-                      className={cn(
-                        "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
-                        isSubActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
-                      )}
-                    >
-                      <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 text-left truncate">{sub.label}</span>
-                      {sub.status ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">
-                          {sub.status}
-                        </span>
-                      ) : null}
-                      {isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
-                    </button>
-                  )
-                })}
+              <div className="p-2 space-y-1">
+                <button
+                  type="button"
+                  onClick={openCrmInNewTab}
+                  className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-primary/10 text-primary text-xs">+</span>
+                  <span>Abrir otra pestaña del CRM</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={reloadWithoutCache}
+                  className="w-full flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-[13px] font-medium text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  <span className="flex h-6.5 w-6.5 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 text-xs">↻</span>
+                  <span>Recargar sin caché</span>
+                </button>
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* User Profile (Top on Tablet) */}
+        {isTabletLayout && (
+          <div className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+            {renderProfileDropdown()}
           </div>
         )}
 
-        {filteredModules.map((module) => {
-          // ── Laboratorio Huanta (grupo colapsable) ──────────────────────
-          if (module.id === "huanta_probetas") {
-            const hasAccess = canAccessDashboardModule("huanta_probetas", user.role, user.permissions, user.email)
-            if (!hasAccess) return null
+        {/* Navigation */}
+        <nav
+          className={cn(
+            "flex-1 min-h-0 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-accent",
+            collapsed ? "p-2" : "p-3",
+          )}
+        >
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 1. GRUPO COMERCIAL                                             */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {accessibleComercial.length > 0 && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "comercial_collapsed",
+                  "Comercial",
+                  Briefcase,
+                  isComercialActive,
+                  accessibleComercial[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setComercialExpanded((prev) => !prev)}
+                    className={cn(
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isComercialActive && !comercialExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <Briefcase className={cn("h-4.5 w-4.5 shrink-0", isComercialActive ? "text-primary" : "text-blue-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Comercial</span>
+                    {comercialExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
 
-            const isHuantaActive = ["huanta_probetas", "huanta_compresion", "huanta_seguimiento", "densidad_huantar"].includes(activeModule)
+                  {comercialExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-blue-500/30 ml-4.5 my-1">
+                      {accessibleComercial.map(renderSubmoduleButton)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
-            if (collapsed) {
-              return (
-                <Tooltip key="proyecto_huanta">
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 2. GRUPO CONCRETOS                                             */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {accessibleConcretos.length > 0 && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "concretos_collapsed",
+                  "Concretos",
+                  TestTube,
+                  isConcretosActive,
+                  accessibleConcretos[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setConcretosExpanded((prev) => !prev)}
+                    className={cn(
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isConcretosActive && !concretosExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <TestTube className={cn("h-4.5 w-4.5 shrink-0", isConcretosActive ? "text-primary" : "text-amber-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Concretos</span>
+                    {concretosExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+
+                  {concretosExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-amber-500/30 ml-4.5 my-1">
+                      {accessibleConcretos.map(renderSubmoduleButton)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 3. GRUPO LAB. LIMA (Control + Ensayos)                         */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {(accessibleLabLimaMain.length > 0 || accessibleLabLimaEnsayos.length > 0) && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "lab_lima_collapsed",
+                  "Lab. Lima",
+                  FlaskConical,
+                  isLabLimaActive,
+                  accessibleLabLimaMain[0]?.id || accessibleLabLimaEnsayos[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setLabLimaExpanded((prev) => !prev)}
+                    className={cn(
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isLabLimaActive && !labLimaExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <FlaskConical className={cn("h-4.5 w-4.5 shrink-0", isLabLimaActive ? "text-primary" : "text-emerald-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Lab. Lima</span>
+                    {labLimaExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+
+                  {labLimaExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-emerald-500/30 ml-4.5 my-1">
+                      {/* Módulos Principales de Control */}
+                      {accessibleLabLimaMain.map(renderSubmoduleButton)}
+
+                      {/* Sub-acordeón de Ensayos Geomecánicos / Químicos */}
+                      {accessibleLabLimaEnsayos.length > 0 && (
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEnsayosExpanded((prev) => !prev)}
+                            className={cn(
+                              "w-full flex items-center rounded-lg text-xs font-semibold transition-all duration-200 gap-2 px-2.5 py-1.5 text-left",
+                              isEnsayosActive && !ensayosExpanded
+                                ? "bg-sidebar-accent/60 text-primary font-bold"
+                                : "text-sidebar-foreground/75 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
+                            )}
+                          >
+                            <Beaker className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            <span className="flex-1 truncate">Ensayos & Suelos</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sidebar-accent text-muted-foreground">
+                              {accessibleLabLimaEnsayos.length}
+                            </span>
+                            {ensayosExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            )}
+                          </button>
+
+                          {ensayosExpanded && (
+                            <div className="pl-2.5 space-y-0.5 border-l border-emerald-500/20 ml-3.5 my-1 max-h-80 overflow-y-auto scrollbar-thin">
+                              {accessibleLabLimaEnsayos.map(renderSubmoduleButton)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 4. TABLEROS KANBAN                                              */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {hasKanbanAccess && (
+            <>
+              {collapsed ? (
+                <Tooltip key="kanban_collapsed">
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => handleModuleClick("huanta_probetas")}
+                      type="button"
+                      onClick={() => handleModuleClick("kanban")}
                       className={cn(
                         "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
-                        isHuantaActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        activeModule === "kanban"
+                          ? "bg-sidebar-accent text-primary shadow-xs"
                           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                       )}
                     >
-                      <Beaker className="h-5 w-5 shrink-0 text-primary" />
+                      <FolderKanban className="h-5 w-5 shrink-0" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}><p>Laboratorio Huanta</p></TooltipContent>
+                  <TooltipContent side="right" sideOffset={8}>
+                    <p className="font-semibold">Tableros Kanban</p>
+                  </TooltipContent>
                 </Tooltip>
-              )
-            }
-
-            const filteredSubmodules = huantaSubmodules.filter((sub) => {
-              const isAdmin = isAdminDashboardRole(user.role)
-              if (isAdmin) return true
-              return canAccessDashboardModule(sub.id as any, user.role, user.permissions, user.email)
-            })
-
-            return (
-              <div key="proyecto_huanta" className="space-y-1">
-                <button type="button" onClick={() => setHuantaExpanded(prev => !prev)}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleModuleClick("kanban")}
                   className={cn(
-                    "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
-                    isHuantaActive && !huantaExpanded
-                      ? "bg-sidebar-accent/40 text-sidebar-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                    activeModule === "kanban"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                   )}
                 >
-                  <Beaker className="h-5 w-5 shrink-0 text-primary" />
-                  <span className="flex-1 text-left truncate font-semibold">Laboratorio Huanta</span>
-                  {huantaExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                  <FolderKanban className={cn("h-4.5 w-4.5 shrink-0", activeModule === "kanban" ? "text-primary" : "text-indigo-500")} />
+                  <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Tableros Kanban</span>
+                  {activeModule === "kanban" && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
                 </button>
-                {huantaExpanded && (
-                  <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
-                    {filteredSubmodules.map((sub) => {
-                      const SubIcon = sub.icon
-                      const isSubActive = activeModule === sub.id
-                      const readOnly = isModuleReadOnly(sub.id as any)
-                      return (
-                        <button key={sub.id} type="button" onClick={() => handleModuleClick(sub.id as any)}
-                          className={cn(
-                            "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
-                            isSubActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
-                          )}
-                        >
-                          <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <span className="flex-1 text-left truncate">{sub.label}</span>
-                          {readOnly && <Eye className="h-3 w-3 text-amber-500/70 shrink-0" />}
-                          {!readOnly && isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          }
+              )}
+            </>
+          )}
 
-          // ── Control Ambiental (grupo colapsable) ───────────────────────
-          if (module.id === "laboratorio") {
-            // render laboratorio normally first, then inject the ambiental group after it
-            const hasAmbientalAccess = canAccessDashboardModule("control_ambiental", user.role, user.permissions, user.email)
-            const Icon = module.icon
-            const isActive = activeModule === module.id
-            const readOnly = isModuleReadOnly(module.id)
-
-            const labButton = collapsed ? (
-              <Tooltip key={module.id}>
-                <TooltipTrigger asChild>
-                  <button onClick={() => handleModuleClick(module.id)}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 5. LAB. HUANTA                                                 */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {accessibleHuanta.length > 0 && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "lab_huanta_collapsed",
+                  "Lab. Huanta",
+                  MapPin,
+                  isHuantaActive,
+                  accessibleHuanta[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setHuantaExpanded((prev) => !prev)}
                     className={cn(
-                      "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isHuantaActive && !huantaExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                     )}
-                  ><Icon className="h-5 w-5 shrink-0" /></button>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}><p>{module.label}</p></TooltipContent>
-              </Tooltip>
-            ) : (
-              <button key={module.id} onClick={() => handleModuleClick(module.id)}
-                className={cn(
-                  "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
-                  isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                )}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-left truncate">{module.label}</span>
-                {readOnly && <Eye className="h-3.5 w-3.5 text-amber-500/70 shrink-0" />}
-                {!readOnly && isActive && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
-              </button>
-            )
-
-            // If no ambiental access, render lab button alone
-            if (!hasAmbientalAccess) return labButton
-
-            // Render lab button + ambiental collapsible group
-            return (
-              <React.Fragment key="lab_and_ambiental">
-                {labButton}
-                {!collapsed && (
-                  <div className="space-y-1">
-                    <button type="button" onClick={() => setAmbientalExpanded(prev => !prev)}
-                      className={cn(
-                        "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-4 py-3",
-                        isAmbientalActive && !ambientalExpanded
-                          ? "bg-sidebar-accent/40 text-sidebar-foreground"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                      )}
-                    >
-                      <FlaskConical className="h-5 w-5 shrink-0 text-emerald-500" />
-                      <span className="flex-1 text-left truncate font-semibold">Control Ambiental</span>
-                      {ambientalExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                    </button>
-                    {ambientalExpanded && (
-                      <div className="pl-4 space-y-1 border-l border-sidebar-border/60 ml-6">
-                        {ambientalSubmodules.map((sub) => {
-                          const SubIcon = sub.icon
-                          const isSubActive = activeModule === sub.id
-                          return (
-                            <button key={sub.id} type="button" onClick={() => handleModuleClick(sub.id as any)}
-                              className={cn(
-                                "w-full flex items-center rounded-lg text-xs font-medium transition-all duration-200 gap-2.5 px-3 py-2",
-                                isSubActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-foreground",
-                              )}
-                            >
-                              <SubIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                              <span className="flex-1 text-left truncate">{sub.label}</span>
-                              {isSubActive && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
-                            </button>
-                          )
-                        })}
-                      </div>
+                  >
+                    <MapPin className={cn("h-4.5 w-4.5 shrink-0", isHuantaActive ? "text-primary" : "text-rose-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Lab. Huanta</span>
+                    {huantaExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     )}
-                  </div>
-                )}
-                {collapsed && (
-                  <Tooltip key="ambiental_collapsed">
-                    <TooltipTrigger asChild>
-                      <button onClick={() => handleModuleClick("control_ambiental")}
-                        className={cn(
-                          "w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 py-3",
-                          isAmbientalActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                        )}
-                      ><FlaskConical className="h-5 w-5 shrink-0 text-emerald-500" /></button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={8}><p>Control Ambiental</p></TooltipContent>
-                  </Tooltip>
-                )}
-              </React.Fragment>
-            )
-          }
+                  </button>
 
-          const Icon = module.icon
-          const isActive = activeModule === module.id
-          const readOnly = isModuleReadOnly(module.id)
-          const isComunicaciones = module.id === "comunicaciones"
-
-          const button = (
-            <button
-              key={module.id}
-              onClick={() => handleModuleClick(module.id)}
-              className={cn(
-                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 relative",
-                collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  {huantaExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-rose-500/30 ml-4.5 my-1">
+                      {accessibleHuanta.map(renderSubmoduleButton)}
+                    </div>
+                  )}
+                </div>
               )}
-            >
-              <div className="relative flex items-center justify-center">
-                <Icon className="h-5 w-5 shrink-0" />
-                {collapsed && isComunicaciones && unreadChatCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                  </span>
-                )}
-              </div>
-              {!collapsed && <span className="flex-1 text-left truncate">{module.label}</span>}
-              {!collapsed && isComunicaciones && unreadChatCount > 0 && (
-                <Badge variant="destructive" className="h-5 px-1.5 text-[11px] font-extrabold animate-bounce ml-auto shadow-xs">
-                  {unreadChatCount}
-                </Badge>
+            </>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 6. ESTADÍSTICAS & KPIS                                         */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {accessibleKpis.length > 0 && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "kpi_collapsed",
+                  "Estadísticas & KPIs",
+                  BarChart3,
+                  isKpiActive,
+                  accessibleKpis[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setKpiExpanded((prev) => !prev)}
+                    className={cn(
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isKpiActive && !kpiExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <BarChart3 className={cn("h-4.5 w-4.5 shrink-0", isKpiActive ? "text-primary" : "text-violet-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Estadísticas & KPIs</span>
+                    {kpiExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+
+                  {kpiExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-violet-500/30 ml-4.5 my-1">
+                      {accessibleKpis.map(renderSubmoduleButton)}
+                    </div>
+                  )}
+                </div>
               )}
-              {!collapsed && readOnly && <Eye className="h-3.5 w-3.5 text-amber-500/70 shrink-0" />}
-              {!collapsed && !readOnly && isActive && !isComunicaciones && <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
-            </button>
-          )
+            </>
+          )}
 
-          if (collapsed) {
-            return (
-              <Tooltip key={module.id}>
-                <TooltipTrigger asChild>{button}</TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>
-                  <p>{module.label}{readOnly ? " (Solo lectura)" : ""}</p>
-                </TooltipContent>
-              </Tooltip>
-            )
-          }
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* 7. ADMINISTRACIÓN & SISTEMA                                    */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {accessibleAdmin.length > 0 && (
+            <>
+              {collapsed ? (
+                renderCollapsedGroupButton(
+                  "admin_collapsed",
+                  "Administración",
+                  Shield,
+                  isAdminActive,
+                  accessibleAdmin[0]?.id,
+                )
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setAdminExpanded((prev) => !prev)}
+                    className={cn(
+                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 gap-3 px-3 py-2.5",
+                      isAdminActive && !adminExpanded
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <Shield className={cn("h-4.5 w-4.5 shrink-0", isAdminActive ? "text-primary" : "text-slate-500")} />
+                    <span className="flex-1 text-left truncate font-semibold text-xs tracking-wide uppercase">Administración</span>
+                    {adminExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
 
-          return button
-        })}
-      </nav>
+                  {adminExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-slate-500/30 ml-4.5 my-1">
+                      {accessibleAdmin.map(renderSubmoduleButton)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </nav>
 
-      {/* User Profile Dropdown */}
-      {!isTabletLayout && (
-        <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
-          {renderProfileDropdown()}
-        </div>
-      )}
-    </aside>
+        {/* User Profile Dropdown */}
+        {!isTabletLayout && (
+          <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-3")}>
+            {renderProfileDropdown()}
+          </div>
+        )}
+      </aside>
     </TooltipProvider>
   )
 }
