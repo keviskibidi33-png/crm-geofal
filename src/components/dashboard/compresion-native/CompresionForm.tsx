@@ -1139,6 +1139,19 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                       <td className="px-2 py-2">
                         <select
                           {...register(`items.${index}.revisado` as const)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            register(`items.${index}.revisado` as const).onChange(e)
+                            if (value && value !== "-") {
+                              const current = getValues(`items.${index}.fecha_revisado`)
+                              if (!current) {
+                                setValue(`items.${index}.fecha_revisado`, getTodayPeruIso(), {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                })
+                              }
+                            }
+                          }}
                           className="w-28 h-8 text-xs rounded border border-input bg-background px-1"
                         >
                           <option value="">-</option>
@@ -1165,6 +1178,19 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
                       <td className="px-2 py-2">
                         <select
                           {...register(`items.${index}.aprobado` as const)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            register(`items.${index}.aprobado` as const).onChange(e)
+                            if (value && value !== "-") {
+                              const current = getValues(`items.${index}.fecha_aprobado`)
+                              if (!current) {
+                                setValue(`items.${index}.fecha_aprobado`, getTodayPeruIso(), {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                })
+                              }
+                            }
+                          }}
                           className="w-28 h-8 text-xs rounded border border-input bg-background px-1"
                         >
                           <option value="">-</option>
