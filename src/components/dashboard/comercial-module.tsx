@@ -260,7 +260,8 @@ export function ComercialModule({ user, onNavigateModule }: ComercialModuleProps
             url.searchParams.set("userName", user.email)
         }
 
-        const isAdvisor2 = !!user.email?.toLowerCase().includes("asesorcomercial2")
+        const normalizedEmail = (user.email || "").toLowerCase().trim()
+        const isAdvisor2 = normalizedEmail === "ejecutivocomercial2@geofal.com.pe" || normalizedEmail === "asesorcomercial2@geofal.com.pe"
         if (isAdvisor2) {
             url.searchParams.set("isAsesorComercial2", "true")
             url.searchParams.set("canViewCom", "false")

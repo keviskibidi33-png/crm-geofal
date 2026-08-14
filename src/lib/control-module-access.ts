@@ -113,11 +113,14 @@ export function canAccessDashboardModule(
     return false
   }
 
-  // Restrict specific user 'asesorcomercial2@geofal.com.pe' from 'clientes'
-  if (email && email.toLowerCase().trim().includes("asesorcomercial2")) {
-    if (module === "clientes") {
-      return false
-    }
+  // Restricción por correo exacto para 'ejecutivocomercial2@geofal.com.pe' y alias
+  const RESTRICTED_CLIENTES_EMAILS = [
+    "ejecutivocomercial2@geofal.com.pe",
+    "asesorcomercial2@geofal.com.pe",
+  ]
+  const normalizedUserEmail = (email || "").toLowerCase().trim()
+  if (RESTRICTED_CLIENTES_EMAILS.includes(normalizedUserEmail) && module === "clientes") {
+    return false
   }
 
   // Restrict specific user 'techuant@geofal.com.pe' to only Huanta modules and configuracion
