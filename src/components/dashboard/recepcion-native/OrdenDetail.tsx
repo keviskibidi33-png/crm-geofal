@@ -86,8 +86,14 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
       const link = document.createElement("a");
       link.href = url;
       const disposition = res.headers.get("Content-Disposition");
-      const filenameMatch = disposition?.match(/filename="?(.+?)"?$/);
-      link.setAttribute("download", filenameMatch?.[1] || `Recepcion_${orden.numero_ot}.xlsx`);
+      let filename = `REC N-${orden.numero_recepcion || orden.numero_ot || orden.id} ${orden.cliente || ""}.xlsx`.trim();
+      if (disposition) {
+        const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();

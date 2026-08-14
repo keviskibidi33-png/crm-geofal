@@ -162,9 +162,10 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         }
     }
 
-    const handleDownloadExcel = async (id: number) => {
+    const handleDownloadExcel = async (item: Recepcion) => {
         try {
-            const response = await authFetch(`/api/recepcion/${id}/excel`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+            const response = await authFetch(`${API_URL}/api/recepcion/${item.id}/excel`, {
                 headers: {
                     Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 },
@@ -176,7 +177,16 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            a.download = `Recepcion_${id}.xlsx`
+
+            const disposition = response.headers.get("Content-Disposition")
+            let filename = `REC N-${item.numero_recepcion || item.numero_ot || item.id} ${item.cliente || ""}.xlsx`.trim()
+            if (disposition) {
+                const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+                if (match && match[1]) {
+                    filename = match[1].replace(/['"]/g, "")
+                }
+            }
+            a.download = filename
             document.body.appendChild(a)
             a.click()
             window.URL.revokeObjectURL(url)
@@ -463,7 +473,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDownloadExcel(item.id)}
+                                                onClick={() => handleDownloadExcel(item)}
                                                 title="Descargar Excel"
                                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                             >
