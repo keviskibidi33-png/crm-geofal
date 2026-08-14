@@ -520,7 +520,7 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
                                                 <select
                                                     value={muestraType}
                                                     onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                                    className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
+                                                    className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
                                                     aria-label="Tipo de muestra"
                                                 >
                                                     <option value="SU">SU</option>
@@ -537,7 +537,7 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
                                                     maxLength={2}
                                                     inputMode="numeric"
                                                     aria-label="Año de muestra"
-                                                    className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                                    className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                                 />
                                             </div>
                                         </div>

@@ -564,7 +564,7 @@ export default function CarasForm({ editId, onClose, onSaved }: CarasFormProps) 
                 ) : null}
 
                 <div className="overflow-x-auto border border-[#1f4f8f] bg-white p-2 md:p-3">
-                    <div className="caras-sheet min-w-[1180px] border border-[#4b4b4b] bg-white">
+                    <div className="caras-sheet min-w-295 border border-[#4b4b4b] bg-white">
                         <div className="grid grid-cols-4 border-b border-[#4b4b4b] bg-[#f8f8f8] text-center text-[13px] font-bold">
                             <div className="border-r border-[#4b4b4b] py-1">MUESTRA</div>
                             <div className="border-r border-[#4b4b4b] py-1">N° OT</div>
@@ -671,7 +671,7 @@ export default function CarasForm({ editId, onClose, onSaved }: CarasFormProps) 
                                     <img
                                         src="/caras-ref.png"
                                         alt="Tabla peso minimo ASTM D5821"
-                                        className="w-[260px] md:w-[300px] border border-[#4b4b4b] bg-white"
+                                        className="w-65 md:w-75 border border-[#4b4b4b] bg-white"
                                     />
                                 </div>
                             </div>

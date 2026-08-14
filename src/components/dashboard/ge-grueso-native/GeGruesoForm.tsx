@@ -692,7 +692,7 @@ export default function GeGruesoForm({ editId, onClose, onSaved }: GeGruesoFormP
           <div className="space-y-2 border-b border-slate-300 px-3 py-4 text-center"><p className="text-[30px] font-semibold text-slate-800">LABORATORIO DE ENSAYO DE MATERIALES</p><p className="text-2xl font-semibold text-slate-800">FORMATO N° F-LEM-P-AG-28.01</p></div>
 
           <div className="px-3 py-3">
-            <div className="mx-auto max-w-[900px] overflow-hidden rounded-lg border border-slate-300">
+            <div className="mx-auto max-w-225 overflow-hidden rounded-lg border border-slate-300">
               <div className="grid grid-cols-[2fr_1fr_1fr_1fr] bg-white text-center text-xs font-semibold uppercase tracking-wide">
                 {topHeaders.map((h, i) => (
                   <div key={h} className={`${i < 3 ? "border-r border-slate-300" : ""} py-1`}>

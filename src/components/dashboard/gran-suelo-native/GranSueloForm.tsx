@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Beaker, ChevronDown, Download, Loader2, Save, Trash2, X } from 'lucide-react'
+import { Beaker, ChevronDown, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
 import { ConfirmActionModal, FormActionDock, UnsavedChangesModal, useConfirmDialog } from '../shared'
@@ -833,7 +833,7 @@ export default function GranSueloForm({ editId, onClose, onSaved }: GranSueloFor
                                         <tbody>
                                             <tr>
                                                 <td className={SHEET_LABEL}>Masa seca de la porción más gruesa después del lavado (CPwMd) (g)</td>
-                                                <td className={`${SHEET_VALUE} w-[170px]`}>
+                                                <td className={`${SHEET_VALUE} w-42.5`}>
                                                     {renderNumber(form.masa_porcion_gruesa_lavada_cpwmd_g, (v) => setField('masa_porcion_gruesa_lavada_cpwmd_g', parseNum(v)))}
                                                 </td>
                                                 <td className="border-b border-l border-slate-400 px-3 py-1 text-[12px] text-slate-900" rowSpan={5}>
@@ -866,7 +866,7 @@ export default function GranSueloForm({ editId, onClose, onSaved }: GranSueloFor
                                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_250px]">
                                     <div className={SHEET_SECTION}>
                                         <div className={SHEET_TITLE}>Proceso de dispersión</div>
-                                        <div className="grid grid-cols-1 gap-[1px] bg-slate-400 sm:grid-cols-3">
+                                        <div className="grid grid-cols-1 gap-px bg-slate-400 sm:grid-cols-3">
                                             <div className="bg-white p-1">{renderProcesoButton('MANUAL', 'Manual')}</div>
                                             <div className="bg-white p-1">{renderProcesoButton('BAÑO ULTRASÓNICO', 'Baño ultrasónico')}</div>
                                             <div className="bg-white p-1">{renderProcesoButton('APARATO DE AGITACIÓN', 'Aparato de agitación')}</div>

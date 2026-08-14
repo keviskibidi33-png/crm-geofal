@@ -1276,7 +1276,7 @@ export default function ProctorForm({
                                         <select
                                             value={muestraType}
                                             onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                            className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
                                             aria-label="Tipo de muestra"
                                         >
                                             <option value="SU">SU</option>
@@ -1293,7 +1293,7 @@ export default function ProctorForm({
                                             maxLength={2}
                                             inputMode="numeric"
                                             aria-label="Año de muestra"
-                                            className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                         />
                                     </div>
                             </div>
@@ -1306,7 +1306,7 @@ export default function ProctorForm({
 
                 <Section title="Densidad humeda">
                     <div className="overflow-x-auto rounded-md border border-slate-300 bg-slate-50 relative">
-                        <table className="w-full min-w-[1180px] table-fixed text-sm">
+                        <table className="w-full min-w-295 table-fixed text-sm">
                             <thead className="bg-slate-200">
                                 <tr className="text-xs font-semibold text-slate-700">
                                     <th className={`${STICKY_DESC_WIDTH_CLASS} px-3 py-2 border-b border-r border-slate-300 text-left ${STICKY_DESC_TH_CLASS}`}>DESCRIPCION</th>
@@ -1337,7 +1337,7 @@ export default function ProctorForm({
 
                 <Section title="Contenido humedad - Densidad seca">
                     <div className="overflow-x-auto rounded-md border border-slate-300 bg-slate-50 relative">
-                        <table className="w-full min-w-[1180px] table-fixed text-sm">
+                        <table className="w-full min-w-295 table-fixed text-sm">
                             <thead className="bg-slate-200">
                                 <tr className="text-xs font-semibold text-slate-700">
                                     <th className={`${STICKY_DESC_WIDTH_CLASS} px-3 py-2 border-b border-r border-slate-300 text-left ${STICKY_DESC_TH_CLASS}`}>DESCRIPCION</th>

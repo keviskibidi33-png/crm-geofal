@@ -5,15 +5,11 @@ import Image from "next/image"
 
 import { cn } from "@/lib/utils"
 import {
-  Users,
-  FileText,
   Settings,
   ChevronRight,
   ChevronDown,
   FolderKanban,
   Shield,
-  Activity,
-  ClipboardList,
   LogOut,
   Sun,
   Moon,
@@ -22,15 +18,10 @@ import {
   PanelLeftClose,
   PanelLeft,
   Eye,
-  Calendar,
   BarChart3,
   FlaskConical,
-  TrendingUp,
-  Thermometer,
-  Scale,
   Briefcase,
   MapPin,
-  Sparkles,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -169,18 +160,6 @@ export function DashboardSidebar({ activeModule, setActiveModule, user, collapse
     return () => mediaQuery.removeEventListener("change", updateTabletLayout)
   }, [])
 
-  const [unreadChatCount, setUnreadChatCount] = React.useState(0)
-
-  React.useEffect(() => {
-    const handleUnreadCount = (e: Event) => {
-      const customEvent = e as CustomEvent
-      if (customEvent.detail && typeof customEvent.detail.count === "number") {
-        setUnreadChatCount(customEvent.detail.count)
-      }
-    }
-    window.addEventListener("crm_chat_unread_count", handleUnreadCount)
-    return () => window.removeEventListener("crm_chat_unread_count", handleUnreadCount)
-  }, [])
 
   React.useEffect(() => {
     const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight })

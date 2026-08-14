@@ -931,7 +931,7 @@ export default function HumedadForm({
                     {/* Datos de ensayo */}
                     <Section title="Datos del Ensayo">
                         <div className="overflow-x-auto rounded-md border border-border">
-                            <table className="w-full min-w-[720px] text-sm">
+                            <table className="w-full min-w-180 text-sm">
                                 <thead className="bg-muted/40">
                                     <tr className="text-xs font-semibold text-muted-foreground">
                                         <th className="w-10 px-2 py-2 border-b border-r border-border text-center">#</th>
@@ -1259,7 +1259,7 @@ function SelectField({ label, value, onChange, options, inline = false }: {
         return (
             <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_200px] gap-2 md:gap-3 items-center">
                 <label className="text-sm font-medium text-muted-foreground">{label}</label>
-                <div className="relative w-full md:max-w-[200px] md:justify-self-end">
+                <div className="relative w-full md:max-w-50 md:justify-self-end">
                     {selectElement}
                 </div>
             </div>

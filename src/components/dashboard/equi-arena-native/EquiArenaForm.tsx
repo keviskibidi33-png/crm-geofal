@@ -713,7 +713,7 @@ export default function EquiArenaForm({ editId, onClose, onSaved }: EquiArenaFor
                                         <select
                                             value={muestraType}
                                             onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                            className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
                                             aria-label="Tipo de muestra"
                                         >
                                             <option value="SU">SU</option>
@@ -730,7 +730,7 @@ export default function EquiArenaForm({ editId, onClose, onSaved }: EquiArenaFor
                                             maxLength={2}
                                             inputMode="numeric"
                                             aria-label="Año de muestra"
-                                            className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                         />
                                     </div>
                                 </div>
@@ -767,7 +767,7 @@ export default function EquiArenaForm({ editId, onClose, onSaved }: EquiArenaFor
                             <h2 className="text-sm font-semibold text-slate-900">Pruebas oficiales (A-J)</h2>
                         </div>
                         <div className="p-4 overflow-x-auto">
-                            <table className="w-full min-w-[1020px] text-sm border border-slate-300 rounded-lg overflow-hidden">
+                            <table className="w-full min-w-255 text-sm border border-slate-300 rounded-lg overflow-hidden">
                                 <thead className="bg-slate-100">
                                     <tr>
                                         <th className="text-left px-3 py-2 border-b border-slate-300">Campo</th>

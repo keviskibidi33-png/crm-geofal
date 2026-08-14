@@ -709,7 +709,7 @@ export default function PlanasForm({ editId, onClose, onSaved }: PlanasFormProps
 
                         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_290px]">
                             <div className="overflow-x-auto rounded-lg border border-slate-300">
-                                <table className="min-w-[1050px] w-full table-fixed text-sm">
+                                <table className="min-w-262.5 w-full table-fixed text-sm">
                                     <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                                         <tr>
                                             <th colSpan={2} className="border-b border-r border-slate-300 py-1">Tamano de las particulas</th>
@@ -859,7 +859,7 @@ export default function PlanasForm({ editId, onClose, onSaved }: PlanasFormProps
                         </div>
 
                         <div className="overflow-x-auto rounded-lg border border-slate-300">
-                            <table className="min-w-[1200px] w-full table-fixed text-sm">
+                            <table className="min-w-300 w-full table-fixed text-sm">
                                 <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                                     <tr>
                                         <th className="border-b border-r border-slate-300 py-1" colSpan={5}>Metodo A</th>

@@ -701,7 +701,7 @@ export default function CorteDirectoForm({
           )}
         </div>
 
-        <div className="mx-auto max-w-[1200px] space-y-4">
+        <div className="mx-auto max-w-300 space-y-4">
           {showDraftBanner ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-start gap-2.5 text-sm text-amber-800">
@@ -929,7 +929,7 @@ export default function CorteDirectoForm({
                   CONTENIDO DE HUMEDAD - NTP 339.127 / ASTM D2216
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-[920px] w-full table-fixed text-sm">
+                  <table className="min-w-230 w-full table-fixed text-sm">
                     <colgroup>
                       <col className="w-10" />
                       <col />

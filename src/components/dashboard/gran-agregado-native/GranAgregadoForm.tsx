@@ -587,7 +587,7 @@ export default function GranAgregadoForm({ editId, onClose, onSaved }: GranAgreg
                             <h2 className="text-sm font-semibold text-slate-900">Masa retenida por tamiz (g)</h2>
                         </div>
                         <div className="p-4 overflow-x-auto">
-                            <table className="w-full min-w-[780px] text-sm">
+                            <table className="w-full min-w-195 text-sm">
                                 <thead className="bg-slate-100 text-xs font-semibold text-slate-600">
                                     <tr>
                                         <th className="px-3 py-2 border-b border-r border-slate-300 text-left">Tamiz</th>

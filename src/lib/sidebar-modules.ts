@@ -16,9 +16,7 @@ import {
   TestTube,
   Beaker,
   Briefcase,
-  Layers,
   MapPin,
-  Sparkles,
 } from "lucide-react"
 import type { ModuleType } from "@/hooks/use-auth"
 import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"

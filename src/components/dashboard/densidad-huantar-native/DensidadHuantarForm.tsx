@@ -771,7 +771,7 @@ export default function DensidadHuantarForm({
                     {/* Info rows: Solicitante, Proyecto, Ubicación */}
                     <div className="p-4 space-y-2.5">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">SOLICITANTE :</span>
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-35">SOLICITANTE :</span>
                             <input
                                 type="text"
                                 value={form.cliente || ""}
@@ -783,7 +783,7 @@ export default function DensidadHuantarForm({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">PROYECTO (*) :</span>
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-35">PROYECTO (*) :</span>
                             <input
                                 type="text"
                                 value={form.proyecto || ""}
@@ -795,7 +795,7 @@ export default function DensidadHuantarForm({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 uppercase min-w-[140px]">UBICACIÓN (*) :</span>
+                            <span className="text-xs font-bold text-slate-700 uppercase min-w-35">UBICACIÓN (*) :</span>
                             <input
                                 type="text"
                                 value={form.ubicacion || ""}
@@ -817,7 +817,7 @@ export default function DensidadHuantarForm({
                             <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider text-center pb-3 mb-4 border-b border-slate-200">DATOS DEL CONO</h2>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Equipo de densidad N° :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Equipo de densidad N° :</label>
                                     <select
                                         value={form.cono_codigo}
                                         onChange={(e) => setField("cono_codigo", e.target.value)}
@@ -827,7 +827,7 @@ export default function DensidadHuantarForm({
                                     </select>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Masa de arena embudo y placa :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Masa de arena embudo y placa :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -838,7 +838,7 @@ export default function DensidadHuantarForm({
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Densidad de la arena (Q) :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Densidad de la arena (Q) :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -849,7 +849,7 @@ export default function DensidadHuantarForm({
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Volumen calibrado cono :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Volumen calibrado cono :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -867,7 +867,7 @@ export default function DensidadHuantarForm({
                             <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider text-center pb-3 mb-4 border-b border-slate-200">DATOS DEL MATERIAL COMPACTADO</h2>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Norma ensayo de Proctor :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Norma ensayo de Proctor :</label>
                                     <select
                                         value={form.proctor_norma}
                                         onChange={(e) => setField("proctor_norma", e.target.value)}
@@ -877,7 +877,7 @@ export default function DensidadHuantarForm({
                                     </select>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Método de ensayo :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Método de ensayo :</label>
                                     <select
                                         value={form.proctor_metodo}
                                         onChange={(e) => setField("proctor_metodo", e.target.value)}
@@ -887,7 +887,7 @@ export default function DensidadHuantarForm({
                                     </select>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Peso Unitario Seco (kN/m³) :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Peso Unitario Seco (kN/m³) :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -898,7 +898,7 @@ export default function DensidadHuantarForm({
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Humedad Óptima (%) :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Humedad Óptima (%) :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -909,7 +909,7 @@ export default function DensidadHuantarForm({
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs text-slate-600 text-right min-w-[185px]">Gravedad específica (P) :</label>
+                                    <label className="text-xs text-slate-600 text-right min-w-46.25">Gravedad específica (P) :</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -929,7 +929,7 @@ export default function DensidadHuantarForm({
                     <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider pb-3 mb-4 border-b border-slate-200">Condiciones Ambientales</h2>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Temperatura Inicial (°C) :</label>
+                            <label className="text-xs text-slate-600 text-right min-w-46.25">Temperatura Inicial (°C) :</label>
                             <input
                                 type="text"
                                 value={form.temperatura_inicial}
@@ -939,7 +939,7 @@ export default function DensidadHuantarForm({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Temperatura Final (°C) :</label>
+                            <label className="text-xs text-slate-600 text-right min-w-46.25">Temperatura Final (°C) :</label>
                             <input
                                 type="text"
                                 value={form.temperatura_final}
@@ -949,7 +949,7 @@ export default function DensidadHuantarForm({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Hum. Relativa Inicial (%H.R.) :</label>
+                            <label className="text-xs text-slate-600 text-right min-w-46.25">Hum. Relativa Inicial (%H.R.) :</label>
                             <input
                                 type="text"
                                 value={form.humedad_relativa_inicial}
@@ -959,7 +959,7 @@ export default function DensidadHuantarForm({
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-slate-600 text-right min-w-[185px]">Hum. Relativa Final (%H.R.) :</label>
+                            <label className="text-xs text-slate-600 text-right min-w-46.25">Hum. Relativa Final (%H.R.) :</label>
                             <input
                                 type="text"
                                 value={form.humedad_relativa_final}
@@ -978,7 +978,7 @@ export default function DensidadHuantarForm({
                     </div>
 
                     <div className="overflow-x-auto rounded-lg border border-slate-200">
-                        <table className="w-full min-w-[800px] table-fixed text-sm border-collapse">
+                        <table className="w-full min-w-200 table-fixed text-sm border-collapse">
                             <thead>
                                 <tr className="bg-slate-50 text-xs font-bold text-slate-600 border-b border-slate-200">
                                     <th className="w-64 px-4 py-3 text-left border-r border-slate-200">DESCRIPCIÓN</th>
@@ -1066,9 +1066,8 @@ export default function DensidadHuantarForm({
                                     ))}
                                 </tr>
 
-                                {/* Tamaño máximo */}
                                 <tr className="border-b border-slate-100 hover:bg-slate-50/30">
-                                    <td className="px-4 py-2 font-medium text-slate-700 border-r border-slate-200 font-semibold text-slate-800">Tamaño máximo identificado</td>
+                                    <td className="px-4 py-2 font-semibold text-slate-800 border-r border-slate-200">Tamaño máximo identificado</td>
                                     <td className="px-2 py-2 text-center text-slate-400 border-r border-slate-200">—</td>
                                     {form.puntos.map((p, idx) => (
                                         <td key={idx} className="px-2 py-1.5 border-r border-slate-200 last:border-r-0">

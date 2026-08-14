@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Beaker, ChevronDown, Download, Loader2, Trash2, X } from 'lucide-react'
+import { Beaker, ChevronDown, Loader2, X } from 'lucide-react'
 import { ConfirmActionModal, FormActionDock, FormatConfirmModal, UnsavedChangesModal, useConfirmDialog } from '../shared'
 import { authFetch } from '@/lib/api-auth'
 import { toast } from 'sonner'
@@ -712,7 +712,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                 <div className="space-y-5">
                     {loadingEdit ? <div className="h-10 rounded-lg border border-border bg-muted/40 px-3 text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Cargando ensayo...</div> : null}
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Encabezado</h2>
                         </div>
@@ -733,7 +733,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                                         <select
                                             value={muestraType}
                                             onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                            className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0"
                                             aria-label="Tipo de muestra"
                                         >
                                             <option value="SU">SU</option>
@@ -750,7 +750,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                                             maxLength={2}
                                             inputMode="numeric"
                                             aria-label="Año de muestra"
-                                            className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                            className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                         />
                                     </div>
                                 </div>
@@ -761,12 +761,12 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Condiciones del ensayo</h2>
                         </div>
                         <div className="p-4 overflow-x-auto">
-                            <table className="w-full min-w-[980px] text-sm border border-border">
+                            <table className="w-full min-w-245 text-sm border border-border">
                                 <tbody>
                                     <tr>
                                         <td className="px-3 py-2 border-b border-r border-border">Método de ensayo en el Límite Líquido</td>
@@ -950,7 +950,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Descripción de la muestra</h2>
                         </div>
@@ -967,12 +967,12 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Tabla principal</h2>
                         </div>
                         <div className="p-4 overflow-x-auto relative isolate">
-                            <table className="w-full min-w-[1100px] table-fixed text-sm">
+                            <table className="w-full min-w-275 table-fixed text-sm">
                                 <thead className="bg-muted text-xs font-semibold text-muted-foreground">
                                     <tr>
                                         <th className={`${STICKY_DESC_WIDTH_CLASS} px-3 py-2 border-b border-r border-border text-left ${STICKY_DESC_TH_CLASS}`} rowSpan={2}>DESCRIPCIÓN</th>
@@ -1053,7 +1053,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Control de cumplimiento (fuera del formato)</h2>
                         </div>
@@ -1115,7 +1115,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                                             <th className="px-2 py-2 border-b border-r border-border text-center">1S</th>
                                             <th className="px-2 py-2 border-b border-r border-border text-center">d2s</th>
                                             <th className="px-2 py-2 border-b border-r border-border text-center">1S</th>
-                                            <th className="px-2 py-2 border-b border-r border-border text-center">d2s</th>
+                                            <th className="px-2 py-2 border-b border-border text-center">d2s</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1132,7 +1132,7 @@ export default function LLPForm({ editId, onClose, onSaveSuccess }: LLPFormProps
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border bg-white rounded-lg shadow-sm">
+                    <div className="bg-card border border-border rounded-lg shadow-sm">
                         <div className="px-4 py-2.5 border-b border-border bg-muted/50 rounded-t-lg">
                             <h2 className="text-sm font-semibold text-foreground">Equipos / observaciones / firmas</h2>
                         </div>

@@ -663,7 +663,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                                                 <select
                                                     value={muestraType}
                                                     onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                                    className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0 focus:border-0"
+                                                    className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0 focus:border-0"
                                                     aria-label="Tipo de muestra"
                                                 >
                                                     <option value="SU">SU</option>
@@ -680,7 +680,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                                                     maxLength={2}
                                                     inputMode="numeric"
                                                     aria-label="Año de muestra"
-                                                    className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                                    className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                                 />
                                             </div>
                                         </div>
@@ -792,8 +792,8 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                                             <th className="border-b border-r border-slate-300 px-2 py-1 text-left">
                                                 Se requiere lavado despues de la prueba (colocado en maquina angeles)
                                             </th>
-                                            <th className="w-[70px] border-b border-r border-slate-300 px-1 py-1 text-center">SI</th>
-                                            <th className="w-[70px] border-b border-slate-300 px-1 py-1 text-center">NO</th>
+                                            <th className="w-17.5 border-b border-r border-slate-300 px-1 py-1 text-center">SI</th>
+                                            <th className="w-17.5 border-b border-slate-300 px-1 py-1 text-center">NO</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1000,7 +1000,7 @@ export default function AbrassForm({ editId, onClose, onSaved }: AbrassFormProps
                                 <img
                                     src="/ImagenAbrasionesMenores.png"
                                     alt="Referencia de abrasiones menores - tabla de gradación"
-                                    className="w-full max-h-[420px] rounded-md border border-slate-200 object-contain bg-white"
+                                    className="w-full max-h-105 rounded-md border border-slate-200 object-contain bg-white"
                                     loading="lazy"
                                     decoding="async"
                                 />

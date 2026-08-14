@@ -540,7 +540,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                                 <select
                                                     value={muestraType}
                                                     onChange={(e) => handleTypeToggle(e.target.value as 'SU' | 'AG')}
-                                                    className="h-7 w-[92px] rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0 focus:border-0"
+                                                    className="h-7 w-23 rounded-md border-0 bg-transparent px-2 text-xs font-bold uppercase text-slate-700 focus:outline-none focus:ring-0 focus:border-0"
                                                     aria-label="Tipo de muestra"
                                                 >
                                                     <option value="SU">SU</option>
@@ -557,7 +557,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                                     maxLength={2}
                                                     inputMode="numeric"
                                                     aria-label="Año de muestra"
-                                                    className="h-7 w-[56px] rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
+                                                    className="h-7 w-14 rounded-md border-0 bg-transparent px-2 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-0"
                                                 />
                                             </div>
                                         </div>
@@ -667,7 +667,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                     <tbody>
                                         <tr className="bg-slate-100">
                                             <td className="border-b border-r border-slate-300 px-2 py-1 text-sm">Se requiere lavado después de la prueba</td>
-                                            <td className="w-[70px] border-b border-r border-slate-300 px-1 py-1 text-center">
+                                            <td className="w-17.5 border-b border-r border-slate-300 px-1 py-1 text-center">
                                                 <button
                                                     type="button"
                                                     className={`h-8 w-full rounded-md border text-xs font-semibold ${requiresSI ? 'border-slate-700 bg-slate-200 text-slate-900' : 'border-slate-300 bg-white text-slate-700'}`}
@@ -676,7 +676,7 @@ export default function AbraForm({ editId, onClose, onSaved }: AbraFormProps) {
                                                     SI
                                                 </button>
                                             </td>
-                                            <td className="w-[70px] border-b border-slate-300 px-1 py-1 text-center">
+                                            <td className="w-17.5 border-b border-slate-300 px-1 py-1 text-center">
                                                 <button
                                                     type="button"
                                                     className={`h-8 w-full rounded-md border text-xs font-semibold ${requiresNO ? 'border-slate-700 bg-slate-200 text-slate-900' : 'border-slate-300 bg-white text-slate-700'}`}

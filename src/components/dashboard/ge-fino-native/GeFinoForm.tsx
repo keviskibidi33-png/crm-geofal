@@ -518,7 +518,7 @@ export default function GeFinoForm({ editId, onClose, onSaved }: GeFinoFormProps
           </div>
 
           <div className="p-3 border-b border-slate-300">
-            <div className="mx-auto grid max-w-[760px] grid-cols-2 gap-2 overflow-hidden rounded-lg text-sm">
+            <div className="mx-auto grid max-w-190 grid-cols-2 gap-2 overflow-hidden rounded-lg text-sm">
               {[
                 { label: "Balanza 0.1 g", key: "equipo_balanza_01g_codigo" as const },
                 { label: "Horno 110°C", key: "equipo_horno_110_codigo" as const },

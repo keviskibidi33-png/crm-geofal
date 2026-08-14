@@ -426,7 +426,7 @@ export default function PHForm({ editId, onClose, onSaved }: PHFormProps) {
                     </div>
 
                     <div className="p-3">
-                        <div className="mx-auto mb-5 w-full max-w-[340px] overflow-hidden rounded-lg border border-slate-300">
+                        <div className="mx-auto mb-5 w-full max-w-85 overflow-hidden rounded-lg border border-slate-300">
                             <div className="border-b border-slate-300 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800 text-center">
                                 CONDICIONES DE SECADO
                             </div>
@@ -457,7 +457,7 @@ export default function PHForm({ editId, onClose, onSaved }: PHFormProps) {
                             </table>
                         </div>
 
-                        <div className="mx-auto mb-6 w-full max-w-[530px] overflow-hidden rounded-lg border border-slate-300">
+                        <div className="mx-auto mb-6 w-full max-w-132.5 overflow-hidden rounded-lg border border-slate-300">
                             <div className="border-b border-slate-300 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800 text-center">
                                 RESULTADOS DE ENSAYO
                             </div>
@@ -493,7 +493,7 @@ export default function PHForm({ editId, onClose, onSaved }: PHFormProps) {
                             </table>
                         </div>
 
-                        <div className="mx-auto mb-5 w-full max-w-[760px] rounded-lg border border-slate-300 bg-white p-3">
+                        <div className="mx-auto mb-5 w-full max-w-190 rounded-lg border border-slate-300 bg-white p-3">
                             <div className="mb-2 text-xs font-semibold text-slate-800">Observaciones:</div>
                             <textarea
                                 className="w-full resize-none rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/35"
@@ -505,7 +505,7 @@ export default function PHForm({ editId, onClose, onSaved }: PHFormProps) {
                             />
                         </div>
 
-                        <div className="mx-auto mb-5 w-full max-w-[430px] overflow-hidden rounded-lg border border-slate-300">
+                        <div className="mx-auto mb-5 w-full max-w-107.5 overflow-hidden rounded-lg border border-slate-300">
                             <table className="w-full table-fixed text-sm">
                                 <thead className="bg-slate-100 text-xs font-semibold text-slate-800">
                                     <tr>
@@ -536,7 +536,7 @@ export default function PHForm({ editId, onClose, onSaved }: PHFormProps) {
                             </table>
                         </div>
 
-                        <div className="mx-auto mt-6 grid max-w-[760px] grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="mx-auto mt-6 grid max-w-190 grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="rounded-lg border border-slate-300 bg-white p-3">
                                 <div className="mb-3 text-xl leading-none text-slate-900">Revisado:</div>
                                 <select
