@@ -947,20 +947,26 @@ async function buildUser(session: any): Promise<User> {
         name: (profile as any)?.full_name || authUser.email?.split("@")[0] || "Usuario",
         email: authUser.email!,
         role: role,
-        roleLabel: roleDef?.label || (
-            role === 'admin'
-                ? "Administrador"
-                : role === 'auxiliar_comercial'
-                    ? "Auxiliar Comercial"
-                : role === 'tecnico'
-                        ? "Técnico"
-                        : role === 'tecnico_suelos'
-                            ? "Tecnico Laboratorio Suelos"
-                            : role === 'laboratorio_lector'
-                                ? "Lector Laboratorio"
-                                : role === 'laboratorio_tipificador'
-                                    ? "Laboratorio Tipificador"
-                                    : "Usuario"
+        roleLabel: (
+            normalizedEmail === "ejecutivocomercial2@geofal.com.pe" ||
+            normalizedEmail === "asesorcomercial2@geofal.com.pe" ||
+            role === "ejecutivo_comercial"
+                ? "Ejecutivo Comercial"
+                : roleDef?.label || (
+                    role === 'admin'
+                        ? "Administrador"
+                        : role === 'auxiliar_comercial'
+                            ? "Ejecutivo Comercial"
+                        : role === 'tecnico'
+                                ? "Técnico"
+                                : role === 'tecnico_suelos'
+                                    ? "Tecnico Laboratorio Suelos"
+                                    : role === 'laboratorio_lector'
+                                        ? "Lector Laboratorio"
+                                        : role === 'laboratorio_tipificador'
+                                            ? "Laboratorio Tipificador"
+                                            : "Usuario"
+                )
         ),
         permissions: permissions,
         phone: (profile as any)?.phone,
