@@ -17,8 +17,6 @@ import { canAccessDashboardModule, getPreferredControlModule, isRestrictedTechni
 import { Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { LoadingScreen } from "@/components/ui/loading-screen"
-import { FloatingChatWidget } from "@/components/dashboard/floating-chat-widget"
-import { GlobalChatNotifier } from "@/components/dashboard/chat/global-chat-notifier"
 
 function DashboardModuleFallback() {
   return (

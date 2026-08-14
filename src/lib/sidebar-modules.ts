@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Thermometer,
   Scale,
-  MessageSquare,
   TestTube,
   Beaker,
 } from "lucide-react"
