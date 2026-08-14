@@ -658,9 +658,9 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden pb-28">
-      {/* Modern Header */}
-      <div className="shrink-0 p-4 sm:p-6 bg-slate-50/70 border-b border-slate-200/80 space-y-4">
+    <div className="min-h-full bg-slate-50/70 p-3 sm:p-5 lg:p-7 overflow-y-auto pb-36">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Modern Header */}
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-md px-5 py-4 shadow-xs">
           <div className="flex items-center gap-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
@@ -730,519 +730,487 @@ export default function CompresionForm({ editId, importedData, onClose, onSaved 
           </div>
         </div>
 
-        {/* Search recepcion */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative" ref={searchRef}>
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
-              N° Recepción
-            </Label>
-            <div className="flex gap-2 mt-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                   onChange={(e) => {
-                     setSearchQuery(e.target.value)
-                     setValue("recepcion_numero", e.target.value)
-                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleSearch()
-                    }
-                  }}
-                   onBlur={(e) => {
-                     const formatted = formatRecepcionNumber(e.target.value)
-                     if (formatted) {
-                       setValue("recepcion_numero", formatted)
-                       checkTraceStatus(formatted)
-                       setSearchQuery(formatted)
-                       void handleSearch(formatted)
-                     }
-                   }}
-                  placeholder="Buscar recepción..."
-                  className="pl-8"
-                  autoComplete="off"
-                  data-lpignore="true"
-                />
+        {/* Encabezado / Parámetros Generales */}
+        <div className="bg-card border border-border bg-white rounded-lg shadow-xs p-4 sm:p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative" ref={searchRef}>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">
+                N° Recepción
+              </Label>
+              <div className="flex gap-2 mt-1">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      setValue("recepcion_numero", e.target.value)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleSearch()
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const formatted = formatRecepcionNumber(e.target.value)
+                      if (formatted) {
+                        setValue("recepcion_numero", formatted)
+                        checkTraceStatus(formatted)
+                        setSearchQuery(formatted)
+                        void handleSearch(formatted)
+                      }
+                    }}
+                    placeholder="Buscar recepción..."
+                    className="pl-8"
+                    autoComplete="off"
+                    data-lpignore="true"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void handleSearch()}
+                  disabled={searchLoading}
+                >
+                  {searchLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => void handleSearch()}
-                disabled={searchLoading}
-              >
-                {searchLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            {showSearchDropdown && searchResults.length > 0 && (
-              <div className="absolute z-50 mt-1 w-full bg-popover border rounded-md shadow-lg max-h-72 overflow-auto">
-                {searchResults.map((item: any) => {
-                  const recStatus = item.estados?.recepcion || item.recepcion_status || "pendiente"
-                  const verStatus = item.estados?.verificacion || item.verificacion_status || "pendiente"
-                  const comStatus = item.estados?.compresion || item.compresion_status || "pendiente"
-                  const hasExistingCompresion = comStatus === "completado"
-                  const faltaRecepcion = recStatus !== "completado"
-                  const faltaVerificacion = verStatus !== "completado"
+              {showSearchDropdown && searchResults.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-popover border rounded-md shadow-lg max-h-72 overflow-auto">
+                  {searchResults.map((item: any) => {
+                    const recStatus = item.estados?.recepcion || item.recepcion_status || "pendiente"
+                    const verStatus = item.estados?.verificacion || item.verificacion_status || "pendiente"
+                    const comStatus = item.estados?.compresion || item.compresion_status || "pendiente"
+                    const hasExistingCompresion = comStatus === "completado"
+                    const faltaRecepcion = recStatus !== "completado"
+                    const faltaVerificacion = verStatus !== "completado"
 
-                  return (
-                    <button
-                      key={item.recepcion_id || item.id || item.numero_recepcion}
-                      type="button"
-                      className={`w-full text-left px-3 py-2.5 hover:bg-muted text-sm border-b last:border-b-0 ${
-                        hasExistingCompresion ? "bg-red-50/50" : ""
-                      }`}
-                      onClick={() => selectRecepcion(item)}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-sm">
-                          {item.numero || item.numero_recepcion}
-                        </span>
-                        {hasExistingCompresion && (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] font-bold">
-                            YA EXISTE FORMATO
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-1.5">
-                        OT: {item.numero_ot || "-"} | Cliente: {item.cliente || "-"}
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] font-bold ${
-                            recStatus === "completado"
-                              ? "border-green-300 text-green-700 bg-green-50"
-                              : recStatus === "en_proceso"
-                              ? "border-yellow-300 text-yellow-700 bg-yellow-50"
-                              : "border-slate-300 text-slate-600 bg-slate-50"
-                          }`}
-                        >
-                          REC: {recStatus}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] font-bold ${
-                            verStatus === "completado"
-                              ? "border-green-300 text-green-700 bg-green-50"
-                              : verStatus === "en_proceso"
-                              ? "border-yellow-300 text-yellow-700 bg-yellow-50"
-                              : "border-slate-300 text-slate-600 bg-slate-50"
-                          }`}
-                        >
-                          VER: {verStatus}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] font-bold ${
-                            comStatus === "completado"
-                              ? "border-green-300 text-green-700 bg-green-50"
-                              : comStatus === "en_proceso"
-                              ? "border-yellow-300 text-yellow-700 bg-yellow-50"
-                              : "border-slate-300 text-slate-600 bg-slate-50"
-                          }`}
-                        >
-                          COM: {comStatus}
-                        </Badge>
-                      </div>
-                      {(faltaRecepcion || faltaVerificacion) && (
-                        <div className="mt-1.5 text-[10px] font-semibold text-orange-600">
-                          {faltaRecepcion && faltaVerificacion
-                            ? "⚠ Falta: Recepción y Verificación"
-                            : faltaRecepcion
-                            ? "⚠ Falta: Recepción"
-                            : "⚠ Falta: Verificación"}
+                    return (
+                      <button
+                        key={item.recepcion_id || item.id || item.numero_recepcion}
+                        type="button"
+                        className={`w-full text-left px-3 py-2.5 hover:bg-muted text-sm border-b last:border-b-0 ${
+                          hasExistingCompresion ? "bg-red-50/50" : ""
+                        }`}
+                        onClick={() => selectRecepcion(item)}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-sm">
+                            {item.numero || item.numero_recepcion}
+                          </span>
+                          {hasExistingCompresion && (
+                            <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] font-bold">
+                              YA EXISTE FORMATO
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
-              N° OT
-            </Label>
-            <Input
-              {...register("ot_numero")}
-              onBlur={(e) => {
-                register("ot_numero").onBlur(e)
-                const formatted = formatOtNumber(e.target.value)
-                if (formatted) setValue("ot_numero", formatted)
-              }}
-              placeholder="OT-XXX-26"
-              className={`mt-1 ${errors.ot_numero ? "border-destructive" : ""}`}
-            />
-            {errors.ot_numero && (
-              <p className="text-xs text-destructive mt-1">{errors.ot_numero.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label className="text-xs font-bold uppercase text-muted-foreground">
-              Código Equipo
-            </Label>
-            <select
-              {...register("codigo_equipo")}
-              className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
-            >
-              {EQUIPO_OPTIONS.map((eq) => (
-                <option key={eq.codigo} value={eq.codigo}>
-                  {eq.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Otros</Label>
-            <Input {...register("otros")} placeholder="Detalles adicionales" className="mt-1" />
-          </div>
-          <div>
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Nota</Label>
-            <Textarea
-              {...register("nota")}
-              placeholder="Observaciones..."
-              className="mt-1 min-h-[36px]"
-              rows={1}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Traceability Status Card */}
-      {traceStatus?.exists && (
-        <div className="shrink-0 px-6 py-3 border-b bg-slate-50/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                Estado de Módulos
-              </span>
-              <div className="flex items-center gap-1.5">
-                {[
-                  {
-                    key: "recepcion",
-                    label: "Recepción",
-                    icon: "R",
-                  },
-                  {
-                    key: "verificacion",
-                    label: "Verificación",
-                    icon: "V",
-                  },
-                  {
-                    key: "compresion",
-                    label: "Compresión",
-                    icon: "C",
-                  },
-                ].map((stage) => {
-                  const status = traceStatus[stage.key]?.status || "pendiente"
-                  const isComplete = status === "completado"
-                  return (
-                    <div
-                      key={stage.key}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${
-                        isComplete
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : status === "en_proceso"
-                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                          : "bg-slate-50 text-slate-500 border-slate-200"
-                      }`}
-                      title={stage.label}
-                    >
-                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black bg-white border">
-                        {isComplete ? "✓" : status === "en_proceso" ? "◐" : "○"}
-                      </span>
-                      {stage.label}
-                    </div>
-                  )
-                })}
-              </div>
+                        <div className="text-xs text-muted-foreground mb-1.5">
+                          OT: {item.numero_ot || "-"} | Cliente: {item.cliente || "-"}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-bold ${
+                              recStatus === "completado"
+                                ? "border-green-300 text-green-700 bg-green-50"
+                                : recStatus === "en_proceso"
+                                ? "border-yellow-300 text-yellow-700 bg-yellow-50"
+                                : "border-slate-300 text-slate-600 bg-slate-50"
+                            }`}
+                          >
+                            REC: {recStatus}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-bold ${
+                              verStatus === "completado"
+                                ? "border-green-300 text-green-700 bg-green-50"
+                                : verStatus === "en_proceso"
+                                ? "border-yellow-300 text-yellow-700 bg-yellow-50"
+                                : "border-slate-300 text-slate-600 bg-slate-50"
+                            }`}
+                          >
+                            VER: {verStatus}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-bold ${
+                              comStatus === "completado"
+                                ? "border-green-300 text-green-700 bg-green-50"
+                                : comStatus === "en_proceso"
+                                ? "border-yellow-300 text-yellow-700 bg-yellow-50"
+                                : "border-slate-300 text-slate-600 bg-slate-50"
+                            }`}
+                          >
+                            COM: {comStatus}
+                          </Badge>
+                        </div>
+                        {(faltaRecepcion || faltaVerificacion) && (
+                          <div className="mt-1.5 text-[10px] font-semibold text-orange-600">
+                            {faltaRecepcion && faltaVerificacion
+                              ? "⚠ Falta: Recepción y Verificación"
+                              : faltaRecepcion
+                              ? "⚠ Falta: Recepción"
+                              : "⚠ Falta: Verificación"}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            <div className="text-[10px] font-semibold">
-              {traceStatus.compresion?.status === "completado" ? (
-                <span className="text-green-600">✓ Informe listo</span>
-              ) : (
-                <span className="text-orange-600">
-                  ℹ{" "}
-                  {[
-                    traceStatus.recepcion?.status !== "completado" && "Recepción",
-                    traceStatus.verificacion?.status !== "completado" && "Verificación",
-                    traceStatus.compresion?.status !== "completado" && "Compresión",
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}{" "}
-                  pendiente(s)
-                </span>
+
+            <div>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">
+                N° OT
+              </Label>
+              <Input
+                {...register("ot_numero")}
+                onBlur={(e) => {
+                  register("ot_numero").onBlur(e)
+                  const formatted = formatOtNumber(e.target.value)
+                  if (formatted) setValue("ot_numero", formatted)
+                }}
+                placeholder="OT-XXX-26"
+                className={`mt-1 ${errors.ot_numero ? "border-destructive" : ""}`}
+              />
+              {errors.ot_numero && (
+                <p className="text-xs text-destructive mt-1">{errors.ot_numero.message}</p>
               )}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Items Table */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold uppercase text-muted-foreground">
-            Resultados de Compresión ({fields.length})
-          </h3>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append(createItemTemplate(fields.length + 1))}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Agregar fila
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">
+                Código Equipo
+              </Label>
+              <select
+                {...register("codigo_equipo")}
+                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+              >
+                {EQUIPO_OPTIONS.map((eq) => (
+                  <option key={eq.codigo} value={eq.codigo}>
+                    {eq.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Otros</Label>
+              <Input {...register("otros")} placeholder="Detalles adicionales" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Nota</Label>
+              <Textarea
+                {...register("nota")}
+                placeholder="Observaciones..."
+                className="mt-1 min-h-[36px]"
+                rows={1}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-10">Item</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-32">Cód. LEM</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Programado</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Carga (kN)</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-20">Fractura</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Defectos</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Realizado</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Ensayo</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Hora</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Revisado</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Revisión</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Aprobado</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Aprobación</th>
-                <th className="px-2 py-2 text-[10px] font-black uppercase text-center w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {fields.map((field, index) => {
-                const item = items[index]
-                return (
-                  <tr key={field.id} className="border-t hover:bg-muted/30">
-                    <td className="px-2 py-2">
-                      <Input
-                        {...register(`items.${index}.item` as const)}
-                        type="number"
-                        className="w-10 text-center text-xs p-1 h-8"
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        {...register(`items.${index}.codigo_lem` as const)}
-                        readOnly
-                        onBlur={(e) => {
-                          const current = getValues(`items.${index}.codigo_lem`)
-                          const formatted = formatLemCode(e.target.value)
-                          if (formatted && formatted !== current) {
-                            setValue(`items.${index}.codigo_lem`, current || formatted)
-                          }
-                        }}
-                        className="w-32 text-xs p-1 h-8 font-mono"
-                        placeholder="XXXX-CO-26"
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Controller
-                        control={control}
-                        name={`items.${index}.fecha_ensayo_programado` as const}
-                        render={({ field }) => (
-                          <DatePickerSmart
-                            value={field.value}
-                            onChange={(val) => {
-                              field.onChange(val)
-                              // Sync linked fecha_ensayo if empty
-                              const currentEnsayo = getValues(`items.${index}.fecha_ensayo`)
-                              if (!currentEnsayo) {
-                                setValue(`items.${index}.fecha_ensayo`, val)
-                              }
-                            }}
-                            className="w-36"
-                            readOnly
-                          />
-                        )}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        {...register(`items.${index}.carga_maxima` as const, { valueAsNumber: true })}
-                        type="number"
-                        step="0.01"
-                        className="w-24 text-xs p-1 h-8"
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <select
-                        {...register(`items.${index}.tipo_fractura` as const)}
-                        className="w-20 h-8 rounded-md border border-input bg-background px-1 text-xs"
+        {/* Traceability Status Card */}
+        {traceStatus?.exists && (
+          <div className="bg-card border border-border bg-white rounded-lg shadow-xs px-5 py-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Estado de Módulos
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {[
+                    {
+                      key: "recepcion",
+                      label: "Recepción",
+                      icon: "R",
+                    },
+                    {
+                      key: "verificacion",
+                      label: "Verificación",
+                      icon: "V",
+                    },
+                    {
+                      key: "compresion",
+                      label: "Compresión",
+                      icon: "C",
+                    },
+                  ].map((stage) => {
+                    const status = traceStatus[stage.key]?.status || "pendiente"
+                    const isComplete = status === "completado"
+                    return (
+                      <div
+                        key={stage.key}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border ${
+                          isComplete
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : status === "en_proceso"
+                            ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                            : "bg-slate-50 text-slate-500 border-slate-200"
+                        }`}
+                        title={stage.label}
                       >
-                        <option value=""></option>
-                        {TIPO_FRACTURA_OPTIONS.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <select
-                        {...register(`items.${index}.defectos` as const)}
-                        className="w-24 h-8 rounded-md border border-input bg-background px-1 text-xs"
-                      >
-                        <option value=""></option>
-                        {DEFECTOS_OPTIONS.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                      {item?.defectos === "Otro" && (
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black bg-white border">
+                          {isComplete ? "✓" : status === "en_proceso" ? "◐" : "○"}
+                        </span>
+                        {stage.label}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="text-[10px] font-semibold">
+                {traceStatus.compresion?.status === "completado" ? (
+                  <span className="text-green-600">✓ Informe listo</span>
+                ) : (
+                  <span className="text-orange-600">
+                    ℹ{" "}
+                    {[
+                      traceStatus.recepcion?.status !== "completado" && "Recepción",
+                      traceStatus.verificacion?.status !== "completado" && "Verificación",
+                      traceStatus.compresion?.status !== "completado" && "Compresión",
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}{" "}
+                    pendiente(s)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Items Table Card */}
+        <div className="bg-card border border-border bg-white rounded-lg shadow-xs p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold uppercase text-muted-foreground">
+              Resultados de Compresión ({fields.length})
+            </h3>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append(createItemTemplate(fields.length + 1))}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Agregar fila
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-md border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-10">Item</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-32">Cód. LEM</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Programado</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Carga (kN)</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-20">Fractura</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Defectos</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Realizado</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Ensayo</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-24">Hora</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Revisado</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Revisión</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-28">Aprobado</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-left w-36">F. Aprobación</th>
+                  <th className="px-2 py-2 text-[10px] font-black uppercase text-center w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {fields.map((field, index) => {
+                  const item = items[index]
+                  return (
+                    <tr key={field.id} className="border-t hover:bg-muted/30">
+                      <td className="px-2 py-2">
                         <Input
-                          {...register(`items.${index}.defectos_custom` as const)}
-                          className="w-24 text-xs p-1 h-7 mt-1"
-                          placeholder="Especifique"
+                          {...register(`items.${index}.item` as const)}
+                          type="number"
+                          className="w-10 text-center text-xs p-1 h-8"
                         />
-                      )}
-                    </td>
-                    <td className="px-2 py-2">
-                      <select
-                        {...register(`items.${index}.realizado` as const)}
-                        className="w-28 h-8 rounded-md border border-input bg-background px-1 text-xs"
-                      >
-                        <option value=""></option>
-                        {REALIZADO_OPTIONS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <Controller
-                        control={control}
-                        name={`items.${index}.fecha_ensayo` as const}
-                        render={({ field }) => (
-                          <DatePickerSmart
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="w-36"
-                          />
-                        )}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        {...register(`items.${index}.hora_ensayo` as const)}
-                        className="w-24 text-xs p-1 h-8 text-center"
-                        placeholder="HH:MM:SS"
-                        maxLength={8}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <select
-                        {...register(`items.${index}.revisado` as const)}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          register(`items.${index}.revisado`).onChange(e)
-                          if (value && value !== "-") {
-                            const current = getValues(`items.${index}.fecha_revisado`)
-                            if (!current) {
-                              setValue(`items.${index}.fecha_revisado`, getTodayPeruIso())
+                      </td>
+                      <td className="px-2 py-2">
+                        <Input
+                          {...register(`items.${index}.codigo_lem` as const)}
+                          readOnly
+                          onBlur={(e) => {
+                            const current = getValues(`items.${index}.codigo_lem`)
+                            const formatted = formatLemCode(e.target.value)
+                            if (formatted && formatted !== current) {
+                              setValue(`items.${index}.codigo_lem`, current || formatted)
                             }
-                          }
-                        }}
-                        className="w-28 h-8 rounded-md border border-input bg-background px-1 text-xs"
-                      >
-                        <option value=""></option>
-                        {REVISADO_OPTIONS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <Controller
-                        control={control}
-                        name={`items.${index}.fecha_revisado` as const}
-                        render={({ field }) => (
-                          <DatePickerSmart
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="w-36"
-                          />
-                        )}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <select
-                        {...register(`items.${index}.aprobado` as const)}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          register(`items.${index}.aprobado`).onChange(e)
-                          if (value && value !== "-") {
-                            const current = getValues(`items.${index}.fecha_aprobado`)
-                            if (!current) {
-                              setValue(`items.${index}.fecha_aprobado`, getTodayPeruIso())
-                            }
-                          }
-                        }}
-                        className="w-28 h-8 rounded-md border border-input bg-background px-1 text-xs"
-                      >
-                        <option value=""></option>
-                        {APROBADO_OPTIONS.map((a) => (
-                          <option key={a} value={a}>
-                            {a}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-2 py-2">
-                      <Controller
-                        control={control}
-                        name={`items.${index}.fecha_aprobado` as const}
-                        render={({ field }) => (
-                          <DatePickerSmart
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="w-36"
-                          />
-                        )}
-                      />
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive"
-                        onClick={() => {
-                          const itemCode = getValues(`items.${index}.codigo_lem`) || String(index + 1)
-                          setDeleteItemTarget({ index, code: itemCode })
-                          setDeleteItemConfirmText("")
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                          }}
+                          placeholder="LEM-XXX"
+                          className="w-32 font-mono text-xs h-8 bg-slate-50 cursor-not-allowed text-slate-700"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <Controller
+                          control={control}
+                          name={`items.${index}.fecha_ensayo_programado` as const}
+                          render={({ field }) => (
+                            <DatePickerSmart
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              className="w-36"
+                            />
+                          )}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...register(`items.${index}.carga_maxima` as const, {
+                            valueAsNumber: true,
+                          })}
+                          placeholder="kN"
+                          className="w-24 text-xs p-1 h-8 font-semibold text-green-700"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          {...register(`items.${index}.tipo_fractura` as const)}
+                          className="w-20 h-8 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">-</option>
+                          {TIPO_FRACTURA_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          {...register(`items.${index}.defectos` as const)}
+                          className="w-24 h-8 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">-</option>
+                          {DEFECTOS_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          {...register(`items.${index}.realizado` as const)}
+                          className="w-28 h-8 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">-</option>
+                          {REALIZADO_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <Controller
+                          control={control}
+                          name={`items.${index}.fecha_ensayo` as const}
+                          render={({ field }) => (
+                            <DatePickerSmart
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              className="w-36"
+                            />
+                          )}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <Input
+                          type="time"
+                          {...register(`items.${index}.hora_ensayo` as const)}
+                          className="w-24 text-xs p-1 h-8"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          {...register(`items.${index}.revisado` as const)}
+                          className="w-28 h-8 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">-</option>
+                          {REVISADO_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <Controller
+                          control={control}
+                          name={`items.${index}.fecha_revisado` as const}
+                          render={({ field }) => (
+                            <DatePickerSmart
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              className="w-36"
+                            />
+                          )}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          {...register(`items.${index}.aprobado` as const)}
+                          className="w-28 h-8 text-xs rounded border border-input bg-background px-1"
+                        >
+                          <option value="">-</option>
+                          {APROBADO_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <Controller
+                          control={control}
+                          name={`items.${index}.fecha_aprobado` as const}
+                          render={({ field }) => (
+                            <DatePickerSmart
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              className="w-36"
+                            />
+                          )}
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => {
+                            const itemCode = getValues(`items.${index}.codigo_lem`) || String(index + 1)
+                            setDeleteItemTarget({ index, code: itemCode })
+                            setDeleteItemConfirmText("")
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
