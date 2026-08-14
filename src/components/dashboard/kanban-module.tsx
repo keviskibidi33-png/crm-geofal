@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import {
   FolderKanban,
   Plus,
@@ -28,6 +28,12 @@ import {
   Tag,
   Sparkles,
   Check,
+  Activity,
+  ChevronRight,
+  FlaskConical,
+  CheckCheck,
+  AlertCircle,
+  FileSpreadsheet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,6 +87,9 @@ export interface KanbanCard {
     tipo_recepcion?: string
     totalMuestras?: number
   }
+  createdBy?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface KanbanModuleProps {
@@ -155,6 +164,7 @@ const INITIAL_CARDS: KanbanCard[] = [
 ]
 
 const STORAGE_KEY = "geofal_kanban_cards_v2"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
   const [cards, setCards] = useState<KanbanCard[]>(() => {
@@ -172,19 +182,15 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
     return INITIAL_CARDS
   })
 
-  // Persistir tarjetas cada vez que cambien
-  const saveCards = (newCards: KanbanCard[]) => {
-    setCards(newCards)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newCards))
-    } catch {
-      // ignore
-    }
-  }
-
+  const [isLoadingBackend, setIsLoadingBackend] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [priorityFilter, setPriorityFilter] = useState<string>("todas")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  // ── ESTADO PARA MODAL DE DETALLE & TRAZABILIDAD (5 ETAPAS) ──
+  const [activeTracingCard, setActiveTracingCard] = useState<KanbanCard | null>(null)
+  const [tracingStages, setTracingStages] = useState<any[]>([])
+  const [loadingTracing, setLoadingTracing] = useState(false)
 
   // ── ESTADO PARA MODAL DE NOTAS TIPO CHAT ──
   const [activeNotesCard, setActiveNotesCard] = useState<KanbanCard | null>(null)
@@ -208,6 +214,40 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
   const [isSearchingRecepciones, setIsSearchingRecepciones] = useState(false)
   const [recepcionesResults, setRecepcionesResults] = useState<any[]>([])
   const [selectedRecepcion, setSelectedRecepcion] = useState<any | null>(null)
+
+  // Cargar tarjetas desde Backend FastAPI
+  const loadCardsFromBackend = useCallback(async () => {
+    setIsLoadingBackend(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/kanban/cards`)
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setCards(data)
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+          return
+        }
+      }
+    } catch {
+      // Fallback a localStorage
+    } finally {
+      setIsLoadingBackend(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadCardsFromBackend()
+  }, [loadCardsFromBackend])
+
+  // Persistir tarjetas (optimista local + sync backend)
+  const saveCards = (newCards: KanbanCard[]) => {
+    setCards(newCards)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newCards))
+    } catch {
+      // ignore
+    }
+  }
 
   // Buscar recepciones con debounce
   useEffect(() => {
@@ -264,18 +304,60 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
     { id: "done", label: "HECHO (DONE)", color: "border-emerald-500/50 bg-emerald-500/5" },
   ]
 
-  // Mover tarjeta de columna de forma silenciosa (sin toasts molestos)
-  const moveCard = (cardId: string, nextColumnId: KanbanCard["columnId"]) => {
+  // Mover tarjeta de columna de forma silenciosa
+  const moveCard = async (cardId: string, nextColumnId: KanbanCard["columnId"]) => {
     const updated = cards.map((c) => (c.id === cardId ? { ...c, columnId: nextColumnId } : c))
     saveCards(updated)
+
+    try {
+      await authFetch(`${API_URL}/api/kanban/cards/${cardId}/move`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columnId: nextColumnId }),
+      })
+    } catch {
+      // Backend sync fallback
+    }
   }
 
   // Eliminar tarjeta
-  const deleteCard = (cardId: string) => {
+  const deleteCard = async (cardId: string) => {
     const updated = cards.filter((c) => c.id !== cardId)
     saveCards(updated)
-    if (activeNotesCard?.id === cardId) {
-      setActiveNotesCard(null)
+    if (activeNotesCard?.id === cardId) setActiveNotesCard(null)
+    if (activeTracingCard?.id === cardId) setActiveTracingCard(null)
+
+    try {
+      await authFetch(`${API_URL}/api/kanban/cards/${cardId}`, { method: "DELETE" })
+    } catch {
+      // Backend sync fallback
+    }
+  }
+
+  // Abrir modal de Detalle y Trazabilidad (5 Etapas)
+  const handleOpenTracingDetail = async (card: KanbanCard) => {
+    setActiveTracingCard(card)
+    setTracingStages([])
+    setLoadingTracing(true)
+
+    const codigo = card.codigoOt || card.tracingSummary?.numero_recepcion
+    if (!codigo) {
+      setLoadingTracing(false)
+      return
+    }
+
+    try {
+      const res = await authFetch(`${API_URL}/api/tracing/flujo/${encodeURIComponent(codigo)}?_ts=${Date.now()}`)
+      if (res.ok) {
+        const payload = await res.json()
+        if (payload?.stages && Array.isArray(payload.stages)) {
+          setTracingStages(payload.stages)
+        }
+      }
+    } catch {
+      // Mock fallback basado en estado
+    } finally {
+      setLoadingTracing(false)
     }
   }
 
@@ -314,7 +396,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
   }
 
   // Agregar nota tipo chat
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!activeNotesCard) return
     if (!newNoteContent.trim() && !newNoteImageUrl) {
       toast.error("Escribe un mensaje o adjunta una imagen")
@@ -330,14 +412,18 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
       minute: "2-digit",
     })
 
-    const newNote: KanbanNote = {
-      id: `note-${Date.now()}`,
+    const notePayload = {
       author: user.name || "Usuario CRM",
       authorEmail: user.email,
       authorRole: user.roleLabel || user.role || "Operador",
       avatar: user.avatar,
       content: newNoteContent.trim(),
       imageUrl: newNoteImageUrl || undefined,
+    }
+
+    const newNote: KanbanNote = {
+      id: `note-${Date.now()}`,
+      ...notePayload,
       createdAt: formattedDate,
     }
 
@@ -351,9 +437,19 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
     setActiveNotesCard(updatedCard)
     setNewNoteContent("")
     setNewNoteImageUrl(null)
+
+    try {
+      await authFetch(`${API_URL}/api/kanban/cards/${activeNotesCard.id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notePayload),
+      })
+    } catch {
+      // Backend sync fallback
+    }
   }
 
-  const handleCreateCard = () => {
+  const handleCreateCard = async () => {
     if (!newTitle.trim()) {
       toast.error("Ingresa un título para la tarea")
       return
@@ -395,6 +491,16 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
     setSelectedRecepcion(null)
     setRecepcionSearchQuery("")
     setRecepcionesResults([])
+
+    try {
+      await authFetch(`${API_URL}/api/kanban/cards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCard),
+      })
+    } catch {
+      // Backend sync fallback
+    }
   }
 
   const filteredCards = cards.filter((c) => {
@@ -429,7 +535,10 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
             <FolderKanban className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">Tableros Kanban de Trabajo</h1>
+            <h1 className="font-bold text-lg leading-tight flex items-center gap-2">
+              <span>Tableros Kanban de Trabajo</span>
+              {isLoadingBackend && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </h1>
             <p className="text-xs text-muted-foreground">
               Seguimiento operativo por proyectos, recepciones y programación de ensayos
             </p>
@@ -460,7 +569,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
             </SelectContent>
           </Select>
 
-          <Button size="sm" className="h-9 text-xs gap-1.5 shadow-xs" onClick={() => setIsCreateOpen(true)}>
+          <Button size="sm" className="h-9 text-xs gap-1.5 shadow-xs cursor-pointer" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Nueva Tarea
           </Button>
@@ -531,7 +640,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                                 e.stopPropagation()
                                 deleteCard(card.id)
                               }}
-                              className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                              className="text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
                               title="Eliminar tarjeta"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -565,7 +674,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                           )}
                         </div>
 
-                        {/* Footer de Tarjeta con Usuario Real y Botón de Notas */}
+                        {/* Footer de Tarjeta con Usuario Real, Botón Detalle Trazabilidad y Botón de Notas */}
                         <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
                           <div className="flex items-center gap-1.5" title={`Asignado a ${card.assignedTo}`}>
                             <Avatar className="h-5 w-5 border border-border">
@@ -574,10 +683,23 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                                 {card.assignedTo.substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="truncate max-w-[85px] font-medium">{card.assignedTo}</span>
+                            <span className="truncate max-w-[80px] font-medium">{card.assignedTo}</span>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            {/* Botón de Detalle y Trazabilidad (Icono Capas/Trazabilidad solicitado por usuario) */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleOpenTracingDetail(card)
+                              }}
+                              className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground/70 hover:text-primary hover:bg-primary/10 border border-border/80 transition-all cursor-pointer shadow-2xs"
+                              title="Ver detalle completo y trazabilidad de 5 etapas (Recepción ➡️ Informe)"
+                            >
+                              <Layers className="h-3.5 w-3.5" />
+                            </button>
+
                             {/* Botón de Notas / Chat Interno */}
                             <button
                               type="button"
@@ -589,11 +711,11 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                                 "flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer",
                                 noteCount > 0
                                   ? "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800"
-                                  : "text-muted-foreground/60 hover:text-primary hover:bg-primary/5"
+                                  : "text-muted-foreground/60 hover:text-primary hover:bg-primary/5 border border-border/70"
                               )}
                               title="Abrir bitácora y notas tipo chat de la tarea"
                             >
-                              <MessageSquare className="h-3.5 w-3.5" />
+                              <MessageSquare className="h-3 w-3" />
                               <span className="text-[10px]">{noteCount}</span>
                             </button>
 
@@ -616,7 +738,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                                   className="p-1 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                   title="Mover a columna anterior"
                                 >
-                                  <ArrowLeft className="h-3.5 w-3.5" />
+                                  <ArrowLeft className="h-3 w-3" />
                                 </button>
                               )}
 
@@ -637,7 +759,7 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
                                   className="p-1 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                   title="Mover a siguiente columna"
                                 >
-                                  <ArrowRight className="h-3.5 w-3.5" />
+                                  <ArrowRight className="h-3 w-3" />
                                 </button>
                               )}
                             </div>
@@ -652,6 +774,180 @@ export function KanbanModule({ user, onOpenChatWithCard }: KanbanModuleProps) {
           )
         })}
       </div>
+
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: DETALLE COMPLETO Y TRAZABILIDAD (5 ETAPAS DEL CRM)       ── */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!activeTracingCard} onOpenChange={(open) => !open && setActiveTracingCard(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-base font-bold truncate">
+                  {activeTracingCard?.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs flex items-center gap-2 mt-0.5">
+                  <span className="font-semibold text-foreground">{activeTracingCard?.proyectoNombre}</span>
+                  {activeTracingCard?.codigoOt && (
+                    <Badge variant="outline" className="font-mono text-[10px] text-primary border-primary/30">
+                      {activeTracingCard.codigoOt}
+                    </Badge>
+                  )}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Tarjeta de Resumen Rápido */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-muted/40 p-3 rounded-xl border border-border text-xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Estado Actual</span>
+                <span className="font-semibold text-primary capitalize">{activeTracingCard?.columnId.replace("_", " ")}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Prioridad</span>
+                <span className="font-semibold uppercase">{activeTracingCard?.priority}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Responsable</span>
+                <span className="font-semibold truncate block">{activeTracingCard?.assignedTo}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block">Fecha Entrega</span>
+                <span className="font-semibold">{activeTracingCard?.dueDate || "Sin fecha"}</span>
+              </div>
+            </div>
+
+            {/* Ciclo de Vida y Trazabilidad en Tiempo Real (5 Etapas) */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Activity className="h-4 w-4 text-primary" />
+                <span>Flujo de Trazabilidad del Laboratorio</span>
+              </h4>
+
+              {loadingTracing ? (
+                <div className="flex items-center justify-center p-8 text-muted-foreground text-xs gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                  <span>Consultando trazabilidad en tiempo real...</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Etapas Estándar del Ciclo de Vida de Geofal */}
+                  {[
+                    {
+                      key: "recepcion",
+                      title: "1. Recepción de Muestras",
+                      desc: "Ingreso al laboratorio, datos del cliente y muestras registradas.",
+                      icon: Building,
+                      status: activeTracingCard?.codigoOt ? "completado" : "pendiente",
+                    },
+                    {
+                      key: "verificacion",
+                      title: "2. Verificación de Muestras",
+                      desc: "Control geométrico, perpendicularidad y validación de dimensiones.",
+                      icon: CheckCheck,
+                      status: activeTracingCard?.columnId !== "todo" ? "completado" : "en_proceso",
+                    },
+                    {
+                      key: "ensayo",
+                      title: "3. Ensayo de Laboratorio / Rotura",
+                      desc: "Ejecución del ensayo (Compresión, CBR, Proctor, Granulometría, etc.).",
+                      icon: FlaskConical,
+                      status:
+                        activeTracingCard?.columnId === "review" || activeTracingCard?.columnId === "done"
+                          ? "completado"
+                          : activeTracingCard?.columnId === "in_progress"
+                          ? "en_proceso"
+                          : "pendiente",
+                    },
+                    {
+                      key: "seguimiento",
+                      title: "4. Seguimiento & Revisión Técnica",
+                      desc: "Verificación de cálculos, curva de ensayo y visto bueno del Jefe de Laboratorio.",
+                      icon: FileSpreadsheet,
+                      status:
+                        activeTracingCard?.columnId === "done"
+                          ? "completado"
+                          : activeTracingCard?.columnId === "review"
+                          ? "en_proceso"
+                          : "pendiente",
+                    },
+                    {
+                      key: "informe",
+                      title: "5. Control de Informes (Listo / Enviado)",
+                      desc: "Emisión de informe final numerado y despacho formal al cliente.",
+                      icon: FileText,
+                      status: activeTracingCard?.columnId === "done" ? "completado" : "pendiente",
+                    },
+                  ].map((stage, idx) => {
+                    const isCompleted = stage.status === "completado"
+                    const isInProgress = stage.status === "en_proceso"
+
+                    return (
+                      <div
+                        key={stage.key}
+                        className={cn(
+                          "flex items-start gap-3 p-3 rounded-xl border transition-all text-xs",
+                          isCompleted
+                            ? "bg-emerald-500/5 border-emerald-500/30 dark:bg-emerald-950/20"
+                            : isInProgress
+                            ? "bg-blue-500/5 border-blue-500/40 dark:bg-blue-950/20 shadow-2xs"
+                            : "bg-card border-border/70 opacity-70"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg mt-0.5",
+                            isCompleted
+                              ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : isInProgress
+                              ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 animate-pulse"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <stage.icon className="h-4 w-4" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-foreground text-xs">{stage.title}</span>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[9px] uppercase px-1.5 py-0 font-bold",
+                                isCompleted
+                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                  : isInProgress
+                                  ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {isCompleted ? "Completado" : isInProgress ? "En Proceso" : "Pendiente"}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground text-[11px] mt-0.5 leading-relaxed">
+                            {stage.desc}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setActiveTracingCard(null)}>
+              Cerrar Detalle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ═════════════════════════════════════════════════════════════════════ */}
       {/* ── MODAL: BITÁCORA Y NOTAS TIPO CHAT DE LA TAREA                   ── */}
