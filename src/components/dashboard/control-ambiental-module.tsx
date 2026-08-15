@@ -129,16 +129,169 @@ const DEFAULT_AREAS = [
   "Area de Lavado y compactación",
 ]
 
-const DEFAULT_BALANZAS = [
-  { codigo: "EQP-0019", nombre: "BALANZA (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
-  { codigo: "EQP-0045", nombre: "BALANZA 0.01g (Ensayos Especiales)", ubi: "Area de Ensayos especiales", cap: 5000, masa: 1000, tol: 0.1 },
-  { codigo: "EQP-0046", nombre: "BALANZA 0.1g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 15000, masa: 2000, tol: 0.5 },
-  { codigo: "EQP-0054", nombre: "BALANZA 1g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
-  { codigo: "EQP-0059", nombre: "BALANZA 10g (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 30000, masa: 10000, tol: 2.0 },
-  { codigo: "EQP-0090", nombre: "BALANZA 0.1g (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 1000, masa: 500, tol: 0.05 },
-  { codigo: "EQP-0093", nombre: "BALANZA (Densidad / Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 20000, masa: 5000, tol: 1.0 },
-  { codigo: "EQP-0147", nombre: "BALANZA (Temperatura Controlada)", ubi: "Area de Temperatura controlada", cap: 10000, masa: 2000, tol: 0.5 },
-  { codigo: "EQP-0005", nombre: "BALANZA (Ensayos Físicos)", ubi: "Área de Ensayos físicos", cap: 15000, masa: 2000, tol: 0.5 },
+export interface PesadaOption {
+  label: string
+  nominal: number
+  variacion: number
+  precision: number
+}
+
+export interface BalanzaDef {
+  codigo: string
+  nombre: string
+  ubi: string
+  cap: number
+  masa: number
+  tol: number
+  pats: string[]
+  pesadas: PesadaOption[]
+}
+
+const DEFAULT_BALANZAS: BalanzaDef[] = [
+  {
+    codigo: "EQP-0054",
+    nombre: "BALANZA 1g (Ensayos Físicos)",
+    ubi: "Área de Ensayos físicos",
+    cap: 20000,
+    masa: 5000,
+    tol: 1.0,
+    pats: ["PAT 6", "PAT 7", "PAT 8", "PAT 9", "PAT 10", "PAT 11"],
+    pesadas: [
+      { label: "5,00KG", nominal: 5, variacion: 4.99, precision: 2 },
+      { label: "10,00 KG", nominal: 10, variacion: 9.99, precision: 2 },
+      { label: "15,00KG", nominal: 15, variacion: 14.99, precision: 2 },
+      { label: "20,00KG", nominal: 20, variacion: 19.99, precision: 2 },
+      { label: "30,00KG", nominal: 30, variacion: 29.99, precision: 2 },
+      { label: "40,00KG", nominal: 40, variacion: 39.99, precision: 2 },
+      { label: "60,00KG", nominal: 60, variacion: 59.99, precision: 2 },
+    ],
+  },
+  {
+    codigo: "EQP-0093",
+    nombre: "BALANZA (Densidad / Ensayos Físicos)",
+    ubi: "Área de Ensayos físicos",
+    cap: 20000,
+    masa: 5000,
+    tol: 1.0,
+    pats: ["PAT 3", "PAT 4", "PAT 5", "PAT 6", "PAT 7"],
+    pesadas: [
+      { label: "500G", nominal: 500, variacion: 499, precision: 0 },
+      { label: "1000G", nominal: 1000, variacion: 999, precision: 0 },
+      { label: "5000G", nominal: 5000, variacion: 4999, precision: 0 },
+      { label: "10000G", nominal: 10000, variacion: 9999, precision: 0 },
+      { label: "15000G", nominal: 15000, variacion: 14999, precision: 0 },
+      { label: "20000G", nominal: 20000, variacion: 19999, precision: 0 },
+    ],
+  },
+  {
+    codigo: "EQP-0046",
+    nombre: "BALANZA 0.1g (Ensayos Físicos)",
+    ubi: "Área de Ensayos físicos",
+    cap: 15000,
+    masa: 2000,
+    tol: 0.5,
+    pats: ["PAT 1", "PAT 2", "PAT 3", "PAT 4", "PAT 5", "PAT 6"],
+    pesadas: [
+      { label: "20,0G", nominal: 20, variacion: 19.9, precision: 1 },
+      { label: "200,0G", nominal: 200, variacion: 199.9, precision: 1 },
+      { label: "500,0G", nominal: 500, variacion: 499.9, precision: 1 },
+      { label: "1000,0G", nominal: 1000, variacion: 999.9, precision: 1 },
+      { label: "5000,0G", nominal: 5000, variacion: 4999.9, precision: 1 },
+      { label: "10000,0G", nominal: 10000, variacion: 9999.9, precision: 1 },
+      { label: "11000,0G", nominal: 11000, variacion: 10999.9, precision: 1 },
+    ],
+  },
+  {
+    codigo: "EQP-0005",
+    nombre: "BALANZA (Ensayos Físicos)",
+    ubi: "Área de Ensayos físicos",
+    cap: 15000,
+    masa: 2000,
+    tol: 0.5,
+    pats: ["PAT 3", "PAT 4", "PAT 5", "PAT 6", "PAT 7"],
+    pesadas: [
+      { label: "500G", nominal: 500, variacion: 499, precision: 0 },
+      { label: "1000G", nominal: 1000, variacion: 999, precision: 0 },
+      { label: "5000G", nominal: 5000, variacion: 4999, precision: 0 },
+      { label: "10000G", nominal: 10000, variacion: 9999, precision: 0 },
+      { label: "15000G", nominal: 15000, variacion: 14999, precision: 0 },
+      { label: "20000G", nominal: 20000, variacion: 19999, precision: 0 },
+    ],
+  },
+  {
+    codigo: "EQP-0019",
+    nombre: "BALANZA (Temperatura Controlada)",
+    ubi: "Area de Temperatura controlada",
+    cap: 10000,
+    masa: 2000,
+    tol: 0.5,
+    pats: ["PAT 1"],
+    pesadas: [
+      { label: "20,0000G", nominal: 20, variacion: 19.9999, precision: 4 },
+    ],
+  },
+  {
+    codigo: "EQP-0147",
+    nombre: "BALANZA (Temperatura Controlada)",
+    ubi: "Area de Temperatura controlada",
+    cap: 10000,
+    masa: 2000,
+    tol: 0.5,
+    pats: ["PAT 3", "PAT 4", "PAT 5", "PAT 6", "PAT 7"],
+    pesadas: [
+      { label: "500G", nominal: 500, variacion: 499, precision: 0 },
+      { label: "1000G", nominal: 1000, variacion: 999, precision: 0 },
+      { label: "5000G", nominal: 5000, variacion: 4999, precision: 0 },
+      { label: "10000G", nominal: 10000, variacion: 9999, precision: 0 },
+      { label: "15000G", nominal: 15000, variacion: 14999, precision: 0 },
+      { label: "2000G", nominal: 20000, variacion: 19999, precision: 0 },
+    ],
+  },
+  {
+    codigo: "EQP-0090",
+    nombre: "BALANZA 0.1g (Temperatura Controlada)",
+    ubi: "Area de Temperatura controlada",
+    cap: 1000,
+    masa: 500,
+    tol: 0.05,
+    pats: ["PAT 1", "PAT 2", "PAT 3", "PAT 4"],
+    pesadas: [
+      { label: "20,0G", nominal: 20, variacion: 19.9, precision: 1 },
+      { label: "200,0G", nominal: 200, variacion: 199.9, precision: 1 },
+      { label: "500,0G", nominal: 500, variacion: 499.9, precision: 1 },
+      { label: "1000,0G", nominal: 1000, variacion: 999.9, precision: 1 },
+      { label: "1200,0G", nominal: 1200, variacion: 1199.9, precision: 1 },
+    ],
+  },
+  {
+    codigo: "EQP-0045",
+    nombre: "BALANZA 0.01g (Ensayos Especiales)",
+    ubi: "Area de Ensayos especiales",
+    cap: 5000,
+    masa: 1000,
+    tol: 0.1,
+    pats: ["PAT 1", "PAT 2", "PAT 3", "PAT 4"],
+    pesadas: [
+      { label: "20,00G", nominal: 20, variacion: 19.99, precision: 2 },
+      { label: "200,00G", nominal: 200, variacion: 199.99, precision: 2 },
+      { label: "500,00G", nominal: 500, variacion: 499.99, precision: 2 },
+      { label: "1000,00G", nominal: 1000, variacion: 999.99, precision: 2 },
+    ],
+  },
+  {
+    codigo: "EQP-0059",
+    nombre: "BALANZA 10g (Ensayos Físicos)",
+    ubi: "Área de Ensayos físicos",
+    cap: 30000,
+    masa: 10000,
+    tol: 2.0,
+    pats: ["PAT 1", "PAT 2"],
+    pesadas: [
+      { label: "5000G", nominal: 5000, variacion: 4999, precision: 0 },
+      { label: "10000G", nominal: 10000, variacion: 9999, precision: 0 },
+      { label: "20000G", nominal: 20000, variacion: 19999, precision: 0 },
+    ],
+  },
 ]
 
 const REALIZADO_POR_LIST = ["BEATRIZ"]
@@ -150,11 +303,10 @@ function getMesAnio() {
     .toUpperCase()
 }
 
-function ensure15Pesadas(pesadas?: PesadaItem[], tol: number = 0.5): PesadaItem[] {
+function ensure15Pesadas(pesadas?: PesadaItem[]): PesadaItem[] {
   const list = pesadas || []
   const result: PesadaItem[] = list.map((p) => {
-    const autoEval = evaluatePesadaConformity(p.lectura_balanza_g, p.masa_patron_g, tol)
-    return { ...p, estado: p.estado && p.estado !== "-" ? p.estado : (p.lectura_balanza_g ? autoEval.estado : "-") }
+    return { ...p, estado: p.estado || "-" }
   })
   while (result.length < 15) {
     result.push({ masa_patron_g: "", lectura_balanza_g: "", estado: "-" })
@@ -180,6 +332,7 @@ interface BalanzaHeaderMeta {
   temp_c?: string
   humedad_pct?: string
   estado_pesadas?: Record<number, string>
+  columnas_pesadas?: string[]
 }
 
 function parseTempObs(obs?: string | null): TempHeaderMeta {
@@ -220,8 +373,11 @@ function normalizeAreaName(areaStr?: string): string {
 
 function normalizeBalanzaCode(code?: string): string {
   if (!code) return DEFAULT_BALANZAS[0].codigo
-  const clean = code.trim().toUpperCase()
-  const found = DEFAULT_BALANZAS.find((b) => b.codigo.toUpperCase() === clean || clean.includes(b.codigo.toUpperCase()))
+  const clean = code.trim().toUpperCase().replace(/\s+/g, "-")
+  const found = DEFAULT_BALANZAS.find((b) => {
+    const bClean = b.codigo.toUpperCase().replace(/\s+/g, "-")
+    return bClean === clean || clean.includes(bClean) || bClean.includes(clean)
+  })
   return found ? found.codigo : DEFAULT_BALANZAS[0].codigo
 }
 
@@ -338,16 +494,36 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
   const [showBalanzaModal, setShowBalanzaModal] = useState(false)
   const [balanzaIsDirty, setBalanzaIsDirty] = useState(false)
-  const [balanzaDocHeader, setBalanzaDocHeader] = useState({
+  const [balanzaDocHeader, setBalanzaDocHeader] = useState<{
+    codigo_balanza: string
+    mes_anio: string
+    ubicacion: string
+    codigos_pesas_patron: string
+    capacidad_g: string
+    masa_patron_g: string
+    error_max_permitido_g: string
+    limpieza_nivelacion: boolean
+    columnas_pesadas: string[]
+  }>({
     codigo_balanza: DEFAULT_BALANZAS[0].codigo,
     mes_anio: getMesAnio(),
     ubicacion: DEFAULT_BALANZAS[0].ubi,
-    codigos_pesas_patron: "PP-01, PP-02, PP-05",
+    codigos_pesas_patron: DEFAULT_BALANZAS[0].pats.join(", "),
     capacidad_g: String(DEFAULT_BALANZAS[0].cap),
     masa_patron_g: String(DEFAULT_BALANZAS[0].masa),
     error_max_permitido_g: String(DEFAULT_BALANZAS[0].tol),
     limpieza_nivelacion: true,
+    columnas_pesadas: Array.from({ length: 15 }, (_, i) => {
+      const pList = DEFAULT_BALANZAS[0].pesadas
+      return pList[i % pList.length]?.label || ""
+    }),
   })
+
+  const currentBalanzaDef = useMemo(() => {
+    const normCode = normalizeBalanzaCode(balanzaDocHeader.codigo_balanza)
+    return DEFAULT_BALANZAS.find((b) => b.codigo === normCode) || DEFAULT_BALANZAS[0]
+  }, [balanzaDocHeader.codigo_balanza])
+
   const [balanzaDocRows, setBalanzaDocRows] = useState<BalanzaRow[]>([
     {
       fecha: new Date().toISOString().split("T")[0],
@@ -588,16 +764,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const openNewBalanzaDoc = () => {
     executeWithSafetyCheck(() => {
       const firstBalanza = DEFAULT_BALANZAS[0]
+      const defaultCols = Array.from({ length: 15 }, (_, i) => {
+        const pList = firstBalanza.pesadas
+        return pList[i % pList.length]?.label || ""
+      })
       setDeletedBalanzaRowIds([])
       setBalanzaDocHeader({
         codigo_balanza: firstBalanza.codigo,
         mes_anio: getMesAnio(),
         ubicacion: firstBalanza.ubi,
-        codigos_pesas_patron: "PP-01, PP-02, PP-05",
+        codigos_pesas_patron: firstBalanza.pats.join(", "),
         capacidad_g: String(firstBalanza.cap),
         masa_patron_g: String(firstBalanza.masa),
         error_max_permitido_g: String(firstBalanza.tol),
         limpieza_nivelacion: true,
+        columnas_pesadas: defaultCols,
       })
       setBalanzaDocRows([
         {
@@ -667,18 +848,27 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         const parsedObs = parseBalanzaObs(first.observaciones)
         const fechaObj = new Date(first.fecha + "T00:00:00")
         const normCode = normalizeBalanzaCode(first.codigo_balanza)
-        const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode)
+        const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode) || DEFAULT_BALANZAS[0]
         const defaultMesAnio = fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
+        const defaultPats = matchingDef.pats.join(", ")
+        const defaultCols = Array.from({ length: 15 }, (_, i) => {
+          const pList = matchingDef.pesadas
+          return pList[i % pList.length]?.label || ""
+        })
 
         setBalanzaDocHeader({
           codigo_balanza: normCode,
           mes_anio: parsedObs.mes_anio || defaultMesAnio,
-          ubicacion: first.ubicacion || (matchingDef ? matchingDef.ubi : DEFAULT_BALANZAS[0].ubi),
-          codigos_pesas_patron: parsedObs.codigos_pesas_patron || "PP-01, PP-02, PP-05",
-          capacidad_g: String(first.capacidad_g ?? matchingDef?.cap ?? 15000),
-          masa_patron_g: String(first.masa_patron_g ?? matchingDef?.masa ?? 2000),
-          error_max_permitido_g: String(first.error_max_permitido_g ?? matchingDef?.tol ?? 0.5),
+          ubicacion: first.ubicacion || matchingDef.ubi,
+          codigos_pesas_patron: parsedObs.codigos_pesas_patron || defaultPats,
+          capacidad_g: String(first.capacidad_g ?? matchingDef.cap),
+          masa_patron_g: String(first.masa_patron_g ?? matchingDef.masa),
+          error_max_permitido_g: String(first.error_max_permitido_g ?? matchingDef.tol),
           limpieza_nivelacion: first.limpieza_nivelacion,
+          columnas_pesadas:
+            parsedObs.columnas_pesadas && Array.isArray(parsedObs.columnas_pesadas) && parsedObs.columnas_pesadas.length === 15
+              ? parsedObs.columnas_pesadas
+              : defaultCols,
         })
 
         // Agrupar pesadas por fecha y verificador en filas horizontales
@@ -702,7 +892,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             id: it.id,
             masa_patron_g: String(it.masa_patron_g),
             lectura_balanza_g: String(it.lectura_balanza_g),
-            estado: (it as any).estado || (it.lectura_balanza_g ? "OK" : "-"),
+            estado: (it as any).estado || "-",
           })
         })
 
@@ -849,6 +1039,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             temp_c: row.temp_c,
             humedad_pct: row.humedad_pct,
             estado_pesadas: estadoMap,
+            columnas_pesadas: balanzaDocHeader.columnas_pesadas,
           }
 
           const payload = {
@@ -1834,7 +2025,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
                     </p>
                     <p className="text-[11px] font-semibold text-slate-600 uppercase mt-0.5">
-                      NORMA NTP / ASTM — F-LEM-IN-01.02 V03 (Tolerancia: ±{tol} g)
+                      NORMA NTP / ASTM — F-LEM-IN-01.02 V03
                     </p>
                   </div>
                   <div className="col-span-12 sm:col-span-3 text-[10px] font-mono text-slate-800 bg-slate-50 min-h-14 flex flex-col justify-center">
@@ -1878,13 +2069,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           onChange={(e) => {
                             const val = e.target.value
                             const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
+                            const defPats = found?.pats && found.pats.length > 0 ? found.pats.join(", ") : "PAT 1"
+                            const defCols = Array.from({ length: 15 }, (_, i) => {
+                              const pList = found?.pesadas || []
+                              return pList[i % pList.length]?.label || ""
+                            })
                             setBalanzaDocHeader((p) => ({
                               ...p,
                               codigo_balanza: val,
                               ubicacion: found?.ubi || p.ubicacion,
+                              codigos_pesas_patron: defPats,
                               capacidad_g: found ? String(found.cap) : p.capacidad_g,
                               masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
                               error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
+                              columnas_pesadas: defCols,
                             }))
                             setBalanzaIsDirty(true)
                           }}
@@ -1925,15 +2123,31 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         </select>
                       </td>
                       <td className="border-t border-slate-300 p-1" colSpan={2}>
-                        <input
-                          className={denseInputClass}
+                        <select
+                          className={`${denseInputClass} font-semibold text-xs bg-white border-slate-300 cursor-pointer w-full text-ellipsis overflow-hidden`}
                           value={balanzaDocHeader.codigos_pesas_patron}
                           onChange={(e) => {
                             setBalanzaDocHeader((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
                             setBalanzaIsDirty(true)
                           }}
-                          placeholder="PP-01, PP-02"
-                        />
+                        >
+                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.length > 0 ? (
+                            <>
+                              <option value={currentBalanzaDef.pats.join(", ")}>
+                                {currentBalanzaDef.pats.join(", ")} (Juego Completo)
+                              </option>
+                              {currentBalanzaDef.pats.map((pat) => (
+                                <option key={pat} value={pat}>
+                                  {pat}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <option value={balanzaDocHeader.codigos_pesas_patron}>
+                              {balanzaDocHeader.codigos_pesas_patron}
+                            </option>
+                          )}
+                        </select>
                       </td>
                     </tr>
                   </tbody>
@@ -1957,11 +2171,36 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       <th className="border-b border-slate-300 py-1.5 w-12 text-center bg-slate-100" rowSpan={2}>ACCION</th>
                     </tr>
                     <tr>
-                      {Array.from({ length: 15 }).map((_, i) => (
-                        <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-34">
-                          OK / NO
-                        </th>
-                      ))}
+                      {Array.from({ length: 15 }).map((_, i) => {
+                        const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[i] || ""
+                        return (
+                          <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-34">
+                            <div className="flex flex-col gap-1 items-center justify-center">
+                              <select
+                                className="h-6 w-full text-[10px] font-bold bg-white border border-slate-300 rounded px-1 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
+                                value={colPesadaLabel}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  setBalanzaDocHeader((p) => {
+                                    const updated = [...(p.columnas_pesadas || Array(15).fill(""))]
+                                    updated[i] = val
+                                    return { ...p, columnas_pesadas: updated }
+                                  })
+                                  setBalanzaIsDirty(true)
+                                }}
+                              >
+                                <option value="">-- PESADA --</option>
+                                {currentBalanzaDef?.pesadas.map((pes) => (
+                                  <option key={pes.label} value={pes.label}>
+                                    {pes.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-500 font-semibold tracking-wider">OK / NO</span>
+                            </div>
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -2031,47 +2270,55 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             />
                           </td>
 
-                          {/* 15 Casillas Horizontales con auto-evaluación de tolerancia */}
-                          {ensure15Pesadas(row.pesadas, tol).map((p, pIdx) => {
-                            const valText = p.lectura_balanza_g || p.masa_patron_g
-                            const autoEval = evaluatePesadaConformity(p.lectura_balanza_g, p.masa_patron_g, tol)
-                            const estText = p.estado && p.estado !== "-" ? p.estado : valText ? autoEval.estado : "-"
+                          {/* 15 Casillas Horizontales con opciones desplegables por pesada y OK / NO manual */}
+                          {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
+                            const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || ""
+                            const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel)
+                            const valText = p.lectura_balanza_g || p.masa_patron_g || ""
+                            const estText = p.estado || "-"
 
                             return (
                               <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-34 w-36 text-center bg-white">
                                 <div className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    placeholder="Dato"
-                                    className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-20 border-slate-300 bg-white ${
-                                      estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
-                                    }`}
-                                    value={valText}
-                                    onChange={(e) => {
-                                      const val = e.target.value
-                                      const newEval = evaluatePesadaConformity(val, val, tol)
-                                      setBalanzaDocRows((rows) =>
-                                        rows.map((r, i) =>
-                                          i === idx
-                                            ? {
-                                                ...r,
-                                                pesadas: ensure15Pesadas(r.pesadas, tol).map((pes, pi) =>
-                                                  pi === pIdx
-                                                    ? {
-                                                        ...pes,
-                                                        lectura_balanza_g: val,
-                                                        masa_patron_g: val,
-                                                        estado: val ? newEval.estado : "-",
-                                                      }
-                                                    : pes
-                                                ),
-                                              }
-                                            : r
+                                  <div className="relative flex-1">
+                                    <input
+                                      type="text"
+                                      list={`datalist-p-${idx}-${pIdx}`}
+                                      placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
+                                      className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-full border-slate-300 bg-white ${
+                                        estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
+                                      }`}
+                                      value={valText}
+                                      onChange={(e) => {
+                                        const val = e.target.value
+                                        setBalanzaDocRows((rows) =>
+                                          rows.map((r, i) =>
+                                            i === idx
+                                              ? {
+                                                  ...r,
+                                                  pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
+                                                    pi === pIdx
+                                                      ? {
+                                                          ...pes,
+                                                          lectura_balanza_g: val,
+                                                          masa_patron_g: val,
+                                                        }
+                                                      : pes
+                                                  ),
+                                                }
+                                              : r
+                                          )
                                         )
-                                      )
-                                      setBalanzaIsDirty(true)
-                                    }}
-                                  />
+                                        setBalanzaIsDirty(true)
+                                      }}
+                                    />
+                                    {pesadaObj && (
+                                      <datalist id={`datalist-p-${idx}-${pIdx}`}>
+                                        <option value={String(pesadaObj.nominal)}>{pesadaObj.nominal} (Nominal)</option>
+                                        <option value={String(pesadaObj.variacion)}>{pesadaObj.variacion} (Variación)</option>
+                                      </datalist>
+                                    )}
+                                  </div>
                                   <select
                                     className={`${denseInputClass} text-center font-extrabold text-[11px] h-7 w-14 cursor-pointer rounded ${
                                       estText === "NO"
@@ -2088,7 +2335,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                           i === idx
                                             ? {
                                                 ...r,
-                                                pesadas: ensure15Pesadas(r.pesadas, tol).map((pes, pi) =>
+                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
                                                   pi === pIdx ? { ...pes, estado: val } : pes
                                                 ),
                                               }
@@ -2149,9 +2396,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             <Button
                               type="button"
                               variant="ghost"
-                              size="icon"
-                              disabled={balanzaDocRows.length <= 1}
+                              size="sm"
                               onClick={() => {
+                                if (balanzaDocRows.length === 1) {
+                                  toast.error("El formato debe tener al menos una fila")
+                                  return
+                                }
                                 const rowToDelete = balanzaDocRows[idx]
                                 if (rowToDelete && rowToDelete.pesadas) {
                                   const idsToDelete = rowToDelete.pesadas
@@ -2164,7 +2414,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              title="Eliminar fila"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -2191,7 +2442,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         hora: "08:00",
                         temp_c: "23.0",
                         humedad_pct: "50.0",
-                        pesadas: ensure15Pesadas([], tol),
+                        pesadas: ensure15Pesadas([]),
                         verificado_por: last ? last.verificado_por : "BEATRIZ",
                         revisado_por: last ? last.revisado_por : "ING. FABIAN",
                       },
