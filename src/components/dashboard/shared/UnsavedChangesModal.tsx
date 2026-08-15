@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { AlertTriangle, X } from 'lucide-react'
 
 export interface UnsavedChangesModalProps {
@@ -14,24 +12,18 @@ export interface UnsavedChangesModalProps {
 
 export default function UnsavedChangesModal({
     open,
-    title = "Cambios sin guardar",
-    description = "¿Deseas salir del formulario? Tienes cambios que aún no han sido guardados en el servidor.",
+    title = "¿Deseas salir sin guardar los cambios?",
+    description = "Has modificado datos en el formulario. Si sales ahora, se perderán las modificaciones no guardadas.",
     onClose,
     onDiscard,
     onSave,
     isSaving = false,
 }: UnsavedChangesModalProps) {
-    const [mounted, setMounted] = useState(false)
+    if (!open) return null
 
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    if (!open || !mounted) return null
-
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/45 px-4 backdrop-blur-md pointer-events-auto animate-in fade-in duration-150">
-            <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-xs pointer-events-auto animate-in fade-in duration-150">
+            <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                 <button
                     type="button"
                     onClick={onClose}
@@ -47,7 +39,7 @@ export default function UnsavedChangesModal({
 
                 <div className="text-center">
                     <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">
                         {description}
                     </p>
                 </div>
@@ -56,14 +48,14 @@ export default function UnsavedChangesModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition shadow-xs"
+                        className="h-10 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-sm font-semibold transition shadow-xs cursor-pointer"
                     >
                         Seguir editando
                     </button>
                     <button
                         type="button"
                         onClick={onDiscard}
-                        className="h-10 px-4 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold transition shadow-xs"
+                        className="h-10 px-4 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold transition shadow-xs cursor-pointer"
                     >
                         Salir sin guardar
                     </button>
@@ -72,14 +64,13 @@ export default function UnsavedChangesModal({
                             type="button"
                             onClick={onSave}
                             disabled={isSaving}
-                            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-600/20 transition disabled:opacity-50"
+                            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-600/20 transition disabled:opacity-50 cursor-pointer"
                         >
                             {isSaving ? 'Guardando...' : 'Guardar y salir'}
                         </button>
                     )}
                 </div>
             </div>
-        </div>,
-        document.body
+        </div>
     )
 }

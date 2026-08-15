@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Beaker, Download, Loader2, Save, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { authFetch } from '@/lib/api-auth'
@@ -243,9 +243,10 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
     const [loadingEdit, setLoadingEdit] = useState(false)
     const [ensayoId, setEnsayoId] = useState<number | null>(editId ?? null)
     const [isUnsavedChangesModalOpen, setIsUnsavedChangesModalOpen] = useState(false)
+    const baselineRef = useRef<TamizPayload>(initialState())
 
     const isDirty = useMemo(() => {
-        return JSON.stringify(form) !== JSON.stringify(initialState())
+        return JSON.stringify(form) !== JSON.stringify(baselineRef.current)
     }, [form])
 
     const handleRequestClose = useCallback(() => {
@@ -357,6 +358,7 @@ export default function TamizForm({ editId, onClose, onSaved }: TamizFormProps) 
                         ...payload,
                     }
                     setForm(merged)
+                    baselineRef.current = merged
                     if (merged.muestra) {
                         const { number, type, year } = parseMuestraCode(merged.muestra, 'AG')
                         setMuestraInput(number)

@@ -317,7 +317,11 @@ export function TamizModule() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col">
+        <DialogContent
+          className="max-w-[95vw] w-full h-[95vh] p-0 overflow-hidden bg-background [&>button]:hidden flex flex-col"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader className="hidden">
             <DialogTitle>Ensayo Malla 200 ASTM C117-23</DialogTitle>
             <DialogDescription>Formulario Malla 200 ASTM C117-23</DialogDescription>
