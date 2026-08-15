@@ -508,7 +508,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     codigo_balanza: DEFAULT_BALANZAS[0].codigo,
     mes_anio: getMesAnio(),
     ubicacion: DEFAULT_BALANZAS[0].ubi,
-    codigos_pesas_patron: DEFAULT_BALANZAS[0].pats.join(", "),
+    codigos_pesas_patron: "",
     capacidad_g: String(DEFAULT_BALANZAS[0].cap),
     masa_patron_g: String(DEFAULT_BALANZAS[0].masa),
     error_max_permitido_g: String(DEFAULT_BALANZAS[0].tol),
@@ -773,7 +773,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         codigo_balanza: firstBalanza.codigo,
         mes_anio: getMesAnio(),
         ubicacion: firstBalanza.ubi,
-        codigos_pesas_patron: firstBalanza.pats.join(", "),
+        codigos_pesas_patron: "",
         capacidad_g: String(firstBalanza.cap),
         masa_patron_g: String(firstBalanza.masa),
         error_max_permitido_g: String(firstBalanza.tol),
@@ -850,7 +850,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         const normCode = normalizeBalanzaCode(first.codigo_balanza)
         const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode) || DEFAULT_BALANZAS[0]
         const defaultMesAnio = fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
-        const defaultPats = matchingDef.pats.join(", ")
+        const defaultPats = ""
         const defaultCols = Array.from({ length: 15 }, (_, i) => {
           const pList = matchingDef.pesadas
           return pList[i % pList.length]?.label || ""
@@ -2069,7 +2069,6 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           onChange={(e) => {
                             const val = e.target.value
                             const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                            const defPats = found?.pats && found.pats.length > 0 ? found.pats.join(", ") : "PAT 1"
                             const defCols = Array.from({ length: 15 }, (_, i) => {
                               const pList = found?.pesadas || []
                               return pList[i % pList.length]?.label || ""
@@ -2078,7 +2077,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               ...p,
                               codigo_balanza: val,
                               ubicacion: found?.ubi || p.ubicacion,
-                              codigos_pesas_patron: defPats,
+                              codigos_pesas_patron: "",
                               capacidad_g: found ? String(found.cap) : p.capacidad_g,
                               masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
                               error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
@@ -2131,20 +2130,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             setBalanzaIsDirty(true)
                           }}
                         >
-                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.length > 0 ? (
-                            <>
-                              <option value={currentBalanzaDef.pats.join(", ")}>
-                                {currentBalanzaDef.pats.join(", ")} (Juego Completo)
-                              </option>
-                              {currentBalanzaDef.pats.map((pat) => (
-                                <option key={pat} value={pat}>
-                                  {pat}
-                                </option>
-                              ))}
-                            </>
-                          ) : (
-                            <option value={balanzaDocHeader.codigos_pesas_patron}>
-                              {balanzaDocHeader.codigos_pesas_patron}
+                          <option value="">-- SELECCIONAR --</option>
+                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.map((pat) => (
+                            <option key={pat} value={pat}>
+                              {pat}
+                            </option>
+                          ))}
+                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.length > 1 && (
+                            <option value={currentBalanzaDef.pats.join(", ")}>
+                              {currentBalanzaDef.pats.join(", ")}
                             </option>
                           )}
                         </select>
