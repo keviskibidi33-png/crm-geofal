@@ -163,7 +163,7 @@ const DEFAULT_BALANZAS: BalanzaDef[] = [
     pats: ["PAT 6", "PAT 7", "PAT 8", "PAT 9", "PAT 10", "PAT 11"],
     pesadas: [
       { label: "5,00KG", nominal: 5, variacion: 4.99, precision: 2 },
-      { label: "10,00 KG", nominal: 10, variacion: 9.99, precision: 2 },
+      { label: "10,00KG", nominal: 10, variacion: 9.99, precision: 2 },
       { label: "15,00KG", nominal: 15, variacion: 14.99, precision: 2 },
       { label: "20,00KG", nominal: 20, variacion: 19.99, precision: 2 },
       { label: "30,00KG", nominal: 30, variacion: 29.99, precision: 2 },
@@ -2596,9 +2596,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               {/* Casillas Horizontales Exactas por Equipo dentro de cada cuadro sin desbordamiento */}
                               {ensurePesadas(row.pesadas, numPesadas).map((p, pIdx) => {
                                 const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || currentBalanzaDef?.pesadas[pIdx]?.label || ""
-                                const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel) || currentBalanzaDef?.pesadas[pIdx]
-                                const valText = p.lectura_balanza_g || p.masa_patron_g || ""
+                                const pesadaObj =
+                                  currentBalanzaDef?.pesadas.find(
+                                    (pes) => pes.label.replace(/\s+/g, "").toUpperCase() === colPesadaLabel.replace(/\s+/g, "").toUpperCase()
+                                  ) ||
+                                  currentBalanzaDef?.pesadas[pIdx] ||
+                                  currentBalanzaDef?.pesadas[0]
+
+                                const rawVal = p.lectura_balanza_g || p.masa_patron_g || ""
+                                const normVal = rawVal !== "" && !isNaN(parseFloat(rawVal)) ? String(parseFloat(rawVal)) : rawVal
                                 const estText = p.estado || "-"
+
+                                const nominalStr = pesadaObj ? String(parseFloat(String(pesadaObj.nominal))) : ""
+                                const variacionStr = pesadaObj ? String(parseFloat(String(pesadaObj.variacion))) : ""
+                                const isCustom = normVal !== "" && normVal !== nominalStr && normVal !== variacionStr
 
                                 return (
                                   <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 bg-white text-center">
@@ -2607,11 +2618,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                         className={`h-8 flex-1 min-w-0 rounded border bg-white px-2 text-center font-mono text-xs font-bold shadow-2xs outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer ${
                                           estText === "NO"
                                             ? "border-red-400 bg-red-50 text-red-800"
-                                            : !valText
+                                            : !normVal
                                             ? "text-slate-400 border-slate-300"
                                             : "text-slate-900 border-slate-300"
                                         }`}
-                                        value={valText}
+                                        value={normVal}
                                         disabled={isLocked}
                                         onChange={(e) => {
                                           const val = e.target.value
@@ -2639,20 +2650,17 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                         <option value="">-- SELECCIONAR --</option>
                                         {pesadaObj && (
                                           <>
-                                            <option value={String(pesadaObj.nominal)}>
+                                            <option value={nominalStr}>
                                               {pesadaObj.nominal}
                                             </option>
-                                            <option value={String(pesadaObj.variacion)}>
+                                            <option value={variacionStr}>
                                               {pesadaObj.variacion}
                                             </option>
                                           </>
                                         )}
-                                        {valText &&
-                                          pesadaObj &&
-                                          String(valText) !== String(pesadaObj.nominal) &&
-                                          String(valText) !== String(pesadaObj.variacion) && (
-                                            <option value={valText}>{valText}</option>
-                                          )}
+                                        {isCustom && (
+                                          <option value={normVal}>{rawVal}</option>
+                                        )}
                                       </select>
                                       <select
                                         className={`h-8 w-16 shrink-0 rounded border text-center text-xs font-extrabold cursor-pointer shadow-2xs outline-none transition ${
