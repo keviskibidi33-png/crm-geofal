@@ -60,25 +60,24 @@ export default function ConfirmActionModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-99999 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pointer-events-auto"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       {/* Backdrop */}
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default border-none"
+      <div
+        className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm cursor-default pointer-events-auto"
         onClick={onCancel}
         aria-label="Cerrar modal"
       />
 
       {/* Dialog Card */}
-      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-150">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 duration-150 pointer-events-auto">
         <button
           type="button"
           onClick={onCancel}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+          className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
           aria-label="Cerrar"
         >
           <X className="h-4 w-4" />
@@ -100,14 +99,14 @@ export default function ConfirmActionModal({
           <button
             type="button"
             onClick={onCancel}
-            className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 transition-colors shadow-xs"
+            className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`h-9 px-4 rounded-lg text-xs sm:text-sm font-bold transition-colors shadow-sm ${confirmBtnClasses}`}
+            className={`h-9 px-4 rounded-lg text-xs sm:text-sm font-bold transition-colors shadow-sm cursor-pointer ${confirmBtnClasses}`}
           >
             {confirmText}
           </button>

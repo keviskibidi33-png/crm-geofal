@@ -2726,12 +2726,25 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   currentBalanzaDef?.pesadas[pIdx] ||
                                   currentBalanzaDef?.pesadas[0]
 
-                                const rawVal = p.lectura_balanza_g || p.masa_patron_g || ""
-                                const normVal = rawVal !== "" && !isNaN(parseFloat(rawVal)) ? String(parseFloat(rawVal)) : rawVal
-                                const estText = p.estado || "-"
+                                const prec = typeof pesadaObj?.precision === "number" ? pesadaObj.precision : 0
+                                const nominalStr = pesadaObj ? (prec > 0 ? pesadaObj.nominal.toFixed(prec) : String(pesadaObj.nominal)) : ""
+                                const variacionStr = pesadaObj ? (prec > 0 ? pesadaObj.variacion.toFixed(prec) : String(pesadaObj.variacion)) : ""
 
-                                const nominalStr = pesadaObj ? String(parseFloat(String(pesadaObj.nominal))) : ""
-                                const variacionStr = pesadaObj ? String(parseFloat(String(pesadaObj.variacion))) : ""
+                                const rawVal = p.lectura_balanza_g || p.masa_patron_g || ""
+                                let normVal = rawVal
+                                if (rawVal !== "" && !isNaN(parseFloat(rawVal))) {
+                                  const num = parseFloat(rawVal)
+                                  if (pesadaObj && Math.abs(num - pesadaObj.nominal) < 0.00001) {
+                                    normVal = nominalStr
+                                  } else if (pesadaObj && Math.abs(num - pesadaObj.variacion) < 0.00001) {
+                                    normVal = variacionStr
+                                  } else if (prec > 0) {
+                                    normVal = num.toFixed(prec)
+                                  } else {
+                                    normVal = String(num)
+                                  }
+                                }
+                                const estText = p.estado || "-"
                                 const isCustom = normVal !== "" && normVal !== nominalStr && normVal !== variacionStr
 
                                 return (
@@ -2774,10 +2787,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                         {pesadaObj && (
                                           <>
                                             <option value={nominalStr}>
-                                              {pesadaObj.nominal}
+                                              {nominalStr}
                                             </option>
                                             <option value={variacionStr}>
-                                              {pesadaObj.variacion}
+                                              {variacionStr}
                                             </option>
                                           </>
                                         )}

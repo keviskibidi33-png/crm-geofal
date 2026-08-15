@@ -1,3 +1,7 @@
+"use client"
+
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, X } from 'lucide-react'
 
 export interface UnsavedChangesModalProps {
@@ -19,15 +23,43 @@ export default function UnsavedChangesModal({
     onSave,
     isSaving = false,
 }: UnsavedChangesModalProps) {
-    if (!open) return null
+    const [mounted, setMounted] = useState(false)
 
-    return (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-xs pointer-events-auto animate-in fade-in duration-150">
-            <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    useEffect(() => {
+        if (!open) return
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose()
+        }
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [open, onClose])
+
+    if (!open || !mounted) return null
+
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pointer-events-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+        >
+            {/* Backdrop */}
+            <div
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs cursor-default pointer-events-auto"
+                onClick={onClose}
+                aria-label="Cerrar modal"
+            />
+
+            {/* Dialog Card */}
+            <div className="relative z-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 pointer-events-auto">
                 <button
                     type="button"
                     onClick={onClose}
-                    className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                    className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                     aria-label="Cerrar"
                 >
                     <X className="h-5 w-5" />
@@ -71,6 +103,7 @@ export default function UnsavedChangesModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
