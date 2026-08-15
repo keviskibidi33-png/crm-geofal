@@ -484,13 +484,25 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const [deletedBalanzaRowIds, setDeletedBalanzaRowIds] = useState<number[]>([])
   const [showTempModal, setShowTempModal] = useState(false)
   const [tempIsDirty, setTempIsDirty] = useState(false)
-  const [tempDocHeader, setTempDocHeader] = useState({
+  const [tempDocHeader, setTempDocHeader] = useState<{
+    registro: string
+    mes_anio: string
+    aprobado_por: string
+    fecha_aprobacion: string
+    area_ambiente: string
+    cumple_global: boolean
+    cerrado: boolean
+    cerrado_por?: string
+    fecha_cierre?: string
+    pin_cierre?: string
+  }>({
     registro: "REG-01",
     mes_anio: getMesAnio(),
     aprobado_por: "JEFE DE LABORATORIO",
     fecha_aprobacion: "2024-01-02",
     area_ambiente: DEFAULT_AREAS[0],
     cumple_global: true,
+    cerrado: false,
   })
   const [tempDocRows, setTempDocRows] = useState<TempRow[]>([
     {
@@ -800,6 +812,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         fecha_aprobacion: todayStr,
         area_ambiente: DEFAULT_AREAS[0],
         cumple_global: true,
+        cerrado: false,
+        cerrado_por: undefined,
+        fecha_cierre: undefined,
+        pin_cierre: undefined,
       })
       setTempDocRows([
         {
@@ -875,6 +891,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           fecha_aprobacion: parsedObs.fecha_aprobacion || first.fecha || new Date().toISOString().split("T")[0],
           area_ambiente: normalizeAreaName(first.area_ambiente),
           cumple_global: first.cumple_especificacion,
+          cerrado: Boolean(parsedObs.cerrado),
+          cerrado_por: parsedObs.cerrado_por,
+          fecha_cierre: parsedObs.fecha_cierre,
+          pin_cierre: parsedObs.pin_cierre,
         })
         setTempDocRows(
           items.map((it) => {
@@ -1056,6 +1076,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           revisado_por: row.responsable_revision || "ING. FABIAN",
           hum_min: row.hum_min || "",
           fecha_lectura: row.fecha_lectura || row.fecha_registro,
+          cerrado: tempDocHeader.cerrado,
+          cerrado_por: tempDocHeader.cerrado_por,
+          fecha_cierre: tempDocHeader.fecha_cierre,
+          pin_cierre: tempDocHeader.pin_cierre,
         }
         const payload = {
           fecha: row.fecha_registro,
@@ -1279,6 +1303,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
       if (cierreTargetDoc.type === "balanza" && showBalanzaModal) {
         setBalanzaDocHeader((prev) => ({
+          ...prev,
+          cerrado: cierreTargetDoc.isClosing,
+          cerrado_por: cierreTargetDoc.isClosing ? user.name || "SUPERVISOR" : undefined,
+          fecha_cierre: cierreTargetDoc.isClosing ? new Date().toISOString() : undefined,
+          pin_cierre: cierreTargetDoc.isClosing ? pin : undefined,
+        }))
+      } else if (cierreTargetDoc.type === "temperatura" && showTempModal) {
+        setTempDocHeader((prev) => ({
           ...prev,
           cerrado: cierreTargetDoc.isClosing,
           cerrado_por: cierreTargetDoc.isClosing ? user.name || "SUPERVISOR" : undefined,
@@ -1798,6 +1830,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // F-LEM-P-05.01 V03 CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA
   // ─────────────────────────────────────────────────────────────────────────────
   function renderTempModal() {
+    const isLocked = Boolean(tempDocHeader.cerrado)
+
     return (
       <Dialog
         open={showTempModal}
@@ -1811,14 +1845,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             {/* Header Barra Superior Nativa */}
             <div className="flex items-center justify-between gap-3 mb-1 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
-                  <Thermometer className="h-5 w-5" />
+                <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
+                  isLocked
+                    ? "bg-amber-50 border-amber-200 text-amber-600"
+                    : "bg-indigo-50 border-indigo-100 text-indigo-600"
+                }`}>
+                  {isLocked ? <Lock className="h-5 w-5" /> : <Thermometer className="h-5 w-5" />}
                 </div>
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
                     CONTROL DE TEMPERATURA Y HUMEDAD RELATIVA — F-LEM-P-05.01 V03
                   </h1>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Módulo nativo del CRM</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {isLocked ? "Mes Concluido — Modo Solo Lectura" : "Módulo nativo del CRM"}
+                  </p>
                 </div>
               </div>
               <button
@@ -1830,6 +1870,39 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Banner de Bloqueo / Solo Lectura si está Cerrado */}
+            {isLocked && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 px-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
+                  <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>
+                    <strong>FORMATO MENSUAL CONCLUIDO Y BLOQUEADO</strong> (Solo Lectura) — Concluido por <strong>{tempDocHeader.cerrado_por || "SUPERVISOR"}</strong>
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setCierreTargetDoc({
+                      type: "temperatura",
+                      title: `${tempDocHeader.area_ambiente} — ${tempDocHeader.mes_anio}`,
+                      items: temperaturaList.filter((t) => normalizeAreaName(t.area_ambiente) === normalizeAreaName(tempDocHeader.area_ambiente)),
+                      isClosing: false,
+                      currentPin: tempDocHeader.pin_cierre,
+                    })
+                    setCierrePinInput("")
+                    setCierrePinError("")
+                    setCierreModalOpen(true)
+                  }}
+                  className="h-7 text-xs font-semibold gap-1.5 bg-white border-amber-300 text-amber-900 hover:bg-amber-100 shadow-2xs cursor-pointer"
+                >
+                  <Unlock className="h-3.5 w-3.5 text-amber-700" />
+                  Desbloquear / Reabrir Mes
+                </Button>
+              </div>
+            )}
 
             {/* Hoja de Excel Blanca Central */}
             <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs flex flex-col flex-1 min-h-0">
@@ -1861,7 +1934,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <tr>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
                         <input
-                          className={`${denseInputClass} text-center`}
+                          disabled={isLocked}
+                          className={`${denseInputClass} text-center ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                           value={tempDocHeader.registro}
                           onChange={(e) => {
                             setTempDocHeader((p) => ({ ...p, registro: e.target.value }))
@@ -1872,7 +1946,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       </td>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
                         <input
-                          className={`${denseInputClass} text-center uppercase`}
+                          disabled={isLocked}
+                          className={`${denseInputClass} text-center uppercase ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                           value={tempDocHeader.mes_anio}
                           onChange={(e) => {
                             setTempDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
@@ -1883,7 +1958,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       </td>
                       <td className="border-r border-t border-slate-300 p-1" colSpan={2}>
                         <input
-                          className={`${denseInputClass} text-center uppercase`}
+                          disabled={isLocked}
+                          className={`${denseInputClass} text-center uppercase ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                           value={tempDocHeader.aprobado_por}
                           onChange={(e) => {
                             setTempDocHeader((p) => ({ ...p, aprobado_por: e.target.value }))
@@ -1894,7 +1970,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       <td className="border-t border-slate-300 p-1" colSpan={2}>
                         <input
                           type="date"
-                          className={`${denseInputClass} text-center`}
+                          disabled={isLocked}
+                          className={`${denseInputClass} text-center ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                           value={tempDocHeader.fecha_aprobacion}
                           onChange={(e) => {
                             setTempDocHeader((p) => ({ ...p, fecha_aprobacion: e.target.value }))
@@ -1912,13 +1989,14 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <span className="shrink-0">ÁREA DE CONTROL:</span>
                   <Select
+                    disabled={isLocked}
                     value={tempDocHeader.area_ambiente}
                     onValueChange={(val) => {
                       setTempDocHeader((p) => ({ ...p, area_ambiente: val }))
                       setTempIsDirty(true)
                     }}
                   >
-                    <SelectTrigger className="h-8 text-xs font-semibold bg-white border-slate-300 w-full sm:w-64"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className={`h-8 text-xs font-semibold bg-white border-slate-300 w-full sm:w-64 ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {DEFAULT_AREAS.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
@@ -1971,7 +2049,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           <td className="border-t border-r border-slate-300 p-1">
                             <input
                               type="date"
-                              className={denseInputClass}
+                              disabled={isLocked}
+                              className={`${denseInputClass} ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                               value={row.fecha_registro}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -1986,7 +2065,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           <td className="border-t border-r border-slate-300 p-1">
                             <input
                               type="time"
-                              className={denseInputClass}
+                              disabled={isLocked}
+                              className={`${denseInputClass} ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                               value={row.hora_toma}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2001,7 +2081,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           <td className="border-t border-r border-slate-300 p-1">
                             <input
                               type="date"
-                              className={denseInputClass}
+                              disabled={isLocked}
+                              className={`${denseInputClass} ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                               value={row.fecha_lectura}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2017,7 +2098,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="text"
                               inputMode="decimal"
                               placeholder="10.0"
-                              className={`${denseInputClass} ${evalRes.isTempRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
+                              disabled={isLocked}
+                              className={`${denseInputClass} ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""} ${evalRes.isTempRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
                               value={row.temp_min}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2033,7 +2115,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="text"
                               inputMode="decimal"
                               placeholder="30.0"
-                              className={`${denseInputClass} font-bold ${
+                              disabled={isLocked}
+                              className={`${denseInputClass} font-bold ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""} ${
                                 evalRes.isTempOut || evalRes.isTempRangeInvalid
                                   ? "bg-red-50 text-red-700 border-red-400 focus:ring-red-500 font-extrabold"
                                   : "text-sky-700"
@@ -2054,7 +2137,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="text"
                               inputMode="decimal"
                               placeholder="20.0"
-                              className={`${denseInputClass} ${evalRes.isHumRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
+                              disabled={isLocked}
+                              className={`${denseInputClass} ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""} ${evalRes.isHumRangeInvalid ? "bg-red-50 text-red-700 border-red-400 font-bold" : ""}`}
                               value={row.hum_min}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2070,7 +2154,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="text"
                               inputMode="decimal"
                               placeholder="80.0"
-                              className={`${denseInputClass} font-bold ${
+                              disabled={isLocked}
+                              className={`${denseInputClass} font-bold ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""} ${
                                 evalRes.isHumOut || evalRes.isHumRangeInvalid
                                   ? "bg-red-50 text-red-700 border-red-400 focus:ring-red-500 font-extrabold"
                                   : "text-blue-700"
@@ -2104,7 +2189,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           </td>
                           <td className="border-t border-r border-slate-300 p-1">
                             <select
-                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                              disabled={isLocked}
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                               value={row.responsable_registro}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2123,7 +2209,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           </td>
                           <td className="border-t border-r border-slate-300 p-1">
                             <select
-                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                              disabled={isLocked}
+                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
                               value={row.responsable_revision}
                               onChange={(e) => {
                                 const val = e.target.value
@@ -2145,7 +2232,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="button"
                               variant="ghost"
                               size="icon"
-                              disabled={tempDocRows.length <= 1}
+                              disabled={isLocked || tempDocRows.length <= 1}
                               onClick={() => {
                                 const targetId = tempDocRows[idx]?.id
                                 if (targetId) {
@@ -2154,7 +2241,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setTempDocRows((rows) => rows.filter((_, i) => i !== idx))
                                 setTempIsDirty(true)
                               }}
-                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-40"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -2172,6 +2259,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={isLocked}
                   onClick={() => {
                     const last = tempDocRows[tempDocRows.length - 1]
                     setTempDocRows((rows) => [
@@ -2193,7 +2281,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     ])
                     setTempIsDirty(true)
                   }}
-                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300"
+                  className="gap-2 h-8 text-xs font-semibold bg-white border-slate-300 disabled:opacity-40"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-600" />
                   Agregar Fila de Lectura Diaria
@@ -2215,6 +2303,27 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 <Download className="h-4 w-4" />
                 Exportar Excel
               </Button>
+              {!isLocked && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold bg-white border-amber-300 text-amber-800 hover:bg-amber-50 gap-2 w-full sm:w-auto"
+                  onClick={() => {
+                    setCierreTargetDoc({
+                      type: "temperatura",
+                      title: `${tempDocHeader.area_ambiente} — ${tempDocHeader.mes_anio}`,
+                      items: temperaturaList.filter((t) => normalizeAreaName(t.area_ambiente) === normalizeAreaName(tempDocHeader.area_ambiente)),
+                      isClosing: true,
+                    })
+                    setCierrePinInput("")
+                    setCierrePinError("")
+                    setCierreModalOpen(true)
+                  }}
+                >
+                  <Lock className="h-4 w-4" />
+                  Concluir Mes (Bloquear)
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -2225,10 +2334,24 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </Button>
               <Button
                 type="submit"
-                className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                disabled={isLocked}
+                className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
+                  isLocked
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-sky-600 hover:bg-sky-700 text-white"
+                }`}
               >
-                <Save className="h-4 w-4" />
-                Guardar Formato F-LEM-P-05.01
+                {isLocked ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Formato Concluido (Solo Lectura)
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Guardar Formato F-LEM-P-05.01
+                  </>
+                )}
               </Button>
             </div>
           </form>
