@@ -215,7 +215,7 @@ export function TamizModule() {
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
-          <div className="relative w-full sm:flex-1 sm:min-w-[260px] lg:w-80 lg:flex-none">
+          <div className="relative w-full sm:flex-1 sm:min-w-65 lg:w-80 lg:flex-none">
             <Input
               placeholder="Buscar codigo de muestra o N OT..."
               value={search}
@@ -240,7 +240,7 @@ export function TamizModule() {
           <h3 className="text-sm font-semibold text-slate-900">Historial Malla 200 ASTM C117-23</h3>
           <p className="text-xs text-muted-foreground">Registros guardados con acceso a detalle y edicion.</p>
         </div>
-        <Table className="min-w-[860px]">
+        <Table className="min-w-215">
           <TableHeader>
             <TableRow>
               <TableHead className="w-40">Codigo de Muestra</TableHead>
@@ -309,7 +309,7 @@ export function TamizModule() {
             </span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={safeCurrentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</Button>
-              <span className="min-w-[88px] text-center font-medium">Página {safeCurrentPage} / {totalPages}</span>
+              <span className="min-w-22 text-center font-medium">Página {safeCurrentPage} / {totalPages}</span>
               <Button variant="outline" size="sm" disabled={safeCurrentPage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Siguiente</Button>
             </div>
           </div>

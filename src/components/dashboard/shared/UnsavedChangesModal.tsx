@@ -22,7 +22,7 @@ export default function UnsavedChangesModal({
     if (!open) return null
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-xs pointer-events-auto animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-xs pointer-events-auto animate-in fade-in duration-150">
             <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                 <button
                     type="button"
