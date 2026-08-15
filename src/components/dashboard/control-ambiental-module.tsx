@@ -983,27 +983,47 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // ── Delete Document Group ──
   const handleDeleteTempGroup = async (items: ControlTemperaturaItem[]) => {
     if (!confirm(`¿Está seguro de eliminar el formato con ${items.length} lecturas?`)) return
+    const ids = Array.from(new Set(items.map((it) => it.id).filter((id): id is number => typeof id === "number")))
+    if (ids.length === 0) return
+
+    // Actualización optimista inmediata en UI
+    setTemperaturaList((prev) => prev.filter((it) => !ids.includes(it.id)))
     try {
       await Promise.all(
-        items.map((it) => authFetch(`${API_URL}/api/control-ambiental/temperatura/${it.id}`, { method: "DELETE" }))
+        ids.map((id) =>
+          authFetch(`${API_URL}/api/control-ambiental/temperatura/${id}`, { method: "DELETE" }).catch((err) => {
+            console.warn("Advertencia al eliminar temperatura:", err)
+          })
+        )
       )
-      toast.success("Formato eliminado")
-      fetchData()
+      toast.success("Formato eliminado con éxito")
+      await fetchData()
     } catch {
-      toast.error("Error eliminando formato")
+      toast.error("Error al sincronizar eliminación del formato")
+      fetchData()
     }
   }
 
   const handleDeleteBalanzaGroup = async (items: ControlBalanzaItem[]) => {
     if (!confirm(`¿Está seguro de eliminar el formato con ${items.length} verificaciones?`)) return
+    const ids = Array.from(new Set(items.map((it) => it.id).filter((id): id is number => typeof id === "number")))
+    if (ids.length === 0) return
+
+    // Actualización optimista inmediata en UI
+    setBalanzaList((prev) => prev.filter((it) => !ids.includes(it.id)))
     try {
       await Promise.all(
-        items.map((it) => authFetch(`${API_URL}/api/control-ambiental/balanza/${it.id}`, { method: "DELETE" }))
+        ids.map((id) =>
+          authFetch(`${API_URL}/api/control-ambiental/balanza/${id}`, { method: "DELETE" }).catch((err) => {
+            console.warn("Advertencia al eliminar balanza:", err)
+          })
+        )
       )
-      toast.success("Formato eliminado")
-      fetchData()
+      toast.success("Formato eliminado con éxito")
+      await fetchData()
     } catch {
-      toast.error("Error eliminando formato")
+      toast.error("Error al sincronizar eliminación del formato")
+      fetchData()
     }
   }
 
@@ -2583,46 +2603,57 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 return (
                                   <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 bg-white text-center">
                                     <div className="flex items-center gap-1.5 w-full">
-                                      <div className="relative flex-1 min-w-0">
-                                        <input
-                                          type="text"
-                                          list={`datalist-p-${idx}-${pIdx}`}
-                                          placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
-                                          className={`h-8 w-full rounded border border-slate-300 bg-white px-2 text-center font-mono font-bold text-xs shadow-2xs outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500 ${
-                                            estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : "text-slate-800"
-                                          }`}
-                                          value={valText}
-                                          disabled={isLocked}
-                                          onChange={(e) => {
-                                            const val = e.target.value
-                                            setBalanzaDocRows((rows) =>
-                                              rows.map((r, i) =>
-                                                i === idx
-                                                  ? {
-                                                      ...r,
-                                                      pesadas: ensurePesadas(r.pesadas, numPesadas).map((pes, pi) =>
-                                                        pi === pIdx
-                                                          ? {
-                                                              ...pes,
-                                                              lectura_balanza_g: val,
-                                                              masa_patron_g: val,
-                                                            }
-                                                          : pes
-                                                      ),
-                                                    }
-                                                  : r
-                                              )
+                                      <select
+                                        className={`h-8 flex-1 min-w-0 rounded border bg-white px-2 text-center font-mono text-xs font-bold shadow-2xs outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer ${
+                                          estText === "NO"
+                                            ? "border-red-400 bg-red-50 text-red-800"
+                                            : !valText
+                                            ? "text-slate-400 border-slate-300"
+                                            : "text-slate-900 border-slate-300"
+                                        }`}
+                                        value={valText}
+                                        disabled={isLocked}
+                                        onChange={(e) => {
+                                          const val = e.target.value
+                                          setBalanzaDocRows((rows) =>
+                                            rows.map((r, i) =>
+                                              i === idx
+                                                ? {
+                                                    ...r,
+                                                    pesadas: ensurePesadas(r.pesadas, numPesadas).map((pes, pi) =>
+                                                      pi === pIdx
+                                                        ? {
+                                                            ...pes,
+                                                            lectura_balanza_g: val,
+                                                            masa_patron_g: val,
+                                                          }
+                                                        : pes
+                                                    ),
+                                                  }
+                                                : r
                                             )
-                                            setBalanzaIsDirty(true)
-                                          }}
-                                        />
+                                          )
+                                          setBalanzaIsDirty(true)
+                                        }}
+                                      >
+                                        <option value="">-- SELECCIONAR --</option>
                                         {pesadaObj && (
-                                          <datalist id={`datalist-p-${idx}-${pIdx}`}>
-                                            <option value={String(pesadaObj.nominal)}>{pesadaObj.nominal} (Nominal)</option>
-                                            <option value={String(pesadaObj.variacion)}>{pesadaObj.variacion} (Variación)</option>
-                                          </datalist>
+                                          <>
+                                            <option value={String(pesadaObj.nominal)}>
+                                              {pesadaObj.nominal}
+                                            </option>
+                                            <option value={String(pesadaObj.variacion)}>
+                                              {pesadaObj.variacion}
+                                            </option>
+                                          </>
                                         )}
-                                      </div>
+                                        {valText &&
+                                          pesadaObj &&
+                                          String(valText) !== String(pesadaObj.nominal) &&
+                                          String(valText) !== String(pesadaObj.variacion) && (
+                                            <option value={valText}>{valText}</option>
+                                          )}
+                                      </select>
                                       <select
                                         className={`h-8 w-16 shrink-0 rounded border text-center text-xs font-extrabold cursor-pointer shadow-2xs outline-none transition ${
                                           estText === "NO"
