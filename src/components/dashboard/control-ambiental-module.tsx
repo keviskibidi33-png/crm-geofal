@@ -2436,30 +2436,44 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid Dinámico de Pesadas */}
               {(() => {
                 const numPesadas = currentBalanzaDef?.pesadas.length || 6
+                const totalTableWidth = 130 + 95 + 95 + 115 + numPesadas * 230 + 145 + 145 + 60
+
                 return (
                   <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
                     <table
-                      className="w-full border-collapse border border-slate-300 text-xs"
-                      style={{ minWidth: `${Math.max(1050, 480 + numPesadas * 175)}px` }}
+                      className="border-collapse border border-slate-300 text-xs table-fixed"
+                      style={{ width: `${totalTableWidth}px`, minWidth: "100%" }}
                     >
-                      <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30">
+                      <colgroup>
+                        <col style={{ width: "130px" }} />
+                        <col style={{ width: "95px" }} />
+                        <col style={{ width: "95px" }} />
+                        <col style={{ width: "115px" }} />
+                        {currentBalanzaDef?.pesadas.map((_, i) => (
+                          <col key={i} style={{ width: "230px" }} />
+                        ))}
+                        <col style={{ width: "145px" }} />
+                        <col style={{ width: "145px" }} />
+                        <col style={{ width: "60px" }} />
+                      </colgroup>
+                      <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30 shadow-[0_1px_0_0_#cbd5e1]">
                         <tr>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-27.5 text-center bg-slate-100 sticky left-0 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>FECHA</th>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-20 min-w-20 text-center bg-slate-100 sticky left-27.5 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>HORA</th>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-26.25 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-31.25 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
-                          <th className="border-r border-b border-emerald-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 uppercase tracking-wide" colSpan={numPesadas}>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>FECHA</th>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>HORA</th>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                          <th className="border-r border-b border-emerald-300 py-1.5 text-center font-bold bg-emerald-100 text-emerald-900 uppercase tracking-wide" colSpan={numPesadas}>
                             PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                           </th>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
-                          <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REVISADO POR</th>
-                          <th className="border-b border-slate-300 py-1.5 w-12 text-center bg-slate-100" rowSpan={2}>ACCION</th>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
+                          <th className="border-r border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>REVISADO POR</th>
+                          <th className="border-b border-slate-300 py-2 text-center bg-slate-100" rowSpan={2}>ACCIÓN</th>
                         </tr>
                         <tr>
                           {currentBalanzaDef?.pesadas.map((pesadaObj, i) => {
                             const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[i] || pesadaObj.label
                             return (
-                              <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-44 min-w-[170px]">
+                              <th key={i} className="border-r border-b border-slate-300 py-1.5 px-2 text-center font-bold text-slate-700 bg-slate-100">
                                 <div className="flex flex-col gap-1 items-center justify-center">
                                   <select
                                     className="h-7 w-full text-xs font-bold bg-white border border-slate-300 rounded px-1.5 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
@@ -2491,11 +2505,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       <tbody>
                         {balanzaDocRows.map((row, idx) => {
                           return (
-                            <tr key={idx} className="hover:bg-slate-50 group transition-colors">
-                              <td className="border-t border-r border-slate-300 p-1 sticky left-0 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
+                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <input
                                   type="date"
-                                  className={denseInputClass}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-1.5 text-xs text-slate-800 font-medium shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.fecha}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2508,10 +2522,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   required
                                 />
                               </td>
-                              <td className="border-t border-r border-slate-300 p-1 sticky left-27.5 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <input
                                   type="time"
-                                  className={denseInputClass}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-1 text-center text-xs text-slate-800 font-medium shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.hora}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2524,12 +2538,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   required
                                 />
                               </td>
-                              <td className="border-t border-r border-slate-300 p-1 w-28 min-w-26.25">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <input
                                   type="text"
                                   inputMode="decimal"
                                   placeholder="23.0"
-                                  className={denseInputClass}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-1.5 text-center font-mono font-bold text-xs text-slate-800 shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.temp_c}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2541,12 +2555,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   }}
                                 />
                               </td>
-                              <td className="border-t border-r border-slate-300 p-1 w-32 min-w-31.25">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <input
                                   type="text"
                                   inputMode="decimal"
                                   placeholder="50.0"
-                                  className={denseInputClass}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-1.5 text-center font-mono font-bold text-xs text-slate-800 shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.humedad_pct}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2559,7 +2573,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 />
                               </td>
 
-                              {/* Casillas Horizontales Exactas por Equipo con espacio amplio para números y decimales */}
+                              {/* Casillas Horizontales Exactas por Equipo dentro de cada cuadro sin desbordamiento */}
                               {ensurePesadas(row.pesadas, numPesadas).map((p, pIdx) => {
                                 const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || currentBalanzaDef?.pesadas[pIdx]?.label || ""
                                 const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel) || currentBalanzaDef?.pesadas[pIdx]
@@ -2567,15 +2581,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 const estText = p.estado || "-"
 
                                 return (
-                                  <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 min-w-[170px] w-44 text-center bg-white">
-                                    <div className="flex items-center gap-1.5 justify-center">
-                                      <div className="relative flex-1 min-w-[88px]">
+                                  <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 bg-white text-center">
+                                    <div className="flex items-center gap-1.5 w-full">
+                                      <div className="relative flex-1 min-w-0">
                                         <input
                                           type="text"
                                           list={`datalist-p-${idx}-${pIdx}`}
                                           placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
-                                          className={`${denseInputClass} text-center font-mono font-bold text-xs h-8 w-full border-slate-300 bg-white px-2 ${
-                                            estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
+                                          className={`h-8 w-full rounded border border-slate-300 bg-white px-2 text-center font-mono font-bold text-xs shadow-2xs outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500 ${
+                                            estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : "text-slate-800"
                                           }`}
                                           value={valText}
                                           disabled={isLocked}
@@ -2610,12 +2624,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                         )}
                                       </div>
                                       <select
-                                        className={`${denseInputClass} text-center font-extrabold text-[11px] h-8 w-14 shrink-0 cursor-pointer rounded ${
+                                        className={`h-8 w-16 shrink-0 rounded border text-center text-xs font-extrabold cursor-pointer shadow-2xs outline-none transition ${
                                           estText === "NO"
                                             ? "bg-red-100 text-red-800 border-red-300"
                                             : estText === "OK"
                                             ? "bg-blue-100 text-blue-800 border-blue-300"
-                                            : "bg-slate-50 text-slate-600 border-slate-300"
+                                            : "bg-slate-50 text-slate-600 border-slate-300 hover:bg-slate-100"
                                         }`}
                                         value={estText}
                                         disabled={isLocked}
@@ -2645,9 +2659,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 )
                               })}
 
-                              <td className="border-t border-r border-slate-300 p-1">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <select
-                                  className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-800 cursor-pointer shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.verificado_por}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2665,9 +2679,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   ))}
                                 </select>
                               </td>
-                              <td className="border-t border-r border-slate-300 p-1">
+                              <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <select
-                                  className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                                  className="h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-800 cursor-pointer shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                                   value={row.revisado_por}
                                   disabled={isLocked}
                                   onChange={(e) => {
@@ -2685,7 +2699,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                   ))}
                                 </select>
                               </td>
-                              <td className="border-t border-slate-300 p-1 text-center">
+                              <td className="border-t border-slate-300 p-1.5 bg-white text-center">
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -2708,7 +2722,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                     setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
                                     setBalanzaIsDirty(true)
                                   }}
-                                  className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
+                                  className="h-7 w-7 p-0 mx-auto flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
                                   title="Eliminar fila"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
