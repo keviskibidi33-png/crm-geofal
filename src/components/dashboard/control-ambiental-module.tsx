@@ -249,7 +249,7 @@ const DEFAULT_BALANZAS: BalanzaDef[] = [
       { label: "5000G", nominal: 5000, variacion: 4999, precision: 0 },
       { label: "10000G", nominal: 10000, variacion: 9999, precision: 0 },
       { label: "15000G", nominal: 15000, variacion: 14999, precision: 0 },
-      { label: "2000G", nominal: 20000, variacion: 19999, precision: 0 },
+      { label: "20000G", nominal: 20000, variacion: 19999, precision: 0 },
     ],
   },
   {
@@ -308,15 +308,19 @@ function getMesAnio() {
     .toUpperCase()
 }
 
-function ensure15Pesadas(pesadas?: PesadaItem[]): PesadaItem[] {
+function ensurePesadas(pesadas?: PesadaItem[], count: number = 15): PesadaItem[] {
   const list = pesadas || []
   const result: PesadaItem[] = list.map((p) => {
     return { ...p, estado: p.estado || "-" }
   })
-  while (result.length < 15) {
+  while (result.length < count) {
     result.push({ masa_patron_g: "", lectura_balanza_g: "", estado: "-" })
   }
-  return result.slice(0, 15)
+  return result.slice(0, count)
+}
+
+function ensure15Pesadas(pesadas?: PesadaItem[]): PesadaItem[] {
+  return ensurePesadas(pesadas, 15)
 }
 
 interface TempHeaderMeta {
@@ -525,15 +529,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     codigo_balanza: DEFAULT_BALANZAS[0].codigo,
     mes_anio: getMesAnio(),
     ubicacion: DEFAULT_BALANZAS[0].ubi,
-    codigos_pesas_patron: "",
+    codigos_pesas_patron: DEFAULT_BALANZAS[0].pats.join(", "),
     capacidad_g: String(DEFAULT_BALANZAS[0].cap),
     masa_patron_g: String(DEFAULT_BALANZAS[0].masa),
     error_max_permitido_g: String(DEFAULT_BALANZAS[0].tol),
     limpieza_nivelacion: true,
-    columnas_pesadas: Array.from({ length: 15 }, (_, i) => {
-      const pList = DEFAULT_BALANZAS[0].pesadas
-      return pList[i % pList.length]?.label || ""
-    }),
+    columnas_pesadas: DEFAULT_BALANZAS[0].pesadas.map((p) => p.label),
     cerrado: false,
   })
 
@@ -824,16 +825,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   const openNewBalanzaDoc = () => {
     executeWithSafetyCheck(() => {
       const firstBalanza = DEFAULT_BALANZAS[0]
-      const defaultCols = Array.from({ length: 15 }, (_, i) => {
-        const pList = firstBalanza.pesadas
-        return pList[i % pList.length]?.label || ""
-      })
+      const defaultCols = firstBalanza.pesadas.map((p) => p.label)
       setDeletedBalanzaRowIds([])
       setBalanzaDocHeader({
         codigo_balanza: firstBalanza.codigo,
         mes_anio: getMesAnio(),
         ubicacion: firstBalanza.ubi,
-        codigos_pesas_patron: "",
+        codigos_pesas_patron: firstBalanza.pats.join(", "),
         capacidad_g: String(firstBalanza.cap),
         masa_patron_g: String(firstBalanza.masa),
         error_max_permitido_g: String(firstBalanza.tol),
@@ -850,7 +848,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           hora: "08:00",
           temp_c: "",
           humedad_pct: "",
-          pesadas: ensure15Pesadas([]),
+          pesadas: ensurePesadas([], defaultCols.length),
           verificado_por: "BEATRIZ",
           revisado_por: "ING. FABIAN",
         },
@@ -914,11 +912,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         const normCode = normalizeBalanzaCode(first.codigo_balanza)
         const matchingDef = DEFAULT_BALANZAS.find((b) => b.codigo === normCode) || DEFAULT_BALANZAS[0]
         const defaultMesAnio = fechaObj.toLocaleString("es-PE", { month: "long", year: "numeric" }).toUpperCase()
-        const defaultPats = ""
-        const defaultCols = Array.from({ length: 15 }, (_, i) => {
-          const pList = matchingDef.pesadas
-          return pList[i % pList.length]?.label || ""
-        })
+        const defaultPats = matchingDef.pats.join(", ")
+        const defaultCols = matchingDef.pesadas.map((p) => p.label)
 
         setBalanzaDocHeader({
           codigo_balanza: normCode,
@@ -930,7 +925,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           error_max_permitido_g: String(first.error_max_permitido_g ?? matchingDef.tol),
           limpieza_nivelacion: first.limpieza_nivelacion,
           columnas_pesadas:
-            parsedObs.columnas_pesadas && Array.isArray(parsedObs.columnas_pesadas) && parsedObs.columnas_pesadas.length === 15
+            parsedObs.columnas_pesadas && Array.isArray(parsedObs.columnas_pesadas) && parsedObs.columnas_pesadas.length > 0
               ? parsedObs.columnas_pesadas
               : defaultCols,
           cerrado: Boolean(parsedObs.cerrado),
@@ -964,17 +959,18 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           })
         })
 
+        const numPesadas = matchingDef.pesadas.length || 6
         const rows = Array.from(rowMap.values()).map((r) => {
-          const pesadas15 = ensure15Pesadas(r.pesadas)
+          const pesadasDyn = ensurePesadas(r.pesadas, numPesadas)
           const firstObs = items.length > 0 ? parseBalanzaObs(items[0].observaciones) : {}
           if (firstObs.estado_pesadas) {
-            pesadas15.forEach((p, idx) => {
+            pesadasDyn.forEach((p, idx) => {
               if (firstObs.estado_pesadas?.[idx]) {
                 p.estado = firstObs.estado_pesadas[idx]
               }
             })
           }
-          return { ...r, pesadas: pesadas15 }
+          return { ...r, pesadas: pesadasDyn }
         })
 
         setBalanzaDocRows(rows)
@@ -2358,15 +2354,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           onChange={(e) => {
                             const val = e.target.value
                             const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
-                            const defCols = Array.from({ length: 15 }, (_, i) => {
-                              const pList = found?.pesadas || []
-                              return pList[i % pList.length]?.label || ""
-                            })
+                            const defCols = found?.pesadas.map((p) => p.label) || []
+                            const defPats = found?.pats.join(", ") || ""
                             setBalanzaDocHeader((p) => ({
                               ...p,
                               codigo_balanza: val,
                               ubicacion: found?.ubi || p.ubicacion,
-                              codigos_pesas_patron: "",
+                              codigos_pesas_patron: defPats,
                               capacidad_g: found ? String(found.cap) : p.capacidad_g,
                               masa_patron_g: found ? String(found.masa) : p.masa_patron_g,
                               error_max_permitido_g: found ? String(found.tol) : p.error_max_permitido_g,
@@ -2422,17 +2416,16 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             setBalanzaIsDirty(true)
                           }}
                         >
-                          <option value="">-- SELECCIONAR --</option>
-                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.map((pat) => (
-                            <option key={pat} value={pat}>
-                              {pat}
-                            </option>
-                          ))}
-                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.length > 1 && (
+                          {currentBalanzaDef?.pats && currentBalanzaDef.pats.length > 0 && (
                             <option value={currentBalanzaDef.pats.join(", ")}>
                               {currentBalanzaDef.pats.join(", ")}
                             </option>
                           )}
+                          {DEFAULT_BALANZAS.filter((b) => b.codigo !== currentBalanzaDef?.codigo).map((b) => (
+                            <option key={b.codigo} value={b.pats.join(", ")}>
+                              {b.pats.join(", ")} ({b.codigo})
+                            </option>
+                          ))}
                         </select>
                       </td>
                     </tr>
@@ -2440,288 +2433,295 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 </table>
               </div>
 
-              {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid 15 Pesadas (Columnas Congeladas en Tablet) */}
-              <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
-                <table className="min-w-[2900px] w-full border-collapse border border-slate-300 text-xs">
-                  <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30">
-                    <tr>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-27.5 text-center bg-slate-100 sticky left-0 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>FECHA</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-20 min-w-20 text-center bg-slate-100 sticky left-27.5 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>HORA</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-26.25 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-31.25 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
-                      <th className="border-r border-b border-emerald-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 uppercase tracking-wide" colSpan={15}>
-                        PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
-                      </th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
-                      <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REVISADO POR</th>
-                      <th className="border-b border-slate-300 py-1.5 w-12 text-center bg-slate-100" rowSpan={2}>ACCION</th>
-                    </tr>
-                    <tr>
-                      {Array.from({ length: 15 }).map((_, i) => {
-                        const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[i] || ""
-                        return (
-                          <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-44 min-w-[170px]">
-                            <div className="flex flex-col gap-1 items-center justify-center">
-                              <select
-                                className="h-7 w-full text-xs font-bold bg-white border border-slate-300 rounded px-1.5 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
-                                value={colPesadaLabel}
-                                disabled={isLocked}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  setBalanzaDocHeader((p) => {
-                                    const updated = [...(p.columnas_pesadas || Array(15).fill(""))]
-                                    updated[i] = val
-                                    return { ...p, columnas_pesadas: updated }
-                                  })
-                                  setBalanzaIsDirty(true)
-                                }}
-                              >
-                                <option value="">-- PESADA --</option>
-                                {currentBalanzaDef?.pesadas.map((pes) => (
-                                  <option key={pes.label} value={pes.label}>
-                                    {pes.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <span className="text-[10px] text-slate-500 font-semibold tracking-wider">OK / NO</span>
-                            </div>
+              {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid Dinámico de Pesadas */}
+              {(() => {
+                const numPesadas = currentBalanzaDef?.pesadas.length || 6
+                return (
+                  <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
+                    <table
+                      className="w-full border-collapse border border-slate-300 text-xs"
+                      style={{ minWidth: `${Math.max(1050, 480 + numPesadas * 175)}px` }}
+                    >
+                      <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30">
+                        <tr>
+                          <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-27.5 text-center bg-slate-100 sticky left-0 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>FECHA</th>
+                          <th className="border-r border-b border-slate-300 py-1.5 w-20 min-w-20 text-center bg-slate-100 sticky left-27.5 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>HORA</th>
+                          <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-26.25 text-center bg-slate-100" rowSpan={2}>TEMP (°C)</th>
+                          <th className="border-r border-b border-slate-300 py-1.5 w-32 min-w-31.25 text-center bg-slate-100" rowSpan={2}>HUMEDAD (%H.R.)</th>
+                          <th className="border-r border-b border-emerald-300 py-1 text-center font-bold bg-emerald-100 text-emerald-900 uppercase tracking-wide" colSpan={numPesadas}>
+                            PESA PATRÓN USADO (g) - ANOTAR LAS LECTURAS DE LA BALANZA
                           </th>
-                        )
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {balanzaDocRows.map((row, idx) => {
-                      return (
-                        <tr key={idx} className="hover:bg-slate-50 group transition-colors">
-                          <td className="border-t border-r border-slate-300 p-1 sticky left-0 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
-                            <input
-                              type="date"
-                              className={denseInputClass}
-                              value={row.fecha}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, fecha: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                              required
-                            />
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1 sticky left-27.5 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
-                            <input
-                              type="time"
-                              className={denseInputClass}
-                              value={row.hora}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, hora: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                              required
-                            />
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1 w-28 min-w-26.25">
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="23.0"
-                              className={denseInputClass}
-                              value={row.temp_c}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, temp_c: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                            />
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1 w-32 min-w-31.25">
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="50.0"
-                              className={denseInputClass}
-                              value={row.humedad_pct}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, humedad_pct: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                            />
-                          </td>
-
-                          {/* 15 Casillas Horizontales con espacio amplio para números y decimales */}
-                          {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
-                            const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || ""
-                            const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel)
-                            const valText = p.lectura_balanza_g || p.masa_patron_g || ""
-                            const estText = p.estado || "-"
-
+                          <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REALIZADO POR</th>
+                          <th className="border-r border-b border-slate-300 py-1.5 w-32 text-center bg-slate-100" rowSpan={2}>REVISADO POR</th>
+                          <th className="border-b border-slate-300 py-1.5 w-12 text-center bg-slate-100" rowSpan={2}>ACCION</th>
+                        </tr>
+                        <tr>
+                          {currentBalanzaDef?.pesadas.map((pesadaObj, i) => {
+                            const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[i] || pesadaObj.label
                             return (
-                              <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 min-w-[170px] w-44 text-center bg-white">
-                                <div className="flex items-center gap-1.5 justify-center">
-                                  <div className="relative flex-1 min-w-[88px]">
-                                    <input
-                                      type="text"
-                                      list={`datalist-p-${idx}-${pIdx}`}
-                                      placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
-                                      className={`${denseInputClass} text-center font-mono font-bold text-xs h-8 w-full border-slate-300 bg-white px-2 ${
-                                        estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
-                                      }`}
-                                      value={valText}
-                                      disabled={isLocked}
-                                      onChange={(e) => {
-                                        const val = e.target.value
-                                        setBalanzaDocRows((rows) =>
-                                          rows.map((r, i) =>
-                                            i === idx
-                                              ? {
-                                                  ...r,
-                                                  pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
-                                                    pi === pIdx
-                                                      ? {
-                                                          ...pes,
-                                                          lectura_balanza_g: val,
-                                                          masa_patron_g: val,
-                                                        }
-                                                      : pes
-                                                  ),
-                                                }
-                                              : r
-                                          )
-                                        )
-                                        setBalanzaIsDirty(true)
-                                      }}
-                                    />
-                                    {pesadaObj && (
-                                      <datalist id={`datalist-p-${idx}-${pIdx}`}>
-                                        <option value={String(pesadaObj.nominal)}>{pesadaObj.nominal} (Nominal)</option>
-                                        <option value={String(pesadaObj.variacion)}>{pesadaObj.variacion} (Variación)</option>
-                                      </datalist>
-                                    )}
-                                  </div>
+                              <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-44 min-w-[170px]">
+                                <div className="flex flex-col gap-1 items-center justify-center">
                                   <select
-                                    className={`${denseInputClass} text-center font-extrabold text-[11px] h-8 w-14 shrink-0 cursor-pointer rounded ${
-                                      estText === "NO"
-                                        ? "bg-red-100 text-red-800 border-red-300"
-                                        : estText === "OK"
-                                        ? "bg-blue-100 text-blue-800 border-blue-300"
-                                        : "bg-slate-50 text-slate-600 border-slate-300"
-                                    }`}
-                                    value={estText}
+                                    className="h-7 w-full text-xs font-bold bg-white border border-slate-300 rounded px-1.5 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
+                                    value={colPesadaLabel}
                                     disabled={isLocked}
                                     onChange={(e) => {
                                       const val = e.target.value
-                                      setBalanzaDocRows((rows) =>
-                                        rows.map((r, i) =>
-                                          i === idx
-                                            ? {
-                                                ...r,
-                                                pesadas: ensure15Pesadas(r.pesadas).map((pes, pi) =>
-                                                  pi === pIdx ? { ...pes, estado: val } : pes
-                                                ),
-                                              }
-                                            : r
-                                        )
-                                      )
+                                      setBalanzaDocHeader((p) => {
+                                        const updated = [...(p.columnas_pesadas || [])]
+                                        updated[i] = val
+                                        return { ...p, columnas_pesadas: updated }
+                                      })
                                       setBalanzaIsDirty(true)
                                     }}
                                   >
-                                    <option value="-">-</option>
-                                    <option value="OK">OK</option>
-                                    <option value="NO">NO</option>
+                                    {currentBalanzaDef.pesadas.map((pes) => (
+                                      <option key={pes.label} value={pes.label}>
+                                        {pes.label}
+                                      </option>
+                                    ))}
                                   </select>
+                                  <span className="text-[10px] text-slate-500 font-semibold tracking-wider">OK / NO</span>
                                 </div>
-                              </td>
+                              </th>
                             )
                           })}
-
-                          <td className="border-t border-r border-slate-300 p-1">
-                            <select
-                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
-                              value={row.verificado_por}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, verificado_por: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                            >
-                              {REALIZADO_POR_LIST.map((resp) => (
-                                <option key={resp} value={resp}>
-                                  {resp}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="border-t border-r border-slate-300 p-1">
-                            <select
-                              className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
-                              value={row.revisado_por}
-                              disabled={isLocked}
-                              onChange={(e) => {
-                                const val = e.target.value
-                                setBalanzaDocRows((rows) =>
-                                  rows.map((r, i) => (i === idx ? { ...r, revisado_por: val } : r))
-                                )
-                                setBalanzaIsDirty(true)
-                              }}
-                            >
-                              {REVISADO_POR_LIST.map((resp) => (
-                                <option key={resp} value={resp}>
-                                  {resp}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="border-t border-slate-300 p-1 text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={isLocked}
-                              onClick={() => {
-                                if (balanzaDocRows.length === 1) {
-                                  toast.error("El formato debe tener al menos una fila")
-                                  return
-                                }
-                                const rowToDelete = balanzaDocRows[idx]
-                                if (rowToDelete && rowToDelete.pesadas) {
-                                  const idsToDelete = rowToDelete.pesadas
-                                    .map((p) => p.id)
-                                    .filter((id): id is number => typeof id === "number")
-                                  if (idsToDelete.length > 0) {
-                                    setDeletedBalanzaRowIds((prev) => [...prev, ...idsToDelete])
-                                  }
-                                }
-                                setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
-                                setBalanzaIsDirty(true)
-                              }}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
-                              title="Eliminar fila"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </td>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {balanzaDocRows.map((row, idx) => {
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50 group transition-colors">
+                              <td className="border-t border-r border-slate-300 p-1 sticky left-0 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
+                                <input
+                                  type="date"
+                                  className={denseInputClass}
+                                  value={row.fecha}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, fecha: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                  required
+                                />
+                              </td>
+                              <td className="border-t border-r border-slate-300 p-1 sticky left-27.5 z-20 bg-white group-hover:bg-slate-50 shadow-[1px_0_0_0_#cbd5e1]">
+                                <input
+                                  type="time"
+                                  className={denseInputClass}
+                                  value={row.hora}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, hora: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                  required
+                                />
+                              </td>
+                              <td className="border-t border-r border-slate-300 p-1 w-28 min-w-26.25">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="23.0"
+                                  className={denseInputClass}
+                                  value={row.temp_c}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, temp_c: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                />
+                              </td>
+                              <td className="border-t border-r border-slate-300 p-1 w-32 min-w-31.25">
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="50.0"
+                                  className={denseInputClass}
+                                  value={row.humedad_pct}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, humedad_pct: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                />
+                              </td>
+
+                              {/* Casillas Horizontales Exactas por Equipo con espacio amplio para números y decimales */}
+                              {ensurePesadas(row.pesadas, numPesadas).map((p, pIdx) => {
+                                const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || currentBalanzaDef?.pesadas[pIdx]?.label || ""
+                                const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel) || currentBalanzaDef?.pesadas[pIdx]
+                                const valText = p.lectura_balanza_g || p.masa_patron_g || ""
+                                const estText = p.estado || "-"
+
+                                return (
+                                  <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 min-w-[170px] w-44 text-center bg-white">
+                                    <div className="flex items-center gap-1.5 justify-center">
+                                      <div className="relative flex-1 min-w-[88px]">
+                                        <input
+                                          type="text"
+                                          list={`datalist-p-${idx}-${pIdx}`}
+                                          placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
+                                          className={`${denseInputClass} text-center font-mono font-bold text-xs h-8 w-full border-slate-300 bg-white px-2 ${
+                                            estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
+                                          }`}
+                                          value={valText}
+                                          disabled={isLocked}
+                                          onChange={(e) => {
+                                            const val = e.target.value
+                                            setBalanzaDocRows((rows) =>
+                                              rows.map((r, i) =>
+                                                i === idx
+                                                  ? {
+                                                      ...r,
+                                                      pesadas: ensurePesadas(r.pesadas, numPesadas).map((pes, pi) =>
+                                                        pi === pIdx
+                                                          ? {
+                                                              ...pes,
+                                                              lectura_balanza_g: val,
+                                                              masa_patron_g: val,
+                                                            }
+                                                          : pes
+                                                      ),
+                                                    }
+                                                  : r
+                                              )
+                                            )
+                                            setBalanzaIsDirty(true)
+                                          }}
+                                        />
+                                        {pesadaObj && (
+                                          <datalist id={`datalist-p-${idx}-${pIdx}`}>
+                                            <option value={String(pesadaObj.nominal)}>{pesadaObj.nominal} (Nominal)</option>
+                                            <option value={String(pesadaObj.variacion)}>{pesadaObj.variacion} (Variación)</option>
+                                          </datalist>
+                                        )}
+                                      </div>
+                                      <select
+                                        className={`${denseInputClass} text-center font-extrabold text-[11px] h-8 w-14 shrink-0 cursor-pointer rounded ${
+                                          estText === "NO"
+                                            ? "bg-red-100 text-red-800 border-red-300"
+                                            : estText === "OK"
+                                            ? "bg-blue-100 text-blue-800 border-blue-300"
+                                            : "bg-slate-50 text-slate-600 border-slate-300"
+                                        }`}
+                                        value={estText}
+                                        disabled={isLocked}
+                                        onChange={(e) => {
+                                          const val = e.target.value
+                                          setBalanzaDocRows((rows) =>
+                                            rows.map((r, i) =>
+                                              i === idx
+                                                ? {
+                                                    ...r,
+                                                    pesadas: ensurePesadas(r.pesadas, numPesadas).map((pes, pi) =>
+                                                      pi === pIdx ? { ...pes, estado: val } : pes
+                                                    ),
+                                                  }
+                                                : r
+                                            )
+                                          )
+                                          setBalanzaIsDirty(true)
+                                        }}
+                                      >
+                                        <option value="-">-</option>
+                                        <option value="OK">OK</option>
+                                        <option value="NO">NO</option>
+                                      </select>
+                                    </div>
+                                  </td>
+                                )
+                              })}
+
+                              <td className="border-t border-r border-slate-300 p-1">
+                                <select
+                                  className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                                  value={row.verificado_por}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, verificado_por: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                >
+                                  {REALIZADO_POR_LIST.map((resp) => (
+                                    <option key={resp} value={resp}>
+                                      {resp}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="border-t border-r border-slate-300 p-1">
+                                <select
+                                  className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
+                                  value={row.revisado_por}
+                                  disabled={isLocked}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    setBalanzaDocRows((rows) =>
+                                      rows.map((r, i) => (i === idx ? { ...r, revisado_por: val } : r))
+                                    )
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                >
+                                  {REVISADO_POR_LIST.map((resp) => (
+                                    <option key={resp} value={resp}>
+                                      {resp}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="border-t border-slate-300 p-1 text-center">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={isLocked}
+                                  onClick={() => {
+                                    if (balanzaDocRows.length === 1) {
+                                      toast.error("El formato debe tener al menos una fila")
+                                      return
+                                    }
+                                    const rowToDelete = balanzaDocRows[idx]
+                                    if (rowToDelete && rowToDelete.pesadas) {
+                                      const idsToDelete = rowToDelete.pesadas
+                                        .map((p) => p.id)
+                                        .filter((id): id is number => typeof id === "number")
+                                      if (idsToDelete.length > 0) {
+                                        setDeletedBalanzaRowIds((prev) => [...prev, ...idsToDelete])
+                                      }
+                                    }
+                                    setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
+                                    setBalanzaIsDirty(true)
+                                  }}
+                                  className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
+                                  title="Eliminar fila"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
 
               {/* Botón de Agregar Fila */}
               <div className="p-2 bg-slate-50 border-t border-slate-300 flex justify-between items-center shrink-0">
@@ -2732,6 +2732,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   disabled={isLocked}
                   onClick={() => {
                     const last = balanzaDocRows[balanzaDocRows.length - 1]
+                    const numPesadas = currentBalanzaDef?.pesadas.length || 6
                     setBalanzaDocRows((rows) => [
                       ...rows,
                       {
@@ -2739,7 +2740,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         hora: "08:00",
                         temp_c: "23.0",
                         humedad_pct: "50.0",
-                        pesadas: ensure15Pesadas([]),
+                        pesadas: ensurePesadas([], numPesadas),
                         verificado_por: last ? last.verificado_por : "BEATRIZ",
                         revisado_por: last ? last.revisado_por : "ING. FABIAN",
                       },
