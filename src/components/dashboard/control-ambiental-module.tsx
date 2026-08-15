@@ -17,6 +17,11 @@ import {
   X,
   Save,
   Download,
+  Lock,
+  Unlock,
+  Clock,
+  KeyRound,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -322,6 +327,10 @@ interface TempHeaderMeta {
   revisado_por?: string
   hum_min?: string
   fecha_lectura?: string
+  cerrado?: boolean
+  cerrado_por?: string
+  fecha_cierre?: string
+  pin_cierre?: string
 }
 
 interface BalanzaHeaderMeta {
@@ -333,6 +342,10 @@ interface BalanzaHeaderMeta {
   humedad_pct?: string
   estado_pesadas?: Record<number, string>
   columnas_pesadas?: string[]
+  cerrado?: boolean
+  cerrado_por?: string
+  fecha_cierre?: string
+  pin_cierre?: string
 }
 
 function parseTempObs(obs?: string | null): TempHeaderMeta {
@@ -504,6 +517,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     error_max_permitido_g: string
     limpieza_nivelacion: boolean
     columnas_pesadas: string[]
+    cerrado: boolean
+    cerrado_por?: string
+    fecha_cierre?: string
+    pin_cierre?: string
   }>({
     codigo_balanza: DEFAULT_BALANZAS[0].codigo,
     mes_anio: getMesAnio(),
@@ -517,7 +534,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       const pList = DEFAULT_BALANZAS[0].pesadas
       return pList[i % pList.length]?.label || ""
     }),
+    cerrado: false,
   })
+
+  // ── Modal de Cierre / Bloqueo Mensual con PIN ──
+  const [cierreModalOpen, setCierreModalOpen] = useState(false)
+  const [cierreTargetDoc, setCierreTargetDoc] = useState<{
+    type: "balanza" | "temperatura"
+    title: string
+    items: (ControlBalanzaItem | ControlTemperaturaItem)[]
+    isClosing: boolean
+    currentPin?: string
+  } | null>(null)
+  const [cierrePinInput, setCierrePinInput] = useState("")
+  const [cierrePinError, setCierrePinError] = useState("")
 
   const currentBalanzaDef = useMemo(() => {
     const normCode = normalizeBalanzaCode(balanzaDocHeader.codigo_balanza)
@@ -631,6 +661,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       key: string
       area_ambiente: string
       mes_anio: string
+      cerrado: boolean
+      cerrado_por?: string
+      fecha_cierre?: string
+      pin_cierre?: string
       items: ControlTemperaturaItem[]
     }>()
 
@@ -649,10 +683,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           key,
           area_ambiente: normArea,
           mes_anio,
+          cerrado: Boolean(parsedObs.cerrado),
+          cerrado_por: parsedObs.cerrado_por,
+          fecha_cierre: parsedObs.fecha_cierre,
+          pin_cierre: parsedObs.pin_cierre,
           items: [],
         })
       }
-      map.get(key)!.items.push(item)
+      const grp = map.get(key)!
+      if (parsedObs.cerrado) {
+        grp.cerrado = true
+        grp.cerrado_por = parsedObs.cerrado_por || grp.cerrado_por
+        grp.fecha_cierre = parsedObs.fecha_cierre || grp.fecha_cierre
+        grp.pin_cierre = parsedObs.pin_cierre || grp.pin_cierre
+      }
+      grp.items.push(item)
     })
 
     return Array.from(map.values())
@@ -664,6 +709,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       codigo_balanza: string
       mes_anio: string
       ubicacion: string
+      cerrado: boolean
+      cerrado_por?: string
+      fecha_cierre?: string
+      pin_cierre?: string
       items: ControlBalanzaItem[]
     }>()
 
@@ -683,10 +732,21 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           codigo_balanza: normCode,
           mes_anio,
           ubicacion: item.ubicacion,
+          cerrado: Boolean(parsedObs.cerrado),
+          cerrado_por: parsedObs.cerrado_por,
+          fecha_cierre: parsedObs.fecha_cierre,
+          pin_cierre: parsedObs.pin_cierre,
           items: [],
         })
       }
-      map.get(key)!.items.push(item)
+      const grp = map.get(key)!
+      if (parsedObs.cerrado) {
+        grp.cerrado = true
+        grp.cerrado_por = parsedObs.cerrado_por || grp.cerrado_por
+        grp.fecha_cierre = parsedObs.fecha_cierre || grp.fecha_cierre
+        grp.pin_cierre = parsedObs.pin_cierre || grp.pin_cierre
+      }
+      grp.items.push(item)
     })
 
     return Array.from(map.values())
@@ -779,6 +839,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         error_max_permitido_g: String(firstBalanza.tol),
         limpieza_nivelacion: true,
         columnas_pesadas: defaultCols,
+        cerrado: false,
+        cerrado_por: undefined,
+        fecha_cierre: undefined,
+        pin_cierre: undefined,
       })
       setBalanzaDocRows([
         {
@@ -869,6 +933,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             parsedObs.columnas_pesadas && Array.isArray(parsedObs.columnas_pesadas) && parsedObs.columnas_pesadas.length === 15
               ? parsedObs.columnas_pesadas
               : defaultCols,
+          cerrado: Boolean(parsedObs.cerrado),
+          cerrado_por: parsedObs.cerrado_por,
+          fecha_cierre: parsedObs.fecha_cierre,
+          pin_cierre: parsedObs.pin_cierre,
         })
 
         // Agrupar pesadas por fecha y verificador en filas horizontales
@@ -1040,6 +1108,10 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             humedad_pct: row.humedad_pct,
             estado_pesadas: estadoMap,
             columnas_pesadas: balanzaDocHeader.columnas_pesadas,
+            cerrado: balanzaDocHeader.cerrado,
+            cerrado_por: balanzaDocHeader.cerrado_por,
+            fecha_cierre: balanzaDocHeader.fecha_cierre,
+            pin_cierre: balanzaDocHeader.pin_cierre,
           }
 
           const payload = {
@@ -1077,6 +1149,132 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       fetchData()
     } catch {
       toast.error("Error al guardar formato de balanzas")
+    }
+  }
+
+  // ── Handlers para Concluir / Reabrir Mes con PIN ──
+  const handleOpenCierreBalanza = (doc: {
+    codigo_balanza: string
+    mes_anio: string
+    items: ControlBalanzaItem[]
+    cerrado: boolean
+    pin_cierre?: string
+  }) => {
+    setCierreTargetDoc({
+      type: "balanza",
+      title: `${doc.codigo_balanza} — ${doc.mes_anio}`,
+      items: doc.items,
+      isClosing: !doc.cerrado,
+      currentPin: doc.pin_cierre,
+    })
+    setCierrePinInput("")
+    setCierrePinError("")
+    setCierreModalOpen(true)
+  }
+
+  const handleOpenCierreTemp = (doc: {
+    area_ambiente: string
+    mes_anio: string
+    items: ControlTemperaturaItem[]
+    cerrado: boolean
+    pin_cierre?: string
+  }) => {
+    setCierreTargetDoc({
+      type: "temperatura",
+      title: `${doc.area_ambiente} — ${doc.mes_anio}`,
+      items: doc.items,
+      isClosing: !doc.cerrado,
+      currentPin: doc.pin_cierre,
+    })
+    setCierrePinInput("")
+    setCierrePinError("")
+    setCierreModalOpen(true)
+  }
+
+  const handleConfirmCierre = async () => {
+    if (!cierreTargetDoc) return
+    const pin = cierrePinInput.trim()
+    if (!pin) {
+      setCierrePinError("Por favor ingrese una contraseña o PIN")
+      return
+    }
+
+    if (!cierreTargetDoc.isClosing && cierreTargetDoc.currentPin) {
+      if (pin !== cierreTargetDoc.currentPin.trim()) {
+        setCierrePinError("Contraseña / PIN incorrecto para desbloquear")
+        return
+      }
+    }
+
+    try {
+      if (cierreTargetDoc.type === "balanza") {
+        const items = cierreTargetDoc.items as ControlBalanzaItem[]
+        const promises = items.map((item) => {
+          const obs = parseBalanzaObs(item.observaciones)
+          const newObs: BalanzaHeaderMeta = {
+            ...obs,
+            cerrado: cierreTargetDoc.isClosing,
+            cerrado_por: cierreTargetDoc.isClosing ? user.name || "SUPERVISOR" : undefined,
+            fecha_cierre: cierreTargetDoc.isClosing ? new Date().toISOString() : undefined,
+            pin_cierre: cierreTargetDoc.isClosing ? pin : undefined,
+          }
+          return authFetch(`${API_URL}/api/control-ambiental/balanza/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...item,
+              observaciones: JSON.stringify(newObs),
+            }),
+          })
+        })
+        await Promise.all(promises)
+        toast.success(
+          cierreTargetDoc.isClosing
+            ? "Mes concluido y bloqueado exitosamente"
+            : "Formato mensual reabierto y desbloqueado"
+        )
+      } else {
+        const items = cierreTargetDoc.items as ControlTemperaturaItem[]
+        const promises = items.map((item) => {
+          const obs = parseTempObs(item.observaciones)
+          const newObs: TempHeaderMeta = {
+            ...obs,
+            cerrado: cierreTargetDoc.isClosing,
+            cerrado_por: cierreTargetDoc.isClosing ? user.name || "SUPERVISOR" : undefined,
+            fecha_cierre: cierreTargetDoc.isClosing ? new Date().toISOString() : undefined,
+            pin_cierre: cierreTargetDoc.isClosing ? pin : undefined,
+          }
+          return authFetch(`${API_URL}/api/control-ambiental/temperatura/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...item,
+              observaciones: JSON.stringify(newObs),
+            }),
+          })
+        })
+        await Promise.all(promises)
+        toast.success(
+          cierreTargetDoc.isClosing
+            ? "Mes concluido y bloqueado exitosamente"
+            : "Formato mensual reabierto y desbloqueado"
+        )
+      }
+
+      if (cierreTargetDoc.type === "balanza" && showBalanzaModal) {
+        setBalanzaDocHeader((prev) => ({
+          ...prev,
+          cerrado: cierreTargetDoc.isClosing,
+          cerrado_por: cierreTargetDoc.isClosing ? user.name || "SUPERVISOR" : undefined,
+          fecha_cierre: cierreTargetDoc.isClosing ? new Date().toISOString() : undefined,
+          pin_cierre: cierreTargetDoc.isClosing ? pin : undefined,
+        }))
+      }
+
+      setCierreModalOpen(false)
+      fetchData()
+    } catch {
+      toast.error("Error al actualizar el estado del formato")
     }
   }
 
@@ -1194,16 +1392,37 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     </TableCell>
                     <TableCell className="font-semibold text-slate-800">{doc.area_ambiente}</TableCell>
                     <TableCell className="font-mono text-slate-700 font-medium">{doc.mes_anio}</TableCell>
-                    <TableCell className="text-center font-mono font-bold text-sky-700">
+                    <TableCell className="text-center font-mono text-slate-700 font-medium">
                       {doc.items.length} filas diarias
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
-                        COMPLETO
-                      </span>
+                      {doc.cerrado ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Lock className="h-3 w-3" />
+                          CONCLUIDO
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Clock className="h-3 w-3" />
+                          EN PROCESO
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${
+                            doc.cerrado
+                              ? "text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                              : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                          }`}
+                          onClick={() => handleOpenCierreTemp(doc)}
+                          title={doc.cerrado ? "Reabrir mes (Ingresar PIN)" : "Concluir mes y bloquear"}
+                        >
+                          {doc.cerrado ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1292,6 +1511,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
         {/* Modal Form Nativo Estilo Corte Directo (Imagen 6) */}
         {renderTempModal()}
+
+        {/* Modal Cierre / PIN de Seguridad */}
+        {renderCierreModal()}
 
         <ModernConfirmDialog
           open={showUnsavedDialog}
@@ -1419,16 +1641,37 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   </TableCell>
                   <TableCell className="font-semibold text-slate-800">{doc.ubicacion}</TableCell>
                   <TableCell className="font-mono text-slate-700 font-medium">{doc.mes_anio}</TableCell>
-                  <TableCell className="text-center font-mono font-bold text-sky-700">
+                  <TableCell className="text-center font-mono text-slate-700 font-medium">
                     {doc.items.length} verificaciones
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
-                      COMPLETO
-                    </span>
+                    {doc.cerrado ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Lock className="h-3 w-3" />
+                        CONCLUIDO
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <Clock className="h-3 w-3" />
+                        EN PROCESO
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right pr-4">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${
+                          doc.cerrado
+                            ? "text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                            : "text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                        }`}
+                        onClick={() => handleOpenCierreBalanza(doc)}
+                        title={doc.cerrado ? "Reabrir mes (Ingresar PIN)" : "Concluir mes y bloquear"}
+                      >
+                        {doc.cerrado ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1517,6 +1760,9 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
       {/* Modal Form Nativo Estilo Corte Directo (Imagen 6) */}
       {renderBalanzaModal()}
+
+      {/* Modal Cierre / PIN de Seguridad */}
+      {renderCierreModal()}
 
       <ModernConfirmDialog
         open={showUnsavedDialog}
@@ -1959,9 +2205,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
                 className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
               >
-                Cancelar
+                Cerrar
               </Button>
-              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto">
+              <Button
+                type="submit"
+                className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto"
+              >
                 <Save className="h-4 w-4" />
                 Guardar Formato F-LEM-P-05.01
               </Button>
@@ -1977,7 +2226,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   // F-LEM-IN-01.02 V03 FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS
   // ─────────────────────────────────────────────────────────────────────────────
   function renderBalanzaModal() {
-    const tol = parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5
+    const isLocked = Boolean(balanzaDocHeader.cerrado)
 
     return (
       <Dialog
@@ -1992,14 +2241,20 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             {/* Header Barra Superior Nativa */}
             <div className="flex items-center justify-between gap-3 shrink-0 px-1">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
-                  <Scale className="h-5 w-5" />
+                <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
+                  isLocked
+                    ? "bg-amber-50 border-amber-200 text-amber-600"
+                    : "bg-indigo-50 border-indigo-100 text-indigo-600"
+                }`}>
+                  {isLocked ? <Lock className="h-5 w-5" /> : <Scale className="h-5 w-5" />}
                 </div>
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
                     FORMATO DE VERIFICACIÓN DIARIA DE BALANZAS — F-LEM-IN-01.02 V03
                   </h1>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Módulo nativo del CRM</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {isLocked ? "Mes Concluido — Modo Solo Lectura" : "Módulo nativo del CRM"}
+                  </p>
                 </div>
               </div>
               <button
@@ -2011,6 +2266,39 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Banner de Bloqueo / Solo Lectura si está Cerrado */}
+            {isLocked && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-2 px-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
+                  <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>
+                    <strong>FORMATO MENSUAL CONCLUIDO Y BLOQUEADO</strong> (Solo Lectura) — Concluido por <strong>{balanzaDocHeader.cerrado_por || "SUPERVISOR"}</strong>
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setCierreTargetDoc({
+                      type: "balanza",
+                      title: `${balanzaDocHeader.codigo_balanza} — ${balanzaDocHeader.mes_anio}`,
+                      items: balanzaList.filter((b) => normalizeBalanzaCode(b.codigo_balanza) === normalizeBalanzaCode(balanzaDocHeader.codigo_balanza)),
+                      isClosing: false,
+                      currentPin: balanzaDocHeader.pin_cierre,
+                    })
+                    setCierrePinInput("")
+                    setCierrePinError("")
+                    setCierreModalOpen(true)
+                  }}
+                  className="h-7 text-xs font-semibold gap-1.5 bg-white border-amber-300 text-amber-900 hover:bg-amber-100 shadow-2xs"
+                >
+                  <Unlock className="h-3.5 w-3.5 text-amber-700" />
+                  Desbloquear / Reabrir Mes
+                </Button>
+              </div>
+            )}
 
             {/* Hoja de Excel Blanca Central */}
             <div className="w-full max-w-[99vw] mx-auto overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xs flex flex-col flex-1 min-h-0">
@@ -2066,6 +2354,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         <select
                           className={`${denseInputClass} font-bold text-xs bg-white border-slate-300 cursor-pointer w-full text-ellipsis overflow-hidden`}
                           value={balanzaDocHeader.codigo_balanza}
+                          disabled={isLocked}
                           onChange={(e) => {
                             const val = e.target.value
                             const found = DEFAULT_BALANZAS.find((b) => b.codigo === val)
@@ -2097,6 +2386,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         <input
                           className={`${denseInputClass} text-center uppercase`}
                           value={balanzaDocHeader.mes_anio}
+                          disabled={isLocked}
                           onChange={(e) => {
                             setBalanzaDocHeader((p) => ({ ...p, mes_anio: e.target.value }))
                             setBalanzaIsDirty(true)
@@ -2108,6 +2398,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         <select
                           className={`${denseInputClass} font-semibold bg-white cursor-pointer`}
                           value={balanzaDocHeader.ubicacion}
+                          disabled={isLocked}
                           onChange={(e) => {
                             const val = e.target.value
                             setBalanzaDocHeader((p) => ({ ...p, ubicacion: val }))
@@ -2125,6 +2416,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         <select
                           className={`${denseInputClass} font-semibold text-xs bg-white border-slate-300 cursor-pointer w-full text-ellipsis overflow-hidden`}
                           value={balanzaDocHeader.codigos_pesas_patron}
+                          disabled={isLocked}
                           onChange={(e) => {
                             setBalanzaDocHeader((p) => ({ ...p, codigos_pesas_patron: e.target.value }))
                             setBalanzaIsDirty(true)
@@ -2150,7 +2442,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
               {/* ÚNICO CONTENEDOR CON SCROLL: Tabla Principal de Casillas Grid 15 Pesadas (Columnas Congeladas en Tablet) */}
               <div className="p-2 overflow-x-auto overflow-y-auto flex-1 min-h-0 max-w-full">
-                <table className="min-w-[2400px] w-full border-collapse border border-slate-300 text-xs">
+                <table className="min-w-[2900px] w-full border-collapse border border-slate-300 text-xs">
                   <thead className="bg-slate-100 text-xs font-semibold text-slate-800 sticky top-0 z-30">
                     <tr>
                       <th className="border-r border-b border-slate-300 py-1.5 w-28 min-w-27.5 text-center bg-slate-100 sticky left-0 z-40 shadow-[1px_0_0_0_#cbd5e1]" rowSpan={2}>FECHA</th>
@@ -2168,11 +2460,12 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                       {Array.from({ length: 15 }).map((_, i) => {
                         const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[i] || ""
                         return (
-                          <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-36 min-w-34">
+                          <th key={i} className="border-r border-b border-slate-300 py-1 px-1 text-center font-bold text-slate-700 bg-slate-100 w-44 min-w-[170px]">
                             <div className="flex flex-col gap-1 items-center justify-center">
                               <select
-                                className="h-6 w-full text-[10px] font-bold bg-white border border-slate-300 rounded px-1 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
+                                className="h-7 w-full text-xs font-bold bg-white border border-slate-300 rounded px-1.5 text-slate-800 cursor-pointer shadow-2xs focus:ring-1 focus:ring-sky-500"
                                 value={colPesadaLabel}
+                                disabled={isLocked}
                                 onChange={(e) => {
                                   const val = e.target.value
                                   setBalanzaDocHeader((p) => {
@@ -2206,6 +2499,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="date"
                               className={denseInputClass}
                               value={row.fecha}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2221,6 +2515,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="time"
                               className={denseInputClass}
                               value={row.hora}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2238,6 +2533,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               placeholder="23.0"
                               className={denseInputClass}
                               value={row.temp_c}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2254,6 +2550,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               placeholder="50.0"
                               className={denseInputClass}
                               value={row.humedad_pct}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2264,7 +2561,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             />
                           </td>
 
-                          {/* 15 Casillas Horizontales con opciones desplegables por pesada y OK / NO manual */}
+                          {/* 15 Casillas Horizontales con espacio amplio para números y decimales */}
                           {ensure15Pesadas(row.pesadas).map((p, pIdx) => {
                             const colPesadaLabel = balanzaDocHeader.columnas_pesadas?.[pIdx] || ""
                             const pesadaObj = currentBalanzaDef?.pesadas.find((pes) => pes.label === colPesadaLabel)
@@ -2272,17 +2569,18 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             const estText = p.estado || "-"
 
                             return (
-                              <td key={pIdx} className="border-t border-r border-slate-300 p-1 min-w-34 w-36 text-center bg-white">
-                                <div className="flex items-center gap-1">
-                                  <div className="relative flex-1">
+                              <td key={pIdx} className="border-t border-r border-slate-300 p-1.5 min-w-[170px] w-44 text-center bg-white">
+                                <div className="flex items-center gap-1.5 justify-center">
+                                  <div className="relative flex-1 min-w-[88px]">
                                     <input
                                       type="text"
                                       list={`datalist-p-${idx}-${pIdx}`}
                                       placeholder={pesadaObj ? `${pesadaObj.nominal}` : "Dato"}
-                                      className={`${denseInputClass} text-center font-mono font-bold text-xs h-7 w-full border-slate-300 bg-white ${
+                                      className={`${denseInputClass} text-center font-mono font-bold text-xs h-8 w-full border-slate-300 bg-white px-2 ${
                                         estText === "NO" ? "border-red-400 bg-red-50 text-red-800" : ""
                                       }`}
                                       value={valText}
+                                      disabled={isLocked}
                                       onChange={(e) => {
                                         const val = e.target.value
                                         setBalanzaDocRows((rows) =>
@@ -2314,7 +2612,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                     )}
                                   </div>
                                   <select
-                                    className={`${denseInputClass} text-center font-extrabold text-[11px] h-7 w-14 cursor-pointer rounded ${
+                                    className={`${denseInputClass} text-center font-extrabold text-[11px] h-8 w-14 shrink-0 cursor-pointer rounded ${
                                       estText === "NO"
                                         ? "bg-red-100 text-red-800 border-red-300"
                                         : estText === "OK"
@@ -2322,6 +2620,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                         : "bg-slate-50 text-slate-600 border-slate-300"
                                     }`}
                                     value={estText}
+                                    disabled={isLocked}
                                     onChange={(e) => {
                                       const val = e.target.value
                                       setBalanzaDocRows((rows) =>
@@ -2352,6 +2651,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             <select
                               className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                               value={row.verificado_por}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2371,6 +2671,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             <select
                               className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer`}
                               value={row.revisado_por}
+                              disabled={isLocked}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setBalanzaDocRows((rows) =>
@@ -2391,6 +2692,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               type="button"
                               variant="ghost"
                               size="sm"
+                              disabled={isLocked}
                               onClick={() => {
                                 if (balanzaDocRows.length === 1) {
                                   toast.error("El formato debe tener al menos una fila")
@@ -2408,7 +2710,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setBalanzaDocRows((rows) => rows.filter((_, i) => i !== idx))
                                 setBalanzaIsDirty(true)
                               }}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
                               title="Eliminar fila"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -2427,6 +2729,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={isLocked}
                   onClick={() => {
                     const last = balanzaDocRows[balanzaDocRows.length - 1]
                     setBalanzaDocRows((rows) => [
@@ -2443,7 +2746,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     ])
                     setBalanzaIsDirty(true)
                   }}
-                  className="gap-2 h-7 text-xs font-semibold bg-white border-slate-300"
+                  className="gap-2 h-7 text-xs font-semibold bg-white border-slate-300 disabled:opacity-40"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-600" />
                   Agregar Fila de Verificación Diaria
@@ -2464,6 +2767,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                   <button
                     key={String(val)}
                     type="button"
+                    disabled={isLocked}
                     onClick={() => {
                       setBalanzaDocHeader((p) => ({ ...p, limpieza_nivelacion: val }))
                       setBalanzaIsDirty(true)
@@ -2474,7 +2778,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                           ? "bg-sky-600 border-sky-600 text-white"
                           : "bg-red-600 border-red-600 text-white"
                         : "border-slate-300 text-slate-600 bg-white hover:bg-slate-50"
-                    }`}
+                    } ${isLocked ? "cursor-not-allowed opacity-60" : ""}`}
                   >
                     {val ? "CONFORME (OK)" : "NO CONFORME"}
                   </button>
@@ -2499,14 +2803,137 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                 onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
                 className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
               >
-                Cancelar
+                Cerrar
               </Button>
-              <Button type="submit" className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto">
-                <Save className="h-4 w-4" />
-                Guardar Formato F-LEM-IN-01.02
+              <Button
+                type="submit"
+                disabled={isLocked}
+                className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
+                  isLocked
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-sky-600 hover:bg-sky-700 text-white"
+                }`}
+              >
+                {isLocked ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Formato Concluido (Solo Lectura)
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Guardar Formato F-LEM-IN-01.02
+                  </>
+                )}
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MODAL DE CIERRE / DESBLOQUEO MENSUAL CON PIN DE SEGURIDAD
+  // ─────────────────────────────────────────────────────────────────────────────
+  function renderCierreModal() {
+    return (
+      <Dialog open={cierreModalOpen} onOpenChange={setCierreModalOpen}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-xl shadow-2xl border border-slate-200">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                cierreTargetDoc?.isClosing ? "bg-amber-100 text-amber-700" : "bg-sky-100 text-sky-700"
+              }`}>
+                {cierreTargetDoc?.isClosing ? <Lock className="h-6 w-6" /> : <Unlock className="h-6 w-6" />}
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  {cierreTargetDoc?.isClosing ? "Concluir y Bloquear Mes" : "Reabrir Formato Mensual"}
+                </h2>
+                <p className="text-xs text-slate-500 font-mono">
+                  {cierreTargetDoc?.title}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200 leading-relaxed">
+              {cierreTargetDoc?.isClosing ? (
+                <>
+                  Al concluir el mes, el formato quedará en <strong>Modo Solo Lectura</strong> para proteger las lecturas de modificaciones no autorizadas. Ingrese una <strong>contraseña o PIN de seguridad</strong> para bloquearlo.
+                </>
+              ) : (
+                <>
+                  Este formato está concluido. Ingrese el <strong>PIN / Contraseña de seguridad</strong> configurado al concluir el mes para desbloquearlo y habilitar su edición.
+                </>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                {cierreTargetDoc?.isClosing ? "Establecer PIN / Contraseña de Cierre:" : "Ingresar PIN / Contraseña de Desbloqueo:"}
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  type="password"
+                  autoFocus
+                  placeholder="Ej. 1234 o clave de laboratorio"
+                  value={cierrePinInput}
+                  onChange={(e) => {
+                    setCierrePinInput(e.target.value)
+                    setCierrePinError("")
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleConfirmCierre()
+                    }
+                  }}
+                  className="pl-9 text-sm font-mono"
+                />
+              </div>
+              {cierrePinError && (
+                <p className="text-xs font-semibold text-red-600 animate-in fade-in">
+                  {cierrePinError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCierreModalOpen(false)}
+                className="text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleConfirmCierre}
+                className={`text-xs font-semibold gap-1.5 ${
+                  cierreTargetDoc?.isClosing
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : "bg-sky-600 hover:bg-sky-700 text-white"
+                }`}
+              >
+                {cierreTargetDoc?.isClosing ? (
+                  <>
+                    <Lock className="h-3.5 w-3.5" />
+                    Concluir y Bloquear
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-3.5 w-3.5" />
+                    Desbloquear Formato
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     )
