@@ -57,6 +57,22 @@ interface OTFormProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
+function toIsoDate(val?: string | null): string {
+  if (!val) return ""
+  const s = val.trim().split("T")[0].split(" ")[0].replace(/\//g, "-")
+  const parts = s.split("-")
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`
+    } else if (parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+    } else if (parts[2].length === 2) {
+      return `20${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+    }
+  }
+  return s
+}
+
 export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFormProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -84,24 +100,39 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
   // Tabla dinamica de ítems
   const [items, setItems] = useState<OTItem[]>(
     initialData?.items && initialData.items.length > 0
-      ? initialData.items
+      ? initialData.items.map((it, idx) => ({
+          item: idx + 1,
+          codigo_muestra: it.codigo_muestra || "",
+          descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+          cantidad: 1,
+          elemento: it.elemento || "-",
+          fecha_rotura: toIsoDate(it.fecha_rotura),
+          densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
+          edad: it.edad ?? "",
+          fc_kg_cm2: it.fc_kg_cm2 ?? "",
+        }))
       : [
           {
             item: 1,
             codigo_muestra: "",
-            descripcion: "",
+            descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
             cantidad: 1,
+            elemento: "-",
+            fecha_rotura: "",
+            densidad: "NO",
+            edad: "",
+            fc_kg_cm2: "",
           },
         ]
   )
 
-  // Fechas y Control de Ejecución
-  const [fechaRecepcion, setFechaRecepcion] = useState(initialData?.fecha_recepcion || "")
+  // Fechas y Control de Ejecución (formato ISO para input[type=date])
+  const [fechaRecepcion, setFechaRecepcion] = useState(toIsoDate(initialData?.fecha_recepcion))
   const [plazoEntregaDias, setPlazoEntregaDias] = useState(initialData?.plazo_entrega_dias || "")
-  const [inicioProgramado, setInicioProgramado] = useState(initialData?.inicio_programado || "")
-  const [finProgramado, setFinProgramado] = useState(initialData?.fin_programado || "")
-  const [inicioReal, setInicioReal] = useState(initialData?.inicio_real || "")
-  const [finReal, setFinReal] = useState(initialData?.fin_real || "")
+  const [inicioProgramado, setInicioProgramado] = useState(toIsoDate(initialData?.inicio_programado))
+  const [finProgramado, setFinProgramado] = useState(toIsoDate(initialData?.fin_programado))
+  const [inicioReal, setInicioReal] = useState(toIsoDate(initialData?.inicio_real))
+  const [finReal, setFinReal] = useState(toIsoDate(initialData?.fin_real))
   const [variacionInicio, setVariacionInicio] = useState(initialData?.variacion_inicio || "")
   const [variacionFin, setVariacionFin] = useState(initialData?.variacion_fin || "")
   const [duracionReal, setDuracionReal] = useState(initialData?.duracion_real_ejecucion_dias || "")
@@ -135,9 +166,9 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
       // Rellenar campos del encabezado y fechas programadas
       setCliente(data.cliente || "")
       setProyecto(data.proyecto || "")
-      if (data.fecha_recepcion) setFechaRecepcion(data.fecha_recepcion)
-      if (data.inicio_programado) setInicioProgramado(data.inicio_programado)
-      if (data.fin_programado) setFinProgramado(data.fin_programado)
+      if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
+      if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
+      if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
 
       // Rellenar ítems (probetas) con trazabilidad completa
       if (Array.isArray(data.items) && data.items.length > 0) {
@@ -147,8 +178,8 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
           descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
           cantidad: 1,
           elemento: it.elemento || "-",
-          fecha_rotura: it.fecha_rotura || "",
-          densidad: it.densidad || "-",
+          fecha_rotura: toIsoDate(it.fecha_rotura),
+          densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
           edad: it.edad ?? "",
           fc_kg_cm2: it.fc_kg_cm2 ?? "",
         })))
