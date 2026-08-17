@@ -86,8 +86,20 @@ export function OTConcretoModule() {
     setIsFormOpen(true)
   }
 
-  const handleEdit = (ot: OTData) => {
-    setEditingOt(ot)
+  const handleEdit = async (ot: OTData) => {
+    // Forzar recarga del OT completo desde la API para asegurar
+    // que todos los campos (cliente, proyecto, items) estén populados
+    try {
+      const res = await authFetch(`${API_URL}/api/ot/${ot.id}`)
+      if (res.ok) {
+        const fullOt = await res.json()
+        setEditingOt(fullOt)
+      } else {
+        setEditingOt(ot)
+      }
+    } catch {
+      setEditingOt(ot)
+    }
     setIsFormOpen(true)
   }
 
@@ -132,7 +144,9 @@ export function OTConcretoModule() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `OT-CONCRETO-${(ot.numero_ot || "001").replace("/", "-")}.xlsx`
+      // Nombre: OT-<numero_ot>.xlsx (ej. OT-1981.xlsx)
+      const safeNumero = (ot.numero_ot || String(ot.id || "001")).replace(/[\/\\]/g, "-")
+      a.download = `OT-${safeNumero}.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)

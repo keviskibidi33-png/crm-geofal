@@ -533,21 +533,29 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">OT APERTURADA POR</Label>
-                <Input
-                  placeholder="Nombre de quien apertura"
+                <select
                   value={otAperturadaPor}
                   onChange={(e) => setOtAperturadaPor(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">— Seleccionar —</option>
+                  <option value="BETZABETH ZARABIA">BETZABETH ZARABIA</option>
+                  <option value="DEIVI INFANSON">DEIVI INFANSON</option>
+                  <option value="IVAN CACHON">IVAN CACHON</option>
+                </select>
               </div>
               <div>
                 <Label className="text-xs font-semibold text-slate-700">OT DESIGNADA A (Técnicos)</Label>
-                <Input
-                  placeholder="Nombre del técnico responsable"
+                <select
                   value={otDesignadaA}
                   onChange={(e) => setOtDesignadaA(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">— Seleccionar —</option>
+                  <option value="BETZABETH ZARABIA">BETZABETH ZARABIA</option>
+                  <option value="DEIVI INFANSON">DEIVI INFANSON</option>
+                  <option value="IVAN CACHON">IVAN CACHON</option>
+                </select>
               </div>
               <div>
                 <Label className="text-xs font-semibold text-slate-700">ESTADO</Label>
@@ -558,6 +566,7 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                 >
                   <option value="PENDIENTE">PENDIENTE</option>
                   <option value="EN PROCESO">EN PROCESO</option>
+                  <option value="EMITIDO">EMITIDO</option>
                   <option value="COMPLETADO">COMPLETADO</option>
                 </select>
               </div>
