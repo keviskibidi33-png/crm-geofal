@@ -1208,10 +1208,10 @@ const DataRow = memo(function DataRow({
             type="button"
             onClick={() => void onDownloadOT(item.recepcion_id, item.numero_ot)}
             className="inline-flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-300 rounded-md transition-all cursor-pointer shadow-2xs mx-auto active:scale-95"
-            title={`OT ${item.numero_ot || ""} ya descargada. Haz clic para volver a descargar.`}
+            title={`OT ${item.numero_ot || ""} emitida. Haz clic para volver a descargar.`}
           >
             <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-            <span>DESCARGADO</span>
+            <span>EMITIDO</span>
           </button>
         ) : (
           <button

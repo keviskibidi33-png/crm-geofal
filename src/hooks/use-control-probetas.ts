@@ -6,7 +6,7 @@ import { authFetch } from "@/lib/api-auth"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
-export type ElementoValue = "-" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA" | "CUBO" | "VIGA"
+export type ElementoValue = "-" | "4 in x 8 in" | "6 in x 12 in" | "VIGA" | "CUBO" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA"
 export type StatusValue = "FALTA" | "ENTREGADO" | "INFORME LISTO"
 export type StatusEnsayoValue = StatusValue
 
@@ -54,7 +54,7 @@ export interface ProbetasKpis {
   vencido: number
 }
 
-export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
+export const ELEMENTOS: ElementoValue[] = ["-", "4 in x 8 in", "6 in x 12 in", "VIGA", "CUBO"]
 export const POZAS = ["-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "ANULADO", "ROTAS"] as const
 export const STATUS_OPTIONS: StatusValue[] = ["FALTA", "ENTREGADO", "INFORME LISTO"]
 export const STATUS_ENSAYO = STATUS_OPTIONS

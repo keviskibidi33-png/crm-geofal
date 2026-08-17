@@ -54,6 +54,7 @@ export const COMERCIAL_MODULES: SidebarModuleItem[] = [
 // ── 2. Concretos ──────────────────────────────────────────────────
 export const CONCRETOS_MODULES: SidebarModuleItem[] = [
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
+  { id: "ot_concreto", label: "OT Concreto", icon: FileText, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
   { id: "compresion", label: "F. Compresión", icon: Beaker, adminOnly: true },
@@ -65,7 +66,7 @@ export const LAB_LIMA_MAIN_MODULES: SidebarModuleItem[] = [
   { id: "recepcion_lima", label: "Recepción Muestras", icon: Boxes, adminOnly: true },
   { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
-  { id: "ot", label: "Orden de Trabajo (OT)", icon: FileText },
+  { id: "ot", label: "OT Muestras", icon: FileText },
   { id: "control_ambiental", label: "Temperatura / Humedad", icon: Thermometer },
   { id: "control_ambiental_balanzas", label: "Balanzas", icon: Scale },
 ]

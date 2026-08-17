@@ -55,6 +55,7 @@ const ControlProbetasModule = dashboardDynamic(async () => (await import("@/comp
 const LaboratorioModule = dashboardDynamic(async () => (await import("@/components/dashboard/laboratorio-module")).LaboratorioModule)
 const RecepcionModule = dashboardDynamic(async () => (await import("@/components/dashboard/recepcion-module")).RecepcionModule)
 const OTModule = dashboardDynamic(async () => (await import("@/components/dashboard/ot-module")).OTModule)
+const OTConcretoModule = dashboardDynamic(async () => (await import("@/components/dashboard/ot-concreto-module")).OTConcretoModule)
 const ComercialModule = dashboardDynamic(async () => (await import("@/components/dashboard/comercial-module")).ComercialModule)
 const AdministracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/administracion-module")).AdministracionModule)
 const TracingModule = dashboardDynamic(async () => (await import("@/components/dashboard/tracing-module")).TracingModule)
@@ -581,6 +582,8 @@ export default function DashboardPage() {
         return <AngularidadModule />
       case "ot":
         return <OTModule />
+      case "ot_concreto":
+        return <OTConcretoModule />
       case "estadistica_laboratorio":
         return <LaboratorioStatsModule user={dashboardUser} />
       case "estadistica_comercial":

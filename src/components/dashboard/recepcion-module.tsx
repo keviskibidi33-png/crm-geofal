@@ -395,7 +395,11 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                         <TableRow className="bg-muted/50 text-xs font-bold uppercase tracking-wider">
                             <TableHead className="w-[110px]">Nº Recepción</TableHead>
                             <TableHead className="w-[110px]">Nº OT</TableHead>
-                            <TableHead className="w-[140px]">Tipo Formato</TableHead>
+                            {scope === "concreto" ? (
+                                <TableHead className="w-[115px] text-center">Status</TableHead>
+                            ) : (
+                                <TableHead className="w-[140px]">Tipo Formato</TableHead>
+                            )}
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
                             <TableHead className="w-[110px]">F. Recepción</TableHead>
@@ -429,9 +433,44 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                     <TableCell className="font-bold font-mono">
                                         {item.numero_ot || "-"}
                                     </TableCell>
-                                    <TableCell>
-                                        {getTipoBadge(item.tipo_recepcion)}
-                                    </TableCell>
+                                    {scope === "concreto" ? (
+                                        <TableCell className="text-center">
+                                            {(() => {
+                                                const missing: string[] = []
+                                                if (!item.numero_recepcion || item.numero_recepcion.trim() === "") missing.push("Nº Recepción")
+                                                if (!item.numero_ot || item.numero_ot.trim() === "") missing.push("Nº OT")
+                                                if (!item.cliente || item.cliente.trim() === "") missing.push("Cliente")
+                                                if (!item.proyecto || item.proyecto.trim() === "") missing.push("Proyecto")
+                                                if (!item.fecha_recepcion) missing.push("Fecha Recepción")
+                                                const totalMuestras = item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)
+                                                if (totalMuestras === 0) missing.push("Probetas (0 registradas)")
+
+                                                const isComplete = missing.length === 0
+
+                                                return isComplete ? (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-help transition-transform hover:scale-105"
+                                                        title="Flujo Recepción y OT 100% completo (Todos los datos requeridos registrados)"
+                                                    >
+                                                        <Check className="h-3 w-3 text-emerald-600" />
+                                                        <span>COMPLETO</span>
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs cursor-help transition-transform hover:scale-105"
+                                                        title={`Flujo Incompleto. Falta: ${missing.join(", ")}`}
+                                                    >
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                        <span>INCOMPLETO</span>
+                                                    </span>
+                                                )
+                                            })()}
+                                        </TableCell>
+                                    ) : (
+                                        <TableCell>
+                                            {getTipoBadge(item.tipo_recepcion)}
+                                        </TableCell>
+                                    )}
                                     <TableCell className="font-medium max-w-[200px] truncate" title={item.cliente}>
                                         {item.cliente || "-"}
                                     </TableCell>
