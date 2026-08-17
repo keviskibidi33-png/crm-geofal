@@ -52,10 +52,47 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
 
   useEffect(() => {
     if (initialPrefillRecepcion) {
-      setTargetPrefillRecepcion(initialPrefillRecepcion)
-      setEditingOt(null)
-      setIsFormOpen(true)
-      onClearPrefill?.()
+      const checkAndOpen = async () => {
+        setLoading(true)
+        try {
+          const res = await authFetch(`${API_URL}/api/ot?tipo=CONCRETO&search=${encodeURIComponent(initialPrefillRecepcion.trim())}`)
+          if (res.ok) {
+            const json = await res.json()
+            const items: OTData[] = json.items || []
+            const cleanTarget = initialPrefillRecepcion.trim().toLowerCase()
+            const existing = items.find(
+              (o) =>
+                (o.numero_recepcion && o.numero_recepcion.trim().toLowerCase() === cleanTarget) ||
+                (o.numero_ot && o.numero_ot.trim().toLowerCase() === cleanTarget)
+            )
+
+            if (existing && existing.id) {
+              const detailRes = await authFetch(`${API_URL}/api/ot/${existing.id}`)
+              if (detailRes.ok) {
+                const fullOt = await detailRes.json()
+                setEditingOt(fullOt)
+                setTargetPrefillRecepcion(null)
+                setIsFormOpen(true)
+                toast.info(`Abriendo Orden de Trabajo existente: ${fullOt.numero_ot}`)
+                onClearPrefill?.()
+                return
+              }
+            }
+          }
+        } catch {
+          // fallback a nueva OT
+        } finally {
+          setLoading(false)
+        }
+
+        // Si no existe, abrir en modo Nueva OT con prefill automático
+        setEditingOt(null)
+        setTargetPrefillRecepcion(initialPrefillRecepcion)
+        setIsFormOpen(true)
+        onClearPrefill?.()
+      }
+
+      checkAndOpen()
     }
   }, [initialPrefillRecepcion])
 
