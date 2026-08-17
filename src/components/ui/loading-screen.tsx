@@ -36,6 +36,9 @@ export function LoadingScreen({ message }: { message?: string }) {
       <img
         src="/logo-geofal.svg"
         alt="Geofal CRM"
+        width={144}
+        height={144}
+        fetchPriority="high"
         className="h-36 w-auto animate-logo-breathe"
       />
       {message && (

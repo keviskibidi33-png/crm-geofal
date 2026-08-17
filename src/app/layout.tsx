@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 
 import "./globals.css"
 
@@ -7,6 +8,12 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/components/providers"
 import { SecurityShield } from "@/components/security-shield"
 
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: "Geofal CRM - Sistema de Gestión Inteligente",
@@ -40,11 +47,10 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/geofal.svg" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+        {/* Preload critical assets to reduce LCP */}
+        <link rel="preload" href="/logo-geofal.svg" as="image" type="image/svg+xml" />
       </head>
-      <body className={`font-sans antialiased h-screen overflow-hidden`} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased h-screen overflow-hidden`} suppressHydrationWarning>
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <SecurityShield />

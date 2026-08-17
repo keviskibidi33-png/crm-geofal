@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Bell, Search, Sun, Moon, FileText, Loader2, CheckCircle2, UserRoundSearch, Volume2, VolumeX } from "lucide-react"
+import { Bell, Search, Sun, Moon, FileText, Loader2, CheckCircle2, UserRoundSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "@/components/theme-provider"
@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { isAdminDashboardRole, isComercialDashboardRole, isLaboratoryNotificationsRole } from "@/lib/control-module-access"
 import { LabNotificationDetailDialog } from "@/components/dashboard/lab-notification-detail-dialog"
 import { toast } from "sonner"
-import { isSoundNotificationsEnabled, setSoundNotificationsEnabled } from "@/components/dashboard/chat/types"
+
 
 interface HeaderProps {
   user: User
@@ -73,7 +73,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
   const notificationsInitializedRef = useRef(false)
   const bellSoundRef = useRef<AudioContext | null>(null)
   const [unreadChatCount, setUnreadChatCount] = useState(0)
-  const [soundEnabled, setSoundEnabled] = useState(() => isSoundNotificationsEnabled())
   const isAdmin = isAdminDashboardRole(user.role)
   const isCommercialNotificationsRole = isComercialDashboardRole(user.role)
   const isLaboratoryNotifications = isLaboratoryNotificationsRole(user.role)
@@ -86,33 +85,14 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
         setUnreadChatCount(customEvent.detail.count)
       }
     }
-    const handleSoundSetting = (e: Event) => {
-      const customEvent = e as CustomEvent
-      if (customEvent.detail && typeof customEvent.detail.enabled === "boolean") {
-        setSoundEnabled(customEvent.detail.enabled)
-      } else {
-        setSoundEnabled(isSoundNotificationsEnabled())
-      }
-    }
 
     window.addEventListener("crm_chat_unread_count", handleUnreadCount)
-    window.addEventListener("crm_sound_setting_changed", handleSoundSetting)
     return () => {
       window.removeEventListener("crm_chat_unread_count", handleUnreadCount)
-      window.removeEventListener("crm_sound_setting_changed", handleSoundSetting)
     }
   }, [])
 
-  const toggleSoundSetting = () => {
-    const nextState = !soundEnabled
-    setSoundEnabled(nextState)
-    setSoundNotificationsEnabled(nextState)
-    if (nextState) {
-      toast.success("Notificaciones sonoras activadas")
-    } else {
-      toast.info("Notificaciones sonoras silenciadas")
-    }
-  }
+
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -120,7 +100,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
 
   const playBellChime = useCallback(async () => {
     if (typeof window === "undefined") return
-    if (!isSoundNotificationsEnabled()) return
 
     const AudioCtor = window.AudioContext || (window as any).webkitAudioContext
     if (!AudioCtor) return
@@ -418,16 +397,6 @@ export function DashboardHeader({ user, activeModule, setActiveModule, onOpenCom
 
       {/* Right Section */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSoundSetting}
-          title={soundEnabled ? "Silenciar notificaciones sonoras" : "Activar notificaciones sonoras"}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          {soundEnabled ? <Volume2 className="h-5 w-5 text-sky-500" /> : <VolumeX className="h-5 w-5 text-muted-foreground/60" />}
-          <span className="sr-only">{soundEnabled ? "Silenciar notificaciones sonoras" : "Activar notificaciones sonoras"}</span>
-        </Button>
 
         <Button
           variant="ghost"
