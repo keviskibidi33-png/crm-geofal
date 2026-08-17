@@ -656,7 +656,7 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
                 >
                   <option value="">— Seleccionar —</option>
                   <option value="DEIVI INFANSON">DEIVI INFANSON</option>
-                  <option value="IVAN CACHON">IVAN CACHON</option>
+                  <option value="IVAN CHACON">IVAN CHACON</option>
                 </select>
               </div>
             </div>
