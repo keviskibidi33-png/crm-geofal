@@ -7,8 +7,8 @@ import { authFetch } from "@/lib/api-auth"
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
 export type ElementoValue = "-" | "PEQUEÑA" | "GRANDE" | "DIAMANTINA" | "CUBO" | "VIGA"
-export type StatusEnsayoValue = "-" | "ENSAYADO" | "PENDIENTE" | "FALTA" | "ANULADO"
-export type StatusEntregaValue = "-" | "ENTREGADO" | "INFORME" | "ANULADAS"
+export type StatusValue = "FALTA" | "ENTREGADO" | "INFORME LISTO"
+export type StatusEnsayoValue = StatusValue
 
 export interface ProbetaRow {
   muestra_id: number
@@ -30,8 +30,8 @@ export interface ProbetaRow {
   densidad?: string
   requiere_densidad?: boolean
   fc_kg_cm2: number
+  status?: string
   status_ensayo?: string
-  status_entrega?: string
   fecha_entrega?: string
   estado_probeta: string
   fecha_moldeo?: string
@@ -55,8 +55,8 @@ export interface ProbetasKpis {
 
 export const ELEMENTOS: ElementoValue[] = ["-", "PEQUEÑA", "GRANDE", "DIAMANTINA", "CUBO", "VIGA"]
 export const POZAS = ["-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "ANULADO", "ROTAS"] as const
-export const STATUS_ENSAYO: StatusEnsayoValue[] = ["-", "FALTA", "ENSAYADO", "PENDIENTE", "ANULADO"]
-export const STATUS_ENTREGA = ["-", "ENTREGADO", "INFORME LISTO"] as const
+export const STATUS_OPTIONS: StatusValue[] = ["FALTA", "ENTREGADO", "INFORME LISTO"]
+export const STATUS_ENSAYO = STATUS_OPTIONS
 
 export function formatDateDisplay(v?: string | null): string {
   if (!v || v === "-") return ""
@@ -366,10 +366,30 @@ export function useControlProbetas() {
     }
   }, [debouncedSearch, fechaInicio, fechaFin, estadoProbeta])
 
+  const downloadOTExcel = useCallback(async (recepcionId: number, numeroOt?: string) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/control-probetas/ot-excel/${recepcionId}`)
+      if (!res.ok) throw new Error("Error al descargar OT")
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const safeName = (numeroOt || `OT-${recepcionId}`).replace(/[\/\\:]/g, "-")
+      a.download = `OT-${safeName}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success(`OT ${numeroOt || ""} descargada con éxito`)
+    } catch (e: any) {
+      toast.error(e?.message || "Error al descargar la Orden de Trabajo")
+    }
+  }, [])
+
   return {
     items, recentItems, loading, kpis, total, totalPages, page, pageSize, search,
     sortColumn, sortDirection, fechaInicio, fechaFin, estadoProbeta,
     setPage, setPageSize, setSearch, setSort, setFechaInicio, setFechaFin, setEstadoProbeta,
-    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion, exportToExcel,
+    fetchItems, fetchKpis, fetchRecentItems, updateRow, createRow, searchRecepciones, fetchByRecepcion, exportToExcel, downloadOTExcel,
   }
 }

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   useControlProbetas, ProbetaRow, Receipt,
-  ELEMENTOS, POZAS, STATUS_ENTREGA, formatDateDisplay, parseDateInput,
+  ELEMENTOS, POZAS, STATUS_OPTIONS, formatDateDisplay, parseDateInput,
 } from "@/hooks/use-control-probetas"
 type DensidadValue = "SI" | "NO"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
@@ -272,7 +272,7 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
           poza: probeta.poza || "-",
           densidad: probeta.densidad || "NO",
           fc_kg_cm2: probeta.fc_kg_cm2,
-          status_entrega: probeta.status_entrega || "-",
+          status: probeta.status || "FALTA",
         })
       }
       toast.success("Importación completada correctamente")
@@ -308,9 +308,13 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
       return prev.map((row) => {
         if (row.muestra_id !== id) return row
         const nextRow = { ...row, ...payload }
-        const statusEntrega = String(nextRow.status_entrega || "-").toUpperCase()
-        if (statusEntrega === "ENTREGADO" || statusEntrega === "INFORME") {
-          nextRow.fecha_entrega = new Date().toISOString().slice(0, 10)
+        const st = String(nextRow.status || "").toUpperCase()
+        if (st === "ENTREGADO" || st === "INFORME LISTO") {
+          const today = new Date()
+          const yyyy = today.getFullYear()
+          const mm = String(today.getMonth() + 1).padStart(2, '0')
+          const dd = String(today.getDate()).padStart(2, '0')
+          nextRow.fecha_entrega = `${yyyy}/${mm}/${dd}`
         }
         return nextRow
       })
@@ -354,6 +358,7 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
             <DataTable
               items={store.items} loading={store.loading}
               onUpdateRow={store.updateRow}
+              onDownloadOT={store.downloadOTExcel}
               pageSize={store.pageSize} onPageSizeChange={(v) => { store.setPageSize(v); store.setPage(1) }}
               total={store.total} page={store.page} totalPages={store.totalPages}
               onPrev={() => store.setPage(p => Math.max(1, p - 1))}
@@ -783,6 +788,7 @@ function SortTh({ label, column, sortColumn, sortDirection, onSort, className = 
 interface DataTableProps {
   items: ProbetaRow[]; loading: boolean
   onUpdateRow: (id: number, payload: Record<string, unknown>) => Promise<void>
+  onDownloadOT: (recepcionId: number, numeroOt?: string) => Promise<void>
   pageSize: number
   onPageSizeChange: (v: number) => void
   total: number
@@ -810,7 +816,7 @@ interface DataTableProps {
 }
 
 function DataTable({
-  items, loading, onUpdateRow,
+  items, loading, onUpdateRow, onDownloadOT,
   pageSize, onPageSizeChange, total, page, totalPages, onPrev, onNext,
   sortColumn, sortDirection, onSort,
   selectedIds, onToggleSelect, onToggleSelectAll,
@@ -826,21 +832,20 @@ function DataTable({
 
   const allDisplayItems = pendingImport || items
 
-  // const totalProbetas = items.length
   const uniqueRecepciones = useMemo(() => {
     return new Set(items.map(x => x.numero_recepcion).filter(Boolean)).size
   }, [items])
   const ensayadas = useMemo(() => {
-    return items.filter(x => (x.status_ensayo || "").toString().toUpperCase() === "ENSAYADO").length
-  }, [items])
-  const pendientes = useMemo(() => {
     return items.filter(x => {
-      const status = (x.status_ensayo || "").toString().toUpperCase()
-      return status === "PENDIENTE" || status === "FALTA" || !status
+      const st = (x.status || x.status_ensayo || "").toString().toUpperCase()
+      return st === "ENTREGADO" || st === "INFORME LISTO" || st === "ENSAYADO"
     }).length
   }, [items])
   const faltantes = useMemo(() => {
-    return items.filter(x => (x.status_ensayo || "").toString().toUpperCase() === "FALTA").length
+    return items.filter(x => {
+      const st = (x.status || x.status_ensayo || "").toString().toUpperCase()
+      return st === "FALTA" || st === "PENDIENTE" || !st
+    }).length
   }, [items])
 
   useEffect(() => {
@@ -956,16 +961,16 @@ function DataTable({
               <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-10" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
               <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
-              <SortTh label="STATUS ENSAYO" column="status_ensayo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-21" />
-              <SortTh label="STATUS ENTREGA" column="status_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="STATUS" column="status" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-24" />
               <SortTh label="F. ENTREGA" column="fecha_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <th className={`${TH} w-20 text-zinc-950 font-black`}>OT DESCARGA</th>
               <SortTh label="ESTADO" column="estado_probeta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading && displayItems.length === 0 ? (
               <tr>
-                  <td colSpan={15} className="py-20 text-center border-r-0">
+                <td colSpan={15} className="py-20 text-center border-r-0">
                   <Loader2 className="mx-auto mb-3 h-8 w-8 text-blue-600 animate-spin" />
                   <p className="text-sm text-slate-500 font-medium">Cargando probetas...</p>
                 </td>
@@ -985,6 +990,7 @@ function DataTable({
                   item={it}
                   rowNumber={rowOffset + idx + 1}
                   onUpdate={pendingImport ? async (id, p) => { onPreviewUpdate(id, p) } : onUpdateRow}
+                  onDownloadOT={onDownloadOT}
                   isPreview={!!pendingImport}
                   bgClass={rowBackgrounds[it.muestra_id]}
                   isSelected={selectedIds.includes(it.muestra_id)}
@@ -1017,9 +1023,7 @@ function DataTable({
         <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold text-slate-500 bg-slate-50 px-5 py-1.5 rounded-xl border border-slate-200">
           <span>Recepciones: <strong className="text-slate-800">{uniqueRecepciones}</strong></span>
           <span className="text-slate-300">|</span>
-          <span>Ensayadas: <strong className="text-emerald-600">{ensayadas}</strong></span>
-          <span className="text-slate-300">|</span>
-          <span>Pendientes: <strong className="text-amber-600">{pendientes}</strong></span>
+          <span>Ensayadas / Entregadas: <strong className="text-emerald-600">{ensayadas}</strong></span>
           <span className="text-slate-300">|</span>
           <span>Faltantes: <strong className="text-rose-600">{faltantes}</strong></span>
         </div>
@@ -1040,23 +1044,22 @@ function DataTable({
   )
 }
 
-
-
-/* ═══════════════════════════ DATA ROW ═══════════════════════════ */
-
 /* ═══════════════════════════ DATA ROW ═══════════════════════════ */
 
 interface DataRowProps {
   item: ProbetaRow
   rowNumber: number
   onUpdate: (id: number, payload: Record<string, unknown>) => Promise<void>
+  onDownloadOT: (recepcionId: number, numeroOt?: string) => Promise<void>
   isPreview?: boolean
   bgClass?: string
   isSelected: boolean
   onToggleSelect: (id: number) => void
 }
 
-const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bgClass, isSelected, onToggleSelect }: DataRowProps) {
+const DataRow = memo(function DataRow({
+  item, rowNumber, onUpdate, onDownloadOT, isPreview, bgClass, isSelected, onToggleSelect
+}: DataRowProps) {
   const statusColors: Record<string, string> = {
     ensayado: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pendiente: "bg-amber-50 text-amber-700 border-amber-200",
@@ -1072,15 +1075,11 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
 
   const currentDensidad = (item.densidad === "SI" ? "SI" : "NO") as DensidadValue
 
-  const statusEnsayoRaw = (item.status_ensayo || "").toString().trim().toUpperCase()
-  const statusEntregaRaw = (item.status_entrega || "").toString().trim().toUpperCase()
-
-  let currentStatusSelect = "PENDIENTE"
-  if (statusEnsayoRaw === "ANULADO" || statusEntregaRaw === "ANULADAS" || statusEntregaRaw === "ANULADO") {
-    currentStatusSelect = "ANULADO"
-  } else if (statusEntregaRaw === "ENTREGADO" || statusEntregaRaw === "INFORME LISTO" || statusEntregaRaw === "INFORME" || statusEntregaRaw === "INFORME ENVIADO") {
-    currentStatusSelect = "ENTREGADO"
-  } else if (statusEnsayoRaw === "FALTA" || item.estado_probeta === "vencido") {
+  const rawSt = (item.status || item.status_ensayo || "").toString().trim().toUpperCase()
+  let currentStatusSelect = "FALTA"
+  if (rawSt === "ENTREGADO" || rawSt === "INFORME LISTO") {
+    currentStatusSelect = rawSt
+  } else if (rawSt === "FALTA" || rawSt === "PENDIENTE") {
     currentStatusSelect = "FALTA"
   }
 
@@ -1154,55 +1153,38 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           placeholder="Poza"
         />
       </td>
-      {/* STATUS ENSAYO / CONTROL UNIFICADO */}
+      {/* STATUS UNIFICADO (FALTA, ENTREGADO, INFORME LISTO) */}
       <td className={TD}>
         <Select
           value={currentStatusSelect}
           onValueChange={(v) => {
-            if (v === "ANULADO") {
-              void onUpdate(item.muestra_id, { status_ensayo: "ANULADO" })
-            } else if (v === "ENTREGADO") {
+            if (v === "ENTREGADO" || v === "INFORME LISTO") {
               const today = new Date()
               const yyyy = today.getFullYear()
               const mm = String(today.getMonth() + 1).padStart(2, '0')
               const dd = String(today.getDate()).padStart(2, '0')
-              void onUpdate(item.muestra_id, { status_ensayo: "ENSAYADO", status_entrega: "ENTREGADO", fecha_entrega: `${yyyy}/${mm}/${dd}` })
+              void onUpdate(item.muestra_id, {
+                status: v,
+                status_ensayo: v,
+                fecha_entrega: `${yyyy}/${mm}/${dd}`
+              })
             } else {
-              // PENDIENTE / FALTA / RESTABLECER: volver a cálculo automático
-              void onUpdate(item.muestra_id, { status_ensayo: "-" })
+              void onUpdate(item.muestra_id, {
+                status: "FALTA",
+                status_ensayo: "FALTA"
+              })
             }
           }}
         >
-          <SelectTrigger className="w-full h-8 text-xs rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-center [&>[data-slot=select-value]_*]:justify-center">
+          <SelectTrigger className="w-full h-8 text-xs font-semibold rounded-lg border border-slate-300 shadow-sm bg-white justify-center mx-auto *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-center [&>[data-slot=select-value]_*]:justify-center">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="PENDIENTE">PENDIENTE</SelectItem>
             <SelectItem value="FALTA">FALTA</SelectItem>
             <SelectItem value="ENTREGADO">ENTREGADO</SelectItem>
-            <SelectItem value="ANULADO">ANULADO</SelectItem>
+            <SelectItem value="INFORME LISTO">INFORME LISTO</SelectItem>
           </SelectContent>
         </Select>
-      </td>
-      {/* STATUS ENTREGA */}
-      <td className={TD}>
-        <SuggestionInput
-          value={item.status_entrega || "-"}
-          options={STATUS_ENTREGA}
-          placeholder="Estado"
-          className="h-7 text-[9px] px-1 font-semibold"
-          onChange={(v) => {
-            const payload: Record<string, any> = { status_entrega: v }
-            if (v === "ENTREGADO" || v === "INFORME LISTO" || v === "INFORME" || v === "INFORME ENVIADO") {
-              const today = new Date()
-              const yyyy = today.getFullYear()
-              const mm = String(today.getMonth() + 1).padStart(2, '0')
-              const dd = String(today.getDate()).padStart(2, '0')
-              payload.fecha_entrega = `${yyyy}-${mm}-${dd}`
-            }
-            void onUpdate(item.muestra_id, payload)
-          }}
-        />
       </td>
       {/* F. ENTREGA */}
       <td className={TD}>
@@ -1212,6 +1194,20 @@ const DataRow = memo(function DataRow({ item, rowNumber, onUpdate, isPreview, bg
           className="font-mono text-[11px]"
           placeholder="—"
         />
+      </td>
+      {/* OT DESCARGA */}
+      <td className={TD}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void onDownloadOT(item.recepcion_id, item.numero_ot)}
+          className="h-7 px-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-300 rounded-lg flex items-center gap-1.5 mx-auto transition-all shadow-xs active:scale-95 cursor-pointer"
+          title={`Descargar OT ${item.numero_ot}`}
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+          <span>OT</span>
+        </Button>
       </td>
       {/* ESTADO preview */}
       <td className={`${TD} border-r-0`}>
