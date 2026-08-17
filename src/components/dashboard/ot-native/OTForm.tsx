@@ -49,6 +49,7 @@ export interface OTData {
 
 interface OTFormProps {
   initialData?: OTData | null
+  initialNumeroRecepcion?: string | null
   onSuccess: () => void
   onCancel: () => void
   /** Callback para notificar al padre si hay cambios no guardados */
@@ -59,22 +60,29 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
 function toIsoDate(val?: string | null): string {
   if (!val) return ""
-  const s = val.trim().split("T")[0].split(" ")[0].replace(/\//g, "-")
-  const parts = s.split("-")
+  const s = String(val).trim()
+  if (!s || s === "-") return ""
+  // Si ya viene como YYYY-MM-DD o ISO string
+  const clean = s.split("T")[0].split(" ")[0].replace(/\//g, "-")
+  const parts = clean.split("-")
   if (parts.length === 3) {
     if (parts[0].length === 4) {
+      // YYYY-MM-DD
       return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`
     } else if (parts[2].length === 4) {
+      // DD-MM-YYYY
       return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
     } else if (parts[2].length === 2) {
+      // DD-MM-YY -> 20YY-MM-DD
       return `20${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
     }
   }
-  return s
+  return clean
 }
 
-export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFormProps) {
+export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCancel, onDirtyChange }: OTFormProps) {
   const { user } = useAuth()
+  const isEditing = !!initialData?.id
   const [loading, setLoading] = useState(false)
   const [prefilling, setPrefilling] = useState(false)
   const [prefilled, setPrefilled] = useState(false)
@@ -89,9 +97,50 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
   }
 
   // Encabezado
-  const [numeroOt, setNumeroOt] = useState(initialData?.numero_ot || "")
-  const [numeroRecepcion, setNumeroRecepcion] = useState(initialData?.numero_recepcion || "")
+  const [numeroOt, setNumeroOt] = useState(initialData?.numero_ot || (initialNumeroRecepcion ? (initialNumeroRecepcion.toUpperCase().startsWith("OT-") ? initialNumeroRecepcion : `${initialNumeroRecepcion}`) : ""))
+  const [numeroRecepcion, setNumeroRecepcion] = useState(initialData?.numero_recepcion || initialNumeroRecepcion || "")
   const [referencia, setReferencia] = useState(initialData?.referencia || "-")
+
+  // Auto-prefill si viene initialNumeroRecepcion en modo nuevo
+  useEffect(() => {
+    if (initialNumeroRecepcion && !initialData?.id) {
+      const runPrefill = async () => {
+        setPrefilling(true)
+        try {
+          const res = await authFetch(`${API_URL}/api/ot/prefill/${encodeURIComponent(initialNumeroRecepcion.trim())}`)
+          if (res.ok) {
+            const data = await res.json()
+            setCliente(data.cliente || "")
+            setProyecto(data.proyecto || "")
+            if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
+            if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
+            if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
+            if (data.observaciones) setObservaciones(data.observaciones)
+            if (Array.isArray(data.items) && data.items.length > 0) {
+              setItems(data.items.map((it: any, idx: number) => ({
+                item: idx + 1,
+                codigo_muestra: it.codigo_muestra || `PROB-${String(idx + 1).padStart(2, "0")}`,
+                descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+                cantidad: 1,
+                elemento: it.elemento || "-",
+                fecha_rotura: toIsoDate(it.fecha_rotura),
+                densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
+                edad: it.edad ?? "",
+                fc_kg_cm2: it.fc_kg_cm2 ?? "",
+              })))
+            }
+            setPrefilled(true)
+            markDirty()
+          }
+        } catch {
+          // non-blocking
+        } finally {
+          setPrefilling(false)
+        }
+      }
+      runPrefill()
+    }
+  }, [initialNumeroRecepcion])
 
   // Datos del cliente (auto-fill desde recepción)
   const [cliente, setCliente] = useState(initialData?.cliente || "")

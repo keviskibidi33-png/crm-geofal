@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check } from "lucide-react"
+import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -21,9 +21,10 @@ interface RecepcionModuleProps {
     focusRecepcionId?: number | null
     onFocusHandled?: () => void
     scope?: "concreto" | "lima" | "all"
+    onNavigateToOTConcreto?: (numRecepcion: string) => void
 }
 
-export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all" }: RecepcionModuleProps) {
+export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all", onNavigateToOTConcreto }: RecepcionModuleProps) {
     const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
@@ -454,21 +455,61 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 const isComplete = missing.length === 0
 
                                                 return isComplete ? (
-                                                    <span
-                                                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-help transition-transform hover:scale-105"
-                                                        title="✅ Completo: todos los campos de Recepción y OT están llenos"
-                                                    >
-                                                        <Check className="h-3 w-3 text-emerald-600" />
-                                                        <span>COMPLETO</span>
-                                                    </span>
+                                                    <div className="relative inline-block group">
+                                                        <span
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-default transition-all"
+                                                        >
+                                                            <Check className="h-3 w-3 text-emerald-600" />
+                                                            <span>COMPLETO</span>
+                                                        </span>
+                                                        {/* Tooltip moderno instantáneo (0ms) */}
+                                                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col z-50 w-56 p-2.5 rounded-lg bg-slate-900 text-white text-xs shadow-2xl border border-slate-700 pointer-events-none animate-in fade-in zoom-in-95 duration-75 text-center">
+                                                            <span className="font-bold text-emerald-400 flex items-center justify-center gap-1.5 text-[11px]">
+                                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                Recepción y OT completas
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-300 mt-1">Todos los datos técnicos de probetas y responsables están registrados.</span>
+                                                            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+                                                        </div>
+                                                    </div>
                                                 ) : (
-                                                    <span
-                                                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs cursor-help transition-transform hover:scale-105"
-                                                        title={`⚠ Incompleto. Falta:\n• ${missing.join("\n• ")}`}
-                                                    >
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                                        <span>INCOMPLETO</span>
-                                                    </span>
+                                                    <div className="relative inline-block group">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (item.numero_recepcion) {
+                                                                    onNavigateToOTConcreto?.(item.numero_recepcion)
+                                                                }
+                                                            }}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs cursor-pointer transition-all hover:bg-amber-100 hover:scale-105 active:scale-95"
+                                                        >
+                                                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                                                            <span>INCOMPLETO</span>
+                                                            <span className="text-[9px] text-amber-600 underline font-semibold ml-0.5 flex items-center gap-0.5">
+                                                                <Wand2 className="h-2.5 w-2.5" />
+                                                                Emitir OT
+                                                            </span>
+                                                        </button>
+                                                        {/* Tooltip moderno flotante instantáneo (0ms) y persistente al hover */}
+                                                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col z-50 w-64 p-3 rounded-lg bg-slate-900 text-white text-xs shadow-2xl border border-slate-700 pointer-events-none animate-in fade-in zoom-in-95 duration-75 text-left">
+                                                            <div className="flex items-center gap-1.5 font-bold text-amber-400 pb-1.5 border-b border-slate-800 text-[11px]">
+                                                                <AlertTriangle className="h-3.5 w-3.5" />
+                                                                <span>Campos pendientes:</span>
+                                                            </div>
+                                                            <ul className="space-y-1 my-2 text-[10.5px] text-slate-300">
+                                                                {missing.map((m, idx) => (
+                                                                    <li key={idx} className="flex items-start gap-1.5 leading-tight">
+                                                                        <span className="text-amber-400 text-[10px] mt-0.5">•</span>
+                                                                        <span>{m}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            <div className="pt-1.5 border-t border-slate-800 text-[10px] text-amber-300 font-semibold flex items-center gap-1">
+                                                                <span>👉 Haz clic en el badge para emitir la OT</span>
+                                                            </div>
+                                                            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+                                                        </div>
+                                                    </div>
                                                 )
                                             })()}
                                         </TableCell>

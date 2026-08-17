@@ -29,7 +29,12 @@ import { OTDetailDialog } from "./ot-native/OTDetailDialog"
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe").replace(/^http:\/\//, "https://")
 
-export function OTConcretoModule() {
+interface OTConcretoModuleProps {
+  initialPrefillRecepcion?: string | null
+  onClearPrefill?: () => void
+}
+
+export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OTConcretoModuleProps = {}) {
   const [data, setData] = useState<OTData[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -43,6 +48,16 @@ export function OTConcretoModule() {
   // Modales
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingOt, setEditingOt] = useState<OTData | null>(null)
+  const [targetPrefillRecepcion, setTargetPrefillRecepcion] = useState<string | null>(initialPrefillRecepcion || null)
+
+  useEffect(() => {
+    if (initialPrefillRecepcion) {
+      setTargetPrefillRecepcion(initialPrefillRecepcion)
+      setEditingOt(null)
+      setIsFormOpen(true)
+      onClearPrefill?.()
+    }
+  }, [initialPrefillRecepcion])
 
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [viewingOt, setViewingOt] = useState<OTData | null>(null)
@@ -431,16 +446,21 @@ export function OTConcretoModule() {
           evitando que useState conserve valores de la sesión anterior */}
       <Dialog open={isFormOpen} onOpenChange={handleFormOpenChange}>
         <OTForm
-          key={editingOt?.id ?? "new"}
+          key={`${editingOt?.id ?? "new"}-${targetPrefillRecepcion ?? ""}`}
           initialData={editingOt}
+          initialNumeroRecepcion={targetPrefillRecepcion}
           onDirtyChange={setIsFormDirty}
           onSuccess={() => {
             setIsFormDirty(false)
             setIsFormOpen(false)
             setEditingOt(null)
+            setTargetPrefillRecepcion(null)
             fetchOts()
           }}
-          onCancel={() => handleFormOpenChange(false)}
+          onCancel={() => {
+            setTargetPrefillRecepcion(null)
+            handleFormOpenChange(false)
+          }}
         />
       </Dialog>
 

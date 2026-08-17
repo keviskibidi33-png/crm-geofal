@@ -108,6 +108,7 @@ export default function DashboardPage() {
   const [activeModule, setActiveModule] = useState<ModuleType>("home")
   const [pendingNotificationUserId, setPendingNotificationUserId] = useState<string | null>(null)
   const [pendingLabNotification, setPendingLabNotification] = useState<{ module: ModuleType; recordId: number } | null>(null)
+  const [pendingOTPrefill, setPendingOTPrefill] = useState<string | null>(null)
   const [configHasUnsavedChanges, setConfigHasUnsavedChanges] = useState(false)
   const [showLeaveConfigDialog, setShowLeaveConfigDialog] = useState(false)
   const [pendingModuleChange, setPendingModuleChange] = useState<ModuleType | null>(null)
@@ -426,6 +427,10 @@ export default function DashboardPage() {
             scope="concreto"
             focusRecepcionId={pendingLabNotification?.module === "recepcion" ? pendingLabNotification.recordId : null}
             onFocusHandled={() => setPendingLabNotification(null)}
+            onNavigateToOTConcreto={(numRecepcion) => {
+              setPendingOTPrefill(numRecepcion)
+              setActiveModule("ot_concreto")
+            }}
           />
         )
       case "recepcion_lima":
@@ -583,7 +588,12 @@ export default function DashboardPage() {
       case "ot":
         return <OTModule />
       case "ot_concreto":
-        return <OTConcretoModule />
+        return (
+          <OTConcretoModule
+            initialPrefillRecepcion={pendingOTPrefill}
+            onClearPrefill={() => setPendingOTPrefill(null)}
+          />
+        )
       case "estadistica_laboratorio":
         return <LaboratorioStatsModule user={dashboardUser} />
       case "estadistica_comercial":
