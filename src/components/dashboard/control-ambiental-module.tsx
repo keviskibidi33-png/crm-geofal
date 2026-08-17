@@ -47,6 +47,7 @@ import {
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialog"
+import { FormActionDock } from "@/components/dashboard/shared"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
@@ -300,7 +301,7 @@ const DEFAULT_BALANZAS: BalanzaDef[] = [
 ]
 
 const REALIZADO_POR_LIST = ["BEATRIZ"]
-const REVISADO_POR_LIST = ["ING. FABIAN"]
+const REVISADO_POR_LIST = ["ING. FABIAN", "FABIAN LA ROSA"]
 
 function getMesAnio() {
   return new Date()
@@ -504,6 +505,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     cumple_global: true,
     cerrado: false,
   })
+  const [tempSaving, setTempSaving] = useState(false)
+  const [tempDownloading, setTempDownloading] = useState(false)
+  const [balanzaSaving, setBalanzaSaving] = useState(false)
+  const [balanzaDownloading, setBalanzaDownloading] = useState(false)
+
   const [tempDocRows, setTempDocRows] = useState<TempRow[]>([
     {
       fecha_registro: new Date().toISOString().split("T")[0],
@@ -516,7 +522,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       temperatura_c: "",
       humedad_relativa_pct: "",
       cumple: true,
-      responsable_registro: user.name || "LABORATORIO",
+      responsable_registro: "",
       responsable_revision: "",
     },
   ])
@@ -574,8 +580,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       temp_c: "",
       humedad_pct: "",
       pesadas: ensure15Pesadas([]),
-      verificado_por: "BEATRIZ",
-      revisado_por: "ING. FABIAN",
+      verificado_por: "",
+      revisado_por: "",
     },
   ])
 
@@ -829,7 +835,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           temperatura_c: "",
           humedad_relativa_pct: "",
           cumple: true,
-          responsable_registro: user.name || "LABORATORIO",
+          responsable_registro: "",
           responsable_revision: "",
         },
       ])
@@ -865,8 +871,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           temp_c: "",
           humedad_pct: "",
           pesadas: ensurePesadas([], defaultCols.length),
-          verificado_por: "BEATRIZ",
-          revisado_por: "ING. FABIAN",
+          verificado_por: "",
+          revisado_por: "",
         },
       ])
       setBalanzaIsDirty(false)
@@ -911,8 +917,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               temperatura_c: it.temperatura_c != null ? String(it.temperatura_c) : "",
               humedad_relativa_pct: it.humedad_relativa_pct != null ? String(it.humedad_relativa_pct) : "",
               cumple: it.cumple_especificacion,
-              responsable_registro: it.responsable_lectura || "BEATRIZ",
-              responsable_revision: rowObs.revisado_por || "ING. FABIAN",
+              responsable_registro: it.responsable_lectura || "",
+              responsable_revision: rowObs.revisado_por || "",
             }
           })
         )
@@ -959,7 +965,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
 
         items.forEach((it) => {
           const rowObs = parseBalanzaObs(it.observaciones)
-          const key = `${it.fecha}__${it.verificado_por}`
+          const key = `${it.fecha}__${it.verificado_por || ""}`
           if (!rowMap.has(key)) {
             rowMap.set(key, {
               fecha: it.fecha,
@@ -967,8 +973,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               temp_c: rowObs.temp_c || "",
               humedad_pct: rowObs.humedad_pct || "",
               pesadas: [],
-              verificado_por: it.verificado_por || "BEATRIZ",
-              revisado_por: rowObs.revisado_por || "ING. FABIAN",
+              verificado_por: it.verificado_por || "",
+              revisado_por: rowObs.revisado_por || "",
             })
           }
           rowMap.get(key)!.pesadas.push({
@@ -1048,8 +1054,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
   }
 
   // ── Save Document Sheets ──
-  const handleSaveTempDoc = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSaveTempDoc = async (e?: React.FormEvent, andDownload: boolean = false) => {
+    if (e) e.preventDefault()
+    if (andDownload) {
+      setTempDownloading(true)
+    } else {
+      setTempSaving(true)
+    }
     try {
       // 1. Eliminar filas descartadas por el usuario en la UI
       if (deletedTempRowIds.length > 0) {
@@ -1073,7 +1084,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           mes_anio: tempDocHeader.mes_anio,
           aprobado_por: tempDocHeader.aprobado_por,
           fecha_aprobacion: tempDocHeader.fecha_aprobacion,
-          revisado_por: row.responsable_revision || "ING. FABIAN",
+          revisado_por: row.responsable_revision || "",
           hum_min: row.hum_min || "",
           fecha_lectura: row.fecha_lectura || row.fecha_registro,
           cerrado: tempDocHeader.cerrado,
@@ -1090,7 +1101,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           temp_min: isNaN(tempMinVal) ? null : tempMinVal,
           temp_max: isNaN(tempMaxVal) ? null : tempMaxVal,
           cumple_especificacion: tempDocHeader.cumple_global,
-          responsable_lectura: row.responsable_registro || user.name || "BEATRIZ",
+          responsable_lectura: row.responsable_registro || "",
           observaciones: JSON.stringify(obsMeta),
         }
         const url = row.id
@@ -1109,13 +1120,25 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       setTempIsDirty(false)
       setShowTempModal(false)
       fetchData()
+
+      if (andDownload) {
+        await handleExportTempExcel(tempDocHeader.area_ambiente)
+      }
     } catch {
       toast.error("Error al guardar formato de temperatura")
+    } finally {
+      setTempSaving(false)
+      setTempDownloading(false)
     }
   }
 
-  const handleSaveBalanzaDoc = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSaveBalanzaDoc = async (e?: React.FormEvent, andDownload: boolean = false) => {
+    if (e) e.preventDefault()
+    if (andDownload) {
+      setBalanzaDownloading(true)
+    } else {
+      setBalanzaSaving(true)
+    }
     try {
       // 1. Eliminar pesadas descartadas en la UI
       if (deletedBalanzaRowIds.length > 0) {
@@ -1142,7 +1165,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           const obsMeta: BalanzaHeaderMeta = {
             mes_anio: balanzaDocHeader.mes_anio,
             codigos_pesas_patron: balanzaDocHeader.codigos_pesas_patron,
-            revisado_por: row.revisado_por || "ING. FABIAN",
+            revisado_por: row.revisado_por || "",
             hora: row.hora,
             temp_c: row.temp_c,
             humedad_pct: row.humedad_pct,
@@ -1163,7 +1186,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
             lectura_balanza_g: parseFloat(p.lectura_balanza_g) || 0.0,
             error_max_permitido_g: parseFloat(balanzaDocHeader.error_max_permitido_g) || 0.5,
             limpieza_nivelacion: balanzaDocHeader.limpieza_nivelacion,
-            verificado_por: row.verificado_por,
+            verificado_por: row.verificado_por || "",
             observaciones: JSON.stringify(obsMeta),
           }
 
@@ -1187,8 +1210,15 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       setBalanzaIsDirty(false)
       setShowBalanzaModal(false)
       fetchData()
+
+      if (andDownload) {
+        await handleExportBalanzaExcel(balanzaDocHeader.codigo_balanza)
+      }
     } catch {
       toast.error("Error al guardar formato de balanzas")
+    } finally {
+      setBalanzaSaving(false)
+      setBalanzaDownloading(false)
     }
   }
 
@@ -2191,7 +2221,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             <select
                               disabled={isLocked}
                               className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
-                              value={row.responsable_registro}
+                              value={row.responsable_registro || ""}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setTempDocRows((rows) =>
@@ -2200,6 +2230,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setTempIsDirty(true)
                               }}
                             >
+                              <option value="">-- SELECCIONAR --</option>
                               {REALIZADO_POR_LIST.map((resp) => (
                                 <option key={resp} value={resp}>
                                   {resp}
@@ -2211,7 +2242,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                             <select
                               disabled={isLocked}
                               className={`${denseInputClass} text-center font-bold text-slate-800 cursor-pointer ${isLocked ? "bg-slate-100 cursor-not-allowed text-slate-600" : ""}`}
-                              value={row.responsable_revision}
+                              value={row.responsable_revision || ""}
                               onChange={(e) => {
                                 const val = e.target.value
                                 setTempDocRows((rows) =>
@@ -2220,6 +2251,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                 setTempIsDirty(true)
                               }}
                             >
+                              <option value="">-- SELECCIONAR --</option>
                               {REVISADO_POR_LIST.map((resp) => (
                                 <option key={resp} value={resp}>
                                   {resp}
@@ -2275,8 +2307,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         temperatura_c: "",
                         humedad_relativa_pct: "",
                         cumple: true,
-                        responsable_registro: user.name || "LABORATORIO",
-                        responsable_revision: "",
+                        responsable_registro: last ? last.responsable_registro : "",
+                        responsable_revision: last ? last.responsable_revision : "",
                       },
                     ])
                     setTempIsDirty(true)
@@ -2334,7 +2366,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </Button>
               <Button
                 type="submit"
-                disabled={isLocked}
+                disabled={isLocked || tempSaving || tempDownloading}
                 className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
                   isLocked
                     ? "bg-slate-400 text-white cursor-not-allowed"
@@ -2346,6 +2378,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <Lock className="h-4 w-4" />
                     Formato Concluido (Solo Lectura)
                   </>
+                ) : tempSaving && !tempDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
@@ -2355,6 +2392,24 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </Button>
             </div>
           </form>
+
+          {/* Botonera interactiva de anclaje flotante FormActionDock */}
+          <FormActionDock
+            onSave={() => void handleSaveTempDoc(undefined, false)}
+            onSaveAndDownload={() => void handleSaveTempDoc(undefined, true)}
+            onClear={() => {
+              if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
+                openNewTempDoc()
+              }
+            }}
+            saveDisabled={isLocked}
+            downloadDisabled={isLocked}
+            loading={tempSaving || tempDownloading}
+            saving={tempSaving && !tempDownloading}
+            downloading={tempDownloading}
+            saveLabel="Guardar"
+            downloadLabel="Guardar y Descargar"
+          />
         </DialogContent>
       </Dialog>
     )
@@ -2837,7 +2892,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <select
                                   className="h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-800 cursor-pointer shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                                  value={row.verificado_por}
+                                  value={row.verificado_por || ""}
                                   disabled={isLocked}
                                   onChange={(e) => {
                                     const val = e.target.value
@@ -2847,6 +2902,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                     setBalanzaIsDirty(true)
                                   }}
                                 >
+                                  <option value="">-- SELECCIONAR --</option>
                                   {REALIZADO_POR_LIST.map((resp) => (
                                     <option key={resp} value={resp}>
                                       {resp}
@@ -2857,7 +2913,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                               <td className="border-t border-r border-slate-300 p-1.5 bg-white">
                                 <select
                                   className="h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-800 cursor-pointer shadow-2xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                                  value={row.revisado_por}
+                                  value={row.revisado_por || ""}
                                   disabled={isLocked}
                                   onChange={(e) => {
                                     const val = e.target.value
@@ -2867,6 +2923,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                                     setBalanzaIsDirty(true)
                                   }}
                                 >
+                                  <option value="">-- SELECCIONAR --</option>
                                   {REVISADO_POR_LIST.map((resp) => (
                                     <option key={resp} value={resp}>
                                       {resp}
@@ -2930,8 +2987,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                         temp_c: "23.0",
                         humedad_pct: "50.0",
                         pesadas: ensurePesadas([], numPesadas),
-                        verificado_por: last ? last.verificado_por : "BEATRIZ",
-                        revisado_por: last ? last.revisado_por : "ING. FABIAN",
+                        verificado_por: last ? last.verificado_por : "",
+                        revisado_por: last ? last.revisado_por : "",
                       },
                     ])
                     setBalanzaIsDirty(true)
@@ -2997,7 +3054,7 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </Button>
               <Button
                 type="submit"
-                disabled={isLocked}
+                disabled={isLocked || balanzaSaving || balanzaDownloading}
                 className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
                   isLocked
                     ? "bg-slate-400 text-white cursor-not-allowed"
@@ -3009,6 +3066,11 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
                     <Lock className="h-4 w-4" />
                     Formato Concluido (Solo Lectura)
                   </>
+                ) : balanzaSaving && !balanzaDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
@@ -3018,6 +3080,24 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </Button>
             </div>
           </form>
+
+          {/* Botonera interactiva de anclaje flotante FormActionDock */}
+          <FormActionDock
+            onSave={() => void handleSaveBalanzaDoc(undefined, false)}
+            onSaveAndDownload={() => void handleSaveBalanzaDoc(undefined, true)}
+            onClear={() => {
+              if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
+                openNewBalanzaDoc()
+              }
+            }}
+            saveDisabled={isLocked}
+            downloadDisabled={isLocked}
+            loading={balanzaSaving || balanzaDownloading}
+            saving={balanzaSaving && !balanzaDownloading}
+            downloading={balanzaDownloading}
+            saveLabel="Guardar"
+            downloadLabel="Guardar y Descargar"
+          />
         </DialogContent>
       </Dialog>
     )
