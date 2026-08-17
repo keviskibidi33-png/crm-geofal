@@ -55,6 +55,7 @@ export interface Recepcion {
     created_at?: string
     muestras_count?: number
     ot_emitida?: boolean
+    ot_missing_fields?: string[]
 }
 
 export interface RecepcionesPaginationState {

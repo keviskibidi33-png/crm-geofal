@@ -444,7 +444,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 if (!item.fecha_recepcion) missing.push("Fecha Recepción vacía")
                                                 const totalMuestras = item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)
                                                 if (totalMuestras === 0) missing.push("Sin probetas registradas")
-                                                if (!item.ot_emitida) missing.push("OT sin datos completos (cliente, proyecto, fecha, ítems)")
+                                                if (!item.ot_emitida) {
+                                                    const otMiss = item.ot_missing_fields && item.ot_missing_fields.length > 0
+                                                        ? item.ot_missing_fields
+                                                        : ["OT Concreto incompleta (responsables / probetas)"]
+                                                    otMiss.forEach((m: string) => missing.push(m))
+                                                }
 
                                                 const isComplete = missing.length === 0
 
