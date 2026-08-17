@@ -301,7 +301,7 @@ const DEFAULT_BALANZAS: BalanzaDef[] = [
 ]
 
 const REALIZADO_POR_LIST = ["BEATRIZ"]
-const REVISADO_POR_LIST = ["ING. FABIAN", "FABIAN LA ROSA"]
+const REVISADO_POR_LIST = ["FABIAN LA ROSA"]
 
 function getMesAnio() {
   return new Date()
