@@ -1197,17 +1197,26 @@ const DataRow = memo(function DataRow({
       </td>
       {/* OT DESCARGA */}
       <td className={TD}>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void onDownloadOT(item.recepcion_id, item.numero_ot)}
-          className="h-7 px-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-300 rounded-lg flex items-center gap-1.5 mx-auto transition-all shadow-xs active:scale-95 cursor-pointer"
-          title={`Descargar OT ${item.numero_ot}`}
-        >
-          <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-          <span>OT</span>
-        </Button>
+        {item.ot_descargada ? (
+          <button
+            type="button"
+            onClick={() => void onDownloadOT(item.recepcion_id, item.numero_ot)}
+            className="inline-flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-300 rounded-md transition-all cursor-pointer shadow-2xs mx-auto active:scale-95"
+            title={`OT ${item.numero_ot || ""} ya descargada. Haz clic para volver a descargar.`}
+          >
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            <span>DESCARGADO</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onDownloadOT(item.recepcion_id, item.numero_ot)}
+            className="inline-flex items-center justify-center w-8 h-6 text-sm font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-300 rounded-md transition-all cursor-pointer mx-auto active:scale-95"
+            title={`Descargar Orden de Trabajo ${item.numero_ot || ""}`}
+          >
+            —
+          </button>
+        )}
       </td>
       {/* ESTADO preview */}
       <td className={`${TD} border-r-0`}>

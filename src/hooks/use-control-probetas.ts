@@ -35,6 +35,7 @@ export interface ProbetaRow {
   fecha_entrega?: string
   estado_probeta: string
   fecha_moldeo?: string
+  ot_descargada?: boolean
 }
 
 export interface Receipt {
@@ -380,6 +381,11 @@ export function useControlProbetas() {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+
+      // Actualizar todas las probetas de esa recepción a estado descargado
+      setItems((prev) => prev.map((p) => p.recepcion_id === recepcionId ? { ...p, ot_descargada: true } : p))
+      setRecentItems((prev) => prev.map((p) => p.recepcion_id === recepcionId ? { ...p, ot_descargada: true } : p))
+
       toast.success(`OT ${numeroOt || ""} descargada con éxito`)
     } catch (e: any) {
       toast.error(e?.message || "Error al descargar la Orden de Trabajo")
