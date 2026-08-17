@@ -2324,92 +2324,84 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Footer Botones Guardar y Cancelar Responsive */}
-            <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3 border-t border-slate-300 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2 w-full sm:w-auto"
-                onClick={() => handleExportTempExcel(tempDocHeader.area_ambiente)}
-              >
-                <Download className="h-4 w-4" />
-                Exportar Excel
-              </Button>
-              {!isLocked && (
+            {/* Footer compacto — solo acciones únicas no duplicadas en el FormActionDock */}
+            <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 shrink-0">
+              {/* Grupo izquierdo: acciones secundarias */}
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-8 text-xs font-semibold bg-white border-amber-300 text-amber-800 hover:bg-amber-50 gap-2 w-full sm:w-auto"
-                  onClick={() => {
-                    setCierreTargetDoc({
-                      type: "temperatura",
-                      title: `${tempDocHeader.area_ambiente} — ${tempDocHeader.mes_anio}`,
-                      items: temperaturaList.filter((t) => normalizeAreaName(t.area_ambiente) === normalizeAreaName(tempDocHeader.area_ambiente)),
-                      isClosing: true,
-                    })
-                    setCierrePinInput("")
-                    setCierrePinError("")
-                    setCierreModalOpen(true)
-                  }}
+                  size="sm"
+                  className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                  onClick={() => handleExportTempExcel(tempDocHeader.area_ambiente)}
                 >
-                  <Lock className="h-4 w-4" />
-                  Concluir Mes (Bloquear)
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar Excel
                 </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
-                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
-              >
-                Cerrar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLocked || tempSaving || tempDownloading}
-                className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
-                  isLocked
-                    ? "bg-slate-400 text-white cursor-not-allowed"
-                    : "bg-sky-600 hover:bg-sky-700 text-white"
-                }`}
-              >
-                {isLocked ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Formato Concluido (Solo Lectura)
-                  </>
-                ) : tempSaving && !tempDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Guardar Formato F-LEM-P-05.01
-                  </>
+                {!isLocked && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-semibold bg-white border-amber-300 text-amber-800 hover:bg-amber-50 gap-1.5"
+                    onClick={() => {
+                      setCierreTargetDoc({
+                        type: "temperatura",
+                        title: `${tempDocHeader.area_ambiente} — ${tempDocHeader.mes_anio}`,
+                        items: temperaturaList.filter((t) => normalizeAreaName(t.area_ambiente) === normalizeAreaName(tempDocHeader.area_ambiente)),
+                        isClosing: true,
+                      })
+                      setCierrePinInput("")
+                      setCierrePinError("")
+                      setCierreModalOpen(true)
+                    }}
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    Concluir Mes
+                  </Button>
                 )}
-              </Button>
+              </div>
+
+              {/* Grupo derecho: estado + cerrar */}
+              <div className="flex items-center gap-2">
+                {isLocked && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <Lock className="h-3 w-3" />
+                    Solo Lectura
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeWithSafetyCheck(() => setShowTempModal(false))}
+                  className="h-8 text-xs font-semibold bg-white border-slate-300 px-4"
+                >
+                  Cerrar
+                </Button>
+              </div>
             </div>
           </form>
 
-          {/* Botonera interactiva de anclaje flotante FormActionDock */}
-          <FormActionDock
-            onSave={() => void handleSaveTempDoc(undefined, false)}
-            onSaveAndDownload={() => void handleSaveTempDoc(undefined, true)}
-            onClear={() => {
-              if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
-                openNewTempDoc()
-              }
-            }}
-            saveDisabled={isLocked}
-            downloadDisabled={isLocked}
-            loading={tempSaving || tempDownloading}
-            saving={tempSaving && !tempDownloading}
-            downloading={tempDownloading}
-            saveLabel="Guardar"
-            downloadLabel="Guardar y Descargar"
-          />
+          {/* FormActionDock — único punto de guardado del formulario */}
+          {!isLocked && (
+            <FormActionDock
+              onSave={() => void handleSaveTempDoc(undefined, false)}
+              onSaveAndDownload={() => void handleSaveTempDoc(undefined, true)}
+              onClear={() => {
+                if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
+                  openNewTempDoc()
+                }
+              }}
+              saveDisabled={false}
+              downloadDisabled={false}
+              loading={tempSaving || tempDownloading}
+              saving={tempSaving && !tempDownloading}
+              downloading={tempDownloading}
+              saveLabel="Guardar"
+              downloadLabel="Guardar y Descargar"
+            />
+          )}
         </DialogContent>
       </Dialog>
     )
@@ -3033,71 +3025,62 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
               </div>
             </div>
 
-            {/* Footer Botones Guardar y Cancelar Responsive */}
-            <div className="pt-1.5 flex flex-col sm:flex-row items-center justify-end gap-2 sm:gap-3 border-t border-slate-300 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-2 w-full sm:w-auto"
-                onClick={() => handleExportBalanzaExcel(balanzaDocHeader.codigo_balanza)}
-              >
-                <Download className="h-4 w-4" />
-                Exportar Excel
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
-                className="h-8 text-xs font-semibold bg-white border-slate-300 px-5 w-full sm:w-auto"
-              >
-                Cerrar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLocked || balanzaSaving || balanzaDownloading}
-                className={`h-8 text-xs font-bold px-6 flex items-center justify-center gap-1.5 w-full sm:w-auto ${
-                  isLocked
-                    ? "bg-slate-400 text-white cursor-not-allowed"
-                    : "bg-sky-600 hover:bg-sky-700 text-white"
-                }`}
-              >
-                {isLocked ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    Formato Concluido (Solo Lectura)
-                  </>
-                ) : balanzaSaving && !balanzaDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Guardar Formato F-LEM-IN-01.02
-                  </>
+            {/* Footer compacto — solo acciones únicas no duplicadas en el FormActionDock */}
+            <div className="pt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 shrink-0">
+              {/* Grupo izquierdo: acciones secundarias */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                  onClick={() => handleExportBalanzaExcel(balanzaDocHeader.codigo_balanza)}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar Excel
+                </Button>
+              </div>
+
+              {/* Grupo derecho: estado + cerrar */}
+              <div className="flex items-center gap-2">
+                {isLocked && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <Lock className="h-3 w-3" />
+                    Solo Lectura
+                  </span>
                 )}
-              </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeWithSafetyCheck(() => setShowBalanzaModal(false))}
+                  className="h-8 text-xs font-semibold bg-white border-slate-300 px-4"
+                >
+                  Cerrar
+                </Button>
+              </div>
             </div>
           </form>
 
-          {/* Botonera interactiva de anclaje flotante FormActionDock */}
-          <FormActionDock
-            onSave={() => void handleSaveBalanzaDoc(undefined, false)}
-            onSaveAndDownload={() => void handleSaveBalanzaDoc(undefined, true)}
-            onClear={() => {
-              if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
-                openNewBalanzaDoc()
-              }
-            }}
-            saveDisabled={isLocked}
-            downloadDisabled={isLocked}
-            loading={balanzaSaving || balanzaDownloading}
-            saving={balanzaSaving && !balanzaDownloading}
-            downloading={balanzaDownloading}
-            saveLabel="Guardar"
-            downloadLabel="Guardar y Descargar"
-          />
+          {/* FormActionDock — único punto de guardado del formulario */}
+          {!isLocked && (
+            <FormActionDock
+              onSave={() => void handleSaveBalanzaDoc(undefined, false)}
+              onSaveAndDownload={() => void handleSaveBalanzaDoc(undefined, true)}
+              onClear={() => {
+                if (window.confirm("¿Desea limpiar los datos no guardados del formulario?")) {
+                  openNewBalanzaDoc()
+                }
+              }}
+              saveDisabled={false}
+              downloadDisabled={false}
+              loading={balanzaSaving || balanzaDownloading}
+              saving={balanzaSaving && !balanzaDownloading}
+              downloading={balanzaDownloading}
+              saveLabel="Guardar"
+              downloadLabel="Guardar y Descargar"
+            />
+          )}
         </DialogContent>
       </Dialog>
     )
