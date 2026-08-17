@@ -407,7 +407,7 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
             </div>
 
             {/* Cabecera de columnas */}
-            <div className="grid gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 1fr 2fr 80px 100px 70px 55px 65px 32px'}}>
+            <div className="grid gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}>
               <span className="text-center">#</span>
               <span>CÓDIGO LEM</span>
               <span>DESCRIPCIÓN</span>
@@ -423,8 +423,8 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid gap-1 items-center bg-white px-2 py-2 rounded-lg border border-slate-200 shadow-sm"
-                  style={{gridTemplateColumns: '28px 1fr 2fr 80px 100px 70px 55px 65px 32px'}}
+                  className="grid gap-1.5 items-center bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+                  style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}
                 >
                   <div className="text-center font-bold text-slate-400 text-xs">{idx + 1}</div>
 
@@ -443,13 +443,13 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
                   <select
                     value={item.elemento || "-"}
                     onChange={(e) => handleItemChange(idx, "elemento", e.target.value)}
-                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
                   >
-                    <option value="-">-</option>
-                    <option value="4 in x 8 in">4 in x 8 in</option>
-                    <option value="6 in x 12 in">6 in x 12 in</option>
-                    <option value="VIGA">VIGA</option>
-                    <option value="CUBO">CUBO</option>
+                    {(Array.from(new Set(["-", "4 in x 8 in", "6 in x 12 in", "VIGA", "CUBO", item.elemento || "-"])) as string[]).map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                   </select>
 
                   <Input
