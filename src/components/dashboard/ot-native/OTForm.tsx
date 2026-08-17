@@ -132,21 +132,29 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
       }
       const data = await res.json()
 
-      // Rellenar campos del encabezado
+      // Rellenar campos del encabezado y fechas programadas
       setCliente(data.cliente || "")
       setProyecto(data.proyecto || "")
       if (data.fecha_recepcion) setFechaRecepcion(data.fecha_recepcion)
+      if (data.inicio_programado) setInicioProgramado(data.inicio_programado)
+      if (data.fin_programado) setFinProgramado(data.fin_programado)
 
-      // Rellenar ítems (probetas) con descripción fija
+      // Rellenar ítems (probetas) con trazabilidad completa
       if (Array.isArray(data.items) && data.items.length > 0) {
         setItems(data.items.map((it: any, idx: number) => ({
           item: idx + 1,
           codigo_muestra: it.codigo_muestra || `PROB-${String(idx + 1).padStart(2, "0")}`,
           descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
           cantidad: 1,
+          elemento: it.elemento || "-",
+          fecha_rotura: it.fecha_rotura || "",
+          densidad: it.densidad || "-",
+          edad: it.edad ?? "",
+          fc_kg_cm2: it.fc_kg_cm2 ?? "",
         })))
       }
 
+      markDirty()
       setPrefilled(true)
       toast.success(`✅ Datos cargados desde recepción (${data.total_probetas} probetas)`)
     } catch (err: any) {
