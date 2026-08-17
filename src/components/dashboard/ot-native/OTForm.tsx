@@ -209,24 +209,24 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
       cliente: cliente.trim() || null,
       proyecto: proyecto.trim() || null,
       fecha_recepcion: fechaRecepcion || null,
-      plazo_entrega_dias: plazoEntregaDias.toString() || null,
       inicio_programado: inicioProgramado || null,
       fin_programado: finProgramado || null,
-      inicio_real: inicioReal || null,
-      fin_real: finReal || null,
-      variacion_inicio: variacionInicio || null,
-      variacion_fin: variacionFin || null,
-      duracion_real_ejecucion_dias: duracionReal || null,
       observaciones: observaciones.trim() || null,
-      ot_aperturada_por: otAperturadaPor.trim() || null,
-      ot_designada_a: otDesignadaA.trim() || null,
+      ot_aperturada_por: otAperturadaPor || null,
+      ot_designada_a: otDesignadaA || null,
+      // items con todos los campos del Excel OT-CONCRETO
       items: items.map((it, idx) => ({
         item: idx + 1,
         codigo_muestra: it.codigo_muestra.trim(),
-        descripcion: it.descripcion.trim(),
-        cantidad: Number(it.cantidad) || 1,
+        descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+        cantidad: 1,
+        elemento: it.elemento || "-",
+        fecha_rotura: it.fecha_rotura || null,
+        densidad: it.densidad || "-",
+        edad: it.edad !== undefined && it.edad !== "" ? Number(it.edad) : null,
+        fc_kg_cm2: it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== "" ? Number(it.fc_kg_cm2) : null,
       })),
-      estado,
+      // estado es autom\u00e1tico \u2014 no se env\u00eda desde el formulario
     }
 
     try {
@@ -462,16 +462,16 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
             </div>
           </div>
 
-          {/* SECCIÓN 3: CONTROL DE FECHAS Y EJECUCIÓN */}
+          {/* SECCI\u00d3N 3: FECHAS (solo las 3 columnas del Excel OT-CONCRETO fila 24) */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
               <Calendar className="h-4 w-4 text-emerald-600" />
-              3. Fechas de Programación y Ejecución Real
+              3. Fechas de Programaci\u00f3n
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCIÓN</Label>
+                <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCI\u00d3N</Label>
                 <Input
                   type="date"
                   value={fechaRecepcion}
@@ -495,64 +495,6 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                   value={finProgramado}
                   onChange={(e) => setFinProgramado(e.target.value)}
                   className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">PLAZO DE ENTREGA (DÍAS)</Label>
-                <Input
-                  type="number"
-                  placeholder="ej. 5"
-                  value={plazoEntregaDias}
-                  onChange={(e) => setPlazoEntregaDias(e.target.value)}
-                  className="mt-1 text-xs bg-white font-bold border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">INICIO REAL</Label>
-                <Input
-                  type="date"
-                  value={inicioReal}
-                  onChange={(e) => setInicioReal(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">FIN REAL</Label>
-                <Input
-                  type="date"
-                  value={finReal}
-                  onChange={(e) => setFinReal(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE INICIO</Label>
-                <Input
-                  placeholder="-"
-                  value={variacionInicio}
-                  onChange={(e) => setVariacionInicio(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">VARIACIÓN DE FIN</Label>
-                <Input
-                  placeholder="-"
-                  value={variacionFin}
-                  onChange={(e) => setVariacionFin(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">DURACIÓN REAL DE EJECUCIÓN (DÍAS)</Label>
-                <Input
-                  type="number"
-                  placeholder="ej. 4"
-                  value={duracionReal}
-                  onChange={(e) => setDuracionReal(e.target.value)}
-                  className="mt-1 text-xs bg-white border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>
