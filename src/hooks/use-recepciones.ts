@@ -54,6 +54,7 @@ export interface Recepcion {
     estado?: string
     created_at?: string
     muestras_count?: number
+    ot_emitida?: boolean
 }
 
 export interface RecepcionesPaginationState {
@@ -158,6 +159,7 @@ export function useRecepciones() {
             const parsedData = items.map((r: any) => ({
                 ...r,
                 muestras_count: Number(r?.muestras_count ?? 0),
+                ot_emitida: Boolean(r?.ot_emitida ?? false),
                 muestras: [],
             }))
 

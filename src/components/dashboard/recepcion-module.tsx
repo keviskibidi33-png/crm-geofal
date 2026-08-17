@@ -444,13 +444,14 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 if (!item.fecha_recepcion) missing.push("Fecha Recepción")
                                                 const totalMuestras = item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)
                                                 if (totalMuestras === 0) missing.push("Probetas (0 registradas)")
+                                                if (!item.ot_emitida) missing.push("OT Concreto no emitida")
 
                                                 const isComplete = missing.length === 0
 
                                                 return isComplete ? (
                                                     <span
                                                         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-help transition-transform hover:scale-105"
-                                                        title="Flujo Recepción y OT 100% completo (Todos los datos requeridos registrados)"
+                                                        title="✅ Flujo 100% completo: Recepción + OT Concreto emitida"
                                                     >
                                                         <Check className="h-3 w-3 text-emerald-600" />
                                                         <span>COMPLETO</span>
@@ -458,7 +459,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 ) : (
                                                     <span
                                                         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs cursor-help transition-transform hover:scale-105"
-                                                        title={`Flujo Incompleto. Falta: ${missing.join(", ")}`}
+                                                        title={`⚠ Incompleto. Falta:\n• ${missing.join("\n• ")}`}
                                                     >
                                                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                                                         <span>INCOMPLETO</span>

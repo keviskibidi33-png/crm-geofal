@@ -12,7 +12,6 @@ import {
   Download,
   Loader2,
   AlertCircle,
-  Sparkles,
   TestTube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
@@ -164,6 +164,8 @@ export function OTConcretoModule() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-300">
       {/* Encabezado */}
@@ -290,16 +292,16 @@ export function OTConcretoModule() {
                         {ot.numero_ot || "—"}
                       </TableCell>
                       <TableCell className="font-mono font-semibold text-slate-700">
-                        {ot.numero_recepcion || "—"}
+                        {ot.numero_recepcion ?? "—"}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[220px] truncate" title={ot.cliente}>
-                        {ot.cliente || "—"}
+                      <TableCell className="font-medium max-w-[220px] truncate" title={ot.cliente ?? undefined}>
+                        {ot.cliente ?? "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[250px] truncate" title={ot.proyecto}>
-                        {ot.proyecto || "—"}
+                      <TableCell className="text-muted-foreground max-w-[250px] truncate" title={ot.proyecto ?? undefined}>
+                        {ot.proyecto ?? "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {ot.fecha_recepcion || "—"}
+                        {ot.fecha_recepcion ?? "—"}
                       </TableCell>
                       <TableCell className="text-center font-bold">
                         <Badge variant="secondary" className="px-2 py-0.5 text-[11px]">
@@ -367,11 +369,12 @@ export function OTConcretoModule() {
           {/* Paginación */}
           <div className="p-4 border-t bg-muted/10">
             <DataTablePagination
-              page={page}
-              limit={limit}
-              total={total}
-              onChangePage={(p) => setPage(p)}
-              onChangeLimit={(l) => {
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              totalItems={total}
+              onPageChange={(p: number) => setPage(p)}
+              onPageSizeChange={(l: number) => {
                 setLimit(l)
                 setPage(1)
               }}
@@ -381,23 +384,26 @@ export function OTConcretoModule() {
       </Card>
 
       {/* Modal de Creación / Edición */}
-      <OTForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        initialData={editingOt}
-        onSuccess={() => {
-          setIsFormOpen(false)
-          fetchOts()
-        }}
-      />
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <OTForm
+          initialData={editingOt}
+          onSuccess={() => {
+            setIsFormOpen(false)
+            fetchOts()
+          }}
+          onCancel={() => setIsFormOpen(false)}
+        />
+      </Dialog>
 
       {/* Modal de Detalle */}
-      <OTDetailDialog
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        data={viewingOt}
-        onDownloadExcel={handleDownloadExcel}
-      />
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        {viewingOt && (
+          <OTDetailDialog
+            ot={viewingOt}
+            onClose={() => setIsDetailOpen(false)}
+          />
+        )}
+      </Dialog>
 
       {/* Confirmación de Eliminación */}
       <ModernConfirmDialog
@@ -406,9 +412,8 @@ export function OTConcretoModule() {
         title="¿Eliminar Orden de Trabajo de Concreto?"
         description={`Esta acción eliminará de forma permanente la OT ${deletingOt?.numero_ot || ""}.`}
         onConfirm={handleConfirmDelete}
-        loading={deleteLoading}
         confirmText="Eliminar OT"
-        confirmVariant="destructive"
+        variant="destructive"
       />
     </div>
   )
