@@ -298,9 +298,17 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° OT *</Label>
                 <Input
-                  placeholder="ej. 001-26-LEM"
+                  placeholder="ej. 1981-26"
                   value={numeroOt}
                   onChange={(e) => { setNumeroOt(e.target.value); markDirty() }}
+                  onBlur={() => {
+                    const val = numeroOt.trim()
+                    if (val && !val.includes("-")) {
+                      const year = new Date().getFullYear().toString().slice(-2)
+                      setNumeroOt(`${val}-${year}`)
+                      markDirty()
+                    }
+                  }}
                   className="mt-1 font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
                   required
                 />
@@ -309,9 +317,17 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    placeholder="ej. 001-26"
+                    placeholder="ej. 1977-26"
                     value={numeroRecepcion}
                     onChange={(e) => { setNumeroRecepcion(e.target.value); setPrefilled(false) }}
+                    onBlur={() => {
+                      const val = numeroRecepcion.trim()
+                      if (val && !val.includes("-")) {
+                        const year = new Date().getFullYear().toString().slice(-2)
+                        setNumeroRecepcion(`${val}-${year}`)
+                        markDirty()
+                      }
+                    }}
                     className="font-mono bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
                   />
                   <Button
@@ -483,16 +499,16 @@ export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFo
             </div>
           </div>
 
-          {/* SECCI\u00d3N 3: FECHAS (solo las 3 columnas del Excel OT-CONCRETO fila 24) */}
+          {/* SECCIÓN 3: FECHAS (solo las 3 columnas del Excel OT-CONCRETO fila 24) */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
               <Calendar className="h-4 w-4 text-emerald-600" />
-              3. Fechas de Programaci\u00f3n
+              3. Fechas de Programación
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCI\u00d3N</Label>
+                <Label className="text-xs font-semibold text-slate-700">FECHA DE RECEPCIÓN</Label>
                 <Input
                   type="date"
                   value={fechaRecepcion}

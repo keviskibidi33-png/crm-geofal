@@ -32,6 +32,7 @@ export interface ProbetaRow {
   fc_kg_cm2: number
   status?: string
   status_ensayo?: string
+  status_entrega?: string
   fecha_entrega?: string
   estado_probeta: string
   fecha_moldeo?: string

@@ -1108,15 +1108,19 @@ const DataRow = memo(function DataRow({
       <td className={TD}>
         <ClientValue value={item.cliente} />
       </td>
-      {/* ELEMENTO */}
+      {/* ELEMENTO - Dropdown fijo */}
       <td className={TD}>
-        <SuggestionInput
+        <select
           value={item.elemento || "-"}
-          onChange={(v) => void onUpdate(item.muestra_id, { elemento: v })}
-          options={ELEMENTOS}
-          placeholder="Elemento"
-          className="h-7 text-[9px] px-1 font-semibold"
-        />
+          onChange={(e) => void onUpdate(item.muestra_id, { elemento: e.target.value })}
+          className="w-full h-7 text-[10px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-md px-1 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer text-center"
+        >
+          {Array.from(new Set(["-", "4 in x 8 in", "6 in x 12 in", "VIGA", "CUBO", item.elemento].filter(Boolean))).map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </td>
       {/* F. ROTURA */}
       <td className={TD}>
