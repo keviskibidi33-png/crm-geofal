@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Plus, Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash } from "lucide-react"
+import { Plus, Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
@@ -52,11 +52,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [prefilling, setPrefilling] = useState(false)
+  const [prefilled, setPrefilled] = useState(false)
 
   // Encabezado
   const [numeroOt, setNumeroOt] = useState(initialData?.numero_ot || "")
   const [numeroRecepcion, setNumeroRecepcion] = useState(initialData?.numero_recepcion || "")
   const [referencia, setReferencia] = useState(initialData?.referencia || "-")
+
+  // Datos del cliente (auto-fill desde recepción)
+  const [cliente, setCliente] = useState(initialData?.cliente || "")
+  const [proyecto, setProyecto] = useState(initialData?.proyecto || "")
 
   // Tabla dinamica de ítems
   const [items, setItems] = useState<OTItem[]>(
@@ -90,6 +96,50 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
   )
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
   const [estado, setEstado] = useState(initialData?.estado || "PENDIENTE")
+
+  /**
+   * Auto-fill desde recepción: consulta el endpoint prefill y rellena
+   * cliente, proyecto, fecha, y lista de probetas automáticamente.
+   */
+  const handlePrefill = async () => {
+    const num = numeroRecepcion.trim()
+    if (!num) {
+      toast.warning("Ingresa un N° de Recepción antes de autocompletar.")
+      return
+    }
+    setPrefilling(true)
+    setPrefilled(false)
+    try {
+      const res = await authFetch(`${API_URL}/api/ot/prefill/${encodeURIComponent(num)}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || `Recepción '${num}' no encontrada`)
+      }
+      const data = await res.json()
+
+      // Rellenar campos del encabezado
+      setCliente(data.cliente || "")
+      setProyecto(data.proyecto || "")
+      if (data.fecha_recepcion) setFechaRecepcion(data.fecha_recepcion)
+
+      // Rellenar ítems (probetas) con descripción fija
+      if (Array.isArray(data.items) && data.items.length > 0) {
+        setItems(data.items.map((it: any, idx: number) => ({
+          item: idx + 1,
+          codigo_muestra: it.codigo_muestra || `PROB-${String(idx + 1).padStart(2, "0")}`,
+          descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+          cantidad: 1,
+        })))
+      }
+
+      setPrefilled(true)
+      toast.success(`✅ Datos cargados desde recepción (${data.total_probetas} probetas)`)
+    } catch (err: any) {
+      toast.error(err.message || "No se pudo autocompletar")
+    } finally {
+      setPrefilling(false)
+    }
+  }
 
   // Auto-cálculo de plazo cuando cambian las fechas programadas
   useEffect(() => {
@@ -152,6 +202,8 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
       numero_ot: numeroOt.trim(),
       numero_recepcion: numeroRecepcion.trim() || null,
       referencia: referencia.trim() || "-",
+      cliente: cliente.trim() || null,
+      proyecto: proyecto.trim() || null,
       fecha_recepcion: fechaRecepcion || null,
       plazo_entrega_dias: plazoEntregaDias.toString() || null,
       inicio_programado: inicioProgramado || null,
@@ -230,12 +282,35 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
               </div>
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
-                <Input
-                  placeholder="ej. 001-26"
-                  value={numeroRecepcion}
-                  onChange={(e) => setNumeroRecepcion(e.target.value)}
-                  className="mt-1 font-mono bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    placeholder="ej. 001-26"
+                    value={numeroRecepcion}
+                    onChange={(e) => { setNumeroRecepcion(e.target.value); setPrefilled(false) }}
+                    className="font-mono bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrefill}
+                    disabled={prefilling || !numeroRecepcion.trim()}
+                    title="Autocompletar datos desde la recepción"
+                    className="shrink-0 gap-1.5 border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold cursor-pointer"
+                  >
+                    {prefilling ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-3.5 w-3.5" />
+                    )}
+                    Autocompletar
+                  </Button>
+                </div>
+                {prefilled && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Datos cargados desde recepción
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-xs font-semibold text-slate-700">REFERENCIA</Label>
@@ -243,6 +318,28 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                   placeholder="-"
                   value={referencia}
                   onChange={(e) => setReferencia(e.target.value)}
+                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                />
+              </div>
+            </div>
+
+            {/* CLIENTE Y PROYECTO — auto-llenados desde recepción */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-sky-200/60">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">CLIENTE</Label>
+                <Input
+                  placeholder="Nombre del cliente"
+                  value={cliente}
+                  onChange={(e) => setCliente(e.target.value)}
+                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">PROYECTO</Label>
+                <Input
+                  placeholder="Nombre del proyecto"
+                  value={proyecto}
+                  onChange={(e) => setProyecto(e.target.value)}
                   className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
                 />
               </div>

@@ -437,21 +437,21 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         <TableCell className="text-center">
                                             {(() => {
                                                 const missing: string[] = []
-                                                if (!item.numero_recepcion || item.numero_recepcion.trim() === "") missing.push("Nº Recepción")
-                                                if (!item.numero_ot || item.numero_ot.trim() === "") missing.push("Nº OT")
-                                                if (!item.cliente || item.cliente.trim() === "") missing.push("Cliente")
-                                                if (!item.proyecto || item.proyecto.trim() === "") missing.push("Proyecto")
-                                                if (!item.fecha_recepcion) missing.push("Fecha Recepción")
+                                                if (!item.numero_recepcion || item.numero_recepcion.trim() === "") missing.push("Nº Recepción vacío")
+                                                if (!item.numero_ot || item.numero_ot.trim() === "") missing.push("Nº OT vacío")
+                                                if (!item.cliente || item.cliente.trim() === "") missing.push("Cliente vacío")
+                                                if (!item.proyecto || item.proyecto.trim() === "") missing.push("Proyecto vacío")
+                                                if (!item.fecha_recepcion) missing.push("Fecha Recepción vacía")
                                                 const totalMuestras = item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)
-                                                if (totalMuestras === 0) missing.push("Probetas (0 registradas)")
-                                                if (!item.ot_emitida) missing.push("OT Concreto no emitida")
+                                                if (totalMuestras === 0) missing.push("Sin probetas registradas")
+                                                if (!item.ot_emitida) missing.push("OT sin datos completos (cliente, proyecto, fecha, ítems)")
 
                                                 const isComplete = missing.length === 0
 
                                                 return isComplete ? (
                                                     <span
                                                         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-help transition-transform hover:scale-105"
-                                                        title="✅ Flujo 100% completo: Recepción + OT Concreto emitida"
+                                                        title="✅ Completo: todos los campos de Recepción y OT están llenos"
                                                     >
                                                         <Check className="h-3 w-3 text-emerald-600" />
                                                         <span>COMPLETO</span>
