@@ -540,8 +540,6 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                 >
                   <option value="">— Seleccionar —</option>
                   <option value="BETZABETH ZARABIA">BETZABETH ZARABIA</option>
-                  <option value="DEIVI INFANSON">DEIVI INFANSON</option>
-                  <option value="IVAN CACHON">IVAN CACHON</option>
                 </select>
               </div>
               <div>
@@ -552,7 +550,6 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                   className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="">— Seleccionar —</option>
-                  <option value="BETZABETH ZARABIA">BETZABETH ZARABIA</option>
                   <option value="DEIVI INFANSON">DEIVI INFANSON</option>
                   <option value="IVAN CACHON">IVAN CACHON</option>
                 </select>

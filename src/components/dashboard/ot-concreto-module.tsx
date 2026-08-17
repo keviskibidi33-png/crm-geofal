@@ -398,8 +398,11 @@ export function OTConcretoModule() {
       </Card>
 
       {/* Modal de Creación / Edición */}
+      {/* key fuerza remount completo del formulario cuando cambia la OT editada,
+          evitando que useState conserve valores de la sesión anterior */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <OTForm
+          key={editingOt?.id ?? "new"}
           initialData={editingOt}
           onSuccess={() => {
             setIsFormOpen(false)
