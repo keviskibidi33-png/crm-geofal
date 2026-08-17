@@ -952,8 +952,8 @@ function DataTable({
                 />
               </th>
               <th className={`${TH} w-8 text-zinc-950 font-black`}>#</th>
-              <SortTh label="RECEPCIÓN" column="numero_recepcion" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-28" />
-              <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-22" />
+              <SortTh label="RECEPCIÓN" column="numero_recepcion" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-22" />
+              <SortTh label="CÓDIGO LEM" column="codigo_muestra_lem" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
               <SortTh label="CLIENTE" column="cliente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-34" />
               <SortTh label="ELEMENTO" column="elemento" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
               <SortTh label="F. ROTURA" column="fecha_rotura" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
@@ -961,7 +961,7 @@ function DataTable({
               <SortTh label="EDAD" column="edad" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-10" />
               <SortTh label="F'C" column="fc_kg_cm2" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
               <SortTh label="POZA" column="poza" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-18" />
-              <SortTh label="STATUS" column="status" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
+              <SortTh label="STATUS" column="status" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-26" />
               <SortTh label="F. ENTREGA" column="fecha_entrega" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-20" />
               <th className={`${TH} w-20 text-zinc-950 font-black`}>OT DESCARGA</th>
               <SortTh label="ESTADO" column="estado_probeta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} className="w-16" />
@@ -1176,7 +1176,7 @@ const DataRow = memo(function DataRow({
             }
           }}
         >
-          <SelectTrigger className={`w-full max-w-[86px] h-6 text-[9px] font-bold rounded-md border shadow-2xs justify-center mx-auto px-1 py-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:justify-center [&>[data-slot=select-value]_*]:justify-center ${
+          <SelectTrigger className={`w-full max-w-[98px] h-6.5 text-[10px] font-bold rounded-md border shadow-2xs justify-between mx-auto px-2 py-0.5 transition-colors gap-1 [&_svg]:size-3.5 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-center [&>[data-slot=select-value]_*]:text-center ${
             currentStatusSelect === "ENTREGADO"
               ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
               : currentStatusSelect === "INFORME LISTO"
@@ -1185,10 +1185,10 @@ const DataRow = memo(function DataRow({
           }`}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="min-w-[90px]">
-            <SelectItem value="FALTA" className="text-[9px] py-1 font-semibold">FALTA</SelectItem>
-            <SelectItem value="ENTREGADO" className="text-[9px] py-1 font-semibold text-emerald-700">ENTREGADO</SelectItem>
-            <SelectItem value="INFORME LISTO" className="text-[9px] py-1 font-semibold text-blue-700">INFORME LISTO</SelectItem>
+          <SelectContent className="min-w-[105px]">
+            <SelectItem value="FALTA" className="text-[10px] py-1 font-semibold">FALTA</SelectItem>
+            <SelectItem value="ENTREGADO" className="text-[10px] py-1 font-semibold text-emerald-700">ENTREGADO</SelectItem>
+            <SelectItem value="INFORME LISTO" className="text-[10px] py-1 font-semibold text-blue-700">INFORME LISTO</SelectItem>
           </SelectContent>
         </Select>
       </td>
