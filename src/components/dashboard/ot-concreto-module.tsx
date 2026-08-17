@@ -53,6 +53,10 @@ export function OTConcretoModule() {
 
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
+  // Protección de cambios no guardados
+  const [isFormDirty, setIsFormDirty] = useState(false)
+  const [isDiscardOpen, setIsDiscardOpen] = useState(false)
+
   const fetchOts = useCallback(async () => {
     setLoading(true)
     try {
@@ -83,6 +87,7 @@ export function OTConcretoModule() {
 
   const handleCreateNew = () => {
     setEditingOt(null)
+    setIsFormDirty(false)
     setIsFormOpen(true)
   }
 
@@ -101,6 +106,30 @@ export function OTConcretoModule() {
       setEditingOt(ot)
     }
     setIsFormOpen(true)
+  }
+
+  /**
+   * Intercepta el cierre del Dialog de edición.
+   * Si hay cambios sin guardar, muestra confirmación antes de cerrar.
+   */
+  const handleFormOpenChange = (open: boolean) => {
+    if (!open && isFormDirty) {
+      // Hay cambios — pedir confirmación en lugar de cerrar directamente
+      setIsDiscardOpen(true)
+      return
+    }
+    setIsFormOpen(open)
+    if (!open) {
+      setIsFormDirty(false)
+      setEditingOt(null)
+    }
+  }
+
+  const handleDiscardConfirm = () => {
+    setIsDiscardOpen(false)
+    setIsFormDirty(false)
+    setIsFormOpen(false)
+    setEditingOt(null)
   }
 
   const handleView = (ot: OTData) => {
@@ -400,15 +429,18 @@ export function OTConcretoModule() {
       {/* Modal de Creación / Edición */}
       {/* key fuerza remount completo del formulario cuando cambia la OT editada,
           evitando que useState conserve valores de la sesión anterior */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={handleFormOpenChange}>
         <OTForm
           key={editingOt?.id ?? "new"}
           initialData={editingOt}
+          onDirtyChange={setIsFormDirty}
           onSuccess={() => {
+            setIsFormDirty(false)
             setIsFormOpen(false)
+            setEditingOt(null)
             fetchOts()
           }}
-          onCancel={() => setIsFormOpen(false)}
+          onCancel={() => handleFormOpenChange(false)}
         />
       </Dialog>
 
@@ -421,6 +453,18 @@ export function OTConcretoModule() {
           />
         )}
       </Dialog>
+
+      {/* Confirmación de Descarte de Cambios */}
+      <ModernConfirmDialog
+        open={isDiscardOpen}
+        onOpenChange={setIsDiscardOpen}
+        title="¿Descartar cambios no guardados?"
+        description="Tienes cambios sin guardar en esta Orden de Trabajo. Si sales ahora, se perderán todos los datos modificados."
+        onConfirm={handleDiscardConfirm}
+        confirmText="Descartar cambios"
+        cancelText="Seguir editando"
+        variant="warning"
+      />
 
       {/* Confirmación de Eliminación */}
       <ModernConfirmDialog

@@ -17,11 +17,11 @@ export interface OTItem {
   descripcion: string
   cantidad: number | string
   // Columnas específicas de OT Concreto
-  elemento?: string
-  fecha_rotura?: string
-  densidad?: string
-  edad?: number | string
-  fc_kg_cm2?: number | string
+  elemento?: string | null
+  fecha_rotura?: string | null
+  densidad?: string | null
+  edad?: number | string | null
+  fc_kg_cm2?: number | string | null
 }
 
 export interface OTData {
@@ -51,15 +51,26 @@ interface OTFormProps {
   initialData?: OTData | null
   onSuccess: () => void
   onCancel: () => void
+  /** Callback para notificar al padre si hay cambios no guardados */
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
 
-export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
+export function OTForm({ initialData, onSuccess, onCancel, onDirtyChange }: OTFormProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [prefilling, setPrefilling] = useState(false)
   const [prefilled, setPrefilled] = useState(false)
+  // Dirty state: true si hay cambios no guardados
+  const [isDirty, setIsDirty] = useState(false)
+
+  const markDirty = () => {
+    if (!isDirty) {
+      setIsDirty(true)
+      onDirtyChange?.(true)
+    }
+  }
 
   // Encabezado
   const [numeroOt, setNumeroOt] = useState(initialData?.numero_ot || "")
@@ -245,6 +256,8 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
       }
 
       toast.success(initialData?.id ? "Orden de Trabajo actualizada" : "Orden de Trabajo creada exitosamente")
+      setIsDirty(false)
+      onDirtyChange?.(false)
       onSuccess()
     } catch (err: any) {
       toast.error(err.message || "Error al procesar la solicitud")
@@ -265,7 +278,7 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
         </DialogDescription>
       </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-6 pt-4">
+      <form onSubmit={handleSubmit} onInput={markDirty} className="flex-1 flex flex-col min-h-0 space-y-6 pt-4">
         <div className="flex-1 overflow-y-auto pr-2 space-y-6">
           {/* SECCIÓN 1: ENCABEZADO */}
           <div className="bg-sky-50/60 p-4 rounded-xl border border-sky-200/80 space-y-4">
@@ -279,7 +292,7 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                 <Input
                   placeholder="ej. 001-26-LEM"
                   value={numeroOt}
-                  onChange={(e) => setNumeroOt(e.target.value)}
+                  onChange={(e) => { setNumeroOt(e.target.value); markDirty() }}
                   className="mt-1 font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
                   required
                 />

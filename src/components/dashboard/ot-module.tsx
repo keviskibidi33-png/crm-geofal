@@ -52,6 +52,10 @@ export function OTModule() {
 
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
+  // Protección de cambios no guardados
+  const [isFormDirty, setIsFormDirty] = useState(false)
+  const [isDiscardOpen, setIsDiscardOpen] = useState(false)
+
   const fetchOts = useCallback(async () => {
     setLoading(true)
     try {
@@ -81,12 +85,43 @@ export function OTModule() {
 
   const handleCreateNew = () => {
     setEditingOt(null)
+    setIsFormDirty(false)
     setIsFormOpen(true)
   }
 
-  const handleEdit = (ot: OTData) => {
-    setEditingOt(ot)
+  const handleEdit = async (ot: OTData) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/ot/${ot.id}`)
+      if (res.ok) {
+        const fullOt = await res.json()
+        setEditingOt(fullOt)
+      } else {
+        setEditingOt(ot)
+      }
+    } catch {
+      setEditingOt(ot)
+    }
+    setIsFormDirty(false)
     setIsFormOpen(true)
+  }
+
+  const handleFormOpenChange = (open: boolean) => {
+    if (!open && isFormDirty) {
+      setIsDiscardOpen(true)
+      return
+    }
+    setIsFormOpen(open)
+    if (!open) {
+      setIsFormDirty(false)
+      setEditingOt(null)
+    }
+  }
+
+  const handleDiscardConfirm = () => {
+    setIsDiscardOpen(false)
+    setIsFormDirty(false)
+    setIsFormOpen(false)
+    setEditingOt(null)
   }
 
   const handleView = (ot: OTData) => {
@@ -408,18 +443,32 @@ export function OTModule() {
       </div>
 
       {/* DIALOG FORMULARIO (CREAR/EDITAR) */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        {isFormOpen && (
-          <OTForm
-            initialData={editingOt}
-            onSuccess={() => {
-              setIsFormOpen(false)
-              fetchOts()
-            }}
-            onCancel={() => setIsFormOpen(false)}
-          />
-        )}
+      <Dialog open={isFormOpen} onOpenChange={handleFormOpenChange}>
+        <OTForm
+          key={editingOt?.id ?? "new"}
+          initialData={editingOt}
+          onDirtyChange={setIsFormDirty}
+          onSuccess={() => {
+            setIsFormDirty(false)
+            setIsFormOpen(false)
+            setEditingOt(null)
+            fetchOts()
+          }}
+          onCancel={() => handleFormOpenChange(false)}
+        />
       </Dialog>
+
+      {/* CONFIRMACIÓN DE DESCARTE DE CAMBIOS */}
+      <ModernConfirmDialog
+        open={isDiscardOpen}
+        onOpenChange={setIsDiscardOpen}
+        title="¿Descartar cambios no guardados?"
+        description="Tienes cambios sin guardar en esta Orden de Trabajo. Si sales ahora, se perderán todos los datos modificados."
+        onConfirm={handleDiscardConfirm}
+        confirmText="Descartar cambios"
+        cancelText="Seguir editando"
+        variant="warning"
+      />
 
       {/* DIALOG VISTA DETALLE */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
