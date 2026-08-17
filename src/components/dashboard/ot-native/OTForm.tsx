@@ -16,6 +16,12 @@ export interface OTItem {
   codigo_muestra: string
   descripcion: string
   cantidad: number | string
+  // Columnas específicas de OT Concreto
+  elemento?: string
+  fecha_rotura?: string
+  densidad?: string
+  edad?: number | string
+  fc_kg_cm2?: number | string
 }
 
 export interface OTData {
@@ -91,11 +97,9 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
 
   // Notas y Personal
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
-  const [otAperturadaPor, setOtAperturadaPor] = useState(
-    initialData?.ot_aperturada_por || user?.name || "LABORATORIO"
-  )
+  // Solo inicializar desde datos guardados; sin fallback para no sobrescribir
+  const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
-  const [estado, setEstado] = useState(initialData?.estado || "PENDIENTE")
 
   /**
    * Auto-fill desde recepción: consulta el endpoint prefill y rellena
@@ -346,12 +350,12 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
             </div>
           </div>
 
-          {/* SECCIÓN 2: TABLA DE ÍTEMS Y ENSAYOS */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          {/* SECCIÓN 2: TABLA DE PROBETAS (igual al Excel OT-CONCRETO) */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <Layers className="h-4 w-4 text-sky-600" />
-                2. Muestras y Ensayos (Descripción)
+                2. Probetas de Concreto
               </div>
               <Button
                 type="button"
@@ -361,56 +365,98 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                 className="gap-1 text-xs border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 font-medium"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Agregar Ítem
+                Agregar Fila
               </Button>
             </div>
 
-            <div className="space-y-3">
+            {/* Cabecera de columnas */}
+            <div className="grid gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 1fr 2fr 80px 100px 70px 55px 65px 32px'}}>
+              <span className="text-center">#</span>
+              <span>CÓDIGO LEM</span>
+              <span>DESCRIPCIÓN</span>
+              <span className="text-center">ELEMENTO</span>
+              <span className="text-center">F. ROTURA</span>
+              <span className="text-center">DENSIDAD</span>
+              <span className="text-center">EDAD</span>
+              <span className="text-center">F’C</span>
+              <span />
+            </div>
+
+            <div className="space-y-1.5">
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-12 gap-2 items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm"
+                  className="grid gap-1 items-center bg-white px-2 py-2 rounded-lg border border-slate-200 shadow-sm"
+                  style={{gridTemplateColumns: '28px 1fr 2fr 80px 100px 70px 55px 65px 32px'}}
                 >
-                  <div className="col-span-1 text-center font-bold text-slate-500 text-sm">
-                    #{idx + 1}
+                  <div className="text-center font-bold text-slate-400 text-xs">{idx + 1}</div>
+
+                  <Input
+                    placeholder="15XXX-CO-26"
+                    value={item.codigo_muestra}
+                    onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
+                    className="text-xs font-mono border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                  />
+
+                  {/* Descripción FIJA — no editable */}
+                  <div className="text-[10px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-1 truncate" title="COMPRESION PROBETAS ASTM C39/C39M">
+                    COMPRESION PROBETAS ASTM C39/C39M
                   </div>
-                  <div className="col-span-3">
-                    <Input
-                      placeholder="Código muestra (ej. 001-SU-26)"
-                      value={item.codigo_muestra}
-                      onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
-                      className="text-xs font-mono border-slate-300 focus-visible:ring-sky-500"
-                    />
-                  </div>
-                  <div className="col-span-6">
-                    <Input
-                      placeholder="Descripción del Ensayo / Norma (ej. ANÁLISIS GRANULOMÉTRICO POR TAMIZADO)"
-                      value={item.descripcion}
-                      onChange={(e) => handleItemChange(idx, "descripcion", e.target.value)}
-                      className="text-xs border-slate-300 focus-visible:ring-sky-500"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="Cant."
-                      value={item.cantidad}
-                      onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
-                      className="text-xs text-center border-slate-300 focus-visible:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-                  <div className="col-span-1 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveItem(idx)}
-                      className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+
+                  <select
+                    value={item.elemento || "-"}
+                    onChange={(e) => handleItemChange(idx, "elemento", e.target.value)}
+                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    <option value="-">-</option>
+                    <option value="4 in x 8 in">4 in x 8 in</option>
+                    <option value="6 in x 12 in">6 in x 12 in</option>
+                    <option value="VIGA">VIGA</option>
+                    <option value="CUBO">CUBO</option>
+                  </select>
+
+                  <Input
+                    type="date"
+                    value={item.fecha_rotura || ""}
+                    onChange={(e) => handleItemChange(idx, "fecha_rotura", e.target.value)}
+                    className="text-[10px] border-slate-300 focus-visible:ring-sky-500 h-7 px-1"
+                  />
+
+                  <select
+                    value={item.densidad || "-"}
+                    onChange={(e) => handleItemChange(idx, "densidad", e.target.value)}
+                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  >
+                    <option value="-">-</option>
+                    <option value="SI">SI</option>
+                    <option value="NO">NO</option>
+                  </select>
+
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={item.edad ?? ""}
+                    onChange={(e) => handleItemChange(idx, "edad", e.target.value)}
+                    className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={item.fc_kg_cm2 ?? ""}
+                    onChange={(e) => handleItemChange(idx, "fc_kg_cm2", e.target.value)}
+                    className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveItem(idx)}
+                    className="h-7 w-7 text-rose-400 hover:text-rose-700 hover:bg-rose-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -530,7 +576,7 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">OT APERTURADA POR</Label>
                 <select
@@ -552,19 +598,6 @@ export function OTForm({ initialData, onSuccess, onCancel }: OTFormProps) {
                   <option value="">— Seleccionar —</option>
                   <option value="DEIVI INFANSON">DEIVI INFANSON</option>
                   <option value="IVAN CACHON">IVAN CACHON</option>
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">ESTADO</Label>
-                <select
-                  value={estado}
-                  onChange={(e) => setEstado(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                  <option value="PENDIENTE">PENDIENTE</option>
-                  <option value="EN PROCESO">EN PROCESO</option>
-                  <option value="EMITIDO">EMITIDO</option>
-                  <option value="COMPLETADO">COMPLETADO</option>
                 </select>
               </div>
             </div>
