@@ -352,6 +352,7 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       // estado es autom\u00e1tico \u2014 no se env\u00eda desde el formulario
     }
 
+    setLoading(true)
     try {
       const url = initialData?.id ? `${API_URL}/api/ot/${initialData.id}` : `${API_URL}/api/ot`
       const method = initialData?.id ? "PUT" : "POST"
