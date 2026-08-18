@@ -224,6 +224,23 @@ function isLabKpiAuthorizedEmail(email?: string) {
     return false
   }
 
+  if (activeCheckModule === "ot_concreto" || activeCheckModule === "ot") {
+    const normalizedRole = normalizeRole(role)
+    if (
+      isAdminDashboardRole(role) ||
+      normalizedRole === "jefe_laboratorio" ||
+      normalizedRole.includes("laboratorio") ||
+      normalizedRole.includes("oficina_tecnica")
+    ) {
+      return true
+    }
+    return (
+      permissions?.[activeCheckModule]?.read === true ||
+      permissions?.ot?.read === true ||
+      permissions?.ot_concreto?.read === true
+    )
+  }
+
   const explicitRead = permissions?.[activeCheckModule]?.read === true
   if (explicitRead) {
     return true
