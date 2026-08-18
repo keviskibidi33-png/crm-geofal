@@ -18,6 +18,7 @@ interface RecepcionStatusBadgeProps {
     numeroRecepcion?: string | null
     otExists?: boolean
     otEstado?: string | null
+    otEmitida?: boolean
     otMissingFields?: string[]
     onNavigateToOTConcreto?: (numRecepcion: string) => void
 }
@@ -26,12 +27,13 @@ export function RecepcionStatusBadge({
     numeroRecepcion,
     otExists = false,
     otEstado,
+    otEmitida,
     otMissingFields = [],
     onNavigateToOTConcreto,
 }: RecepcionStatusBadgeProps) {
-    const estado = (otEstado ?? "PENDIENTE").toUpperCase()
-    const isCompletado = otExists && (estado === "COMPLETADO" || estado === "DESCARGADO")
-    const isEmitido    = otExists && estado === "EMITIDO"
+    const estado = (otEstado ?? "").toUpperCase()
+    const isCompletado = estado === "COMPLETADO" || estado === "DESCARGADO"
+    const isEmitido    = otEmitida === true || estado === "EMITIDO"
 
     if (isCompletado) {
         return (

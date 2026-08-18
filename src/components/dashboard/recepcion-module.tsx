@@ -444,6 +444,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 numeroRecepcion={item.numero_recepcion}
                                                 otExists={item.ot_exists}
                                                 otEstado={item.ot_estado}
+                                                otEmitida={item.ot_emitida}
                                                 otMissingFields={item.ot_missing_fields}
                                                 onNavigateToOTConcreto={onNavigateToOTConcreto}
                                             />
