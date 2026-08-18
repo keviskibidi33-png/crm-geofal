@@ -481,12 +481,19 @@ Atentamente,`
                                 <label className="text-[11px] font-semibold text-muted-foreground block">
                                     Firma Institucional (se adjunta al pie del correo):
                                 </label>
-                                <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950">
-                                    {activeProfile.cargo}
-                                </Badge>
-                            </div>
-                            <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
                                 {activeProfile.signature_image_url ? (
+                                    <Badge variant="outline" className="text-[10px] text-green-700 dark:text-green-300 border-green-300 bg-green-50 dark:bg-green-950/50">
+                                        Firma Oficial: {activeProfile.cargo}
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-100 dark:bg-slate-800">
+                                        None (Sin firma gráfica)
+                                    </Badge>
+                                )}
+                            </div>
+
+                            {activeProfile.signature_image_url ? (
+                                <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
                                     <img
                                         src={activeProfile.signature_image_url}
                                         alt="Firma Geofal"
@@ -495,23 +502,28 @@ Atentamente,`
                                             (e.target as HTMLElement).style.display = 'none';
                                         }}
                                     />
-                                ) : (
-                                    <div className="bg-[#ff5500] text-white font-black text-xs px-3 py-2.5 rounded-lg text-center tracking-tight shadow-xs select-none shrink-0">
-                                        Geofal
-                                    </div>
-                                )}
-                                <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
-                                    <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
-                                        {activeProfile.cargo}
-                                    </div>
-                                    <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
-                                        GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground">
-                                        <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> {activeProfile.from_email} &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
+                                    <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
+                                        <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
+                                            {activeProfile.cargo}
+                                        </div>
+                                        <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                                            GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                            <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> {activeProfile.from_email} &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="p-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-800 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
+                                            None / Sin firma
+                                        </span>
+                                        <span>El correo saldrá sin imagen de firma personal, solo con los datos de <strong>{activeProfile.nombre}</strong>.</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Archivo Adjunto Automático */}
