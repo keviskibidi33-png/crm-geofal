@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -17,6 +17,7 @@ import { authFetch } from "@/lib/api-auth"
 import { formatOtDisplay } from "@/lib/utils"
 import { OrdenForm } from "./recepcion-native/OrdenForm"
 import { OrdenDetail } from "./recepcion-native/OrdenDetail"
+import { RecepcionEmailModal } from "./recepcion-native/RecepcionEmailModal"
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -40,6 +41,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
     const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+    const [selectedEmailRecepcion, setSelectedEmailRecepcion] = useState<Recepcion | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
     const [isImporting, setIsImporting] = useState(false)
     const [isImportTypeModalOpen, setIsImportTypeModalOpen] = useState(false)
@@ -488,6 +491,19 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 <FileSpreadsheet className="h-4 w-4 text-green-600" />
                                             </Button>
 
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    setSelectedEmailRecepcion(item)
+                                                    setIsEmailModalOpen(true)
+                                                }}
+                                                title="Enviar Notificación por Correo (Outlook)"
+                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                                            >
+                                                <Mail className="h-4 w-4 text-blue-600" />
+                                            </Button>
+
                                             {canDelete && (
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
@@ -746,6 +762,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Modal de Envío de Notificación por Correo (Outlook) */}
+            <RecepcionEmailModal
+                open={isEmailModalOpen}
+                onOpenChange={setIsEmailModalOpen}
+                recepcion={selectedEmailRecepcion}
+            />
         </div>
     )
 }
