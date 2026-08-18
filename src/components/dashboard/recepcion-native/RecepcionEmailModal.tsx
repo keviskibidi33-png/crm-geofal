@@ -20,6 +20,17 @@ interface RecepcionEmailModalProps {
 
 const DEFAULT_CCS = ["oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"]
 
+const getTipoMuestraLabel = (tipo?: string) => {
+    switch ((tipo || "").toUpperCase()) {
+        case "CONCRETO": return "Concreto"
+        case "SUELO_AGREGADO": return "Suelo/Agregado"
+        case "ALBANILERIA": return "Albañilería"
+        case "ROCA": return "Roca"
+        case "AGUA": return "Agua"
+        default: return "Concreto"
+    }
+}
+
 export function RecepcionEmailModal({ open, onOpenChange, recepcion }: RecepcionEmailModalProps) {
     const [toEmail, setToEmail] = useState("")
     const [ccList, setCcList] = useState<string[]>(DEFAULT_CCS)
@@ -34,12 +45,14 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
     useEffect(() => {
         if (!recepcion || !open) return
 
-        const cliente = recepcion.cliente || "Cliente"
+        const persona = recepcion.persona_contacto?.trim() || recepcion.cliente?.trim() || "Cliente"
         const numRecepcion = recepcion.numero_recepcion || "-"
-        const numOt = recepcion.numero_ot ? formatOtDisplay(recepcion.numero_ot) : "-"
-        const proyecto = recepcion.proyecto || "-"
-        const fecha = recepcion.fecha_recepcion || "-"
-        const muestrasCount = recepcion.muestras_count ?? (Array.isArray(recepcion.muestras) ? recepcion.muestras.length : 0)
+        const tipoLabel = getTipoMuestraLabel(recepcion.tipo_recepcion)
+
+        // Saludo dinámico según hora peruana (UTC-5)
+        const now = new Date()
+        const peruHour = new Date(now.toLocaleString("en-US", { timeZone: "America/Lima" })).getHours()
+        const saludo = peruHour < 12 ? "Buenos días," : "Buenas tardes,"
 
         // Normalizar y auto-seleccionar todos los correos del cliente (separados por ; o saltos de línea)
         const rawEmail = recepcion.email || ""
@@ -50,21 +63,18 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
         
         setToEmail(emailList.join("; "))
         setCcList(DEFAULT_CCS)
-        setSubject(`RECEPCIÓN DE PROBETAS DE CONCRETO N° ${numRecepcion} - ${cliente}`)
+        setSubject(`Recepción (N° ${numRecepcion} muestra ${tipoLabel})`)
 
-        const generatedSpeech = `Estimado(s) ${cliente},
+        const generatedSpeech = `${saludo}
+Estimado(a) ${persona}
 
-Por medio de la presente, confirmamos la recepción satisfactoria de sus muestras/probetas de concreto en nuestro laboratorio GEOFAL S.A.C.:
+De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcion}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
 
-• N° Recepción: ${numRecepcion}
-• N° Orden de Trabajo: ${numOt}
-• Proyecto: ${proyecto}
-• Fecha de Recepción: ${fecha}
-• Cantidad de Probetas: ${muestrasCount} probetas
+Cualquier modificación solicitada una vez emitidos los informes de ensayo, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
 
-Adjuntamos en este correo el formato oficial de registro de recepción de probetas para su respectiva conformidad. Estaremos procediendo con los ensayos programados de rotura según las edades solicitadas.
+Agradeceremos nos brinde su conformidad por este medio para emitir el informe de ensayo.
 
-Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
+Atentamente,`
 
         setSpeechText(generatedSpeech)
     }, [recepcion, open])
@@ -380,11 +390,34 @@ Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
                                 </Button>
                             </div>
                             <Textarea
-                                rows={8}
+                                rows={7}
                                 value={speechText}
                                 onChange={(e) => setSpeechText(e.target.value)}
                                 className="text-xs leading-relaxed font-sans resize-y"
                             />
+                        </div>
+
+                        {/* Previsualización de la Firma Corporativa Oficial */}
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-muted-foreground block">
+                                Firma Institucional (se adjunta al pie del correo):
+                            </label>
+                            <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
+                                <div className="bg-[#ff5500] text-white font-black text-xs px-3 py-2.5 rounded-lg text-center tracking-tight shadow-xs select-none">
+                                    Geofal
+                                </div>
+                                <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5">
+                                    <div className="text-xs font-bold text-[#ea580c] tracking-wide">
+                                        OFICINA TÉCNICA
+                                    </div>
+                                    <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                                        GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                        <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> oficinatecnica1@geofal.com.pe &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Archivo Adjunto Automático */}
