@@ -316,6 +316,8 @@ export function ControlProbetasModule({}: ControlProbetasModuleProps) {
           const mm = String(today.getMonth() + 1).padStart(2, '0')
           const dd = String(today.getDate()).padStart(2, '0')
           nextRow.fecha_entrega = `${yyyy}/${mm}/${dd}`
+        } else if (st === "FALTA") {
+          nextRow.fecha_entrega = "-"
         }
         return nextRow
       })
@@ -1171,12 +1173,15 @@ const DataRow = memo(function DataRow({
               void onUpdate(item.muestra_id, {
                 status: v,
                 status_ensayo: v,
+                status_entrega: v,
                 fecha_entrega: `${yyyy}/${mm}/${dd}`
               })
             } else {
               void onUpdate(item.muestra_id, {
                 status: "FALTA",
-                status_ensayo: "FALTA"
+                status_ensayo: "FALTA",
+                status_entrega: "-",
+                fecha_entrega: "-"
               })
             }
           }}

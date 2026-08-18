@@ -116,6 +116,8 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
             if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
             if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
             if (data.observaciones) setObservaciones(data.observaciones)
+            if (data.ot_aperturada_por) setOtAperturadaPor(data.ot_aperturada_por)
+            if (data.ot_designada_a) setOtDesignadaA(data.ot_designada_a)
             if (Array.isArray(data.items) && data.items.length > 0) {
               setItems(data.items.map((it: any, idx: number) => ({
                 item: idx + 1,
@@ -188,13 +190,13 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
 
   // Notas y Personal
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
-  // Solo inicializar desde datos guardados; sin fallback para no sobrescribir
-  const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "")
+  // Default a BETZABETH ZARABIA si no se especifica
+  const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH ZARABIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
 
   /**
    * Auto-fill desde recepción: consulta el endpoint prefill y rellena
-   * cliente, proyecto, fecha, y lista de probetas automáticamente.
+   * cliente, proyecto, fecha, responsables y lista de probetas automáticamente.
    */
   const handlePrefill = async () => {
     const num = numeroRecepcion.trim()
@@ -218,6 +220,8 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
       if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
       if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
+      if (data.ot_aperturada_por) setOtAperturadaPor(data.ot_aperturada_por)
+      if (data.ot_designada_a) setOtDesignadaA(data.ot_designada_a)
 
       // Rellenar ítems (probetas) con trazabilidad completa
       if (Array.isArray(data.items) && data.items.length > 0) {
@@ -648,12 +652,16 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
               <div>
                 <Label className="text-xs font-semibold text-slate-700">OT APERTURADA POR</Label>
                 <select
-                  value={otAperturadaPor}
+                  value={otAperturadaPor || "BETZABETH ZARABIA"}
                   onChange={(e) => setOtAperturadaPor(e.target.value)}
                   className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="">— Seleccionar —</option>
-                  <option value="BETZABETH ZARABIA">BETZABETH ZARABIA</option>
+                  {(Array.from(new Set(["BETZABETH ZARABIA", otAperturadaPor].filter(Boolean))) as string[]).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -664,8 +672,11 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
                   className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="">— Seleccionar —</option>
-                  <option value="DEIVI INFANSON">DEIVI INFANSON</option>
-                  <option value="IVAN CHACON">IVAN CHACON</option>
+                  {(Array.from(new Set(["DEIVI INFANSON", "IVAN CHACON", otDesignadaA].filter(Boolean))) as string[]).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -251,15 +251,35 @@ export function useControlProbetas() {
             updatedItem.densidad = payload.densidad as string
             updatedItem.requiere_densidad = payload.densidad === "SI"
           }
-          if (payload.status_ensayo === "ANULADO") {
+          if (payload.status_ensayo === "ANULADO" || payload.status === "ANULADO") {
+            updatedItem.status = "ANULADO"
             updatedItem.status_ensayo = "ANULADO"
             updatedItem.status_entrega = "ANULADAS"
             updatedItem.estado_probeta = "ANULADO"
-          }
-          if (payload.status_entrega === "ENTREGADO" || payload.status_ensayo === "ENSAYADO") {
-            updatedItem.status_ensayo = "ENSAYADO"
-            updatedItem.status_entrega = "ENTREGADO"
+            updatedItem.fecha_entrega = "-"
+          } else if (
+            payload.status === "ENTREGADO" ||
+            payload.status === "INFORME LISTO" ||
+            payload.status_entrega === "ENTREGADO" ||
+            payload.status_ensayo === "ENSAYADO"
+          ) {
+            const today = new Date()
+            const yyyy = today.getFullYear()
+            const mm = String(today.getMonth() + 1).padStart(2, "0")
+            const dd = String(today.getDate()).padStart(2, "0")
+            const stVal = (payload.status as string) || (payload.status_entrega as string) || "ENTREGADO"
+            updatedItem.status = stVal
+            updatedItem.status_ensayo = stVal
+            updatedItem.status_entrega = stVal
             updatedItem.estado_probeta = "ensayado"
+            if (!payload.fecha_entrega || payload.fecha_entrega === "-") {
+              updatedItem.fecha_entrega = `${yyyy}/${mm}/${dd}`
+            }
+          } else if (payload.status === "FALTA" || payload.status_ensayo === "FALTA") {
+            updatedItem.status = "FALTA"
+            updatedItem.status_ensayo = "FALTA"
+            updatedItem.status_entrega = "-"
+            updatedItem.fecha_entrega = "-"
           }
           return updatedItem
         }
