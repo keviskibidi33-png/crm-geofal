@@ -118,13 +118,13 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
         setSubject(`Recepción (N° ${numRecepcionInitial} muestra ${tipoLabelInitial})`)
 
         const initialSpeech = `${saludo}
-Estimado(a) ${personaInitial}
+Estimado(a) **${personaInitial}**
 
-De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcionInitial}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
+De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (**N° ${numRecepcionInitial}**) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la **fecha de entrega** de los **informes de ensayo**.
 
-Cualquier modificación solicitada una vez emitidos los informes de ensayo, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
+Cualquier modificación solicitada una vez emitidos los **informes de ensayo**, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
 
-Agradeceremos nos brinde su conformidad por este medio para emitir el informe de ensayo.
+Agradeceremos nos brinde su **conformidad** por este medio para emitir el **informe de ensayo**.
 
 Atentamente,`
 
@@ -152,13 +152,13 @@ Atentamente,`
                         if (fullData.persona_contacto?.trim()) {
                             const updatedPersona = fullData.persona_contacto.trim()
                             setSpeechText(`${saludo}
-Estimado(a) ${updatedPersona}
+Estimado(a) **${updatedPersona}**
 
-De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcionInitial}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
+De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (**N° ${numRecepcionInitial}**) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la **fecha de entrega** de los **informes de ensayo**.
 
-Cualquier modificación solicitada una vez emitidos los informes de ensayo, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
+Cualquier modificación solicitada una vez emitidos los **informes de ensayo**, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
 
-Agradeceremos nos brinde su conformidad por este medio para emitir el informe de ensayo.
+Agradeceremos nos brinde su **conformidad** por este medio para emitir el **informe de ensayo**.
 
 Atentamente,`)
                         }
