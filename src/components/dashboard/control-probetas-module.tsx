@@ -1181,7 +1181,7 @@ const DataRow = memo(function DataRow({
             }
           }}
         >
-          <SelectTrigger className={`w-full max-w-[98px] h-6.5 text-[10px] font-bold rounded-md border shadow-2xs justify-between mx-auto px-2 py-0.5 transition-colors gap-1 [&_svg]:size-3.5 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-center [&>[data-slot=select-value]_*]:text-center ${
+          <SelectTrigger className={`w-full max-w-24.5 h-6.5 text-[10px] font-bold rounded-md border shadow-2xs justify-between mx-auto px-2 py-0.5 transition-colors gap-1 [&_svg]:size-3.5 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-center [&>[data-slot=select-value]_*]:text-center ${
             currentStatusSelect === "ENTREGADO"
               ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
               : currentStatusSelect === "INFORME LISTO"
@@ -1190,7 +1190,7 @@ const DataRow = memo(function DataRow({
           }`}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="min-w-[105px]">
+          <SelectContent className="min-w-26.25">
             <SelectItem value="FALTA" className="text-[10px] py-1 font-semibold">FALTA</SelectItem>
             <SelectItem value="ENTREGADO" className="text-[10px] py-1 font-semibold text-emerald-700">ENTREGADO</SelectItem>
             <SelectItem value="INFORME LISTO" className="text-[10px] py-1 font-semibold text-blue-700">INFORME LISTO</SelectItem>

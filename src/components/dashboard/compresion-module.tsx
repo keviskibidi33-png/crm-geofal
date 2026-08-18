@@ -630,7 +630,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[120px]">N° OT</TableHead>
+                            <TableHead className="w-30">N° OT</TableHead>
                             <TableHead>N° Recepción</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Fecha Creación</TableHead>
@@ -853,7 +853,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                         <Badge variant="outline" className="bg-white text-[9px] font-black">{selectedEnsayo.estado}</Badge>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <Table className="min-w-[1200px]">
+                                        <Table className="min-w-300">
                                             <TableHeader className="bg-slate-50/50">
                                                 <TableRow>
                                                     <TableHead className="text-[9px] font-black uppercase h-8">Item</TableHead>

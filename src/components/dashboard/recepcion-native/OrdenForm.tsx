@@ -881,7 +881,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       {String(errors.numero_recepcion.message ?? "")}
                     </span>
                   )}
-                  <div className="absolute right-2 top-[30px] flex flex-col items-end gap-1">
+                  <div className="absolute right-2 top-7.5 flex flex-col items-end gap-1">
                     {recepcionStatus.estado === "buscando" && (
                       <Badge variant="secondary" className="animate-pulse gap-1">
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -1526,7 +1526,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                               </span>
                             ) : null}
                             {c.contacto ? (
-                              <span className="text-[9px] font-black text-primary truncate max-w-[200px]">
+                              <span className="text-[9px] font-black text-primary truncate max-w-50">
                                 CONTACTO: {String(c.contacto)}
                               </span>
                             ) : null}

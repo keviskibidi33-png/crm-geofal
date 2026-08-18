@@ -397,18 +397,18 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/50 text-xs font-bold uppercase tracking-wider">
-                            <TableHead className="w-[110px]">Nº Recepción</TableHead>
-                            <TableHead className="w-[110px]">Nº OT</TableHead>
+                            <TableHead className="w-27.5">Nº Recepción</TableHead>
+                            <TableHead className="w-27.5">Nº OT</TableHead>
                             {scope === "concreto" ? (
-                                <TableHead className="w-[115px] text-center">Status</TableHead>
+                                <TableHead className="w-28.75 text-center">Status</TableHead>
                             ) : (
-                                <TableHead className="w-[140px]">Tipo Formato</TableHead>
+                                <TableHead className="w-35">Tipo Formato</TableHead>
                             )}
                             <TableHead>Cliente</TableHead>
                             <TableHead>Proyecto</TableHead>
-                            <TableHead className="w-[110px]">F. Recepción</TableHead>
-                            <TableHead className="w-[90px] text-center">Muestras</TableHead>
-                            <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                            <TableHead className="w-27.5">F. Recepción</TableHead>
+                            <TableHead className="w-22.5 text-center">Muestras</TableHead>
+                            <TableHead className="w-25 text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="text-xs">
@@ -515,10 +515,10 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                             {getTipoBadge(item.tipo_recepcion)}
                                         </TableCell>
                                     )}
-                                    <TableCell className="font-medium max-w-[200px] truncate" title={item.cliente}>
+                                    <TableCell className="font-medium max-w-50 truncate" title={item.cliente}>
                                         {item.cliente || "-"}
                                     </TableCell>
-                                    <TableCell className="max-w-[250px] truncate text-muted-foreground" title={item.proyecto}>
+                                    <TableCell className="max-w-62.5 truncate text-muted-foreground" title={item.proyecto}>
                                         {item.proyecto || "-"}
                                     </TableCell>
                                     <TableCell>
@@ -635,7 +635,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="min-w-[120px] text-center text-xs font-medium">
+                    <span className="min-w-30 text-center text-xs font-medium">
                         Página {safeCurrentPage} / {safeTotalPages}
                     </span>
                     <Button
@@ -784,7 +784,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                             : "border-border hover:border-primary/50 hover:bg-accent/50"
                                     }`}
                                 >
-                                    <div className={`p-2 rounded-md ${item.color} flex-shrink-0`}>
+                                    <div className={`p-2 rounded-md ${item.color} shrink-0`}>
                                         <IconComponent className="h-4 w-4" />
                                     </div>
                                     <div className="flex-1 min-w-0 pr-4">

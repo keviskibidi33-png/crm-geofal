@@ -250,7 +250,7 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
                   Muestras Registradas ({orden.muestras?.length || 0})
                 </h3>
               </div>
-              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              <div className="overflow-x-auto max-h-100 overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="text-[10px] uppercase font-black tracking-widest">

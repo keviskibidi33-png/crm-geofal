@@ -347,14 +347,14 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 text-xs uppercase font-bold text-muted-foreground tracking-wider">
-                  <TableHead className="w-[120px]">N° OT</TableHead>
-                  <TableHead className="w-[120px]">N° Recepción</TableHead>
-                  <TableHead className="min-w-[200px]">Cliente</TableHead>
-                  <TableHead className="min-w-[240px]">Proyecto</TableHead>
-                  <TableHead className="w-[120px]">F. Recepción</TableHead>
-                  <TableHead className="w-[100px] text-center">Probetas</TableHead>
-                  <TableHead className="w-[110px] text-center">Estado</TableHead>
-                  <TableHead className="w-[140px] text-right">Acciones</TableHead>
+                  <TableHead className="w-30">N° OT</TableHead>
+                  <TableHead className="w-30">N° Recepción</TableHead>
+                  <TableHead className="min-w-50">Cliente</TableHead>
+                  <TableHead className="min-w-60">Proyecto</TableHead>
+                  <TableHead className="w-30">F. Recepción</TableHead>
+                  <TableHead className="w-25 text-center">Probetas</TableHead>
+                  <TableHead className="w-27.5 text-center">Estado</TableHead>
+                  <TableHead className="w-35 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
@@ -390,10 +390,10 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
                       <TableCell className="font-mono font-semibold text-slate-700">
                         {ot.numero_recepcion ?? "—"}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[220px] truncate" title={ot.cliente ?? undefined}>
+                      <TableCell className="font-medium max-w-55 truncate" title={ot.cliente ?? undefined}>
                         {ot.cliente ?? "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[250px] truncate" title={ot.proyecto ?? undefined}>
+                      <TableCell className="text-muted-foreground max-w-62.5 truncate" title={ot.proyecto ?? undefined}>
                         {ot.proyecto ?? "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">

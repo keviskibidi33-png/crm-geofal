@@ -228,7 +228,7 @@ export function OTModule() {
 
       {/* METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-sky-50/60 to-white">
+        <Card className="border border-slate-200/80 shadow-sm bg-linear-to-br from-sky-50/60 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
               Total OTs Registradas
@@ -239,7 +239,7 @@ export function OTModule() {
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-blue-50/50 to-white">
+        <Card className="border border-slate-200/80 shadow-sm bg-linear-to-br from-blue-50/50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
               En Proceso
@@ -252,7 +252,7 @@ export function OTModule() {
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+        <Card className="border border-slate-200/80 shadow-sm bg-linear-to-br from-emerald-50/50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
               Completadas
@@ -265,7 +265,7 @@ export function OTModule() {
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200/80 shadow-sm bg-gradient-to-br from-slate-50 to-white">
+        <Card className="border border-slate-200/80 shadow-sm bg-linear-to-br from-slate-50 to-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Pendientes
@@ -312,14 +312,14 @@ export function OTModule() {
           <Table>
             <TableHeader className="bg-slate-50/80">
               <TableRow className="border-b border-slate-200">
-                <TableHead className="w-[140px] font-bold text-slate-700">N° OT</TableHead>
-                <TableHead className="w-[120px] font-bold text-slate-700">N° RECEPCIÓN</TableHead>
-                <TableHead className="w-[130px] font-bold text-slate-700">FECHA RECEPCIÓN</TableHead>
-                <TableHead className="w-[100px] font-bold text-slate-700 text-center">PLAZO</TableHead>
+                <TableHead className="w-35 font-bold text-slate-700">N° OT</TableHead>
+                <TableHead className="w-30 font-bold text-slate-700">N° RECEPCIÓN</TableHead>
+                <TableHead className="w-32.5 font-bold text-slate-700">FECHA RECEPCIÓN</TableHead>
+                <TableHead className="w-25 font-bold text-slate-700 text-center">PLAZO</TableHead>
                 <TableHead className="font-bold text-slate-700">ENSAYOS / MUESTRAS</TableHead>
-                <TableHead className="w-[160px] font-bold text-slate-700">TÉCNICO DESIGNADO</TableHead>
-                <TableHead className="w-[120px] font-bold text-slate-700 text-center">ESTADO</TableHead>
-                <TableHead className="w-[160px] font-bold text-slate-700 text-right pr-6">ACCIONES</TableHead>
+                <TableHead className="w-40 font-bold text-slate-700">TÉCNICO DESIGNADO</TableHead>
+                <TableHead className="w-30 font-bold text-slate-700 text-center">ESTADO</TableHead>
+                <TableHead className="w-40 font-bold text-slate-700 text-right pr-6">ACCIONES</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -362,7 +362,7 @@ export function OTModule() {
                         <Badge variant="outline" className="bg-slate-100 text-slate-700 text-[10px]">
                           {ot.items?.length || 0} ítems
                         </Badge>
-                        <span className="truncate max-w-[280px] text-slate-600 italic">
+                        <span className="truncate max-w-70 text-slate-600 italic">
                           {ot.items && ot.items.length > 0
                             ? ot.items.map((i) => i.descripcion).filter(Boolean).join(", ")
                             : "Sin descripción"}
