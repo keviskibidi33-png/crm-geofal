@@ -51,14 +51,14 @@ const EMAIL_PROFILES_CATALOG: EmailProfileOption[] = [
         from_name: "Oficina Técnica - GEOFAL",
         from_email: "oficinatecnica1@geofal.com.pe",
         default_cc: ["oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
-        signature_image_url: "/FirmaCoordinadoraLabBetzabethSaravia.png",
+        signature_image_url: undefined,
     },
     {
         id: "COORDINADOR_LAB",
         codigo: "COORDINADOR_LAB",
         nombre: "Coordinación de Laboratorio",
-        cargo: "Coordinador de Laboratorio",
-        from_name: "Coordinador de Laboratorio - GEOFAL",
+        cargo: "Coordinadora de Laboratorio",
+        from_name: "Coordinadora de Laboratorio - GEOFAL",
         from_email: "coordinadorlab@geofal.com.pe",
         default_cc: ["oficinatecnica1@geofal.com.pe", "oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
         signature_image_url: "/FirmaCoordinadoraLabBetzabethSaravia.png",
@@ -486,14 +486,20 @@ Atentamente,`
                                 </Badge>
                             </div>
                             <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
-                                <img
-                                    src={activeProfile.signature_image_url || "/FirmaCoordinadoraLabBetzabethSaravia.png"}
-                                    alt="Firma Geofal"
-                                    className="h-12 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
-                                    onError={(e) => {
-                                        (e.target as HTMLElement).style.display = 'none';
-                                    }}
-                                />
+                                {activeProfile.signature_image_url ? (
+                                    <img
+                                        src={activeProfile.signature_image_url}
+                                        alt="Firma Geofal"
+                                        className="h-12 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
+                                        onError={(e) => {
+                                            (e.target as HTMLElement).style.display = 'none';
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="bg-[#ff5500] text-white font-black text-xs px-3 py-2.5 rounded-lg text-center tracking-tight shadow-xs select-none shrink-0">
+                                        Geofal
+                                    </div>
+                                )}
                                 <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
                                     <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
                                         {activeProfile.cargo}
