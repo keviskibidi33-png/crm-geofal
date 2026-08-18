@@ -5,6 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Formatea un número de OT para mostrar visualmente el prefijo "OT-".
+ * NO modifica el valor almacenado ni el que se envía al backend/Excel.
+ *
+ * Reglas:
+ *  - Si el valor ya contiene "OT" (case-insensitive) → se muestra tal cual.
+ *  - Si no tiene "OT" → se antepone "OT-" para visualización.
+ *  - Vacío o "-" → se devuelve "-".
+ */
+export function formatOtDisplay(value: string | null | undefined): string {
+  if (!value || value.trim() === '' || value.trim() === '-') return '-'
+  const trimmed = value.trim()
+  if (/^OT[-\s]/i.test(trimmed)) return trimmed
+  return `OT-${trimmed}`
+}
+
 export function formatLocalDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "-";
   

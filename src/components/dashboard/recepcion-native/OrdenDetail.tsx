@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { authFetch } from "@/lib/api-auth";
+import { formatOtDisplay } from "@/lib/utils";
 import type { RecepcionMuestraData } from "@/types/recepcion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -151,7 +152,7 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-black text-primary uppercase tracking-tight">
-              OT: {orden.numero_ot}
+              OT: {formatOtDisplay(orden.numero_ot)}
             </h1>
             <Badge
               variant={orden.estado === "COMPLETADA" ? "default" : "secondary"}

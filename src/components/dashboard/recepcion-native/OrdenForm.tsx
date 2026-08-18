@@ -1034,24 +1034,33 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                   <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
                     OT Nº:
                   </Label>
-                  <Input
-                    {...register("numero_ot")}
-                    autoComplete="off"
-                    onBlur={(e) => {
-                      let value = e.target.value.trim().toUpperCase();
-                      if (value) {
-                        const fullFormat = /^OT-\d+-\d{2}$/.test(value);
-                        if (!fullFormat) {
-                          const digits = value.match(/\d+/);
-                          if (digits) value = `OT-${digits[0]}-26`;
+                  <div className="relative flex items-center">
+                    {watch("numero_ot") && !/^ot/i.test(watch("numero_ot").trim()) && (
+                      <span className="absolute left-3 font-mono font-bold text-slate-400 pointer-events-none select-none text-sm">
+                        OT-
+                      </span>
+                    )}
+                    <Input
+                      {...register("numero_ot")}
+                      autoComplete="off"
+                      onBlur={(e) => {
+                        let value = e.target.value.trim();
+                        if (value) {
+                          // Si no tiene guión de año, agregar suffix
+                          if (!value.includes("-")) {
+                            const year = new Date().getFullYear().toString().slice(-2);
+                            value = `${value}-${year}`;
+                          }
+                          e.target.value = value;
+                          setValue("numero_ot", value, { shouldValidate: true });
                         }
-                        e.target.value = value;
-                        setValue("numero_ot", value, { shouldValidate: true });
-                      }
-                    }}
-                    className={errors.numero_ot ? "border-destructive" : ""}
-                    placeholder="OT-196-26"
-                  />
+                      }}
+                      className={`${errors.numero_ot ? "border-destructive" : ""} ${
+                        watch("numero_ot") && !/^ot/i.test(watch("numero_ot").trim()) ? "pl-10 font-mono font-bold" : "font-mono font-bold"
+                      }`}
+                      placeholder="193-26"
+                    />
+                  </div>
                   {errors.numero_ot?.message && (
                     <span className="text-[9px] font-black text-destructive ml-1">
                       {String(errors.numero_ot.message ?? "")}

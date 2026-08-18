@@ -24,6 +24,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
+import { formatOtDisplay } from "@/lib/utils"
 import { OTForm, type OTData } from "./ot-native/OTForm"
 import { OTDetailDialog } from "./ot-native/OTDetailDialog"
 
@@ -384,7 +385,7 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
                   data.map((ot) => (
                     <TableRow key={ot.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-mono font-bold text-primary">
-                        {ot.numero_ot || "—"}
+                        {formatOtDisplay(ot.numero_ot)}
                       </TableCell>
                       <TableCell className="font-mono font-semibold text-slate-700">
                         {ot.numero_recepcion ?? "—"}

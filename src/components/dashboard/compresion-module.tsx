@@ -23,6 +23,7 @@ import { ModernConfirmDialog } from "./modern-confirm-dialog"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 import { authFetch } from "@/lib/api-auth"
+import { formatOtDisplay } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { formatLocalDate } from "@/lib/utils"
 import { EstadoDelTrabajoCard } from "@/components/dashboard/shared/EstadoDelTrabajoCard"
@@ -650,7 +651,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                         ) : (
                             paginatedData.map((item) => (
                                 <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(item)}>
-                                    <TableCell className="font-bold text-primary">{item.numero_ot}</TableCell>
+                                    <TableCell className="font-bold text-primary">{formatOtDisplay(item.numero_ot)}</TableCell>
                                     <TableCell>{item.numero_recepcion}</TableCell>
                                     <TableCell>{getEstadoBadge(item.estado)}</TableCell>
                                     <TableCell>
@@ -769,7 +770,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                             Detalle de F. Probetas
                         </DialogTitle>
                         <DialogDescription>
-                            Información completa del formato OT {selectedEnsayo?.numero_ot}
+                            Información completa del formato OT {formatOtDisplay(selectedEnsayo?.numero_ot)}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -811,7 +812,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número OT</p>
-                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{selectedEnsayo.numero_ot}</p>
+                                                    <p className="text-sm font-semibold text-indigo-600 font-mono">{formatOtDisplay(selectedEnsayo.numero_ot)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Número Recepción</p>

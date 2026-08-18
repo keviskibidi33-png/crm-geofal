@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { ModernConfirmDialog } from "./modern-confirm-dialog"
+import { formatOtDisplay } from "@/lib/utils"
 import { OTForm, type OTData } from "./ot-native/OTForm"
 import { OTDetailDialog } from "./ot-native/OTDetailDialog"
 
@@ -345,7 +346,7 @@ export function OTModule() {
                 data.map((ot) => (
                   <TableRow key={ot.id} className="hover:bg-sky-50/20 transition-colors">
                     <TableCell className="font-mono font-bold text-sky-900 text-xs">
-                      {ot.numero_ot}
+                      {formatOtDisplay(ot.numero_ot)}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-700">
                       {ot.numero_recepcion || "-"}

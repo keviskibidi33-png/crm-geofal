@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-control-probetas"
 type DensidadValue = "SI" | "NO"
 import { DialogFullscreen, DialogFullscreenContent } from "@/components/ui/dialog-fullscreen"
+import { formatOtDisplay } from "@/lib/utils"
 
 function SuggestionInput({
   value,
@@ -1100,7 +1101,7 @@ const DataRow = memo(function DataRow({
       {/* RECEPCIÓN */}
       <td className={TD}>
         <div className="font-bold text-slate-800 text-[11px] leading-tight">{item.numero_recepcion}</div>
-        <div className="text-[8px] text-slate-400 font-medium">{item.numero_ot}</div>
+        <div className="text-[8px] text-slate-400 font-medium">{formatOtDisplay(item.numero_ot)}</div>
       </td>
       {/* CÓDIGO LEM (from recepcion) */}
       <td className={`${TD} font-mono text-[11px] font-bold text-slate-700`}>{item.codigo_muestra_lem || "—"}</td>

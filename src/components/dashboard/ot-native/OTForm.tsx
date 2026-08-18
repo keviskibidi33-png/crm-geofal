@@ -377,21 +377,30 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° OT *</Label>
-                <Input
-                  placeholder="ej. 1981-26"
-                  value={numeroOt}
-                  onChange={(e) => { setNumeroOt(e.target.value); markDirty() }}
-                  onBlur={() => {
-                    const val = numeroOt.trim()
-                    if (val && !val.includes("-")) {
-                      const year = new Date().getFullYear().toString().slice(-2)
-                      setNumeroOt(`${val}-${year}`)
-                      markDirty()
-                    }
-                  }}
-                  className="mt-1 font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
-                  required
-                />
+                <div className="relative flex items-center mt-1">
+                  {numeroOt.trim() !== "" && !/^ot/i.test(numeroOt.trim()) && (
+                    <span className="absolute left-3 font-mono font-bold text-slate-400 pointer-events-none select-none text-sm">
+                      OT-
+                    </span>
+                  )}
+                  <Input
+                    placeholder="ej. 1981-26"
+                    value={numeroOt}
+                    onChange={(e) => { setNumeroOt(e.target.value); markDirty() }}
+                    onBlur={() => {
+                      const val = numeroOt.trim()
+                      if (val && !val.includes("-")) {
+                        const year = new Date().getFullYear().toString().slice(-2)
+                        setNumeroOt(`${val}-${year}`)
+                        markDirty()
+                      }
+                    }}
+                    className={`font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500 ${
+                      numeroOt.trim() !== "" && !/^ot/i.test(numeroOt.trim()) ? "pl-10" : ""
+                    }`}
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>

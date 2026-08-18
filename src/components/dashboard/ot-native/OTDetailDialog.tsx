@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileText, Download, Calendar, Layers, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
+import { formatOtDisplay } from "@/lib/utils"
 import type { OTData } from "./OTForm"
 
 interface OTDetailDialogProps {
@@ -62,7 +63,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
         <div className="flex items-center justify-between">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
             <FileText className="h-6 w-6 text-sky-600" />
-            Orden de Trabajo: <span className="font-mono text-sky-700">{ot.numero_ot}</span>
+            Orden de Trabajo: <span className="font-mono text-sky-700">{formatOtDisplay(ot.numero_ot)}</span>
           </DialogTitle>
           {getStatusBadge(ot.estado)}
         </div>
@@ -76,7 +77,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
         <div className="grid grid-cols-3 gap-4 bg-sky-50/60 p-4 rounded-xl border border-sky-200/80 text-xs">
           <div>
             <span className="font-semibold text-slate-500 block">N° OT</span>
-            <span className="font-mono font-bold text-sky-900 text-sm">{ot.numero_ot}</span>
+            <span className="font-mono font-bold text-sky-900 text-sm">{formatOtDisplay(ot.numero_ot)}</span>
           </div>
           <div>
             <span className="font-semibold text-slate-500 block">N° RECEPCIÓN</span>

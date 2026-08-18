@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
 import { authFetch } from "@/lib/api-auth"
+import { formatOtDisplay } from "@/lib/utils"
 import { OrdenForm } from "./recepcion-native/OrdenForm"
 import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 
@@ -434,7 +435,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         {item.numero_recepcion || "-"}
                                     </TableCell>
                                     <TableCell className="font-bold font-mono">
-                                        {item.numero_ot || "-"}
+                                        {formatOtDisplay(item.numero_ot)}
                                     </TableCell>
                                     {scope === "concreto" ? (
                                         <TableCell className="text-center">
