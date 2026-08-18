@@ -27,6 +27,7 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
     const [subject, setSubject] = useState("")
     const [speechText, setSpeechText] = useState("")
     const [isGenerating, setIsGenerating] = useState(false)
+    const [isSending, setIsSending] = useState(false)
     const [copied, setCopied] = useState(false)
 
     // Formatear speech y datos al abrir con una nueva recepción
@@ -87,6 +88,59 @@ Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
         setCopied(true)
         toast.success("Speech copiado al portapapeles")
         setTimeout(() => setCopied(false), 2000)
+    }
+
+    const handleSendDirectEmail = async () => {
+        if (!recepcion) return
+        if (!toEmail.trim()) {
+            toast.error("Por favor ingrese al menos un correo de destinatario para el cliente.")
+            return
+        }
+
+        setIsSending(true)
+        const toastId = toast.loading("Enviando correo oficial con Excel adjunto...", {
+            description: "Conectando con el servidor institucional oficinatecnica1@geofal.com.pe..."
+        })
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+            const payload = {
+                to_email: toEmail.trim(),
+                cc_emails: ccList,
+                subject: subject.trim(),
+                body_text: speechText.trim(),
+            }
+
+            const response = await authFetch(`${API_URL}/api/recepcion/${recepcion.id}/enviar-correo`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data?.detail || "Error al enviar el correo.")
+            }
+
+            toast.success("¡Correo enviado exitosamente!", {
+                id: toastId,
+                description: `Se envió a ${data.to?.join(", ") || toEmail} con copia a los correos internos y el Excel adjunto.`,
+                duration: 6000,
+            })
+            onOpenChange(false)
+        } catch (error: any) {
+            console.error("Error enviando correo:", error)
+            toast.error("No se pudo enviar el correo", {
+                id: toastId,
+                description: error.message || "Verifique la conexión o contacte al administrador.",
+                duration: 7000,
+            })
+        } finally {
+            setIsSending(false)
+        }
     }
 
     const handleOpenMailtoDirect = () => {
@@ -363,7 +417,7 @@ Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
                         variant="outline"
                         size="sm"
                         onClick={() => onOpenChange(false)}
-                        disabled={isGenerating}
+                        disabled={isSending || isGenerating}
                         className="text-xs"
                     >
                         Cancelar
@@ -374,32 +428,32 @@ Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={handleOpenMailtoDirect}
-                            disabled={isGenerating}
-                            className="text-xs font-semibold text-slate-700 dark:text-slate-200 border-slate-300 hover:bg-accent gap-1.5"
-                            title="Abre directamente la ventana de Outlook en pantalla usando el protocolo nativo mailto"
+                            onClick={handleOpenInOutlook}
+                            disabled={isSending || isGenerating}
+                            className="text-xs font-medium text-slate-700 dark:text-slate-200 border-slate-300 hover:bg-accent gap-1.5"
+                            title="Descarga el borrador .eml para abrirlo en Outlook de escritorio"
                         >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Abrir Outlook Directo (mailto)
+                            {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5 text-blue-600" />}
+                            Borrador Outlook (.eml)
                         </Button>
 
                         <Button
                             type="button"
                             size="sm"
-                            onClick={handleOpenInOutlook}
-                            disabled={isGenerating}
-                            className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-xs"
-                            title="Genera el archivo .eml con el Excel oficial y firma institucional Geofal ya adjuntados"
+                            onClick={handleSendDirectEmail}
+                            disabled={isSending || isGenerating}
+                            className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
+                            title="Envía el correo directamente desde oficinatecnica1@geofal.com.pe con el Excel oficial y firma corporativa"
                         >
-                            {isGenerating ? (
+                            {isSending ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Generando...
+                                    Enviando Correo...
                                 </>
                             ) : (
                                 <>
-                                    <Mail className="h-4 w-4" />
-                                    Abrir con Excel Adjunto (.eml)
+                                    <Send className="h-4 w-4" />
+                                    Enviar Correo Directo
                                 </>
                             )}
                         </Button>
