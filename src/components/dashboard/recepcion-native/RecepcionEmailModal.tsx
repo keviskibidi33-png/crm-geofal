@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Mail, FileSpreadsheet, Copy, Send, Check, Loader2, Sparkles, Building2, Calendar, Hash, FolderKanban, X, ExternalLink, User } from "lucide-react"
+import { Mail, FileSpreadsheet, Copy, Send, Check, Loader2, Sparkles, Building2, Calendar, Hash, FolderKanban, X, ExternalLink, User, ShieldCheck, AlertCircle, AlertTriangle } from "lucide-react"
 import { Recepcion } from "@/hooks/use-recepciones"
 import { authFetch } from "@/lib/api-auth"
 import { formatOtDisplay } from "@/lib/utils"
@@ -74,6 +74,7 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
     const [speechText, setSpeechText] = useState("")
     const [isGenerating, setIsGenerating] = useState(false)
     const [isSending, setIsSending] = useState(false)
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false)
     const [copied, setCopied] = useState(false)
 
     const activeProfile = EMAIL_PROFILES_CATALOG.find(p => p.id === selectedProfileId) || EMAIL_PROFILES_CATALOG[0]
@@ -85,34 +86,41 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
         toast.info(`Perfil cambiado a: ${profile.nombre} (${profile.from_email})`)
     }
 
-    // Formatear speech y datos al abrir con una nueva recepción
+    // Formatear speech y datos al abrir con una nueva recepción + consulta asíncrona de seguridad
     useEffect(() => {
         if (!recepcion || !open) return
 
-        const persona = recepcion.persona_contacto?.trim() || recepcion.cliente?.trim() || "Cliente"
-        const numRecepcion = recepcion.numero_recepcion || "-"
-        const tipoLabel = getTipoMuestraLabel(recepcion.tipo_recepcion)
+        let isMounted = true
+
+        const personaInitial = recepcion.persona_contacto?.trim() || recepcion.cliente?.trim() || "Cliente"
+        const numRecepcionInitial = recepcion.numero_recepcion || "-"
+        const tipoLabelInitial = getTipoMuestraLabel(recepcion.tipo_recepcion)
 
         // Saludo dinámico según hora peruana (UTC-5)
         const now = new Date()
         const peruHour = new Date(now.toLocaleString("en-US", { timeZone: "America/Lima" })).getHours()
         const saludo = peruHour < 12 ? "Buenos días," : "Buenas tardes,"
 
-        // Normalizar y auto-seleccionar todos los correos del cliente (separados por ; o saltos de línea)
+        // Normalizar y auto-seleccionar correos iniciales si están en el registro de la fila
         const rawEmail = recepcion.email || ""
         const emailList = rawEmail
             .split(/[\r\n;,]+/)
             .map(e => e.trim())
             .filter(e => e.length > 0)
         
-        setToEmail(emailList.join("; "))
+        if (emailList.length > 0) {
+            setToEmail(emailList.join("; "))
+        } else {
+            setToEmail("")
+        }
+
         setCcList(activeProfile.default_cc)
-        setSubject(`Recepción (N° ${numRecepcion} muestra ${tipoLabel})`)
+        setSubject(`Recepción (N° ${numRecepcionInitial} muestra ${tipoLabelInitial})`)
 
-        const generatedSpeech = `${saludo}
-Estimado(a) ${persona}
+        const initialSpeech = `${saludo}
+Estimado(a) ${personaInitial}
 
-De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcion}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
+De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcionInitial}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
 
 Cualquier modificación solicitada una vez emitidos los informes de ensayo, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
 
@@ -120,8 +128,55 @@ Agradeceremos nos brinde su conformidad por este medio para emitir el informe de
 
 Atentamente,`
 
-        setSpeechText(generatedSpeech)
-    }, [recepcion, open])
+        setSpeechText(initialSpeech)
+
+        // Consulta asíncrona para asegurar que cargue el correo completo y persona de contacto desde el backend
+        const fetchFullDetails = async () => {
+            setIsLoadingDetails(true)
+            try {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+                const res = await authFetch(`${API_URL}/api/recepcion/${recepcion.id}`)
+                if (res.ok) {
+                    const fullData = await res.json()
+                    if (isMounted && fullData) {
+                        const fullEmailRaw = fullData.email || ""
+                        const fullEmailList = fullEmailRaw
+                            .split(/[\r\n;,]+/)
+                            .map((e: string) => e.trim())
+                            .filter((e: string) => e.length > 0)
+
+                        if (fullEmailList.length > 0) {
+                            setToEmail(fullEmailList.join("; "))
+                        }
+
+                        if (fullData.persona_contacto?.trim()) {
+                            const updatedPersona = fullData.persona_contacto.trim()
+                            setSpeechText(`${saludo}
+Estimado(a) ${updatedPersona}
+
+De acuerdo con la muestra recepcionada en laboratorio, le hacemos llegar el Formato de Recepción (N° ${numRecepcionInitial}) con el fin de completar y/o verifique que los datos consignados sean correctos y tenga conocimiento de la fecha de entrega de los informes de ensayo.
+
+Cualquier modificación solicitada una vez emitidos los informes de ensayo, deberá justificar el motivo del cambio por correo, el área comercial se pondrá en contacto.
+
+Agradeceremos nos brinde su conformidad por este medio para emitir el informe de ensayo.
+
+Atentamente,`)
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error cargando detalle completo de recepción:", err)
+            } finally {
+                if (isMounted) setIsLoadingDetails(false)
+            }
+        }
+
+        fetchFullDetails()
+
+        return () => {
+            isMounted = false
+        }
+    }, [recepcion?.id, open])
 
     if (!recepcion) return null
 
@@ -255,6 +310,12 @@ Atentamente,`
         }
     }
 
+    const hasCliente = Boolean(recepcion.cliente && recepcion.cliente.trim() !== "" && recepcion.cliente.trim() !== "-")
+    const hasNumeroRecepcion = Boolean(recepcion.numero_recepcion && recepcion.numero_recepcion.trim() !== "" && recepcion.numero_recepcion.trim() !== "-")
+    const hasValidEmail = Boolean(toEmail && toEmail.trim() !== "" && toEmail.includes("@"))
+    const hasSpeech = Boolean(speechText && speechText.trim() !== "")
+    const isSecurityPassed = hasCliente && hasNumeroRecepcion && hasValidEmail && hasSpeech
+
     const muestrasCount = recepcion.muestras_count ?? (Array.isArray(recepcion.muestras) ? recepcion.muestras.length : 0)
 
     return (
@@ -355,7 +416,7 @@ Atentamente,`
                             <span className="text-muted-foreground flex items-center gap-1">
                                 <Building2 className="h-3 w-3" /> Cliente
                             </span>
-                            <span className="font-semibold text-foreground truncate block">
+                            <span className="font-bold text-foreground truncate block">
                                 {recepcion.cliente || "-"}
                             </span>
                         </div>
@@ -363,72 +424,90 @@ Atentamente,`
                             <span className="text-muted-foreground flex items-center gap-1">
                                 <FolderKanban className="h-3 w-3" /> Proyecto
                             </span>
-                            <span className="font-semibold text-foreground truncate block">
+                            <span className="font-medium text-foreground truncate block">
                                 {recepcion.proyecto || "-"}
                             </span>
                         </div>
                     </div>
 
-                    {/* Campos de Destinatarios */}
+                    {/* Campos de Envío */}
                     <div className="space-y-3">
-                        {/* Para */}
-                        <div>
-                            <label className="text-xs font-semibold text-foreground flex items-center justify-between mb-1">
-                                <span>Para (Correo del Cliente):</span>
-                                {!toEmail && (
-                                    <span className="text-[11px] text-amber-600 font-normal">
-                                        ⚠️ Ingrese el correo del cliente para enviar
+                        {/* Destinatario Principal (Para) */}
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                                    Para (Correo del Cliente):
+                                    <span className="text-destructive">*</span>
+                                </label>
+                                {isLoadingDetails ? (
+                                    <span className="text-[10px] text-blue-600 flex items-center gap-1 animate-pulse">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Buscando correo en base de datos...
+                                    </span>
+                                ) : !toEmail.trim() ? (
+                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                        <AlertTriangle className="h-3 w-3" /> Ingrese el correo del cliente para enviar
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
+                                        <Check className="h-3 w-3" /> Correo cargado
                                     </span>
                                 )}
-                            </label>
+                            </div>
                             <Input
-                                type="email"
-                                placeholder="ejemplo: contacto@cliente.com"
+                                placeholder="ejemplo: contacto@cliente.com; supervisor@cliente.com"
                                 value={toEmail}
                                 onChange={(e) => setToEmail(e.target.value)}
-                                className="h-9 text-xs"
+                                className={`text-xs h-9 ${!hasValidEmail ? 'border-amber-300 dark:border-amber-700 bg-amber-50/20' : ''}`}
                             />
+                            <span className="text-[10px] text-muted-foreground">
+                                Puedes ingresar múltiples correos separados por punto y coma (;) o comas (,).
+                            </span>
                         </div>
 
-                        {/* CC */}
-                        <div>
-                            <label className="text-xs font-semibold text-foreground mb-1 block">
+                        {/* Con Copia (CC) */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-foreground block">
                                 Con Copia (CC):
                             </label>
-                            <div className="flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/20 min-h-[38px] items-center">
-                                {ccList.map((cc) => (
-                                    <Badge key={cc} variant="secondary" className="gap-1 text-[11px] py-0.5 px-2 bg-background border">
-                                        {cc}
+                            <div className="p-2 rounded-lg border bg-muted/20 min-h-10 flex flex-wrap items-center gap-1.5">
+                                {ccList.map((ccEmail) => (
+                                    <Badge
+                                        key={ccEmail}
+                                        variant="secondary"
+                                        className="text-xs font-mono font-medium py-1 px-2 gap-1 bg-background border shadow-2xs"
+                                    >
+                                        {ccEmail}
                                         <button
                                             type="button"
-                                            onClick={() => handleRemoveCc(cc)}
-                                            className="text-muted-foreground hover:text-destructive ml-0.5"
+                                            onClick={() => handleRemoveCc(ccEmail)}
+                                            className="hover:text-destructive transition-colors ml-0.5"
+                                            title="Remover copia"
                                         >
                                             <X className="h-3 w-3" />
                                         </button>
                                     </Badge>
                                 ))}
-                                <div className="flex items-center gap-1 flex-1 min-w-[180px]">
+                                <div className="flex-1 min-w-[200px] flex items-center gap-1">
                                     <input
                                         type="email"
                                         placeholder="Agregar otro correo y presione Enter..."
                                         value={newCcInput}
                                         onChange={(e) => setNewCcInput(e.target.value)}
                                         onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
+                                            if (e.key === "Enter" || e.key === ",") {
                                                 e.preventDefault()
                                                 handleAddCc()
                                             }
                                         }}
-                                        className="text-xs bg-transparent outline-none flex-1 placeholder:text-muted-foreground/60 h-6 px-1"
+                                        className="w-full text-xs bg-transparent border-none outline-hidden px-1 text-foreground placeholder:text-muted-foreground"
                                     />
                                     {newCcInput.trim() && (
                                         <Button
                                             type="button"
-                                            size="sm"
                                             variant="ghost"
+                                            size="sm"
                                             onClick={handleAddCc}
-                                            className="h-6 px-2 text-[10px]"
+                                            className="h-6 px-2 text-[11px]"
                                         >
                                             Agregar
                                         </Button>
@@ -438,21 +517,21 @@ Atentamente,`
                         </div>
 
                         {/* Asunto */}
-                        <div>
-                            <label className="text-xs font-semibold text-foreground mb-1 block">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-foreground block">
                                 Asunto:
                             </label>
                             <Input
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
-                                className="h-9 text-xs font-medium"
+                                className="text-xs h-9 font-medium"
                             />
                         </div>
 
-                        {/* Speech / Mensaje */}
-                        <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        {/* Mensaje Personalizado / Speech */}
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-foreground flex items-center gap-1">
                                     <Sparkles className="h-3.5 w-3.5 text-blue-600" />
                                     Mensaje Personalizado / Speech:
                                 </label>
@@ -475,55 +554,63 @@ Atentamente,`
                             />
                         </div>
 
-                        {/* Previsualización de la Firma Corporativa Oficial */}
-                        <div className="space-y-1">
+                        {/* Filtro de Seguridad y Verificación de Envío */}
+                        <div className="p-3 rounded-lg border bg-muted/20 space-y-2 shadow-2xs">
                             <div className="flex items-center justify-between">
-                                <label className="text-[11px] font-semibold text-muted-foreground block">
-                                    Firma Institucional (se adjunta al pie del correo):
-                                </label>
-                                {activeProfile.signature_image_url ? (
-                                    <Badge variant="outline" className="text-[10px] text-green-700 dark:text-green-300 border-green-300 bg-green-50 dark:bg-green-950/50">
-                                        Firma Oficial: {activeProfile.cargo}
+                                <div className="flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                                    <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+                                        Filtro de Seguridad y Verificación de Envío
+                                    </span>
+                                </div>
+                                {isSecurityPassed ? (
+                                    <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 font-bold text-[10px] gap-1 shadow-2xs">
+                                        <Check className="h-3 w-3 text-green-700 dark:text-green-300" /> Seguro Aprobado
                                     </Badge>
                                 ) : (
-                                    <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-100 dark:bg-slate-800">
-                                        None (Sin firma gráfica)
+                                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 font-bold text-[10px] gap-1 shadow-2xs">
+                                        <X className="h-3 w-3 text-amber-700 dark:text-amber-300" /> Faltan Datos Obligatorios
                                     </Badge>
                                 )}
                             </div>
 
-                            {activeProfile.signature_image_url ? (
-                                <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
-                                    <img
-                                        src={activeProfile.signature_image_url}
-                                        alt="Firma Geofal"
-                                        className="h-12 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
-                                        onError={(e) => {
-                                            (e.target as HTMLElement).style.display = 'none';
-                                        }}
-                                    />
-                                    <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
-                                        <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
-                                            {activeProfile.cargo}
-                                        </div>
-                                        <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
-                                            GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground">
-                                            <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> {activeProfile.from_email} &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
-                                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                {/* Check Cliente */}
+                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasCliente ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-destructive/10 border-destructive/30 text-destructive'}`}>
+                                    {hasCliente ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
+                                    <div className="truncate min-w-0">
+                                        <span className="font-semibold">Cliente: </span>
+                                        <span className="text-foreground">{recepcion.cliente || "Falta cliente"}</span>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="p-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-800 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
-                                            None / Sin firma
-                                        </span>
-                                        <span>El correo saldrá sin imagen de firma personal, solo con los datos de <strong>{activeProfile.nombre}</strong>.</span>
+
+                                {/* Check N° Recepción */}
+                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasNumeroRecepcion ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-destructive/10 border-destructive/30 text-destructive'}`}>
+                                    {hasNumeroRecepcion ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
+                                    <div className="truncate min-w-0">
+                                        <span className="font-semibold">N° Recepción: </span>
+                                        <span className="text-foreground">{recepcion.numero_recepcion || "Falta N° de recepción"}</span>
                                     </div>
                                 </div>
-                            )}
+
+                                {/* Check Correo Destinatario */}
+                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasValidEmail ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-amber-500/10 border-amber-300 text-amber-900 dark:text-amber-200'}`}>
+                                    {hasValidEmail ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-amber-600 shrink-0" />}
+                                    <div className="truncate min-w-0">
+                                        <span className="font-semibold">Destinatario: </span>
+                                        <span className="text-foreground">{hasValidEmail ? toEmail : "⚠️ Ingrese el correo del cliente"}</span>
+                                    </div>
+                                </div>
+
+                                {/* Check Remitente */}
+                                <div className="p-2 rounded-md border bg-green-500/5 border-green-200 text-green-900 dark:text-green-200 flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-green-600 shrink-0" />
+                                    <div className="truncate min-w-0">
+                                        <span className="font-semibold">Remitente: </span>
+                                        <span className="text-foreground">{activeProfile.from_email}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Archivo Adjunto Automático */}
@@ -568,7 +655,7 @@ Atentamente,`
                             variant="outline"
                             size="sm"
                             onClick={handleOpenInOutlook}
-                            disabled={isSending || isGenerating}
+                            disabled={isSending || isGenerating || !isSecurityPassed}
                             className="text-xs font-medium text-slate-700 dark:text-slate-200 border-slate-300 hover:bg-accent gap-1.5"
                             title="Descarga el borrador .eml para abrirlo en Outlook de escritorio"
                         >
@@ -580,9 +667,9 @@ Atentamente,`
                             type="button"
                             size="sm"
                             onClick={handleSendDirectEmail}
-                            disabled={isSending || isGenerating}
-                            className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
-                            title="Envía el correo directamente desde oficinatecnica1@geofal.com.pe con el Excel oficial y firma corporativa"
+                            disabled={isSending || isGenerating || !isSecurityPassed}
+                            className={`text-xs font-bold gap-2 shadow-sm ${!isSecurityPassed ? 'bg-slate-400 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                            title={!isSecurityPassed ? "Complete los datos obligatorios (destinatario del cliente) para enviar" : "Envía el correo directamente desde el servidor institucional"}
                         >
                             {isSending ? (
                                 <>
