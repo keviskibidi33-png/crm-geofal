@@ -554,63 +554,55 @@ Atentamente,`)
                             />
                         </div>
 
-                        {/* Filtro de Seguridad y Verificación de Envío */}
-                        <div className="p-3 rounded-lg border bg-muted/20 space-y-2 shadow-2xs">
+                        {/* Previsualización de la Firma Corporativa Oficial */}
+                        <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <ShieldCheck className="h-4 w-4 text-blue-600" />
-                                    <span className="text-xs font-bold text-foreground uppercase tracking-wide">
-                                        Filtro de Seguridad y Verificación de Envío
-                                    </span>
-                                </div>
-                                {isSecurityPassed ? (
-                                    <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 font-bold text-[10px] gap-1 shadow-2xs">
-                                        <Check className="h-3 w-3 text-green-700 dark:text-green-300" /> Seguro Aprobado
+                                <label className="text-[11px] font-semibold text-muted-foreground block">
+                                    Firma Corporativa (al pie del correo):
+                                </label>
+                                {activeProfile.signature_image_url ? (
+                                    <Badge variant="outline" className="text-[10px] text-green-700 dark:text-green-300 border-green-300 bg-green-50 dark:bg-green-950/50">
+                                        Firma Oficial: {activeProfile.cargo}
                                     </Badge>
                                 ) : (
-                                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 font-bold text-[10px] gap-1 shadow-2xs">
-                                        <X className="h-3 w-3 text-amber-700 dark:text-amber-300" /> Faltan Datos Obligatorios
+                                    <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-300 bg-slate-100 dark:bg-slate-800">
+                                        None (Sin firma gráfica)
                                     </Badge>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                {/* Check Cliente */}
-                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasCliente ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-destructive/10 border-destructive/30 text-destructive'}`}>
-                                    {hasCliente ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
-                                    <div className="truncate min-w-0">
-                                        <span className="font-semibold">Cliente: </span>
-                                        <span className="text-foreground">{recepcion.cliente || "Falta cliente"}</span>
+                            {activeProfile.signature_image_url ? (
+                                <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
+                                    <img
+                                        src={activeProfile.signature_image_url}
+                                        alt="Firma Geofal"
+                                        className="h-14 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
+                                        onError={(e) => {
+                                            (e.target as HTMLElement).style.display = 'none';
+                                        }}
+                                    />
+                                    <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
+                                        <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
+                                            {activeProfile.cargo}
+                                        </div>
+                                        <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                                            GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                            <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> {activeProfile.from_email} &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
+                                        </div>
                                     </div>
                                 </div>
-
-                                {/* Check N° Recepción */}
-                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasNumeroRecepcion ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-destructive/10 border-destructive/30 text-destructive'}`}>
-                                    {hasNumeroRecepcion ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
-                                    <div className="truncate min-w-0">
-                                        <span className="font-semibold">N° Recepción: </span>
-                                        <span className="text-foreground">{recepcion.numero_recepcion || "Falta N° de recepción"}</span>
+                            ) : (
+                                <div className="p-2.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-800 bg-muted/15 flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
+                                            None / Sin firma
+                                        </span>
+                                        <span>Envío con datos institucionales de <strong>{activeProfile.nombre}</strong> (sin firma gráfica).</span>
                                     </div>
                                 </div>
-
-                                {/* Check Correo Destinatario */}
-                                <div className={`p-2 rounded-md border flex items-center gap-2 ${hasValidEmail ? 'bg-green-500/5 border-green-200 text-green-900 dark:text-green-200' : 'bg-amber-500/10 border-amber-300 text-amber-900 dark:text-amber-200'}`}>
-                                    {hasValidEmail ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : <X className="h-4 w-4 text-amber-600 shrink-0" />}
-                                    <div className="truncate min-w-0">
-                                        <span className="font-semibold">Destinatario: </span>
-                                        <span className="text-foreground">{hasValidEmail ? toEmail : "⚠️ Ingrese el correo del cliente"}</span>
-                                    </div>
-                                </div>
-
-                                {/* Check Remitente */}
-                                <div className="p-2 rounded-md border bg-green-500/5 border-green-200 text-green-900 dark:text-green-200 flex items-center gap-2">
-                                    <Check className="h-4 w-4 text-green-600 shrink-0" />
-                                    <div className="truncate min-w-0">
-                                        <span className="font-semibold">Remitente: </span>
-                                        <span className="text-foreground">{activeProfile.from_email}</span>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Archivo Adjunto Automático */}
@@ -655,7 +647,7 @@ Atentamente,`)
                             variant="outline"
                             size="sm"
                             onClick={handleOpenInOutlook}
-                            disabled={isSending || isGenerating || !isSecurityPassed}
+                            disabled={isSending || isGenerating || !hasValidEmail}
                             className="text-xs font-medium text-slate-700 dark:text-slate-200 border-slate-300 hover:bg-accent gap-1.5"
                             title="Descarga el borrador .eml para abrirlo en Outlook de escritorio"
                         >
@@ -667,9 +659,9 @@ Atentamente,`)
                             type="button"
                             size="sm"
                             onClick={handleSendDirectEmail}
-                            disabled={isSending || isGenerating || !isSecurityPassed}
-                            className={`text-xs font-bold gap-2 shadow-sm ${!isSecurityPassed ? 'bg-slate-400 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                            title={!isSecurityPassed ? "Complete los datos obligatorios (destinatario del cliente) para enviar" : "Envía el correo directamente desde el servidor institucional"}
+                            disabled={isSending || isGenerating || !hasValidEmail}
+                            className={`text-xs font-bold gap-2 shadow-sm ${!hasValidEmail ? 'bg-slate-400 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                            title={!hasValidEmail ? "Ingrese el correo del cliente para poder enviar" : "Envía el correo directamente desde el servidor institucional"}
                         >
                             {isSending ? (
                                 <>
