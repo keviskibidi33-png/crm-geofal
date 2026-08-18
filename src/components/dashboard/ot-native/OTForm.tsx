@@ -313,11 +313,21 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       return
     }
 
-    setLoading(true)
+    let finalOt = numeroOt.trim()
+    if (finalOt && !finalOt.includes("-")) {
+      const year = new Date().getFullYear().toString().slice(-2)
+      finalOt = `${finalOt}-${year}`
+    }
+
+    let finalRec = numeroRecepcion.trim()
+    if (finalRec && !finalRec.includes("-")) {
+      const year = new Date().getFullYear().toString().slice(-2)
+      finalRec = `${finalRec}-${year}`
+    }
 
     const payload: Partial<OTData> = {
-      numero_ot: numeroOt.trim(),
-      numero_recepcion: numeroRecepcion.trim() || null,
+      numero_ot: finalOt,
+      numero_recepcion: finalRec || null,
       referencia: referencia.trim() || "-",
       cliente: cliente.trim() || null,
       proyecto: proyecto.trim() || null,

@@ -515,8 +515,21 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
     setIsSubmitting(true);
     clearErrors();
     try {
+      let normOt = (data.numero_ot || "").trim();
+      if (normOt && !normOt.includes("-")) {
+        const year = new Date().getFullYear().toString().slice(-2);
+        normOt = `${normOt}-${year}`;
+      }
+      let normRec = (data.numero_recepcion || "").trim();
+      if (normRec && !normRec.includes("-")) {
+        const year = new Date().getFullYear().toString().slice(-2);
+        normRec = `${normRec}-${year}`;
+      }
+
       const formattedData = {
         ...data,
+        numero_ot: normOt || data.numero_ot,
+        numero_recepcion: normRec || data.numero_recepcion,
         muestras: data.muestras.map((m, idx) => ({
           ...m,
           item_numero: idx + 1,
