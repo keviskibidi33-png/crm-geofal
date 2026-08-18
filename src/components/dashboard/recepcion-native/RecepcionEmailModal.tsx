@@ -40,7 +40,14 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
         const fecha = recepcion.fecha_recepcion || "-"
         const muestrasCount = recepcion.muestras_count ?? (Array.isArray(recepcion.muestras) ? recepcion.muestras.length : 0)
 
-        setToEmail(recepcion.email || "")
+        // Normalizar y auto-seleccionar todos los correos del cliente (separados por ; o saltos de línea)
+        const rawEmail = recepcion.email || ""
+        const emailList = rawEmail
+            .split(/[\r\n;,]+/)
+            .map(e => e.trim())
+            .filter(e => e.length > 0)
+        
+        setToEmail(emailList.join("; "))
         setCcList(DEFAULT_CCS)
         setSubject(`RECEPCIÓN DE PROBETAS DE CONCRETO N° ${numRecepcion} - ${cliente}`)
 
@@ -56,13 +63,7 @@ Por medio de la presente, confirmamos la recepción satisfactoria de sus muestra
 
 Adjuntamos en este correo el formato oficial de registro de recepción de probetas para su respectiva conformidad. Estaremos procediendo con los ensayos programados de rotura según las edades solicitadas.
 
-Cualquier consulta técnica o comercial, quedamos a su entera disposición.
-
-Atentamente,
-OFICINA TÉCNICA
-GEOFAL S.A.C.
-Control de Calidad de Materiales | Concreto, Suelos y Pavimentos
-oficinatecnica1@geofal.com.pe`
+Cualquier consulta técnica o comercial, quedamos a su entera disposición.`
 
         setSpeechText(generatedSpeech)
     }, [recepcion, open])
@@ -86,6 +87,16 @@ oficinatecnica1@geofal.com.pe`
         setCopied(true)
         toast.success("Speech copiado al portapapeles")
         setTimeout(() => setCopied(false), 2000)
+    }
+
+    const handleOpenMailtoDirect = () => {
+        const toClean = toEmail.split(/[\r\n;,]+/).map(e => e.trim()).filter(Boolean).join(",")
+        const toParam = encodeURIComponent(toClean)
+        const ccParam = encodeURIComponent(ccList.join(","))
+        const subjectParam = encodeURIComponent(subject.trim())
+        const bodyParam = encodeURIComponent(speechText.trim())
+        window.location.href = `mailto:${toParam}?cc=${ccParam}&subject=${subjectParam}&body=${bodyParam}`
+        toast.success("Abriendo ventana de Outlook con tu firma de Windows...")
     }
 
     const handleOpenInOutlook = async () => {
@@ -122,9 +133,9 @@ oficinatecnica1@geofal.com.pe`
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
 
-            toast.success("¡Abriendo correo en Microsoft Outlook con el Excel adjunto!", {
-                description: "Se abrirá tu ventana de Outlook lista con el archivo Excel incrustado.",
-                duration: 5000,
+            toast.success("¡Borrador de Outlook descargado con Excel y Firma Geofal!", {
+                description: "Haz clic en la descarga para abrirlo en Outlook listo para enviar.",
+                duration: 6000,
             })
             onOpenChange(false)
         } catch (error) {
@@ -346,7 +357,7 @@ oficinatecnica1@geofal.com.pe`
                 </div>
 
                 {/* Footer */}
-                <DialogFooter className="p-4 border-t bg-muted/10 gap-2 sm:gap-0 flex-row justify-between items-center">
+                <DialogFooter className="p-4 border-t bg-muted/10 gap-2 sm:gap-0 flex-row justify-between items-center flex-wrap">
                     <Button
                         type="button"
                         variant="outline"
@@ -358,23 +369,37 @@ oficinatecnica1@geofal.com.pe`
                         Cancelar
                     </Button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleOpenMailtoDirect}
+                            disabled={isGenerating}
+                            className="text-xs font-semibold text-slate-700 dark:text-slate-200 border-slate-300 hover:bg-accent gap-1.5"
+                            title="Abre directamente la ventana de Outlook en pantalla usando el protocolo nativo mailto"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Abrir Outlook Directo (mailto)
+                        </Button>
+
                         <Button
                             type="button"
                             size="sm"
                             onClick={handleOpenInOutlook}
                             disabled={isGenerating}
                             className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-xs"
+                            title="Genera el archivo .eml con el Excel oficial y firma institucional Geofal ya adjuntados"
                         >
                             {isGenerating ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Preparando Outlook...
+                                    Generando...
                                 </>
                             ) : (
                                 <>
                                     <Mail className="h-4 w-4" />
-                                    Abrir en Outlook con Excel Adjunto
+                                    Abrir con Excel Adjunto (.eml)
                                 </>
                             )}
                         </Button>
