@@ -56,6 +56,10 @@ export interface Recepcion {
     muestras_count?: number
     ot_emitida?: boolean
     ot_missing_fields?: string[]
+    /** true si existe una OT Concreto asociada a esta recepción */
+    ot_exists?: boolean
+    /** estado real de la OT asociada: PENDIENTE | EMITIDO | COMPLETADO | DESCARGADO */
+    ot_estado?: string
 }
 
 export interface RecepcionesPaginationState {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, FileText, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check } from "lucide-react"
+import { RecepcionStatusBadge } from "./recepcion-native/RecepcionStatusBadge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -439,107 +440,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                     </TableCell>
                                     {scope === "concreto" ? (
                                         <TableCell className="text-center">
-                                            {(() => {
-                                                // ── Determinar estado visual unificado con módulo OT ──
-                                                // ot_exists=false  → PENDIENTE (OT no creada aún)
-                                                // ot_estado=PENDIENTE → PENDIENTE (OT creada pero incompleta)
-                                                // ot_estado=EMITIDO   → EMITIDO
-                                                // ot_estado=COMPLETADO/DESCARGADO → COMPLETADO
-                                                const otExists: boolean = item.ot_exists ?? false
-                                                const otEstado: string = item.ot_estado ?? "PENDIENTE"
-                                                const otMissingFields: string[] = item.ot_missing_fields ?? []
-
-                                                const isCompletado = otExists && (otEstado === "COMPLETADO" || otEstado === "DESCARGADO")
-                                                const isEmitido = otExists && otEstado === "EMITIDO"
-                                                const isPendiente = !isCompletado && !isEmitido
-
-                                                // Tooltip de PENDIENTE: distingue "OT no creada" vs "OT incompleta"
-                                                const pendienteTitle = !otExists
-                                                    ? "OT Concreto no creada"
-                                                    : "OT Concreto pendiente de completar"
-                                                const pendienteMissing = !otExists
-                                                    ? ["OT Concreto no ha sido creada para esta recepción"]
-                                                    : otMissingFields.length > 0
-                                                        ? otMissingFields
-                                                        : ["Faltan datos en la OT (responsables / probetas / elementos)"]
-
-                                                if (isCompletado) {
-                                                    return (
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-300 shadow-2xs cursor-default transition-transform hover:scale-105">
-                                                                    <CheckCircle2 className="h-3 w-3 text-sky-600" />
-                                                                    <span>COMPLETADO</span>
-                                                                </span>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" sideOffset={6} className="bg-slate-900 text-white border-slate-700 p-2.5 max-w-xs shadow-2xl text-center">
-                                                                <div className="font-bold text-sky-400 flex items-center justify-center gap-1.5 text-[11px]">
-                                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                                    OT completada
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-300 mt-1">La OT Concreto fue finalizada correctamente.</div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )
-                                                }
-
-                                                if (isEmitido) {
-                                                    return (
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs cursor-default transition-transform hover:scale-105">
-                                                                    <Check className="h-3 w-3 text-emerald-600" />
-                                                                    <span>EMITIDO</span>
-                                                                </span>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" sideOffset={6} className="bg-slate-900 text-white border-slate-700 p-2.5 max-w-xs shadow-2xl text-center">
-                                                                <div className="font-bold text-emerald-400 flex items-center justify-center gap-1.5 text-[11px]">
-                                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                                    OT emitida
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-300 mt-1">Todos los datos de Recepción y OT están completos.</div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )
-                                                }
-
-                                                // PENDIENTE — clickeable para ir a OT Concreto
-                                                return (
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    if (item.numero_recepcion) {
-                                                                        onNavigateToOTConcreto?.(item.numero_recepcion)
-                                                                    }
-                                                                }}
-                                                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 shadow-2xs cursor-pointer transition-all hover:bg-slate-200 hover:scale-105 active:scale-95"
-                                                            >
-                                                                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
-                                                                <span>PENDIENTE</span>
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="top" sideOffset={6} className="bg-slate-900 text-white border-slate-700 p-3 max-w-xs shadow-2xl text-left">
-                                                            <div className="flex items-center gap-1.5 font-bold text-slate-300 pb-1.5 border-b border-slate-800 text-[11px]">
-                                                                <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                                                                <span>{pendienteTitle}</span>
-                                                            </div>
-                                                            <ul className="space-y-1 my-2 text-[10.5px] text-slate-300">
-                                                                {pendienteMissing.map((m: string, idx: number) => (
-                                                                    <li key={idx} className="flex items-start gap-1.5 leading-tight">
-                                                                        <span className="text-amber-400 text-[10px] mt-0.5">•</span>
-                                                                        <span>{m}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                            <div className="pt-1.5 border-t border-slate-800 text-[10px] text-sky-300 font-semibold flex items-center gap-1">
-                                                                <span>👉 Clic para ir a OT Concreto</span>
-                                                            </div>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                )
-                                            })()}
+                                            <RecepcionStatusBadge
+                                                numeroRecepcion={item.numero_recepcion}
+                                                otExists={item.ot_exists}
+                                                otEstado={item.ot_estado}
+                                                otMissingFields={item.ot_missing_fields}
+                                                onNavigateToOTConcreto={onNavigateToOTConcreto}
+                                            />
                                         </TableCell>
                                     ) : (
                                         <TableCell>
