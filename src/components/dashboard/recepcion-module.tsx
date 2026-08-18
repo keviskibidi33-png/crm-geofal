@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
 import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check } from "lucide-react"
-import { RecepcionStatusBadge } from "./recepcion-native/RecepcionStatusBadge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -400,9 +399,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                         <TableRow className="bg-muted/50 text-xs font-bold uppercase tracking-wider">
                             <TableHead className="w-27.5">Nº Recepción</TableHead>
                             <TableHead className="w-27.5">Nº OT</TableHead>
-                            {scope === "concreto" ? (
-                                <TableHead className="w-28.75 text-center">Status</TableHead>
-                            ) : (
+                            {scope !== "concreto" && (
                                 <TableHead className="w-35">Tipo Formato</TableHead>
                             )}
                             <TableHead>Cliente</TableHead>
@@ -415,7 +412,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                     <TableBody className="text-xs">
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center py-12">
+                                <TableCell colSpan={scope === "concreto" ? 7 : 8} className="text-center py-12">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                         <p className="font-bold">Cargando recepciones...</p>
@@ -424,7 +421,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                             </TableRow>
                         ) : recepciones.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                                <TableCell colSpan={scope === "concreto" ? 7 : 8} className="text-center py-12 text-muted-foreground">
                                     <p className="font-bold">No se encontraron recepciones</p>
                                     <p className="text-[11px] mt-1">Prueba con otros términos de búsqueda o añade una nueva recepción.</p>
                                 </TableCell>
@@ -438,18 +435,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                     <TableCell className="font-bold font-mono">
                                         {formatOtDisplay(item.numero_ot)}
                                     </TableCell>
-                                    {scope === "concreto" ? (
-                                        <TableCell className="text-center">
-                                            <RecepcionStatusBadge
-                                                numeroRecepcion={item.numero_recepcion}
-                                                otExists={item.ot_exists}
-                                                otEstado={item.ot_estado}
-                                                otEmitida={item.ot_emitida}
-                                                otMissingFields={item.ot_missing_fields}
-                                                onNavigateToOTConcreto={onNavigateToOTConcreto}
-                                            />
-                                        </TableCell>
-                                    ) : (
+                                    {scope !== "concreto" && (
                                         <TableCell>
                                             {getTipoBadge(item.tipo_recepcion)}
                                         </TableCell>
