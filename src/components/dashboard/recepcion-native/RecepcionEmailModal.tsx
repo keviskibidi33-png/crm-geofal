@@ -31,7 +31,42 @@ const getTipoMuestraLabel = (tipo?: string) => {
     }
 }
 
+interface EmailProfileOption {
+    id: string
+    codigo: string
+    nombre: string
+    cargo: string
+    from_name: string
+    from_email: string
+    default_cc: string[]
+    signature_image_url?: string
+}
+
+const EMAIL_PROFILES_CATALOG: EmailProfileOption[] = [
+    {
+        id: "OFICINA_TECNICA",
+        codigo: "OFICINA_TECNICA",
+        nombre: "Oficina Técnica",
+        cargo: "Oficina Técnica - Control de Calidad",
+        from_name: "Oficina Técnica - GEOFAL",
+        from_email: "oficinatecnica1@geofal.com.pe",
+        default_cc: ["oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
+        signature_image_url: "/ImagenAbrasionesMenores.png",
+    },
+    {
+        id: "COORDINADOR_LAB",
+        codigo: "COORDINADOR_LAB",
+        nombre: "Coordinación de Laboratorio",
+        cargo: "Coordinador de Laboratorio",
+        from_name: "Coordinador de Laboratorio - GEOFAL",
+        from_email: "coordinadorlab@geofal.com.pe",
+        default_cc: ["oficinatecnica1@geofal.com.pe", "oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
+        signature_image_url: "/ImagenAbrasionesMenores.png",
+    }
+]
+
 export function RecepcionEmailModal({ open, onOpenChange, recepcion }: RecepcionEmailModalProps) {
+    const [selectedProfileId, setSelectedProfileId] = useState<string>("OFICINA_TECNICA")
     const [toEmail, setToEmail] = useState("")
     const [ccList, setCcList] = useState<string[]>(DEFAULT_CCS)
     const [newCcInput, setNewCcInput] = useState("")
@@ -40,6 +75,15 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
     const [isGenerating, setIsGenerating] = useState(false)
     const [isSending, setIsSending] = useState(false)
     const [copied, setCopied] = useState(false)
+
+    const activeProfile = EMAIL_PROFILES_CATALOG.find(p => p.id === selectedProfileId) || EMAIL_PROFILES_CATALOG[0]
+
+    const handleProfileChange = (profileId: string) => {
+        setSelectedProfileId(profileId)
+        const profile = EMAIL_PROFILES_CATALOG.find(p => p.id === profileId) || EMAIL_PROFILES_CATALOG[0]
+        setCcList(profile.default_cc)
+        toast.info(`Perfil cambiado a: ${profile.nombre} (${profile.from_email})`)
+    }
 
     // Formatear speech y datos al abrir con una nueva recepción
     useEffect(() => {
@@ -62,7 +106,7 @@ export function RecepcionEmailModal({ open, onOpenChange, recepcion }: Recepcion
             .filter(e => e.length > 0)
         
         setToEmail(emailList.join("; "))
-        setCcList(DEFAULT_CCS)
+        setCcList(activeProfile.default_cc)
         setSubject(`Recepción (N° ${numRecepcion} muestra ${tipoLabel})`)
 
         const generatedSpeech = `${saludo}
@@ -109,7 +153,7 @@ Atentamente,`
 
         setIsSending(true)
         const toastId = toast.loading("Enviando correo oficial con Excel adjunto...", {
-            description: "Conectando con el servidor institucional oficinatecnica1@geofal.com.pe..."
+            description: `Conectando con el servidor institucional (${activeProfile.from_email})...`
         })
 
         try {
@@ -119,6 +163,7 @@ Atentamente,`
                 cc_emails: ccList,
                 subject: subject.trim(),
                 body_text: speechText.trim(),
+                profile_id: selectedProfileId,
             }
 
             const response = await authFetch(`${API_URL}/api/recepcion/${recepcion.id}/enviar-correo`, {
@@ -137,7 +182,7 @@ Atentamente,`
 
             toast.success("¡Correo enviado exitosamente!", {
                 id: toastId,
-                description: `Se envió a ${data.to?.join(", ") || toEmail} con copia a los correos internos y el Excel adjunto.`,
+                description: `Se envió desde ${activeProfile.from_name} a ${data.to?.join(", ") || toEmail} con el Excel adjunto.`,
                 duration: 6000,
             })
             onOpenChange(false)
@@ -224,13 +269,13 @@ Atentamente,`
                             </div>
                             <div>
                                 <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                                    Enviar Notificación por Correo (Outlook)
+                                    Enviar Notificación por Correo
                                     <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                        Oficina Técnica
+                                        {activeProfile.nombre}
                                     </Badge>
                                 </DialogTitle>
                                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                                    Genera el correo con el Excel oficial adjunto y ábrelo directamente en tu Microsoft Outlook listo para enviar.
+                                    Envía la notificación con el Excel oficial adjunto y la firma corporativa de {activeProfile.nombre}.
                                 </DialogDescription>
                             </div>
                         </div>
@@ -239,6 +284,39 @@ Atentamente,`
 
                 {/* Body Content */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                    {/* Selector de Perfil de Remitente */}
+                    <div className="p-3 rounded-lg border bg-gradient-to-r from-blue-500/5 via-orange-500/5 to-transparent border-blue-200 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-2xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1.5 rounded-md bg-blue-600/10 text-blue-600 font-bold shrink-0">
+                                <User className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    Perfil de Remitente
+                                    <Badge variant="outline" className="text-[10px] bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200">
+                                        {activeProfile.nombre}
+                                    </Badge>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground truncate">
+                                    Cuenta de salida: <strong className="text-foreground font-mono">{activeProfile.from_email}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                            <select
+                                value={selectedProfileId}
+                                onChange={(e) => handleProfileChange(e.target.value)}
+                                className="w-full sm:w-auto h-8 text-xs font-semibold px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-700 bg-background text-foreground shadow-2xs focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                            >
+                                {EMAIL_PROFILES_CATALOG.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.nombre} ({p.from_email})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     {/* Tarjeta Resumen de Recepción */}
                     <div className="p-3.5 rounded-lg border bg-card/60 text-xs grid grid-cols-2 sm:grid-cols-4 gap-3 shadow-xs">
                         <div className="space-y-0.5">
@@ -399,22 +477,32 @@ Atentamente,`
 
                         {/* Previsualización de la Firma Corporativa Oficial */}
                         <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-muted-foreground block">
-                                Firma Institucional (se adjunta al pie del correo):
-                            </label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-semibold text-muted-foreground block">
+                                    Firma Institucional (se adjunta al pie del correo):
+                                </label>
+                                <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950">
+                                    {activeProfile.cargo}
+                                </Badge>
+                            </div>
                             <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
-                                <div className="bg-[#ff5500] text-white font-black text-xs px-3 py-2.5 rounded-lg text-center tracking-tight shadow-xs select-none">
-                                    Geofal
-                                </div>
-                                <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5">
-                                    <div className="text-xs font-bold text-[#ea580c] tracking-wide">
-                                        OFICINA TÉCNICA
+                                <img
+                                    src="/ImagenAbrasionesMenores.png"
+                                    alt="Firma Geofal"
+                                    className="h-12 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
+                                    onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                />
+                                <div className="border-l-2 border-[#ea580c] pl-3 text-left space-y-0.5 min-w-0">
+                                    <div className="text-xs font-bold text-[#ea580c] tracking-wide uppercase truncate">
+                                        {activeProfile.cargo}
                                     </div>
                                     <div className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
                                         GEOFAL S.A.C. — Laboratorio de Ensayo de Materiales
                                     </div>
                                     <div className="text-[10px] text-muted-foreground">
-                                        <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> oficinatecnica1@geofal.com.pe &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
+                                        <strong>T:</strong> +51 1 9051911 &nbsp;|&nbsp; <strong>E:</strong> {activeProfile.from_email} &nbsp;|&nbsp; <strong>W:</strong> www.geofal.com.pe
                                     </div>
                                 </div>
                             </div>
