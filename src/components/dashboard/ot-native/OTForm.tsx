@@ -117,7 +117,12 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
             if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
             if (data.observaciones) setObservaciones(data.observaciones)
             if (data.ot_aperturada_por) setOtAperturadaPor(data.ot_aperturada_por)
-            if (data.ot_designada_a) setOtDesignadaA(data.ot_designada_a)
+            if (data.ot_designada_a && data.ot_designada_a !== "-") {
+              setOtDesignadaA(data.ot_designada_a)
+            } else {
+              setOtDesignadaA("")
+              toast.warning("⚠️ No se encontró técnico en Verificación de Muestras. Por favor selecciona el técnico designado manualmente.")
+            }
             if (Array.isArray(data.items) && data.items.length > 0) {
               setItems(data.items.map((it: any, idx: number) => ({
                 item: idx + 1,
@@ -221,7 +226,12 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
       if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
       if (data.ot_aperturada_por) setOtAperturadaPor(data.ot_aperturada_por)
-      if (data.ot_designada_a) setOtDesignadaA(data.ot_designada_a)
+      if (data.ot_designada_a && data.ot_designada_a !== "-") {
+        setOtDesignadaA(data.ot_designada_a)
+      } else {
+        setOtDesignadaA("")
+        toast.warning("⚠️ No se encontró técnico en Verificación de Muestras. Por favor selecciona el técnico designado manualmente.")
+      }
 
       // Rellenar ítems (probetas) con trazabilidad completa
       if (Array.isArray(data.items) && data.items.length > 0) {
