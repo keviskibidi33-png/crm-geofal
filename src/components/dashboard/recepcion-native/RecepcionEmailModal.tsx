@@ -51,7 +51,7 @@ const EMAIL_PROFILES_CATALOG: EmailProfileOption[] = [
         from_name: "Oficina Técnica - GEOFAL",
         from_email: "oficinatecnica1@geofal.com.pe",
         default_cc: ["oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
-        signature_image_url: "/ImagenAbrasionesMenores.png",
+        signature_image_url: "/FirmaCoordinadoraLabBetzabethSaravia.png",
     },
     {
         id: "COORDINADOR_LAB",
@@ -61,7 +61,7 @@ const EMAIL_PROFILES_CATALOG: EmailProfileOption[] = [
         from_name: "Coordinador de Laboratorio - GEOFAL",
         from_email: "coordinadorlab@geofal.com.pe",
         default_cc: ["oficinatecnica1@geofal.com.pe", "oficinatecnica3@geofal.com.pe", "asesorcomercial1@geofal.com.pe"],
-        signature_image_url: "/ImagenAbrasionesMenores.png",
+        signature_image_url: "/FirmaCoordinadoraLabBetzabethSaravia.png",
     }
 ]
 
@@ -487,7 +487,7 @@ Atentamente,`
                             </div>
                             <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3.5 shadow-2xs">
                                 <img
-                                    src="/ImagenAbrasionesMenores.png"
+                                    src={activeProfile.signature_image_url || "/FirmaCoordinadoraLabBetzabethSaravia.png"}
                                     alt="Firma Geofal"
                                     className="h-12 w-auto object-contain rounded shrink-0 bg-white p-1 border border-slate-200"
                                     onError={(e) => {
