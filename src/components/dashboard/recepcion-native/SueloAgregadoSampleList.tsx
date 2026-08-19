@@ -73,9 +73,9 @@ export function SueloAgregadoSampleList({
           } else {
             sampleAssays = [
               {
-                codigo: "SU24",
-                descripcion: "ANÁLISIS GRANULOMÉTRICO POR TAMIZADO EN SUELOS",
-                norma: "ASTM D6913/D6913M-17",
+                codigo: "",
+                descripcion: "",
+                norma: "",
               },
             ];
           }
@@ -297,9 +297,9 @@ export function SueloAgregadoSampleList({
               codigo_muestra_lem: "",
               ensayos_lista: [
                 {
-                  codigo: "SU24",
-                  descripcion: "ANÁLISIS GRANULOMÉTRICO POR TAMIZADO EN SUELOS",
-                  norma: "ASTM D6913/D6913M-17",
+                  codigo: "",
+                  descripcion: "",
+                  norma: "",
                 },
               ],
             })

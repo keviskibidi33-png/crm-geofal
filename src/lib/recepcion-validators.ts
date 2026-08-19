@@ -328,7 +328,19 @@ export const sampleSchema = z
     ensayos_requeridos: safeOptionalString(""),
     norma_requerida: safeOptionalString(""),
     ensayos_json: safeOptionalString(""),
-    ensayos_lista: z.array(z.record(z.any())).optional(),
+    ensayos_lista: z.preprocess(
+      (val) => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === "string" && val.trim().length > 0) {
+          try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {}
+        }
+        return undefined;
+      },
+      z.array(z.any()).optional()
+    ),
   })
   .superRefine((data, ctx) => {
     if (data.fecha_moldeo && isDateWithinDays(data.fecha_moldeo, 3)) {
