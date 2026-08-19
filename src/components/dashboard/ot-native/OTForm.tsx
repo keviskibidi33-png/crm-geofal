@@ -14,7 +14,9 @@ import { useAuth } from "@/hooks/use-auth"
 export interface OTItem {
   item: number
   codigo_muestra: string
+  codigo_ensayo?: string | null
   descripcion: string
+  norma?: string | null
   cantidad: number | string
   // Columnas específicas de OT Concreto
   elemento?: string | null
@@ -501,116 +503,192 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
             </div>
           </div>
 
-          {/* SECCIÓN 2: TABLA DE PROBETAS (igual al Excel OT-CONCRETO) */}
+          {/* SECCIÓN 2: TABLA DE MUESTRAS / ENSAYOS (Adaptable a Concreto o Suelo y Agregado) */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <Layers className="h-4 w-4 text-sky-600" />
-                2. Probetas de Concreto
+                {isConcreto ? "2. Probetas de Concreto" : "2. Ensayos y Muestras de Laboratorio"}
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddItem}
-                className="gap-1 text-xs border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 font-medium"
+                className="gap-1 text-xs border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 font-medium cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Agregar Fila
               </Button>
             </div>
 
-            {/* Cabecera de columnas */}
-            <div className="grid gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}>
-              <span className="text-center">#</span>
-              <span>CÓDIGO LEM</span>
-              <span>DESCRIPCIÓN</span>
-              <span className="text-center">ELEMENTO</span>
-              <span className="text-center">F. ROTURA</span>
-              <span className="text-center">DENSIDAD</span>
-              <span className="text-center">EDAD</span>
-              <span className="text-center">F’C</span>
-              <span />
-            </div>
-
-            <div className="space-y-1.5">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="grid gap-1.5 items-center bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
-                  style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}
-                >
-                  <div className="text-center font-bold text-slate-400 text-xs">{idx + 1}</div>
-
-                  <Input
-                    placeholder="15XXX-CO-26"
-                    value={item.codigo_muestra}
-                    onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
-                    className="text-xs font-mono border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
-                  />
-
-                  {/* Descripción FIJA — no editable */}
-                  <div className="text-[10px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-1 truncate" title="COMPRESION PROBETAS ASTM C39/C39M">
-                    COMPRESION PROBETAS ASTM C39/C39M
-                  </div>
-
-                  <select
-                    value={item.elemento || "-"}
-                    onChange={(e) => handleItemChange(idx, "elemento", e.target.value)}
-                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
-                  >
-                    {(Array.from(new Set(["-", "4 in x 8 in", "6 in x 12 in", "VIGA", "CUBO", item.elemento || "-"])) as string[]).map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-
-                  <Input
-                    type="date"
-                    value={item.fecha_rotura || ""}
-                    onChange={(e) => handleItemChange(idx, "fecha_rotura", e.target.value)}
-                    className="text-[10px] border-slate-300 focus-visible:ring-sky-500 h-7 px-1"
-                  />
-
-                  <select
-                    value={item.densidad || "-"}
-                    onChange={(e) => handleItemChange(idx, "densidad", e.target.value)}
-                    className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  >
-                    <option value="-">-</option>
-                    <option value="SI">SI</option>
-                    <option value="NO">NO</option>
-                  </select>
-
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={item.edad ?? ""}
-                    onChange={(e) => handleItemChange(idx, "edad", e.target.value)}
-                    className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={item.fc_kg_cm2 ?? ""}
-                    onChange={(e) => handleItemChange(idx, "fc_kg_cm2", e.target.value)}
-                    className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveItem(idx)}
-                    className="h-7 w-7 text-rose-400 hover:text-rose-700 hover:bg-rose-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+            {isConcreto ? (
+              <>
+                {/* Cabecera de columnas Concreto */}
+                <div className="grid gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}>
+                  <span className="text-center">#</span>
+                  <span>CÓDIGO LEM</span>
+                  <span>DESCRIPCIÓN</span>
+                  <span className="text-center">ELEMENTO</span>
+                  <span className="text-center">F. ROTURA</span>
+                  <span className="text-center">DENSIDAD</span>
+                  <span className="text-center">EDAD</span>
+                  <span className="text-center">F’C</span>
+                  <span />
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-1.5">
+                  {items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="grid gap-1.5 items-center bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+                      style={{gridTemplateColumns: '28px 115px 1fr 115px 135px 65px 55px 65px 32px'}}
+                    >
+                      <div className="text-center font-bold text-slate-400 text-xs">{idx + 1}</div>
+
+                      <Input
+                        placeholder="15XXX-CO-26"
+                        value={item.codigo_muestra}
+                        onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
+                        className="text-xs font-mono border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                      />
+
+                      {/* Descripción FIJA — no editable */}
+                      <div className="text-[10px] font-medium text-slate-600 bg-slate-100 rounded px-2 py-1 truncate" title="COMPRESION PROBETAS ASTM C39/C39M">
+                        COMPRESION PROBETAS ASTM C39/C39M
+                      </div>
+
+                      <select
+                        value={item.elemento || "-"}
+                        onChange={(e) => handleItemChange(idx, "elemento", e.target.value)}
+                        className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                      >
+                        {(Array.from(new Set(["-", "4 in x 8 in", "6 in x 12 in", "VIGA", "CUBO", item.elemento || "-"])) as string[]).map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+
+                      <Input
+                        type="date"
+                        value={item.fecha_rotura || ""}
+                        onChange={(e) => handleItemChange(idx, "fecha_rotura", e.target.value)}
+                        className="text-[10px] border-slate-300 focus-visible:ring-sky-500 h-7 px-1"
+                      />
+
+                      <select
+                        value={item.densidad || "-"}
+                        onChange={(e) => handleItemChange(idx, "densidad", e.target.value)}
+                        className="text-[10px] border border-slate-300 rounded bg-white h-7 px-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      >
+                        <option value="-">-</option>
+                        <option value="SI">SI</option>
+                        <option value="NO">NO</option>
+                      </select>
+
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={item.edad ?? ""}
+                        onChange={(e) => handleItemChange(idx, "edad", e.target.value)}
+                        className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={item.fc_kg_cm2 ?? ""}
+                        onChange={(e) => handleItemChange(idx, "fc_kg_cm2", e.target.value)}
+                        className="text-[10px] text-center border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="h-7 w-7 text-rose-400 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Cabecera de columnas Suelo y Agregado */}
+                <div className="grid gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2" style={{gridTemplateColumns: '28px 130px 100px 1fr 140px 65px 32px'}}>
+                  <span className="text-center">#</span>
+                  <span>CÓDIGO MUESTRA</span>
+                  <span>CÓD. ENSAYO</span>
+                  <span>DESCRIPCIÓN</span>
+                  <span>NORMA</span>
+                  <span className="text-center">CANTIDAD</span>
+                  <span />
+                </div>
+
+                <div className="space-y-1.5">
+                  {items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="grid gap-1.5 items-center bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+                      style={{gridTemplateColumns: '28px 130px 100px 1fr 140px 65px 32px'}}
+                    >
+                      <div className="text-center font-bold text-slate-400 text-xs">{idx + 1}</div>
+
+                      <Input
+                        placeholder="ej. 3386"
+                        value={item.codigo_muestra}
+                        onChange={(e) => handleItemChange(idx, "codigo_muestra", e.target.value)}
+                        className="text-xs font-mono font-medium border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                      />
+
+                      <Input
+                        placeholder="ej. SU24"
+                        value={item.codigo_ensayo || ""}
+                        onChange={(e) => handleItemChange(idx, "codigo_ensayo", e.target.value)}
+                        className="text-xs font-mono font-bold text-sky-700 border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                      />
+
+                      <Input
+                        placeholder="Descripción del ensayo"
+                        value={item.descripcion}
+                        onChange={(e) => handleItemChange(idx, "descripcion", e.target.value)}
+                        className="text-xs font-medium border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                      />
+
+                      <Input
+                        placeholder="ej. ASTM D6913"
+                        value={item.norma || ""}
+                        onChange={(e) => handleItemChange(idx, "norma", e.target.value)}
+                        className="text-xs text-slate-600 border-slate-300 focus-visible:ring-sky-500 h-7 px-2"
+                      />
+
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        value={item.cantidad ?? 1}
+                        onChange={(e) => handleItemChange(idx, "cantidad", e.target.value)}
+                        className="text-xs text-center font-bold border-slate-300 focus-visible:ring-sky-500 h-7 px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="h-7 w-7 text-rose-400 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* SECCIÓN 3: FECHAS (solo las 3 columnas del Excel OT-CONCRETO fila 24) */}

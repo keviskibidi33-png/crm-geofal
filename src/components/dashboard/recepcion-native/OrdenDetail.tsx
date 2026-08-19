@@ -41,6 +41,7 @@ interface OrdenDetailProps {
   recepcionId: number;
   onEdit?: () => void;
   onClose?: () => void;
+  onOpenOT?: (numeroRecepcion: string, numeroOt?: string) => void;
 }
 
 export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) {
@@ -166,18 +167,29 @@ export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) 
           </p>
         </div>
         <div className="flex gap-2">
+          {onOpenOT && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenOT(orden.numero_recepcion, orden.numero_ot)}
+              className="gap-1.5 border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 font-bold cursor-pointer"
+            >
+              <FileText className="h-4 w-4 text-sky-600" />
+              {orden.numero_ot ? `Ver/Editar OT (${formatOtDisplay(orden.numero_ot)})` : "Crear OT"}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleDownloadExcel}
             disabled={isDownloading}
-            className="gap-1"
+            className="gap-1 cursor-pointer"
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
             {isDownloading ? "Generando..." : "Exportar Excel"}
           </Button>
           {onEdit && (
-            <Button variant="default" size="sm" onClick={onEdit} className="gap-1">
+            <Button variant="default" size="sm" onClick={onEdit} className="gap-1 cursor-pointer">
               <Pencil className="h-4 w-4" />
               Editar
             </Button>
