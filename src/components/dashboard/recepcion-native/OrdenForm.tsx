@@ -549,6 +549,15 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
           shouldValidate: true,
         });
 
+        if (qd.fecha_recepcion) {
+          const normFecha = normalizeImportedDate(qd.fecha_recepcion);
+          if (normFecha) setValue("fecha_recepcion", normFecha, { shouldValidate: true });
+        }
+        if (qd.fecha_estimada_culminacion || qd.fecha_entrega) {
+          const normFechaFin = normalizeImportedDate(qd.fecha_estimada_culminacion || qd.fecha_entrega);
+          if (normFechaFin) setValue("fecha_estimada_culminacion", normFechaFin, { shouldValidate: true });
+        }
+
         const rawItems = qd.items || qd.items_json;
         if (Array.isArray(rawItems) && rawItems.length > 0) {
           const currentTipo = getValues("tipo_recepcion") || tipoRecepcion;
