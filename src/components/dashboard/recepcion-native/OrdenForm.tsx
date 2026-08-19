@@ -549,6 +549,10 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
           shouldValidate: true,
         });
 
+        if (qd.cotizacion_numero) {
+          setValue("numero_cotizacion", String(qd.cotizacion_numero).trim().toUpperCase(), { shouldValidate: true });
+        }
+
         if (qd.fecha_recepcion) {
           const normFecha = normalizeImportedDate(qd.fecha_recepcion);
           if (normFecha) setValue("fecha_recepcion", normFecha, { shouldValidate: true });
@@ -1061,8 +1065,12 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                         }
                         e.target.value = value;
                         setValue("numero_recepcion", value, { shouldValidate: true });
+                        buscarEstadoRecepcion(value);
+                        // Auto-sincronizar cotización, fechas y datos desde Control Laboratorio si aún no están cargados
+                        if (!getValues("cliente") || getValues("cliente").trim() === "") {
+                          handleAutoFillFromCotizacion(value);
+                        }
                       }
-                      buscarEstadoRecepcion(value);
                     }}
                     className={errors.numero_recepcion ? "border-destructive" : ""}
                     placeholder="193-26"
