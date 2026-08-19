@@ -84,6 +84,14 @@ export const hasMeaningfulMuestraData = (m: unknown): boolean => {
     obj.codigo_muestra_lem,
     obj.identificacion_muestra,
     obj.descripcion,
+    obj.descripcion_muestra,
+    obj.procedencia,
+    obj.cantera,
+    obj.cantidad,
+    obj.codigo_ensayo,
+    obj.ensayos_requeridos,
+    obj.norma_requerida,
+    obj.ensayos_json,
     obj.estructura,
     obj.fecha_moldeo,
     obj.fecha_rotura,
@@ -98,7 +106,8 @@ export const hasMeaningfulMuestraData = (m: unknown): boolean => {
       String(v).trim() !== "" &&
       Number(v) > 0
   );
-  return hasText || hasNumeric;
+  const hasEnsayosList = Array.isArray(obj.ensayos_lista) && obj.ensayos_lista.length > 0;
+  return hasText || hasNumeric || hasEnsayosList;
 };
 
 export const sanitizeImportedMuestras = (muestras: unknown[] | undefined | null) => {
@@ -106,35 +115,54 @@ export const sanitizeImportedMuestras = (muestras: unknown[] | undefined | null)
 
   const sanitized = (muestras as Array<Record<string, unknown>>)
     .filter((m) => hasMeaningfulMuestraData(m))
-    .map((m, idx: number) => ({
-      item_numero: idx + 1,
-      codigo_muestra_lem: normalizeLemCode(
-        normalizeImportedText(m.codigo_muestra_lem)
-      ),
-      identificacion_muestra: String(
-        m.identificacion_muestra || m.descripcion || ""
-      ).trim(),
-      estructura: String(m.estructura || "").trim(),
-      fc_kg_cm2:
-        m.fc_kg_cm2 !== null &&
-        m.fc_kg_cm2 !== undefined &&
-        String(m.fc_kg_cm2).trim() !== ""
-          ? m.fc_kg_cm2
-          : (DEFAULT_FC as never),
-      edad:
-        m.edad !== null &&
-        m.edad !== undefined &&
-        String(m.edad).trim() !== ""
-          ? m.edad
-          : (DEFAULT_EDAD as never),
-      requiere_densidad:
-        m.requiere_densidad === true ||
-        m.requiere_densidad === "true" ||
-        String(m.requiere_densidad || "").trim().toUpperCase() === "SI",
-      fecha_moldeo: normalizeImportedDate(m.fecha_moldeo),
-      hora_moldeo: normalizeImportedText(m.hora_moldeo),
-      fecha_rotura: normalizeImportedDate(m.fecha_rotura),
-    }));
+    .map((m, idx: number) => {
+      let ensayosLista = m.ensayos_lista as Array<Record<string, unknown>> | undefined;
+      if (!ensayosLista && m.ensayos_json && typeof m.ensayos_json === "string") {
+        try {
+          const parsed = JSON.parse(m.ensayos_json);
+          if (Array.isArray(parsed)) ensayosLista = parsed;
+        } catch {}
+      }
+      return {
+        item_numero: idx + 1,
+        codigo_muestra_lem: normalizeLemCode(
+          normalizeImportedText(m.codigo_muestra_lem)
+        ),
+        identificacion_muestra: String(
+          m.identificacion_muestra || m.descripcion || m.descripcion_muestra || ""
+        ).trim(),
+        estructura: String(m.estructura || "").trim(),
+        fc_kg_cm2:
+          m.fc_kg_cm2 !== null &&
+          m.fc_kg_cm2 !== undefined &&
+          String(m.fc_kg_cm2).trim() !== ""
+            ? m.fc_kg_cm2
+            : (DEFAULT_FC as never),
+        edad:
+          m.edad !== null &&
+          m.edad !== undefined &&
+          String(m.edad).trim() !== ""
+            ? m.edad
+            : (DEFAULT_EDAD as never),
+        requiere_densidad:
+          m.requiere_densidad === true ||
+          m.requiere_densidad === "true" ||
+          String(m.requiere_densidad || "").trim().toUpperCase() === "SI",
+        fecha_moldeo: normalizeImportedDate(m.fecha_moldeo),
+        hora_moldeo: normalizeImportedText(m.hora_moldeo),
+        fecha_rotura: normalizeImportedDate(m.fecha_rotura),
+        procedencia: String(m.procedencia || "").trim(),
+        cantera: String(m.cantera || "").trim(),
+        cantidad: String(m.cantidad || "").trim(),
+        tamano_peso: String(m.tamano_peso || "").trim(),
+        descripcion_muestra: String(m.descripcion_muestra || "").trim(),
+        codigo_ensayo: String(m.codigo_ensayo || "").trim(),
+        ensayos_requeridos: String(m.ensayos_requeridos || "").trim(),
+        norma_requerida: String(m.norma_requerida || "").trim(),
+        ensayos_json: typeof m.ensayos_json === "string" ? m.ensayos_json : "",
+        ensayos_lista: ensayosLista,
+      };
+    });
 
   return sanitized.length > 0
     ? sanitized
@@ -293,10 +321,14 @@ export const sampleSchema = z
     ),
     tamano_peso: safeOptionalString(""),
     procedencia: safeOptionalString(""),
+    cantera: safeOptionalString(""),
     descripcion_muestra: safeOptionalString(""),
     cantidad: safeOptionalString(""),
+    codigo_ensayo: safeOptionalString(""),
     ensayos_requeridos: safeOptionalString(""),
     norma_requerida: safeOptionalString(""),
+    ensayos_json: safeOptionalString(""),
+    ensayos_lista: z.array(z.record(z.any())).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.fecha_moldeo && isDateWithinDays(data.fecha_moldeo, 3)) {

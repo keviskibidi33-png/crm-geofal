@@ -13,10 +13,14 @@ export interface MuestraConcreto {
   requiere_densidad?: boolean;
   tamano_peso?: string;
   procedencia?: string;
+  cantera?: string;
   descripcion_muestra?: string;
   cantidad?: string;
+  codigo_ensayo?: string;
   ensayos_requeridos?: string;
   norma_requerida?: string;
+  ensayos_json?: string;
+  ensayos_lista?: Array<{ codigo?: string; descripcion?: string; norma?: string }>;
 }
 
 export interface RecepcionMuestraData {
