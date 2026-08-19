@@ -259,12 +259,38 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
     if (existingOrden) {
       reset(existingOrden);
       if (Array.isArray(existingOrden.muestras) && existingOrden.muestras.length > 0) {
-        const formatted = existingOrden.muestras.map((m: any, idx: number) => ({
-          ...m,
-          item_numero: m.item_numero || idx + 1,
-          fecha_moldeo: m.fecha_moldeo ? normalizeImportedDate(m.fecha_moldeo) : "",
-          fecha_rotura: m.fecha_rotura ? normalizeImportedDate(m.fecha_rotura) : "",
-        }));
+        const formatted = existingOrden.muestras.map((m: any, idx: number) => {
+          let ensayosLista = m.ensayos_lista;
+          if (!ensayosLista && m.ensayos_json && typeof m.ensayos_json === "string") {
+            try {
+              const parsed = JSON.parse(m.ensayos_json);
+              if (Array.isArray(parsed) && parsed.length > 0) ensayosLista = parsed;
+            } catch {}
+          }
+          if (!ensayosLista && (m.codigo_ensayo || m.ensayos_requeridos || m.norma_requerida)) {
+            ensayosLista = [
+              {
+                codigo: m.codigo_ensayo || "",
+                descripcion: m.ensayos_requeridos || "",
+                norma: m.norma_requerida || "",
+              },
+            ];
+          }
+          return {
+            ...m,
+            item_numero: m.item_numero || idx + 1,
+            identificacion_muestra: m.identificacion_muestra || "",
+            procedencia: m.procedencia || "",
+            cantera: m.cantera || "",
+            cantidad: m.cantidad || "",
+            codigo_ensayo: m.codigo_ensayo || "",
+            ensayos_requeridos: m.ensayos_requeridos || "",
+            norma_requerida: m.norma_requerida || "",
+            ensayos_lista: ensayosLista || [],
+            fecha_moldeo: m.fecha_moldeo ? normalizeImportedDate(m.fecha_moldeo) : "",
+            fecha_rotura: m.fecha_rotura ? normalizeImportedDate(m.fecha_rotura) : "",
+          };
+        });
         replace(formatted as any);
       }
       if (existingOrden.cliente) {
