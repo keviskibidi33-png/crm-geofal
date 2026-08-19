@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { authFetch } from "@/lib/api-auth";
 import { formSchema, type FormOutput, type FormInput } from "@/lib/recepcion-validators";
