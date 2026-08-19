@@ -326,7 +326,14 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
 
   const handleConfirmSampleDelete = () => {
     if (sampleDeleteIndex === null) return;
-    remove(sampleDeleteIndex);
+    const currentMuestras = getValues("muestras") || [];
+    const filtered = currentMuestras.filter((_, idx) => idx !== sampleDeleteIndex);
+    const reindexed = filtered.map((m, idx) => ({
+      ...m,
+      item_numero: idx + 1,
+    }));
+    replace(reindexed);
+    setValue("muestras", reindexed as any, { shouldValidate: true, shouldDirty: true });
     setSampleDeleteIndex(null);
     toast.success("Muestra eliminada del formulario");
   };
@@ -1158,6 +1165,8 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
             {(watch("tipo_recepcion") || "CONCRETO") === "SUELO_AGREGADO" ? (
               <SueloAgregadoSampleList
                 form={form}
+                fields={fields}
+                append={append}
                 onCloneSample={handleClone}
                 onRequestDeleteSample={handleRequestSampleDelete}
               />

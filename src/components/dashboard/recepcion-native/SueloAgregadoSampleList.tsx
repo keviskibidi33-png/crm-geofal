@@ -12,6 +12,8 @@ import { Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react";
 
 interface SueloAgregadoSampleListProps {
   form: UseFormReturn<FormInput, unknown, FormOutput>;
+  fields: Array<Record<string, any>>;
+  append: (value: any) => void;
   onCloneSample: (index: number) => void;
   onRequestDeleteSample: (index: number) => void;
 }
@@ -24,15 +26,12 @@ interface EnsayoRow {
 
 export function SueloAgregadoSampleList({
   form,
+  fields,
+  append,
   onCloneSample,
   onRequestDeleteSample,
 }: SueloAgregadoSampleListProps) {
-  const { control, register, setValue, watch } = form;
-  const { fields, append } = useFieldArray({
-    control,
-    name: "muestras",
-  });
-
+  const { register, setValue, watch } = form;
   const muestrasValues = watch("muestras") || [];
 
   return (
