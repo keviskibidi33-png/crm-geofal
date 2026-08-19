@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,6 +18,7 @@ import { formatOtDisplay } from "@/lib/utils"
 import { OrdenForm } from "./recepcion-native/OrdenForm"
 import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 import { RecepcionEmailModal } from "./recepcion-native/RecepcionEmailModal"
+import { OTForm, type OTData } from "./ot-native/OTForm"
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -48,6 +49,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [isImportTypeModalOpen, setIsImportTypeModalOpen] = useState(false)
     const [selectedImportTipo, setSelectedImportTipo] = useState<string>("AUTO")
     const [importedData, setImportedData] = useState<any>(null)
+    const [isOTModalOpen, setIsOTModalOpen] = useState(false)
+    const [selectedOTData, setSelectedOTData] = useState<OTData | null>(null)
+    const [selectedOTRecepcionNum, setSelectedOTRecepcionNum] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
@@ -248,6 +252,35 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         }
     }
 
+    const handleOpenOT = async (numeroRecepcion: string, numeroOt?: string) => {
+        if (!numeroRecepcion) {
+            toast.warning("La recepción no tiene un número asignado.")
+            return
+        }
+        setSelectedOTRecepcionNum(numeroRecepcion)
+        setSelectedOTData(null)
+        setIsOTModalOpen(true)
+
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+            const numParam = numeroOt || numeroRecepcion
+            const res = await authFetch(`${API_URL}/api/ot?search=${encodeURIComponent(numParam)}&limit=10`)
+            if (res.ok) {
+                const data = await res.json()
+                const cleanRec = numeroRecepcion.trim()
+                const found = data.items?.find((ot: any) => 
+                    (ot.numero_recepcion && ot.numero_recepcion.trim() === cleanRec) ||
+                    (numeroOt && ot.numero_ot && ot.numero_ot.trim() === numeroOt.trim())
+                )
+                if (found) {
+                    setSelectedOTData(found)
+                }
+            }
+        } catch {
+            // El formulario se precargará automáticamente con prefill
+        }
+    }
+
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "-"
         try {
@@ -436,7 +469,32 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         {item.numero_recepcion || "-"}
                                     </TableCell>
                                     <TableCell className="font-bold font-mono">
-                                        {formatOtDisplay(item.numero_ot)}
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                            <span>{formatOtDisplay(item.numero_ot)}</span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleOpenOT(item.numero_recepcion, item.numero_ot)
+                                                }}
+                                                title={
+                                                    item.ot_emitida
+                                                        ? `OT emitida y completa: ${formatOtDisplay(item.numero_ot)} (Clic para ver/editar)`
+                                                        : "OT pendiente (Clic para abrir modal y generar OT)"
+                                                }
+                                                className={`inline-flex items-center justify-center h-4.5 w-4.5 rounded transition-all cursor-pointer border ${
+                                                    item.ot_emitida
+                                                        ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/25 hover:scale-110"
+                                                        : "bg-slate-100 text-slate-500 border-slate-300 hover:bg-amber-100 hover:text-amber-700 hover:border-amber-400 hover:scale-110 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-amber-950/60 dark:hover:text-amber-400"
+                                                }`}
+                                            >
+                                                {item.ot_emitida ? (
+                                                    <Check className="h-3 w-3 stroke-[2.5]" />
+                                                ) : (
+                                                    <span className="text-[11px] font-bold leading-none select-none">-</span>
+                                                )}
+                                            </button>
+                                        </div>
                                     </TableCell>
                                     {scope !== "concreto" && (
                                         <TableCell>
@@ -480,6 +538,16 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
                                             )}
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleOpenOT(item.numero_recepcion, item.numero_ot)}
+                                                title={item.numero_ot ? `Ver / Editar OT (${formatOtDisplay(item.numero_ot)})` : "Crear Orden de Trabajo (OT)"}
+                                                className="h-8 w-8 text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-950/50"
+                                            >
+                                                <FileText className="h-4 w-4" />
+                                            </Button>
 
                                             <Button
                                                 variant="ghost"
@@ -609,6 +677,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                 else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
                                 setIsModalOpen(false)
                                 setEditId(null)
+                                setImportedData(null)
                                 refreshCurrentPage()
                             }}
                         />
@@ -648,9 +717,29 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                             recepcionId={selectedRecepcion.id}
                             onEdit={() => selectedRecepcion && handleEdit(selectedRecepcion)}
                             onClose={() => setIsDetailOpen(false)}
+                            onOpenOT={(numRec, numOt) => handleOpenOT(numRec, numOt)}
                         />
                     )}
                 </DialogContent>
+            </Dialog>
+
+            {/* Modal para Crear / Editar Orden de Trabajo (OT) */}
+            <Dialog open={isOTModalOpen} onOpenChange={setIsOTModalOpen}>
+                <OTForm
+                    initialData={selectedOTData}
+                    initialNumeroRecepcion={selectedOTRecepcionNum}
+                    onSuccess={() => {
+                        setIsOTModalOpen(false)
+                        setSelectedOTData(null)
+                        setSelectedOTRecepcionNum(null)
+                        refreshCurrentPage()
+                    }}
+                    onCancel={() => {
+                        setIsOTModalOpen(false)
+                        setSelectedOTData(null)
+                        setSelectedOTRecepcionNum(null)
+                    }}
+                />
             </Dialog>
 
             {/* Modal para Selección del Tipo de Recepción a Importar */}
