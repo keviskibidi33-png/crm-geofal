@@ -44,7 +44,7 @@ interface OrdenDetailProps {
   onOpenOT?: (numeroRecepcion: string, numeroOt?: string) => void;
 }
 
-export function OrdenDetail({ recepcionId, onEdit, onClose }: OrdenDetailProps) {
+export function OrdenDetail({ recepcionId, onEdit, onClose, onOpenOT }: OrdenDetailProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const {
