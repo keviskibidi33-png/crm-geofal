@@ -449,6 +449,7 @@ export function OTModule() {
         <OTForm
           key={editingOt?.id ?? "new"}
           initialData={editingOt}
+          tipo="MUESTRAS"
           onDirtyChange={setIsFormDirty}
           onSuccess={() => {
             setIsFormDirty(false)

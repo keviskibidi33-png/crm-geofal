@@ -52,6 +52,7 @@ export interface OTData {
 interface OTFormProps {
   initialData?: OTData | null
   initialNumeroRecepcion?: string | null
+  tipo?: "CONCRETO" | "MUESTRAS" | "AUTO"
   onSuccess: () => void
   onCancel: () => void
   /** Callback para notificar al padre si hay cambios no guardados */
@@ -82,7 +83,7 @@ function toIsoDate(val?: string | null): string {
   return clean
 }
 
-export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCancel, onDirtyChange }: OTFormProps) {
+export function OTForm({ initialData, initialNumeroRecepcion, tipo = "AUTO", onSuccess, onCancel, onDirtyChange }: OTFormProps) {
   const { user } = useAuth()
   const isEditing = !!initialData?.id
   const [loading, setLoading] = useState(false)
@@ -194,13 +195,13 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
         ]
   )
 
-  // Detección automática del tipo de OT (Concreto vs Suelo/Agregado/Muestras)
-  const isConcreto = items.some(
+  // Detección del tipo de OT: explícito por prop tipo o inferido por items
+  const isConcreto = tipo === "CONCRETO" ? true : tipo === "MUESTRAS" ? false : items.some(
     (it) =>
       (it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== null && it.fc_kg_cm2 !== "") ||
       (it.elemento && it.elemento !== "-") ||
       String(it.codigo_muestra || "").toUpperCase().includes("CO") ||
-      String(it.descripcion || "").toUpperCase().includes("COMPRESION")
+      (it.descripcion && String(it.descripcion).toUpperCase().includes("COMPRESION"))
   )
 
   // Fechas y Control de Ejecución (formato ISO para input[type=date])
@@ -284,15 +285,15 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
 
       markDirty()
       setPrefilled(true)
-      toast.success(`✅ Datos cargados desde recepción (${data.total_probetas} probetas)`)
+      toast.success(`Datos de recepción '${num}' autocompletados con éxito.`)
     } catch (err: any) {
-      toast.error(err.message || "No se pudo autocompletar")
+      toast.error(err.message || "Error al autocompletar datos.")
     } finally {
       setPrefilling(false)
     }
   }
 
-  // Auto-cálculo de plazo cuando cambian las fechas programadas
+  // Recalcular días de plazo si cambian inicio o fin programado
   useEffect(() => {
     if (inicioProgramado && finProgramado) {
       try {
@@ -310,15 +311,35 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
   }, [inicioProgramado, finProgramado])
 
   const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        item: prev.length + 1,
-        codigo_muestra: "",
-        descripcion: "",
-        cantidad: 1,
-      },
-    ])
+    if (isConcreto) {
+      setItems((prev) => [
+        ...prev,
+        {
+          item: prev.length + 1,
+          codigo_muestra: "",
+          descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+          cantidad: 1,
+          elemento: "-",
+          fecha_rotura: "",
+          densidad: "NO",
+          edad: "",
+          fc_kg_cm2: "",
+        },
+      ])
+    } else {
+      setItems((prev) => [
+        ...prev,
+        {
+          item: prev.length + 1,
+          codigo_muestra: "",
+          codigo_ensayo: "",
+          descripcion: "",
+          norma: "",
+          cantidad: 1,
+        },
+      ])
+    }
+    markDirty()
   }
 
   const handleRemoveItem = (index: number) => {
@@ -327,63 +348,77 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       return
     }
     const newItems = items.filter((_, idx) => idx !== index)
-    const reindexed = newItems.map((item, idx) => ({ ...item, item: idx + 1 }))
-    setItems(reindexed)
+    // Reenumerar correlativos
+    setItems(newItems.map((it, idx) => ({ ...it, item: idx + 1 })))
+    markDirty()
   }
 
   const handleItemChange = (index: number, field: keyof OTItem, value: any) => {
     setItems((prev) => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], [field]: value }
-      return updated
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value }
+      return next
     })
+    markDirty()
   }
 
+  /**
+   * Envío del formulario
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!numeroOt.trim()) {
-      toast.error("El N° OT es obligatorio.")
+    const cleanOt = numeroOt.trim()
+    if (!cleanOt) {
+      toast.error("El N° de OT es obligatorio.")
       return
     }
 
-    let finalOt = numeroOt.trim()
-    if (finalOt && !finalOt.includes("-")) {
-      const year = new Date().getFullYear().toString().slice(-2)
-      finalOt = `${finalOt}-${year}`
+    if (!items || items.length === 0) {
+      toast.error("Debes registrar al menos un ítem o muestra en la Orden de Trabajo.")
+      return
     }
 
-    let finalRec = numeroRecepcion.trim()
-    if (finalRec && !finalRec.includes("-")) {
-      const year = new Date().getFullYear().toString().slice(-2)
-      finalRec = `${finalRec}-${year}`
+    // Validar que no haya códigos de muestra vacíos
+    const itemInvalido = items.find((it) => !it.codigo_muestra?.trim())
+    if (itemInvalido) {
+      toast.error(`El ítem #${itemInvalido.item} no tiene código de muestra.`)
+      return
     }
 
-    const payload: Partial<OTData> = {
-      numero_ot: finalOt,
-      numero_recepcion: finalRec || null,
+    // Payload de envío
+    const payload = {
+      numero_ot: cleanOt,
+      numero_recepcion: numeroRecepcion.trim() || null,
       referencia: referencia.trim() || "-",
       cliente: cliente.trim() || null,
       proyecto: proyecto.trim() || null,
       fecha_recepcion: fechaRecepcion || null,
+      plazo_entrega_dias: plazoEntregaDias ? Number(plazoEntregaDias) : null,
       inicio_programado: inicioProgramado || null,
       fin_programado: finProgramado || null,
+      inicio_real: inicioReal || null,
+      fin_real: finReal || null,
+      variacion_inicio: variacionInicio || null,
+      variacion_fin: variacionFin || null,
+      duracion_real_ejecucion_dias: duracionReal ? Number(duracionReal) : null,
       observaciones: observaciones.trim() || null,
       ot_aperturada_por: otAperturadaPor || null,
       ot_designada_a: otDesignadaA || null,
-      // items con todos los campos del Excel OT-CONCRETO
-      items: items.map((it, idx) => ({
-        item: idx + 1,
+      items: items.map((it) => ({
+        item: it.item,
         codigo_muestra: it.codigo_muestra.trim(),
-        descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
-        cantidad: 1,
+        codigo_ensayo: it.codigo_ensayo?.trim() || null,
+        descripcion: it.descripcion.trim(),
+        norma: it.norma?.trim() || null,
+        cantidad: it.cantidad ?? 1,
         elemento: it.elemento || "-",
         fecha_rotura: it.fecha_rotura || null,
         densidad: it.densidad || "-",
         edad: it.edad !== undefined && it.edad !== "" ? Number(it.edad) : null,
         fc_kg_cm2: it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== "" ? Number(it.fc_kg_cm2) : null,
       })),
-      // estado es autom\u00e1tico \u2014 no se env\u00eda desde el formulario
+      // estado es automático — no se envía desde el formulario
     }
 
     setLoading(true)
@@ -418,10 +453,16 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       <DialogHeader className="shrink-0 pb-2 border-b border-slate-200">
         <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
           <FileText className="h-6 w-6 text-sky-600" />
-          {initialData?.id ? `Editar OT: ${initialData.numero_ot}` : "Crear Nueva Orden de Trabajo (OT)"}
+          {initialData?.id
+            ? `Editar OT: ${initialData.numero_ot}`
+            : isConcreto
+              ? "Crear Nueva Orden de Trabajo — Concreto (Probetas)"
+              : "Crear Nueva Orden de Trabajo — Suelo y Agregado / Ensayos"}
         </DialogTitle>
         <DialogDescription>
-          Formulario estructurado exactamente según la plantilla oficial F-LEM-P-02.01.
+          {isConcreto
+            ? "Formulario estructurado exactamente según la plantilla oficial F-LEM-P-02.01 (MYP)."
+            : "Formulario estructurado exactamente según la plantilla oficial F-LEM-P-02.03 (HOJA 1 (2))."}
         </DialogDescription>
       </DialogHeader>
 

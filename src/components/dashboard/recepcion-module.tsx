@@ -728,6 +728,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                 <OTForm
                     initialData={selectedOTData}
                     initialNumeroRecepcion={selectedOTRecepcionNum}
+                    tipo={scope === "concreto" ? "CONCRETO" : scope === "lima" ? "MUESTRAS" : "AUTO"}
                     onSuccess={() => {
                         setIsOTModalOpen(false)
                         setSelectedOTData(null)

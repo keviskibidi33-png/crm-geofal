@@ -487,6 +487,7 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
           key={`${editingOt?.id ?? "new"}-${targetPrefillRecepcion ?? ""}`}
           initialData={editingOt}
           initialNumeroRecepcion={targetPrefillRecepcion}
+          tipo="CONCRETO"
           onDirtyChange={setIsFormDirty}
           onSuccess={() => {
             setIsFormDirty(false)
