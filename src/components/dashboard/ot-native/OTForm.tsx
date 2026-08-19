@@ -87,9 +87,12 @@ export function OTForm({
             (it.descripcion && String(it.descripcion).toUpperCase().includes("COMPRESION"))
         ) ?? true
 
+  const formKey = `${initialData?.id ?? "new"}-${initialNumeroRecepcion ?? ""}`
+
   if (isConcreto) {
     return (
       <OTConcretoForm
+        key={formKey}
         initialData={initialData}
         initialNumeroRecepcion={initialNumeroRecepcion}
         onSuccess={onSuccess}
@@ -101,6 +104,7 @@ export function OTForm({
 
   return (
     <OTSueloAgregadoForm
+      key={formKey}
       initialData={initialData}
       initialNumeroRecepcion={initialNumeroRecepcion}
       onSuccess={onSuccess}

@@ -99,9 +99,16 @@ export function OTSueloAgregadoForm({
   const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH SARAVIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
 
+  // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT
+  useEffect(() => {
+    if (initialNumeroRecepcion && !initialData?.id) {
+      handlePrefill()
+    }
+  }, [initialNumeroRecepcion])
+
   // Autocompletar desde recepción
   const handlePrefill = async () => {
-    const num = numeroRecepcion.trim()
+    const num = (numeroRecepcion || initialNumeroRecepcion || "").trim()
     if (!num) {
       toast.warning("Ingresa un N° de Recepción antes de autocompletar.")
       return
@@ -127,7 +134,6 @@ export function OTSueloAgregadoForm({
         setOtDesignadaA(data.ot_designada_a)
       } else {
         setOtDesignadaA("")
-        toast.warning("⚠️ Selecciona el técnico designado manualmente.")
       }
 
       // Convertir items devueltos por el backend en tarjetas agrupadas por muestra
@@ -412,9 +418,9 @@ export function OTSueloAgregadoForm({
               3. Fechas de Programación y Ejecución
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs font-medium text-slate-600">Fecha Recepción</Label>
+                <Label className="text-xs font-semibold text-slate-700">FECHA RECEPCIÓN</Label>
                 <Input
                   type="date"
                   value={fechaRecepcion}
@@ -422,24 +428,11 @@ export function OTSueloAgregadoForm({
                     setFechaRecepcion(e.target.value)
                     markDirty()
                   }}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-white font-medium"
                 />
               </div>
               <div>
-                <Label className="text-xs font-medium text-slate-600">Plazo Entrega (Días)</Label>
-                <Input
-                  type="number"
-                  placeholder="ej. 7"
-                  value={plazoEntregaDias}
-                  onChange={(e) => {
-                    setPlazoEntregaDias(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-slate-600">Inicio Programado</Label>
+                <Label className="text-xs font-semibold text-slate-700">INICIO PROGRAMADO</Label>
                 <Input
                   type="date"
                   value={inicioProgramado}
@@ -447,11 +440,11 @@ export function OTSueloAgregadoForm({
                     setInicioProgramado(e.target.value)
                     markDirty()
                   }}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-white font-medium"
                 />
               </div>
               <div>
-                <Label className="text-xs font-medium text-slate-600">Fin Programado</Label>
+                <Label className="text-xs font-semibold text-slate-700">FIN PROGRAMADO</Label>
                 <Input
                   type="date"
                   value={finProgramado}
@@ -459,58 +452,7 @@ export function OTSueloAgregadoForm({
                     setFinProgramado(e.target.value)
                     markDirty()
                   }}
-                  className="mt-1 bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-slate-200/60">
-              <div>
-                <Label className="text-xs font-medium text-slate-600">Inicio Real</Label>
-                <Input
-                  type="date"
-                  value={inicioReal}
-                  onChange={(e) => {
-                    setInicioReal(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-slate-600">Fin Real</Label>
-                <Input
-                  type="date"
-                  value={finReal}
-                  onChange={(e) => {
-                    setFinReal(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-slate-600">Variación Inicio</Label>
-                <Input
-                  placeholder="0"
-                  value={variacionInicio}
-                  onChange={(e) => {
-                    setVariacionInicio(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-medium text-slate-600">Variación Fin</Label>
-                <Input
-                  placeholder="0"
-                  value={variacionFin}
-                  onChange={(e) => {
-                    setVariacionFin(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-white font-medium"
                 />
               </div>
             </div>
