@@ -1949,14 +1949,209 @@ export const ensayosData: EnsayoItem[] = [
     ubicacion: 'CAMPO',
     precio: 0,
     tiempo: '-',
+    comentarios: 'Para el ensayo se requiere realizar previo el ensayo de granulometria, limites y clasificación sucs, peso relativo del solido, peso especifico del grueso (solo si tiene grava). Cantidad de muestra: 60 kilos, Tiempo de entrega: 05 días\nPrecio referencia: 640',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'SU44',
+    descripcion: 'Conductividad térmica / Resistividad térmica',
+    norma: 'ASTM D5334-14',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 1500,
+    tiempo: '3 dias',
+    comentarios: 'Se requiere de ensayos de granulometria, límites y clasificación.\nPrecio referencia: 1500',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'SU45',
+    descripcion: 'Compresión triaxial no consolidado no drenado UU, diametro 75 mm',
+    norma: 'ASTM D2850',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 1500,
+    tiempo: '3 dias',
+    comentarios: 'UU: cuando halla licuacion de suelo (densidad baja, arena fina sin mucho contenido en la malla 200, que no tenga limites, nivel freatico), otro suelo arena muy sueltas cuando se excaven se hace un embudo, arcillas blandas (solo fino, densidades bajas), en conclusion suelos criticos, TIEMPO 1.1/2 DIAS EN ARENA Y ARCILLA\nPrecio referencia: 1500',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'SU46',
+    descripcion: 'Compresión triaxial consolidado no drenado CU, diametro 75 mm',
+    norma: 'ASTM D4767',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 2000,
+    tiempo: '3 dias',
+    comentarios: 'CU: Se realizara cuando el agua nunca se pueda drenar, ejemplo orilla del mar, donde hay nivel freatico, ems para puente, etc. TIEMPO 3 DIAS ARENA Y 4 DIAS ARCILLA\nPrecio referencia: 2000',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'SU47',
+    descripcion: 'Compresión triaxial consolidado drenado CD, diametro 75 mm',
+    norma: 'ASTM D7181',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 0,
+    tiempo: '3 dias',
+    comentarios: 'CD:  Se realiza donde no hay nivel freatico, porque el suelo drena el agua, ejemplo se rompio una tuberia el suelo se inunda esto en un determinado tiempo drenara el agua. TIEMPO 6 DIAS EN ARENA Y ARCILLA\nPrecio referencia: Sujeto a evaluación',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'EE01',
+    descripcion: 'Consolidación unidimensional.',
+    norma: 'ASTM D2435',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 800,
+    tiempo: '7 dias',
+    comentarios: '',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'EE02',
+    descripcion: 'Expansión libre.',
+    norma: 'ASTM D4546',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 350,
+    tiempo: '3 dias',
+    comentarios: '',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'EE03',
+    descripcion: 'Expansión controlada Método A.',
+    norma: 'ASTM D4546',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 670,
+    tiempo: '3 dias',
+    comentarios: '',
+    categoria: 'ENSAYOS ESPECIALES SUELO',
+  },
+
+  {
+    codigo: 'E01',
+    descripcion: 'Escaneo de acero de refuerzo.',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '* Sujeto A Evaluacion De Estructura\nPrecio referencia: Sujeto a evaluación',
+    categoria: 'EVALUACIONES ESTRUCTURALES',
+  },
+
+  {
+    codigo: 'E02',
+    descripcion: 'Escaneo de acero por portico.',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '',
+    categoria: 'EVALUACIONES ESTRUCTURALES',
+  },
+
+  {
+    codigo: 'E03',
+    descripcion: 'Escaneo de acero por estructura.',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '',
+    categoria: 'EVALUACIONES ESTRUCTURALES',
+  },
+
+  {
+    codigo: 'E04',
+    descripcion: 'PH concreto.',
+    norma: 'ASTM C4262',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'LABORATORIO',
+    precio: 100,
+    tiempo: '-',
+    comentarios: '',
+    categoria: 'EVALUACIONES ESTRUCTURALES',
+  },
+
+  {
+    codigo: 'SER01',
+    descripcion: 'Movilización de personal y equipo (Densidad campo).',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '* Depende De La Ubicación De La Obra\nPrecio referencia: Sujeto a evaluación',
+    categoria: 'OTROS SERVICIOS',
+  },
+
+  {
+    codigo: 'SER02',
+    descripcion: 'Movilización de personal y equipo.',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '* Depende De La Ubicación De La Obra\nPrecio referencia: Sujeto a evaluación',
+    categoria: 'OTROS SERVICIOS',
+  },
+
+  {
+    codigo: 'SER03',
+    descripcion: 'Movilización de muestreo en cantera y/o obra.',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
+    comentarios: '* Depende De La Ubicación De La Obra\nPrecio referencia: Sujeto a evaluación',
+    categoria: 'OTROS SERVICIOS',
+  },
+
+  {
+    codigo: 'SER04',
+    descripcion: 'Movilización',
+    norma: '-',
+    acreditado: 'NO',
+    referenciaOtraNorma: '-',
+    ubicacion: 'CAMPO',
+    precio: 0,
+    tiempo: '-',
     comentarios: '* Depende De La Ubicación De La Obra\nPrecio referencia: Sujeto a evaluación',
     categoria: 'OTROS SERVICIOS',
   }
 ];
 
 export const searchEnsayos = (query: string): EnsayoItem[] => {
-  if (!query || query.length < 2) return [];
-  const lower = query.toLowerCase();
+  if (!query || query.trim().length === 0) return [];
+  const lower = query.trim().toLowerCase();
   return ensayosData.filter((item) =>
     item.codigo.toLowerCase().includes(lower) ||
     item.descripcion.toLowerCase().includes(lower)

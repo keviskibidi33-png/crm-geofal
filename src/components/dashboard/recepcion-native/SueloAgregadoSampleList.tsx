@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Copy, Sparkles, Search, Check, Layers } from "lucide-react";
+import { Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react";
 
 interface SueloAgregadoSampleListProps {
   form: UseFormReturn<FormInput, unknown, FormOutput>;
@@ -28,7 +28,7 @@ export function SueloAgregadoSampleList({
   onRequestDeleteSample,
 }: SueloAgregadoSampleListProps) {
   const { control, register, setValue, watch } = form;
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append } = useFieldArray({
     control,
     name: "muestras",
   });
@@ -36,7 +36,7 @@ export function SueloAgregadoSampleList({
   const muestrasValues = watch("muestras") || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-visible">
       {fields.map((field, sIdx) => {
         const muestra = muestrasValues[sIdx] || {};
         const rawEnsayos = muestra.ensayos_lista;
@@ -129,10 +129,11 @@ export function SueloAgregadoSampleList({
         return (
           <div
             key={field.id}
-            className="rounded-2xl border-2 border-border/80 bg-card overflow-hidden shadow-sm hover:shadow-md transition-all"
+            className="rounded-2xl border-2 border-border/80 bg-card overflow-visible shadow-sm hover:shadow-md transition-all relative"
+            style={{ zIndex: Math.max(1, 40 - sIdx) }}
           >
             {/* CARD HEADER */}
-            <div className="bg-muted/40 px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-muted/40 px-5 py-3.5 border-b rounded-t-2xl flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Badge
                   variant="default"
@@ -147,7 +148,7 @@ export function SueloAgregadoSampleList({
                   </span>
                   <Input
                     {...register(`muestras.${sIdx}.codigo_muestra_lem`)}
-                    placeholder="1500-SU-26"
+                    placeholder="-----"
                     className="h-8 w-36 font-mono font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -179,7 +180,7 @@ export function SueloAgregadoSampleList({
             </div>
 
             {/* CARD BODY: 4 SAMPLE METADATA FIELDS */}
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-5 overflow-visible">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-foreground/80 flex items-center gap-1">
@@ -187,7 +188,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.identificacion_muestra`)}
-                    placeholder="M-01 C-01 (0.00 - 1.50 M)"
+                    placeholder="-----"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -198,7 +199,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.procedencia`)}
-                    placeholder="CALICATA 01"
+                    placeholder="-----"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -209,7 +210,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.cantera`)}
-                    placeholder="CANTERA CENTRAL"
+                    placeholder="-----"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -220,14 +221,14 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.cantidad`)}
-                    placeholder="50 KG"
+                    placeholder="-----"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
               </div>
 
               {/* SUBSECTION: ENSAYOS REQUERIDOS (VINCULACIÓN CON COTIZADORA) */}
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3 overflow-visible relative">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary animate-pulse" />
@@ -235,7 +236,7 @@ export function SueloAgregadoSampleList({
                       Ensayos Requeridos para Muestra #{sIdx + 1}
                     </h5>
                     <span className="text-[10px] font-medium text-muted-foreground">
-                      (Autocompletado con catálogo de cotizaciones)
+                      (Autocompletado al escribir código o descripción)
                     </span>
                   </div>
                   <Button
@@ -251,8 +252,8 @@ export function SueloAgregadoSampleList({
                 </div>
 
                 {/* ASSAYS TABLE */}
-                <div className="border rounded-lg overflow-hidden bg-background">
-                  <table className="w-full text-left border-collapse">
+                <div className="border rounded-lg overflow-visible bg-background relative">
+                  <table className="w-full text-left border-collapse overflow-visible">
                     <thead>
                       <tr className="bg-muted/50 border-b text-[9px] uppercase font-black tracking-widest text-muted-foreground">
                         <th className="px-3 py-2 w-36">Cód. Ensayo</th>
@@ -261,11 +262,13 @@ export function SueloAgregadoSampleList({
                         <th className="px-2 py-2 w-12 text-center">Acción</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/60">
+                    <tbody className="divide-y divide-border/60 overflow-visible">
                       {sampleAssays.map((assay, aIdx) => (
                         <AssayRowItem
                           key={aIdx}
                           assay={assay}
+                          totalAssays={sampleAssays.length}
+                          rowIndex={aIdx}
                           onChange={(field, val) => handleAssayChange(aIdx, field, val)}
                           onSelectSuggestion={(item) => handleSelectSuggestedEnsayo(aIdx, item)}
                           onRemove={() => handleRemoveAssay(aIdx)}
@@ -314,90 +317,143 @@ export function SueloAgregadoSampleList({
 
 interface AssayRowItemProps {
   assay: EnsayoRow;
+  totalAssays: number;
+  rowIndex: number;
   onChange: (field: keyof EnsayoRow, val: string) => void;
   onSelectSuggestion: (item: EnsayoItem) => void;
   onRemove: () => void;
 }
 
-function AssayRowItem({ assay, onChange, onSelectSuggestion, onRemove }: AssayRowItemProps) {
-  const [query, setQuery] = useState(assay.codigo || "");
-  const [suggestions, setSuggestions] = useState<EnsayoItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+function AssayRowItem({
+  assay,
+  totalAssays,
+  rowIndex,
+  onChange,
+  onSelectSuggestion,
+  onRemove,
+}: AssayRowItemProps) {
+  // Código state
+  const [codigoQuery, setCodigoQuery] = useState(assay.codigo || "");
+  const [codigoSuggestions, setCodigoSuggestions] = useState<EnsayoItem[]>([]);
+  const [isCodigoOpen, setIsCodigoOpen] = useState(false);
+  const codigoRef = useRef<HTMLDivElement>(null);
+
+  // Descripción state
+  const [descQuery, setDescQuery] = useState(assay.descripcion || "");
+  const [descSuggestions, setDescSuggestions] = useState<EnsayoItem[]>([]);
+  const [isDescOpen, setIsDescOpen] = useState(false);
+  const descRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setQuery(assay.codigo || "");
+    setCodigoQuery(assay.codigo || "");
   }, [assay.codigo]);
 
   useEffect(() => {
+    setDescQuery(assay.descripcion || "");
+  }, [assay.descripcion]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      if (codigoRef.current && !codigoRef.current.contains(e.target as Node)) {
+        setIsCodigoOpen(false);
+      }
+      if (descRef.current && !descRef.current.contains(e.target as Node)) {
+        setIsDescOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Código change
+  const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.toUpperCase();
-    setQuery(val);
+    setCodigoQuery(val);
     onChange("codigo", val);
 
-    // Direct exact match
     const exact = getEnsayoByCodigo(val);
     if (exact) {
       onSelectSuggestion(exact);
-      setSuggestions([]);
-      setIsOpen(false);
+      setCodigoSuggestions([]);
+      setIsCodigoOpen(false);
       return;
     }
 
-    if (val.length >= 2) {
+    if (val.trim().length >= 1) {
       const results = searchEnsayos(val);
-      setSuggestions(results.slice(0, 8));
-      setIsOpen(results.length > 0);
+      setCodigoSuggestions(results.slice(0, 10));
+      setIsCodigoOpen(results.length > 0);
     } else {
-      setSuggestions([]);
-      setIsOpen(false);
+      setCodigoSuggestions([]);
+      setIsCodigoOpen(false);
     }
   };
 
-  const handleSelect = (item: EnsayoItem) => {
-    setQuery(item.codigo);
-    onSelectSuggestion(item);
-    setSuggestions([]);
-    setIsOpen(false);
+  // Handle Descripción change
+  const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase();
+    setDescQuery(val);
+    onChange("descripcion", val);
+
+    if (val.trim().length >= 1) {
+      const results = searchEnsayos(val);
+      setDescSuggestions(results.slice(0, 10));
+      setIsDescOpen(results.length > 0);
+    } else {
+      setDescSuggestions([]);
+      setIsDescOpen(false);
+    }
   };
 
+  const handleSelectFromCodigo = (item: EnsayoItem) => {
+    setCodigoQuery(item.codigo);
+    setDescQuery(item.descripcion);
+    onSelectSuggestion(item);
+    setCodigoSuggestions([]);
+    setIsCodigoOpen(false);
+  };
+
+  const handleSelectFromDesc = (item: EnsayoItem) => {
+    setCodigoQuery(item.codigo);
+    setDescQuery(item.descripcion);
+    onSelectSuggestion(item);
+    setDescSuggestions([]);
+    setIsDescOpen(false);
+  };
+
+  const rowZIndex = Math.max(1, (totalAssays - rowIndex) * 10);
+
   return (
-    <tr className="hover:bg-muted/20 transition-colors">
+    <tr
+      className="hover:bg-muted/20 transition-colors relative"
+      style={{ zIndex: isCodigoOpen || isDescOpen ? 999 : rowZIndex }}
+    >
       {/* CÓDIGO ENSAYO CON AUTOCOMPLETE */}
-      <td className="px-3 py-2 align-top">
-        <div ref={containerRef} className="relative">
+      <td className="px-3 py-2 align-top relative">
+        <div ref={codigoRef} className="relative">
           <Input
-            value={query}
-            onChange={handleInputChange}
+            value={codigoQuery}
+            onChange={handleCodigoChange}
             onFocus={() => {
-              if (query.length >= 2) {
-                const results = searchEnsayos(query);
-                setSuggestions(results.slice(0, 8));
-                setIsOpen(results.length > 0);
+              if (codigoQuery.trim().length >= 1) {
+                const results = searchEnsayos(codigoQuery);
+                setCodigoSuggestions(results.slice(0, 10));
+                setIsCodigoOpen(results.length > 0);
               }
             }}
-            placeholder="SU24"
-            className="h-8 font-mono font-bold text-xs uppercase"
+            placeholder="-----"
+            className="h-8 font-mono font-bold text-xs uppercase bg-background"
             autoComplete="off"
           />
 
-          {isOpen && suggestions.length > 0 && (
-            <div className="absolute left-0 top-full mt-1 w-80 max-h-56 overflow-y-auto bg-popover text-popover-foreground border rounded-xl shadow-xl z-50 p-1 divide-y divide-border/40">
-              {suggestions.map((item) => (
+          {isCodigoOpen && codigoSuggestions.length > 0 && (
+            <div className="absolute left-0 top-full mt-1 w-84 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+              {codigoSuggestions.map((item) => (
                 <button
                   key={item.codigo}
                   type="button"
-                  onClick={() => handleSelect(item)}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors flex flex-col gap-0.5"
+                  onClick={() => handleSelectFromCodigo(item)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-primary/10 hover:text-primary rounded-lg transition-colors flex flex-col gap-0.5"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono font-black text-primary text-[11px]">
@@ -407,7 +463,7 @@ function AssayRowItem({ assay, onChange, onSelectSuggestion, onRemove }: AssayRo
                       {item.categoria}
                     </span>
                   </div>
-                  <span className="font-medium text-[11px] line-clamp-1">
+                  <span className="font-medium text-[11px] line-clamp-1 text-foreground">
                     {item.descripcion}
                   </span>
                   <span className="text-[9px] text-muted-foreground font-mono">
@@ -420,14 +476,52 @@ function AssayRowItem({ assay, onChange, onSelectSuggestion, onRemove }: AssayRo
         </div>
       </td>
 
-      {/* DESCRIPCIÓN */}
-      <td className="px-3 py-2 align-top">
-        <Input
-          value={assay.descripcion || ""}
-          onChange={(e) => onChange("descripcion", e.target.value.toUpperCase())}
-          placeholder="ANÁLISIS GRANULOMÉTRICO POR TAMIZADO EN SUELOS"
-          className="h-8 text-xs font-semibold uppercase"
-        />
+      {/* DESCRIPCIÓN CON AUTOCOMPLETE */}
+      <td className="px-3 py-2 align-top relative">
+        <div ref={descRef} className="relative">
+          <Input
+            value={descQuery}
+            onChange={handleDescChange}
+            onFocus={() => {
+              if (descQuery.trim().length >= 1) {
+                const results = searchEnsayos(descQuery);
+                setDescSuggestions(results.slice(0, 10));
+                setIsDescOpen(results.length > 0);
+              }
+            }}
+            placeholder="-----"
+            className="h-8 text-xs font-semibold uppercase bg-background"
+            autoComplete="off"
+          />
+
+          {isDescOpen && descSuggestions.length > 0 && (
+            <div className="absolute left-0 top-full mt-1 w-96 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+              {descSuggestions.map((item) => (
+                <button
+                  key={item.codigo}
+                  type="button"
+                  onClick={() => handleSelectFromDesc(item)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-primary/10 hover:text-primary rounded-lg transition-colors flex flex-col gap-0.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-black text-primary text-[11px]">
+                      {item.codigo}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      {item.categoria}
+                    </span>
+                  </div>
+                  <span className="font-medium text-[11px] line-clamp-1 text-foreground">
+                    {item.descripcion}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground font-mono">
+                    Norma: {item.norma || "-"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </td>
 
       {/* NORMA */}
@@ -435,8 +529,8 @@ function AssayRowItem({ assay, onChange, onSelectSuggestion, onRemove }: AssayRo
         <Input
           value={assay.norma || ""}
           onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
-          placeholder="ASTM D6913"
-          className="h-8 font-mono text-xs uppercase"
+          placeholder="-----"
+          className="h-8 font-mono text-xs uppercase bg-background"
         />
       </td>
 

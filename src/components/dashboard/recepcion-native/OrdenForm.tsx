@@ -392,48 +392,82 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
       return;
     }
     const timer = setTimeout(async () => {
-      if (clienteSearch.length >= 2) {
+      const q = clienteSearch.trim();
+      if (q.length >= 1) {
         try {
-          const res = await authFetch(
-            `${API_URL}/clientes?search=${encodeURIComponent(clienteSearch)}`
-          );
-          if (res.ok) {
-            const json = await res.json();
-            setClientes(json.data || []);
+          const [resClientes, resPlantillas] = await Promise.allSettled([
+            authFetch(`${API_URL}/clientes?search=${encodeURIComponent(q)}`),
+            authFetch(`${API_URL}/api/recepcion/plantillas/buscar?q=${encodeURIComponent(q)}`)
+          ]);
+          let combined: Array<Record<string, unknown>> = [];
+          if (resClientes.status === "fulfilled" && resClientes.value.ok) {
+            const json = await resClientes.value.json();
+            if (Array.isArray(json.data)) combined.push(...json.data);
           }
-          setShowClienteDropdown(true);
+          if (resPlantillas.status === "fulfilled" && resPlantillas.value.ok) {
+            const json = await resPlantillas.value.json();
+            if (Array.isArray(json)) {
+              json.forEach((p: any) => {
+                const name = p.cliente || p.nombre || p.nombre_plantilla;
+                if (name && !combined.some(c => String(c.nombre || c.cliente).toUpperCase() === String(name).toUpperCase())) {
+                  combined.push({
+                    id: p.id || p.codigo || name,
+                    nombre: name,
+                    ruc: p.ruc,
+                    direccion: p.domicilio_legal || p.ubicacion,
+                    contacto: p.persona_contacto,
+                    email: p.email,
+                    telefono: p.telefono,
+                    proyecto: p.proyecto,
+                    ubicacion: p.ubicacion,
+                    solicitante: p.solicitante,
+                    domicilio_solicitante: p.domicilio_solicitante,
+                  });
+                }
+              });
+            }
+          }
+          setClientes(combined);
+          setShowClienteDropdown(combined.length > 0);
         } catch {
           setClientes([]);
+          setShowClienteDropdown(false);
         }
       } else {
         setClientes([]);
         setShowClienteDropdown(false);
       }
-    }, 300);
+    }, 250);
     return () => clearTimeout(timer);
   }, [clienteSearch]);
 
   const handleSelectCliente = (c: Record<string, unknown>) => {
-    const fallback = (v: unknown) => (v && String(v).trim()) || "-";
-    setValue("cliente", fallback(c.nombre), { shouldValidate: true });
+    const fallback = (v: unknown) => (v && String(v).trim()) || "";
+    setValue("cliente", fallback(c.nombre || c.cliente), { shouldValidate: true });
     setValue("ruc", normalizeRucValue(c.ruc), { shouldValidate: true });
-    setValue("domicilio_legal", fallback(c.direccion), { shouldValidate: true });
-    setValue("persona_contacto", normalizeImportedText(c.contacto), {
+    setValue("domicilio_legal", fallback(c.direccion || c.domicilio_legal), { shouldValidate: true });
+    setValue("persona_contacto", normalizeImportedText(c.contacto || c.persona_contacto), {
       shouldValidate: true,
     });
     setValue("email", normalizeImportedText(c.email), { shouldValidate: true });
     setValue("telefono", normalizeImportedText(c.telefono), {
       shouldValidate: true,
     });
-    setValue("solicitante", fallback(c.nombre), { shouldValidate: true });
-    setValue("domicilio_solicitante", fallback(c.direccion), {
+    setValue("solicitante", fallback(c.solicitante || c.nombre || c.cliente), { shouldValidate: true });
+    setValue("domicilio_solicitante", fallback(c.domicilio_solicitante || c.direccion || c.domicilio_legal), {
       shouldValidate: true,
     });
-    syncEntregadoPorFromContacto(c.contacto, { force: true });
+    if (c.proyecto) {
+      setValue("proyecto", fallback(c.proyecto), { shouldValidate: true });
+    }
+    if (c.ubicacion) {
+      setValue("ubicacion", fallback(c.ubicacion), { shouldValidate: true });
+    }
+    syncEntregadoPorFromContacto(c.contacto || c.persona_contacto, { force: true });
     isSelectionRef.current = true;
-    setClienteSearch(c.nombre as string);
+    setClienteSearch(String(c.nombre || c.cliente || ""));
     setShowClienteDropdown(false);
-    toast.success(`Cliente ${c.nombre} seleccionado`);
+    toast.success(`Cliente ${c.nombre || c.cliente} seleccionado y datos completados`);
   };
 
   const handleClone = (index: number) => {
@@ -1491,15 +1525,15 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                     </span>
                   )}
                   {showClienteDropdown && clientes.length > 0 && (
-                    <div className="absolute z-50 top-full mt-1 w-full bg-card border rounded-xl shadow-2xl max-h-64 overflow-auto py-2">
+                    <div className="absolute z-[1000] top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl max-h-72 overflow-y-auto py-1.5 divide-y divide-border/40">
                       {clientes.map((c) => (
                         <div
                           key={c.id as string}
                           onClick={() => handleSelectCliente(c)}
-                          className="px-4 py-3 hover:bg-muted cursor-pointer border-b last:border-0 transition-colors"
+                          className="px-4 py-2.5 hover:bg-primary/10 cursor-pointer transition-colors"
                         >
                           <div className="text-[11px] font-black text-primary uppercase">
-                            {c.nombre as string}
+                            {String(c.nombre || c.cliente || "")}
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                             {c.ruc ? (
@@ -1507,15 +1541,15 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                                 RUC: {String(c.ruc)}
                               </span>
                             ) : null}
-                            {c.contacto ? (
-                              <span className="text-[9px] font-black text-primary truncate max-w-50">
-                                CONTACTO: {String(c.contacto)}
+                            {c.contacto || c.persona_contacto ? (
+                              <span className="text-[9px] font-black text-foreground/80 truncate max-w-50">
+                                CONTACTO: {String(c.contacto || c.persona_contacto)}
                               </span>
                             ) : null}
                           </div>
-                          {c.direccion ? (
-                            <div className="text-[9px] font-bold text-muted-foreground mt-0.5 truncate italic">
-                              {String(c.direccion)}
+                          {c.direccion || c.domicilio_legal ? (
+                            <div className="text-[9px] font-medium text-muted-foreground mt-0.5 truncate italic">
+                              {String(c.direccion || c.domicilio_legal)}
                             </div>
                           ) : null}
                         </div>
@@ -1536,7 +1570,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       });
                     }}
                     className={errors.ruc ? "border-destructive" : ""}
-                    placeholder="20100123456"
+                    placeholder="-----"
                   />
                   {errors.ruc?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1552,7 +1586,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("domicilio_legal")}
                   className={errors.domicilio_legal ? "border-destructive" : ""}
-                  placeholder="AV. JAVIER PRADO ESTE 1234, SAN ISIDRO, LIMA"
+                  placeholder="-----"
                   rows={2}
                 />
                 {errors.domicilio_legal?.message && (
@@ -1580,7 +1614,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                         });
                       }}
                       className={errors.persona_contacto ? "border-destructive" : ""}
-                      placeholder="ING. JUAN PEREZ"
+                      placeholder="-----"
                     />
                     {errors.persona_contacto?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1599,7 +1633,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       {...register("email")}
                       rows={2}
                       className={errors.email ? "border-destructive" : ""}
-                      placeholder={"correo1@empresa.com\ncorreo2@empresa.com"}
+                      placeholder="-----"
                     />
                     {errors.email?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1614,7 +1648,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                     <Input
                       {...register("telefono")}
                       className={errors.telefono ? "border-destructive" : ""}
-                      placeholder="999888777"
+                      placeholder="-----"
                     />
                     {errors.telefono?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1638,7 +1672,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Input
                   {...register("solicitante")}
                   className={errors.solicitante ? "border-destructive" : ""}
-                  placeholder="CONSTRUCTORA PROYECTOS S.A.C."
+                  placeholder="-----"
                 />
                 {errors.solicitante?.message && (
                   <span className="text-[9px] font-black text-destructive">
@@ -1653,7 +1687,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("domicilio_solicitante")}
                   className={errors.domicilio_solicitante ? "border-destructive" : ""}
-                  placeholder="AV. JAVIER PRADO ESTE 1234, SAN ISIDRO, LIMA"
+                  placeholder="-----"
                   rows={2}
                 />
                 {errors.domicilio_solicitante?.message && (
@@ -1669,7 +1703,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Input
                   {...register("proyecto")}
                   className={errors.proyecto ? "border-destructive" : ""}
-                  placeholder="EDIFICIO RESIDENCIAL MIRADOR"
+                  placeholder="-----"
                 />
                 {errors.proyecto?.message && (
                   <span className="text-[9px] font-black text-destructive">
@@ -1684,7 +1718,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("ubicacion")}
                   className={errors.ubicacion ? "border-destructive" : ""}
-                  placeholder="CALLE LOS PINOS 456, MIRAFLORES, LIMA"
+                  placeholder="-----"
                   rows={2}
                 />
                 {errors.ubicacion?.message && (
@@ -1709,7 +1743,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       handleSmartDate(e, "fecha_recepcion");
                     }}
                     className={errors.fecha_recepcion ? "border-destructive" : ""}
-                    placeholder="2026/02/04"
+                    placeholder="-----"
                   />
                   {errors.fecha_recepcion?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1728,7 +1762,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       handleSmartDate(e, "fecha_estimada_culminacion");
                     }}
                     className={errors.fecha_estimada_culminacion ? "border-destructive" : ""}
-                    placeholder="2026/12/08"
+                    placeholder="-----"
                   />
                   {errors.fecha_estimada_culminacion?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1781,7 +1815,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                   <Input
                     {...register("entregado_por")}
                     className={errors.entregado_por ? "border-destructive" : ""}
-                    placeholder="TECNICO JUAN"
+                    placeholder="-----"
                   />
                   {errors.entregado_por?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1832,7 +1866,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       register("recibido_por").onChange(e);
                     }}
                     className={`${errors.recibido_por ? "border-destructive" : ""} font-bold text-xs uppercase`}
-                    placeholder="BETZABETH SARAVIA / GERALDINE PINEDO"
+                    placeholder="-----"
                   />
                   {errors.recibido_por?.message && (
                     <span className="text-[9px] font-black text-destructive">
