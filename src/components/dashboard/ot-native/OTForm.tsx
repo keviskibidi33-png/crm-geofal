@@ -126,17 +126,28 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
               toast.warning("⚠️ No se encontró técnico en Verificación de Muestras. Por favor selecciona el técnico designado manualmente.")
             }
             if (Array.isArray(data.items) && data.items.length > 0) {
-              setItems(data.items.map((it: any, idx: number) => ({
-                item: idx + 1,
-                codigo_muestra: it.codigo_muestra || `PROB-${String(idx + 1).padStart(2, "0")}`,
-                descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
-                cantidad: 1,
-                elemento: it.elemento || "-",
-                fecha_rotura: toIsoDate(it.fecha_rotura),
-                densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
-                edad: it.edad ?? "",
-                fc_kg_cm2: it.fc_kg_cm2 ?? "",
-              })))
+              const hasConcreteFields = data.items.some(
+                (it: any) =>
+                  (it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== null && it.fc_kg_cm2 !== "") ||
+                  (it.elemento && it.elemento !== "-") ||
+                  String(it.codigo_muestra || "").toUpperCase().includes("CO") ||
+                  String(it.descripcion || "").toUpperCase().includes("COMPRESION")
+              )
+              setItems(
+                data.items.map((it: any, idx: number) => ({
+                  item: idx + 1,
+                  codigo_muestra: it.codigo_muestra || `M-${String(idx + 1).padStart(2, "0")}`,
+                  codigo_ensayo: it.codigo_ensayo || "",
+                  descripcion: it.descripcion || (hasConcreteFields ? "COMPRESION PROBETAS ASTM C39/C39M" : ""),
+                  norma: it.norma || "",
+                  cantidad: it.cantidad ?? 1,
+                  elemento: it.elemento || "-",
+                  fecha_rotura: toIsoDate(it.fecha_rotura),
+                  densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
+                  edad: it.edad ?? "",
+                  fc_kg_cm2: it.fc_kg_cm2 ?? "",
+                }))
+              )
             }
             setPrefilled(true)
             markDirty()
@@ -161,8 +172,10 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       ? initialData.items.map((it, idx) => ({
           item: idx + 1,
           codigo_muestra: it.codigo_muestra || "",
-          descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
-          cantidad: 1,
+          codigo_ensayo: it.codigo_ensayo || "",
+          descripcion: it.descripcion || "",
+          norma: it.norma || "",
+          cantidad: it.cantidad ?? 1,
           elemento: it.elemento || "-",
           fecha_rotura: toIsoDate(it.fecha_rotura),
           densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
@@ -173,15 +186,21 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
           {
             item: 1,
             codigo_muestra: "",
-            descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
+            codigo_ensayo: "",
+            descripcion: "",
+            norma: "",
             cantidad: 1,
-            elemento: "-",
-            fecha_rotura: "",
-            densidad: "NO",
-            edad: "",
-            fc_kg_cm2: "",
           },
         ]
+  )
+
+  // Detección automática del tipo de OT (Concreto vs Suelo/Agregado/Muestras)
+  const isConcreto = items.some(
+    (it) =>
+      (it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== null && it.fc_kg_cm2 !== "") ||
+      (it.elemento && it.elemento !== "-") ||
+      String(it.codigo_muestra || "").toUpperCase().includes("CO") ||
+      String(it.descripcion || "").toUpperCase().includes("COMPRESION")
   )
 
   // Fechas y Control de Ejecución (formato ISO para input[type=date])
@@ -198,7 +217,7 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
   // Notas y Personal
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
   // Default a BETZABETH ZARABIA si no se especifica
-  const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH ZARABIA")
+  const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH SARAVIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
 
   /**
@@ -227,6 +246,7 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
       if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
       if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
       if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
+      if (data.observaciones) setObservaciones(data.observaciones)
       if (data.ot_aperturada_por) setOtAperturadaPor(data.ot_aperturada_por)
       if (data.ot_designada_a && data.ot_designada_a !== "-") {
         setOtDesignadaA(data.ot_designada_a)
@@ -235,19 +255,31 @@ export function OTForm({ initialData, initialNumeroRecepcion, onSuccess, onCance
         toast.warning("⚠️ No se encontró técnico en Verificación de Muestras. Por favor selecciona el técnico designado manualmente.")
       }
 
-      // Rellenar ítems (probetas) con trazabilidad completa
+      // Rellenar ítems con trazabilidad completa
       if (Array.isArray(data.items) && data.items.length > 0) {
-        setItems(data.items.map((it: any, idx: number) => ({
-          item: idx + 1,
-          codigo_muestra: it.codigo_muestra || `PROB-${String(idx + 1).padStart(2, "0")}`,
-          descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
-          cantidad: 1,
-          elemento: it.elemento || "-",
-          fecha_rotura: toIsoDate(it.fecha_rotura),
-          densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
-          edad: it.edad ?? "",
-          fc_kg_cm2: it.fc_kg_cm2 ?? "",
-        })))
+        const hasConcreteFields = data.items.some(
+          (it: any) =>
+            (it.fc_kg_cm2 !== undefined && it.fc_kg_cm2 !== null && it.fc_kg_cm2 !== "") ||
+            (it.elemento && it.elemento !== "-") ||
+            String(it.codigo_muestra || "").toUpperCase().includes("CO") ||
+            String(it.descripcion || "").toUpperCase().includes("COMPRESION")
+        )
+
+        setItems(
+          data.items.map((it: any, idx: number) => ({
+            item: idx + 1,
+            codigo_muestra: it.codigo_muestra || `M-${String(idx + 1).padStart(2, "0")}`,
+            codigo_ensayo: it.codigo_ensayo || "",
+            descripcion: it.descripcion || (hasConcreteFields ? "COMPRESION PROBETAS ASTM C39/C39M" : ""),
+            norma: it.norma || "",
+            cantidad: it.cantidad ?? 1,
+            elemento: it.elemento || "-",
+            fecha_rotura: toIsoDate(it.fecha_rotura),
+            densidad: (it.densidad === "SI" || it.densidad === "NO") ? it.densidad : "NO",
+            edad: it.edad ?? "",
+            fc_kg_cm2: it.fc_kg_cm2 ?? "",
+          }))
+        )
       }
 
       markDirty()

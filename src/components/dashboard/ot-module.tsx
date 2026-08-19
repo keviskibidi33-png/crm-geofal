@@ -63,6 +63,7 @@ export function OTModule() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
+        tipo: "MUESTRAS",
       })
       if (search.trim()) params.append("search", search.trim())
       if (estadoFilter !== "TODOS") params.append("estado", estadoFilter)
