@@ -764,7 +764,8 @@ export function OTConcretoForm({
 
       {/* Confirmación al cerrar con cambios sin guardar */}
       <ModernConfirmDialog
-        isOpen={showConfirmClose}
+        open={showConfirmClose}
+        onOpenChange={setShowConfirmClose}
         title="¿Descartar cambios sin guardar?"
         description="Has realizado modificaciones en la Orden de Trabajo. Si sales ahora, los cambios se perderán."
         confirmText="Descartar cambios"
@@ -776,7 +777,6 @@ export function OTConcretoForm({
           onDirtyChange?.(false)
           onCancel()
         }}
-        onCancel={() => setShowConfirmClose(false)}
       />
     </DialogContent>
   )
