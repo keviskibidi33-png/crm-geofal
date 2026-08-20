@@ -201,7 +201,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Código LEM:</span>
             <Input
-              placeholder="--"
+              placeholder="-"
               value={card.codigo_muestra}
               onChange={(e) => onUpdateCard({ codigo_muestra: e.target.value })}
               className="h-8 w-40 font-mono font-bold text-xs uppercase bg-background"
@@ -223,10 +223,10 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
       <div className="p-5 space-y-5 overflow-visible">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { num: 1, label: "MUESTRA", field: "identificacion" as const, placeholder: "--" },
-            { num: 2, label: "PROCEDENCIA", field: "procedencia" as const, placeholder: "--" },
-            { num: 3, label: "CANTERA", field: "cantera" as const, placeholder: "--" },
-            { num: 4, label: "CANTIDAD (KG)", field: "cantidad_kg" as const, placeholder: "--" },
+            { num: 1, label: "MUESTRA", field: "identificacion" as const, placeholder: "-" },
+            { num: 2, label: "PROCEDENCIA", field: "procedencia" as const, placeholder: "-" },
+            { num: 3, label: "CANTERA", field: "cantera" as const, placeholder: "-" },
+            { num: 4, label: "CANTIDAD (KG)", field: "cantidad_kg" as const, placeholder: "-" },
           ].map(({ num, label, field, placeholder }) => (
             <div key={field} className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase tracking-widest text-foreground/80 flex items-center gap-1">
@@ -289,6 +289,42 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
   )
 }
 
+// ─── Menú flotante de sugerencias de ensayos ─────────────────────────────────
+
+interface SuggestionMenuProps {
+  items: EnsayoItem[]
+  onSelect: (item: EnsayoItem) => void
+}
+
+function SuggestionMenu({ items, onSelect }: SuggestionMenuProps) {
+  return (
+    <div className="absolute left-0 top-full mt-1 w-80 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-sky-300/50 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+      {items.map((item) => (
+        <button
+          key={item.codigo}
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            onSelect(item)
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            onSelect(item)
+          }}
+          className="w-full text-left px-3 py-2 text-xs hover:bg-sky-50 hover:text-sky-700 rounded-lg transition-colors flex flex-col gap-0.5 cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-mono font-black text-sky-600 text-[11px]">{item.codigo}</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">{item.categoria}</span>
+          </div>
+          <span className="font-medium text-[11px] line-clamp-1 text-foreground">{item.descripcion}</span>
+          <span className="text-[9px] text-muted-foreground font-mono">Norma: {item.norma || "-"}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Fila de ensayo con autocomplete ─────────────────────────────────────────
 
 interface AssayRowProps {
@@ -338,29 +374,13 @@ function AssayRow({ assay, totalAssays, rowIndex, onChange, onSelectSuggestion, 
 
   const rowZIndex = Math.max(1, (totalAssays - rowIndex) * 10)
 
-  const SuggestionMenu = ({ items, onSelect }: { items: EnsayoItem[]; onSelect: (i: EnsayoItem) => void }) => (
-    <div className="absolute left-0 top-full mt-1 w-80 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-sky-300/50 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
-      {items.map((item) => (
-        <button key={item.codigo} type="button" onClick={() => onSelect(item)}
-          className="w-full text-left px-3 py-2 text-xs hover:bg-sky-50 hover:text-sky-700 rounded-lg transition-colors flex flex-col gap-0.5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono font-black text-sky-600 text-[11px]">{item.codigo}</span>
-            <span className="text-[10px] text-muted-foreground font-semibold">{item.categoria}</span>
-          </div>
-          <span className="font-medium text-[11px] line-clamp-1 text-foreground">{item.descripcion}</span>
-          <span className="text-[9px] text-muted-foreground font-mono">Norma: {item.norma || "-"}</span>
-        </button>
-      ))}
-    </div>
-  )
-
   return (
     <tr className="hover:bg-muted/20 transition-colors relative" style={{ zIndex: isCodigoOpen || isDescOpen ? 999 : rowZIndex }}>
       <td className="px-3 py-2 align-top relative">
         <div ref={codigoRef} className="relative">
           <Input value={codigoQuery} onChange={handleCodigoChange}
             onFocus={() => { if (codigoQuery.trim().length >= 1) { const r = searchEnsayos(codigoQuery); setCodigoSuggestions(r.slice(0, 10)); setIsCodigoOpen(r.length > 0) } }}
-            placeholder="--" className="h-8 font-mono font-bold text-xs uppercase bg-background text-sky-700" autoComplete="off" data-lpignore="true" />
+            placeholder="-" className="h-8 font-mono font-bold text-xs uppercase bg-background text-sky-700" autoComplete="off" data-lpignore="true" />
           {isCodigoOpen && codigoSuggestions.length > 0 && <SuggestionMenu items={codigoSuggestions} onSelect={selectFromCodigo} />}
         </div>
       </td>
@@ -368,13 +388,13 @@ function AssayRow({ assay, totalAssays, rowIndex, onChange, onSelectSuggestion, 
         <div ref={descRef} className="relative">
           <Input value={descQuery} onChange={handleDescChange}
             onFocus={() => { if (descQuery.trim().length >= 1) { const r = searchEnsayos(descQuery); setDescSuggestions(r.slice(0, 10)); setIsDescOpen(r.length > 0) } }}
-            placeholder="--" className="h-8 text-xs font-semibold uppercase bg-background" autoComplete="off" data-lpignore="true" />
+            placeholder="-" className="h-8 text-xs font-semibold uppercase bg-background" autoComplete="off" data-lpignore="true" />
           {isDescOpen && descSuggestions.length > 0 && <SuggestionMenu items={descSuggestions} onSelect={selectFromDesc} />}
         </div>
       </td>
       <td className="px-3 py-2 align-top">
         <Input value={assay.norma || ""} onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
-          placeholder="--" className="h-8 font-mono text-xs uppercase bg-background" />
+          placeholder="-" className="h-8 font-mono text-xs uppercase bg-background" />
       </td>
       <td className="px-3 py-2 align-top">
         <Input type="number" value={assay.cantidad ?? 1} min={1} onChange={(e) => onChange("cantidad", e.target.value)}

@@ -412,7 +412,7 @@ export function OTConcretoForm({
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    placeholder="ej. 1977-26"
+                    placeholder="-"
                     value={numeroRecepcion}
                     onChange={(e) => {
                       setNumeroRecepcion(e.target.value)
@@ -469,7 +469,7 @@ export function OTConcretoForm({
                   <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
                 </Label>
                 <Input
-                  placeholder="--"
+                  placeholder="-"
                   value={cliente}
                   readOnly
                   tabIndex={-1}
@@ -482,7 +482,7 @@ export function OTConcretoForm({
                   <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
                 </Label>
                 <Input
-                  placeholder="--"
+                  placeholder="-"
                   value={proyecto}
                   readOnly
                   tabIndex={-1}
