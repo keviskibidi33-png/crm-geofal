@@ -113,7 +113,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
       fecha_recepcion: "",
       fecha_estimada_culminacion: "",
       emision_fisica: false,
-      emision_digital: false,
+      emision_digital: true,
       entregado_por: "",
       recibido_por: "",
       observaciones: "",
@@ -196,7 +196,6 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
     options?: { force?: boolean }
   ) => {
     const normalizedContacto = normalizeImportedText(contacto).toUpperCase();
-    if (!normalizedContacto) return;
     const currentEntregado = normalizeImportedText(getValues("entregado_por"));
     if (options?.force || !currentEntregado) {
       setValue("entregado_por", normalizedContacto, { shouldValidate: true });
@@ -220,7 +219,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
     fecha_recepcion: "",
     fecha_estimada_culminacion: "",
     emision_fisica: false,
-    emision_digital: false,
+    emision_digital: true,
     entregado_por: "",
     recibido_por: "",
     observaciones: "",
@@ -527,32 +526,32 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
       toast.dismiss();
 
       if (qd) {
-        toast.success(`Datos cargados desde cotización: ${qd.cliente || qd.cliente_nombre || "-"}`);
+        if (qd.source === "control_laboratorio") {
+          toast.success(`Datos sincronizados desde Control Laboratorio (OT: ${qd.numero_ot || "-"}, Cotiz: ${qd.numero_cotizacion || qd.cotizacion_numero || "-"})`);
+        } else {
+          toast.success(`Datos cargados desde cotización: ${qd.cliente || qd.cliente_nombre || "-"}`);
+        }
         const fallback = (v: unknown) => (v && String(v).trim()) || "";
 
-        setValue("cliente", fallback(qd.cliente || qd.cliente_nombre), { shouldValidate: true });
-        isSelectionRef.current = true;
-        setClienteSearch(fallback(qd.cliente || qd.cliente_nombre));
-
-        setValue("ruc", normalizeRucValue(qd.ruc || qd.cliente_ruc), { shouldValidate: true });
-        setValue("persona_contacto", normalizeImportedText(qd.persona_contacto || qd.contacto || qd.cliente_contacto), {
-          shouldValidate: true,
-        });
-        syncEntregadoPorFromContacto(qd.persona_contacto || qd.contacto || qd.cliente_contacto);
-        setValue("email", normalizeImportedText(qd.email || qd.cliente_email), { shouldValidate: true });
-        setValue("telefono", normalizeImportedText(qd.telefono || qd.cliente_telefono), { shouldValidate: true });
-        setValue("proyecto", normalizeImportedText(qd.proyecto), { shouldValidate: true });
-        setValue("ubicacion", normalizeImportedText(qd.ubicacion || qd.domicilio_legal), { shouldValidate: true });
-        setValue("domicilio_legal", fallback(qd.domicilio_legal || qd.ubicacion), { shouldValidate: true });
-        setValue("solicitante", fallback(qd.solicitante || qd.cliente || qd.cliente_nombre), { shouldValidate: true });
-        setValue("domicilio_solicitante", fallback(qd.domicilio_solicitante || qd.ubicacion || qd.domicilio_legal), {
-          shouldValidate: true,
-        });
-
-        if (qd.cotizacion_numero) {
-          setValue("numero_cotizacion", String(qd.cotizacion_numero).trim().toUpperCase(), { shouldValidate: true });
+        // Sincronizar OT desde Control Laboratorio si viene
+        if (qd.numero_ot || qd.ot) {
+          let otVal = String(qd.numero_ot || qd.ot).trim();
+          if (otVal && !otVal.includes("-") && /^\d+$/.test(otVal)) {
+            otVal = `${otVal}-26`;
+          }
+          setValue("numero_ot", otVal, { shouldValidate: true });
         }
 
+        // Sincronizar Cotización
+        if (qd.numero_cotizacion || qd.cotizacion_numero || qd.cotizacion_lab) {
+          let cotVal = String(qd.numero_cotizacion || qd.cotizacion_numero || qd.cotizacion_lab).trim().toUpperCase();
+          if (cotVal && !cotVal.includes("-") && /^\d+$/.test(cotVal)) {
+            cotVal = `${cotVal}-26`;
+          }
+          setValue("numero_cotizacion", cotVal, { shouldValidate: true });
+        }
+
+        // Sincronizar Fechas
         if (qd.fecha_recepcion) {
           const normFecha = normalizeImportedDate(qd.fecha_recepcion);
           if (normFecha) setValue("fecha_recepcion", normFecha, { shouldValidate: true });
@@ -562,52 +561,74 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
           if (normFechaFin) setValue("fecha_estimada_culminacion", normFechaFin, { shouldValidate: true });
         }
 
-        const rawItems = qd.items || qd.items_json;
-        if (Array.isArray(rawItems) && rawItems.length > 0) {
-          const currentTipo = getValues("tipo_recepcion") || tipoRecepcion;
-          if (currentTipo === "SUELO_AGREGADO" || currentTipo === "ROCA" || currentTipo === "ALBANILERIA" || currentTipo === "AGUA") {
-            const newMuestras = rawItems.map((item: any, idx: number) => ({
-              item_numero: idx + 1,
-              identificacion_muestra: item.descripcion ? `M-${idx + 1} (${item.descripcion})` : `MUESTRA N° ${idx + 1}`,
-              procedencia: "",
-              cantera: "",
-              cantidad: String(item.cantidad ? `${item.cantidad} KG` : "50 KG"),
-              codigo_muestra_lem: "",
-              codigo_ensayo: item.codigo || "",
-              ensayos_requeridos: item.descripcion || "",
-              norma_requerida: item.norma || "-",
-              ensayos_lista: [
-                {
-                  codigo: item.codigo || "",
-                  descripcion: item.descripcion || "",
-                  norma: item.norma || "-",
-                },
-              ],
-            }));
-            replace(newMuestras as any);
-            toast.success(`${newMuestras.length} muestra(s) y ensayos cargados desde la cotización`);
-          } else {
-            // CONCRETO
-            const newMuestras = sanitizeImportedMuestras(
-              rawItems.map((item: any, idx: number) => ({
+        // Si la fuente NO es control_laboratorio, cargar datos de cliente e items de cotización
+        if (qd.source !== "control_laboratorio") {
+          setValue("cliente", fallback(qd.cliente || qd.cliente_nombre), { shouldValidate: true });
+          isSelectionRef.current = true;
+          setClienteSearch(fallback(qd.cliente || qd.cliente_nombre));
+
+          setValue("ruc", normalizeRucValue(qd.ruc || qd.cliente_ruc), { shouldValidate: true });
+          setValue("persona_contacto", normalizeImportedText(qd.persona_contacto || qd.contacto || qd.cliente_contacto), {
+            shouldValidate: true,
+          });
+          syncEntregadoPorFromContacto(qd.persona_contacto || qd.contacto || qd.cliente_contacto, { force: true });
+          setValue("email", normalizeImportedText(qd.email || qd.cliente_email), { shouldValidate: true });
+          setValue("telefono", normalizeImportedText(qd.telefono || qd.cliente_telefono), { shouldValidate: true });
+          setValue("proyecto", normalizeImportedText(qd.proyecto), { shouldValidate: true });
+          setValue("ubicacion", normalizeImportedText(qd.ubicacion || qd.domicilio_legal), { shouldValidate: true });
+          setValue("domicilio_legal", fallback(qd.domicilio_legal || qd.ubicacion), { shouldValidate: true });
+          setValue("solicitante", fallback(qd.solicitante || qd.cliente || qd.cliente_nombre), { shouldValidate: true });
+          setValue("domicilio_solicitante", fallback(qd.domicilio_solicitante || qd.ubicacion || qd.domicilio_legal), {
+            shouldValidate: true,
+          });
+
+          const rawItems = qd.items || qd.items_json;
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            const currentTipo = getValues("tipo_recepcion") || tipoRecepcion;
+            if (currentTipo === "SUELO_AGREGADO" || currentTipo === "ROCA" || currentTipo === "ALBANILERIA" || currentTipo === "AGUA") {
+              const newMuestras = rawItems.map((item: any, idx: number) => ({
                 item_numero: idx + 1,
-                identificacion_muestra: item.descripcion || `Probeta ${idx + 1}`,
-                estructura: "",
-                fc_kg_cm2: DEFAULT_FC,
-                edad: DEFAULT_EDAD,
-                requiere_densidad: false,
-                fecha_moldeo: "",
-                hora_moldeo: "",
-                fecha_rotura: "",
+                identificacion_muestra: item.descripcion ? `M-${idx + 1} (${item.descripcion})` : `MUESTRA N° ${idx + 1}`,
+                procedencia: "",
+                cantera: "",
+                cantidad: String(item.cantidad ? `${item.cantidad} KG` : "50 KG"),
                 codigo_muestra_lem: "",
-              }))
-            );
-            replace(newMuestras);
-            toast.success(`${newMuestras.length} probeta(s) importadas de la cotización`);
+                codigo_ensayo: item.codigo || "",
+                ensayos_requeridos: item.descripcion || "",
+                norma_requerida: item.norma || "-",
+                ensayos_lista: [
+                  {
+                    codigo: item.codigo || "",
+                    descripcion: item.descripcion || "",
+                    norma: item.norma || "-",
+                  },
+                ],
+              }));
+              replace(newMuestras as any);
+              toast.success(`${newMuestras.length} muestra(s) y ensayos cargados desde la cotización`);
+            } else {
+              // CONCRETO
+              const newMuestras = sanitizeImportedMuestras(
+                rawItems.map((item: any, idx: number) => ({
+                  item_numero: idx + 1,
+                  identificacion_muestra: item.descripcion || `Probeta ${idx + 1}`,
+                  estructura: "",
+                  fc_kg_cm2: DEFAULT_FC,
+                  edad: DEFAULT_EDAD,
+                  requiere_densidad: false,
+                  fecha_moldeo: "",
+                  hora_moldeo: "",
+                  fecha_rotura: "",
+                  codigo_muestra_lem: "",
+                }))
+              );
+              replace(newMuestras as any);
+              toast.success(`${newMuestras.length} probeta(s) cargadas desde la cotización`);
+            }
           }
         }
       } else {
-        toast.info(`No se encontró cotización con código '${cotValue}'`);
+        toast.info(`No se encontró cotización o registro para '${cotValue}'`);
       }
     } catch {
       toast.dismiss();
@@ -1060,16 +1081,14 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       if (value) {
                         const hasYearSuffix = /-\d{2}$/.test(value);
                         const hasExtendedSuffix = /-\d{2}-[A-Z0-9]+$/.test(value);
-                        if (!hasYearSuffix && !hasExtendedSuffix) {
+                        if (!hasYearSuffix && !hasExtendedSuffix && /^\d+$/.test(value)) {
                           value = value + "-26";
                         }
                         e.target.value = value;
                         setValue("numero_recepcion", value, { shouldValidate: true });
                         buscarEstadoRecepcion(value);
-                        // Auto-sincronizar cotización, fechas y datos desde Control Laboratorio si aún no están cargados
-                        if (!getValues("cliente") || getValues("cliente").trim() === "") {
-                          handleAutoFillFromCotizacion(value);
-                        }
+                        // Auto-sincronizar cotización, fechas y OT desde Control Laboratorio en tiempo real
+                        handleAutoFillFromCotizacion(value);
                       }
                     }}
                     className={errors.numero_recepcion ? "border-destructive" : ""}
@@ -1701,6 +1720,12 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                           force: true,
                         });
                       }}
+                      onBlur={(e) => {
+                        register("persona_contacto").onBlur(e);
+                        syncEntregadoPorFromContacto(e.target.value, {
+                          force: true,
+                        });
+                      }}
                       className={errors.persona_contacto ? "border-destructive" : ""}
                       placeholder="-----"
                     />
@@ -1866,25 +1891,39 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 </h4>
                 <div className="flex flex-col md:flex-row md:items-center gap-8">
                   <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="emision_fisica"
-                      {...register("emision_fisica")}
+                    <Controller
+                      control={control}
+                      name="emision_fisica"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="emision_fisica"
+                          checked={Boolean(field.value)}
+                          onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                        />
+                      )}
                     />
                     <Label
                       htmlFor="emision_fisica"
-                      className="text-[10px] font-bold uppercase cursor-pointer"
+                      className="text-[10px] font-bold uppercase cursor-pointer select-none"
                     >
                       Físico (El cliente recoge en laboratorio)
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="emision_digital"
-                      {...register("emision_digital")}
+                    <Controller
+                      control={control}
+                      name="emision_digital"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="emision_digital"
+                          checked={Boolean(field.value)}
+                          onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                        />
+                      )}
                     />
                     <Label
                       htmlFor="emision_digital"
-                      className="text-[10px] font-bold uppercase cursor-pointer"
+                      className="text-[10px] font-bold uppercase cursor-pointer select-none"
                     >
                       Digital (Envío con firma digital)
                     </Label>

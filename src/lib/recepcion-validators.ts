@@ -26,10 +26,11 @@ export const isDateWithinDays = (dateStr: string, days: number): boolean => {
 
 export const normalizeDateInput = (value: unknown): string => {
   if (value === null || value === undefined) return "";
-  let val = String(value).trim().replace(/[|]/g, "");
+  let val = String(value).trim().split("T")[0].split(" ")[0].replace(/[|]/g, "");
   if (!val) return "";
 
   if (/^\d{4}\/\d{2}\/\d{2}$/.test(val)) return val;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val.replace(/-/g, "/");
 
   const digits = val.replace(/\D/g, "");
   if (digits.length === 8) {
