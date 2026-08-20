@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react"
 import { searchEnsayos, getEnsayoByCodigo, type EnsayoItem } from "@/data/ensayos-data"
@@ -21,44 +20,30 @@ interface EnsayoRow {
 export interface OTMuestraCard {
   /** Código LEM de la muestra (p.e. 3386-SU-26) */
   codigo_muestra: string
-  /** Identificación libre */
-  identificacion: string
-  procedencia: string
-  cantera: string
-  cantidad_kg: string
   ensayos: EnsayoRow[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Convierte la lista plana de OTItem en tarjetas agrupadas por código de muestra o grupo */
+/** Convierte la lista plana de OTItem en tarjetas agrupadas por código de muestra */
 export function itemsToCards(items: OTItem[]): OTMuestraCard[] {
   if (!items || items.length === 0) return [newEmptyCard()]
   const grouped: Record<string, { firstItem: OTItem; items: OTItem[] }> = {}
   for (const it of items) {
-    const key = it.codigo_muestra?.trim() || (it.identificacion ? `IDENT-${it.identificacion.trim()}` : `MUESTRA-${it.item}`)
+    const key = it.codigo_muestra?.trim() || `MUESTRA-${it.item}`
     if (!grouped[key]) {
       grouped[key] = { firstItem: it, items: [] }
     }
     grouped[key].items.push(it)
   }
   return Object.entries(grouped).map(([codigo, { firstItem, items: its }]) => {
-    const ident = its.find((i) => i.identificacion && i.identificacion.trim())?.identificacion || firstItem.identificacion || ""
-    const proc = its.find((i) => i.procedencia && i.procedencia.trim())?.procedencia || firstItem.procedencia || ""
-    const cant = its.find((i) => i.cantera && i.cantera.trim())?.cantera || firstItem.cantera || ""
-    const cantKg = its.find((i) => i.cantidad_kg !== undefined && i.cantidad_kg !== null && String(i.cantidad_kg).trim() !== "")?.cantidad_kg ?? (firstItem.cantidad_kg ?? "")
-
     return {
-      codigo_muestra: codigo.startsWith("MUESTRA-") || codigo.startsWith("IDENT-") ? (firstItem.codigo_muestra || "") : codigo,
-      identificacion: ident,
-      procedencia: proc,
-      cantera: cant,
-      cantidad_kg: String(cantKg || ""),
+      codigo_muestra: codigo.startsWith("MUESTRA-") ? (firstItem.codigo_muestra || "") : codigo,
       ensayos: its.map((it) => ({
         codigo: it.codigo_ensayo?.trim() || "",
         descripcion: it.descripcion?.trim() || "",
         norma: it.norma?.trim() || "",
-        cantidad: it.cantidad ?? 1,
+        cantidad: 1,
       })),
     }
   })
@@ -73,14 +58,14 @@ export function cardsToItems(cards: OTMuestraCard[]): OTItem[] {
       items.push({
         item: counter++,
         codigo_muestra: card.codigo_muestra.trim(),
-        identificacion: card.identificacion?.trim() || null,
-        procedencia: card.procedencia?.trim() || null,
-        cantera: card.cantera?.trim() || null,
-        cantidad_kg: card.cantidad_kg ? String(card.cantidad_kg).trim() : null,
         codigo_ensayo: ensayo.codigo.trim() || null,
         descripcion: ensayo.descripcion.trim(),
         norma: ensayo.norma.trim() || null,
-        cantidad: Number(ensayo.cantidad) || 1,
+        cantidad: 1,
+        identificacion: null,
+        procedencia: null,
+        cantera: null,
+        cantidad_kg: null,
         elemento: null,
         fecha_rotura: null,
         densidad: null,
@@ -95,10 +80,6 @@ export function cardsToItems(cards: OTMuestraCard[]): OTItem[] {
 function newEmptyCard(): OTMuestraCard {
   return {
     codigo_muestra: "",
-    identificacion: "",
-    procedencia: "",
-    cantera: "",
-    cantidad_kg: "",
     ensayos: [{ codigo: "", descripcion: "", norma: "", cantidad: 1 }],
   }
 }
@@ -112,7 +93,6 @@ interface OTMuestrasItemListProps {
 }
 
 export function OTMuestrasItemList({ cards, onChange, markDirty }: OTMuestrasItemListProps) {
-
   const updateCard = (idx: number, patch: Partial<OTMuestraCard>) => {
     const next = [...cards]
     next[idx] = { ...next[idx], ...patch }
@@ -154,7 +134,7 @@ export function OTMuestrasItemList({ cards, onChange, markDirty }: OTMuestrasIte
         type="button"
         variant="outline"
         onClick={addCard}
-        className="w-full py-6 border-2 border-dashed border-sky-400/50 hover:border-sky-500 hover:bg-sky-50/50 text-sky-700 font-black text-xs uppercase tracking-widest gap-2 rounded-2xl shadow-sm transition-all"
+        className="w-full py-5 border-2 border-dashed border-sky-400/50 hover:border-sky-500 hover:bg-sky-50/50 text-sky-700 font-black text-xs uppercase tracking-widest gap-2 rounded-2xl shadow-sm transition-all cursor-pointer"
       >
         <Plus className="h-5 w-5 stroke-[2.5]" />
         Agregar Otra Muestra (Muestra N° {cards.length + 1})
@@ -186,7 +166,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
   }
   const selectSuggestion = (aIdx: number, item: EnsayoItem) => {
     const next = [...card.ensayos]
-    next[aIdx] = { codigo: item.codigo, descripcion: item.descripcion, norma: item.norma || "-", cantidad: next[aIdx].cantidad || 1 }
+    next[aIdx] = { codigo: item.codigo, descripcion: item.descripcion, norma: item.norma || "-", cantidad: 1 }
     onUpdateEnsayos(next); markDirty()
   }
 
@@ -204,45 +184,23 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
               placeholder="-"
               value={card.codigo_muestra}
               onChange={(e) => onUpdateCard({ codigo_muestra: e.target.value })}
-              className="h-8 w-40 font-mono font-bold text-xs uppercase bg-background"
+              className="h-8 w-44 font-mono font-bold text-xs uppercase bg-background"
               autoComplete="off"
             />
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={onClone} className="h-8 px-2.5 text-xs font-bold gap-1.5 hover:text-sky-600 hover:border-sky-400/40" title="Clonar">
+          <Button type="button" variant="outline" size="sm" onClick={onClone} className="h-8 px-2.5 text-xs font-bold gap-1.5 hover:text-sky-600 hover:border-sky-400/40 cursor-pointer" title="Clonar">
             <Copy className="h-3.5 w-3.5" /><span>Clonar</span>
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Eliminar">
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer" title="Eliminar">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* BODY */}
-      <div className="p-5 space-y-5 overflow-visible">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { num: 1, label: "MUESTRA", field: "identificacion" as const, placeholder: "-" },
-            { num: 2, label: "PROCEDENCIA", field: "procedencia" as const, placeholder: "-" },
-            { num: 3, label: "CANTERA", field: "cantera" as const, placeholder: "-" },
-            { num: 4, label: "CANTIDAD (KG)", field: "cantidad_kg" as const, placeholder: "-" },
-          ].map(({ num, label, field, placeholder }) => (
-            <div key={field} className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-foreground/80 flex items-center gap-1">
-                <span className="text-sky-600 font-bold">{num}.</span> {label}:
-              </Label>
-              <Input
-                placeholder={placeholder}
-                value={(card as any)[field]}
-                onChange={(e) => onUpdateCard({ [field]: e.target.value })}
-                className="font-bold text-xs uppercase bg-background"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Ensayos */}
+      {/* BODY (Solo Ensayos requeridos con cantidad fija 1) */}
+      <div className="p-5 overflow-visible">
         <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3 overflow-visible relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -253,7 +211,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
               <span className="text-[10px] font-medium text-muted-foreground hidden sm:inline">(Autocompletado al escribir código o descripción)</span>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={addEnsayo}
-              className="h-7 text-[10px] font-black uppercase tracking-wider gap-1 border-sky-400/40 text-sky-700 hover:bg-sky-50">
+              className="h-7 text-[10px] font-black uppercase tracking-wider gap-1 border-sky-400/40 text-sky-700 hover:bg-sky-50 cursor-pointer">
               <Plus className="h-3.5 w-3.5" /> Agregar Ensayo
             </Button>
           </div>
@@ -263,8 +221,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
                 <tr className="bg-muted/50 border-b text-[9px] uppercase font-black tracking-widest text-muted-foreground">
                   <th className="px-3 py-2 w-36">Cód. Ensayo</th>
                   <th className="px-3 py-2">Ensayos requeridos (Descripción)</th>
-                  <th className="px-3 py-2 w-44">Norma</th>
-                  <th className="px-3 py-2 w-16 text-center">Cant.</th>
+                  <th className="px-3 py-2 w-48">Norma</th>
                   <th className="px-2 py-2 w-12 text-center">Acción</th>
                 </tr>
               </thead>
@@ -298,7 +255,7 @@ interface SuggestionMenuProps {
 
 function SuggestionMenu({ items, onSelect }: SuggestionMenuProps) {
   return (
-    <div className="absolute left-0 top-full mt-1 w-80 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-sky-300/50 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+    <div className="absolute left-0 top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-sky-500/40 rounded-xl shadow-2xl z-[9999] max-h-56 overflow-y-auto py-1 divide-y divide-border/40">
       {items.map((item) => (
         <button
           key={item.codigo}
@@ -307,25 +264,26 @@ function SuggestionMenu({ items, onSelect }: SuggestionMenuProps) {
             e.preventDefault()
             onSelect(item)
           }}
-          onClick={(e) => {
-            e.preventDefault()
-            onSelect(item)
-          }}
-          className="w-full text-left px-3 py-2 text-xs hover:bg-sky-50 hover:text-sky-700 rounded-lg transition-colors flex flex-col gap-0.5 cursor-pointer"
+          className="w-full text-left px-3 py-2 hover:bg-sky-50 hover:text-sky-900 transition-colors flex items-center justify-between gap-2"
         >
-          <div className="flex items-center justify-between">
-            <span className="font-mono font-black text-sky-600 text-[11px]">{item.codigo}</span>
-            <span className="text-[10px] text-muted-foreground font-semibold">{item.categoria}</span>
+          <div className="flex-1 min-w-0">
+            <span className="font-mono font-bold text-xs text-sky-700 bg-sky-100/70 px-1.5 py-0.5 rounded mr-2">
+              {item.codigo}
+            </span>
+            <span className="text-xs font-semibold text-foreground">{item.descripcion}</span>
           </div>
-          <span className="font-medium text-[11px] line-clamp-1 text-foreground">{item.descripcion}</span>
-          <span className="text-[9px] text-muted-foreground font-mono">Norma: {item.norma || "-"}</span>
+          {item.norma && (
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0 max-w-[140px] truncate">
+              {item.norma}
+            </span>
+          )}
         </button>
       ))}
     </div>
   )
 }
 
-// ─── Fila de ensayo con autocomplete ─────────────────────────────────────────
+// ─── Fila individual de ensayo con Autocompletado inteligente ─────────────────
 
 interface AssayRowProps {
   assay: EnsayoRow
@@ -337,71 +295,141 @@ interface AssayRowProps {
 }
 
 function AssayRow({ assay, totalAssays, rowIndex, onChange, onSelectSuggestion, onRemove }: AssayRowProps) {
-  const [codigoQuery, setCodigoQuery] = useState(assay.codigo || "")
-  const [codigoSuggestions, setCodigoSuggestions] = useState<EnsayoItem[]>([])
-  const [isCodigoOpen, setIsCodigoOpen] = useState(false)
-  const codigoRef = useRef<HTMLDivElement>(null)
-  const [descQuery, setDescQuery] = useState(assay.descripcion || "")
-  const [descSuggestions, setDescSuggestions] = useState<EnsayoItem[]>([])
-  const [isDescOpen, setIsDescOpen] = useState(false)
-  const descRef = useRef<HTMLDivElement>(null)
+  const [suggestions, setSuggestions] = useState<EnsayoItem[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [focusedField, setFocusedField] = useState<"codigo" | "descripcion" | null>(null)
+  const rowRef = useRef<HTMLTableRowElement>(null)
 
-  useEffect(() => { setCodigoQuery(assay.codigo || "") }, [assay.codigo])
-  useEffect(() => { setDescQuery(assay.descripcion || "") }, [assay.descripcion])
   useEffect(() => {
-    const handleOut = (e: MouseEvent) => {
-      if (codigoRef.current && !codigoRef.current.contains(e.target as Node)) setIsCodigoOpen(false)
-      if (descRef.current && !descRef.current.contains(e.target as Node)) setIsDescOpen(false)
+    const handleClickOutside = (e: MouseEvent) => {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
     }
-    document.addEventListener("mousedown", handleOut)
-    return () => document.removeEventListener("mousedown", handleOut)
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase(); setCodigoQuery(val); onChange("codigo", val)
-    const exact = getEnsayoByCodigo(val)
-    if (exact) { onSelectSuggestion(exact); setCodigoSuggestions([]); setIsCodigoOpen(false); return }
-    if (val.trim().length >= 1) { const r = searchEnsayos(val); setCodigoSuggestions(r.slice(0, 10)); setIsCodigoOpen(r.length > 0) }
-    else { setCodigoSuggestions([]); setIsCodigoOpen(false) }
+  const handleCodigoChange = (val: string) => {
+    onChange("codigo", val)
+    if (val.trim().length >= 1) {
+      const results = searchEnsayos(val)
+      setSuggestions(results)
+      setShowSuggestions(results.length > 0)
+    } else {
+      setShowSuggestions(false)
+    }
   }
-  const handleDescChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase(); setDescQuery(val); onChange("descripcion", val)
-    if (val.trim().length >= 1) { const r = searchEnsayos(val); setDescSuggestions(r.slice(0, 10)); setIsDescOpen(r.length > 0) }
-    else { setDescSuggestions([]); setIsDescOpen(false) }
-  }
-  const selectFromCodigo = (item: EnsayoItem) => { setCodigoQuery(item.codigo); setDescQuery(item.descripcion); onSelectSuggestion(item); setCodigoSuggestions([]); setIsCodigoOpen(false) }
-  const selectFromDesc = (item: EnsayoItem) => { setCodigoQuery(item.codigo); setDescQuery(item.descripcion); onSelectSuggestion(item); setDescSuggestions([]); setIsDescOpen(false) }
 
-  const rowZIndex = Math.max(1, (totalAssays - rowIndex) * 10)
+  const handleCodigoBlur = () => {
+    const exact = getEnsayoByCodigo(assay.codigo)
+    if (exact && !assay.descripcion) {
+      onSelectSuggestion(exact)
+    }
+    setTimeout(() => {
+      if (focusedField === "codigo") setShowSuggestions(false)
+    }, 200)
+  }
+
+  const handleDescChange = (val: string) => {
+    onChange("descripcion", val)
+    if (val.trim().length >= 2) {
+      const results = searchEnsayos(val)
+      setSuggestions(results)
+      setShowSuggestions(results.length > 0)
+    } else {
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleDescBlur = () => {
+    setTimeout(() => {
+      if (focusedField === "descripcion") setShowSuggestions(false)
+    }, 200)
+  }
 
   return (
-    <tr className="hover:bg-muted/20 transition-colors relative" style={{ zIndex: isCodigoOpen || isDescOpen ? 999 : rowZIndex }}>
-      <td className="px-3 py-2 align-top relative">
-        <div ref={codigoRef} className="relative">
-          <Input value={codigoQuery} onChange={handleCodigoChange}
-            onFocus={() => { if (codigoQuery.trim().length >= 1) { const r = searchEnsayos(codigoQuery); setCodigoSuggestions(r.slice(0, 10)); setIsCodigoOpen(r.length > 0) } }}
-            placeholder="-" className="h-8 font-mono font-bold text-xs uppercase bg-background text-sky-700" autoComplete="off" data-lpignore="true" />
-          {isCodigoOpen && codigoSuggestions.length > 0 && <SuggestionMenu items={codigoSuggestions} onSelect={selectFromCodigo} />}
-        </div>
+    <tr ref={rowRef} className="hover:bg-muted/30 transition-colors group relative" style={{ zIndex: Math.max(1, 30 - rowIndex) }}>
+      {/* Código de Ensayo con autocomplete */}
+      <td className="px-3 py-2 align-middle relative overflow-visible">
+        <Input
+          placeholder="Ej: SU24"
+          value={assay.codigo}
+          onChange={(e) => handleCodigoChange(e.target.value)}
+          onFocus={() => {
+            setFocusedField("codigo")
+            if (assay.codigo.trim().length >= 1) {
+              const res = searchEnsayos(assay.codigo)
+              setSuggestions(res)
+              setShowSuggestions(res.length > 0)
+            }
+          }}
+          onBlur={handleCodigoBlur}
+          className="h-8 font-mono font-bold text-xs uppercase bg-background"
+          autoComplete="off"
+        />
+        {showSuggestions && focusedField === "codigo" && suggestions.length > 0 && (
+          <SuggestionMenu
+            items={suggestions}
+            onSelect={(item) => {
+              onSelectSuggestion(item)
+              setShowSuggestions(false)
+            }}
+          />
+        )}
       </td>
-      <td className="px-3 py-2 align-top relative">
-        <div ref={descRef} className="relative">
-          <Input value={descQuery} onChange={handleDescChange}
-            onFocus={() => { if (descQuery.trim().length >= 1) { const r = searchEnsayos(descQuery); setDescSuggestions(r.slice(0, 10)); setIsDescOpen(r.length > 0) } }}
-            placeholder="-" className="h-8 text-xs font-semibold uppercase bg-background" autoComplete="off" data-lpignore="true" />
-          {isDescOpen && descSuggestions.length > 0 && <SuggestionMenu items={descSuggestions} onSelect={selectFromDesc} />}
-        </div>
+
+      {/* Descripción del Ensayo con autocomplete */}
+      <td className="px-3 py-2 align-middle relative overflow-visible">
+        <Input
+          placeholder="Descripción del ensayo..."
+          value={assay.descripcion}
+          onChange={(e) => handleDescChange(e.target.value)}
+          onFocus={() => {
+            setFocusedField("descripcion")
+            if (assay.descripcion.trim().length >= 2) {
+              const res = searchEnsayos(assay.descripcion)
+              setSuggestions(res)
+              setShowSuggestions(res.length > 0)
+            }
+          }}
+          onBlur={handleDescBlur}
+          className="h-8 font-semibold text-xs bg-background"
+          autoComplete="off"
+        />
+        {showSuggestions && focusedField === "descripcion" && suggestions.length > 0 && (
+          <SuggestionMenu
+            items={suggestions}
+            onSelect={(item) => {
+              onSelectSuggestion(item)
+              setShowSuggestions(false)
+            }}
+          />
+        )}
       </td>
-      <td className="px-3 py-2 align-top">
-        <Input value={assay.norma || ""} onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
-          placeholder="-" className="h-8 font-mono text-xs uppercase bg-background" />
+
+      {/* Norma */}
+      <td className="px-3 py-2 align-middle">
+        <Input
+          placeholder="-"
+          value={assay.norma}
+          onChange={(e) => onChange("norma", e.target.value)}
+          className="h-8 font-mono text-xs bg-background"
+          autoComplete="off"
+        />
       </td>
-      <td className="px-3 py-2 align-top">
-        <Input type="number" value={assay.cantidad ?? 1} min={1} onChange={(e) => onChange("cantidad", e.target.value)}
-          placeholder="1" className="h-8 text-xs text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-      </td>
+
+      {/* Botón eliminar */}
       <td className="px-2 py-2 text-center align-middle">
-        <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Eliminar">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          disabled={totalAssays <= 1}
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 cursor-pointer"
+          title="Eliminar ensayo"
+        >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </td>

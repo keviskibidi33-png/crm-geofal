@@ -9,8 +9,6 @@ import { DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescripti
 import { Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
-import { supabase } from "@/lib/supabaseClient"
-import { normalizeRoleId } from "@/lib/role-utils"
 import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialog"
 import { OTMuestrasItemList, itemsToCards, cardsToItems, type OTMuestraCard } from "./OTMuestrasItemList"
 import type { OTData } from "./OTForm"
@@ -24,16 +22,6 @@ const RESPONSABLES_DESIGNADOS = [
   "BEATRIZ PARINANGO GARCÍA",
   "DEYVI INFANZÓN",
   "IVAN CHACON",
-]
-
-const DEFAULT_TECNICOS: string[] = [
-  "BETZABETH SARAVIA",
-  "GERALDINE PINEDO",
-  "JESUS MEJIA",
-  "LUIS MENDOZA",
-  "DANTE VALENTIN",
-  "CRISTHIAN ZAMUDIO",
-  "JORDY FLORES",
 ]
 
 interface OTSueloAgregadoFormProps {
@@ -86,9 +74,9 @@ export function OTSueloAgregadoForm({
   const [numeroRecepcion, setNumeroRecepcion] = useState(
     initialNumeroRecepcion || initialData?.numero_recepcion || ""
   )
-  const [referencia, setReferencia] = useState(initialData?.referencia || "")
-  const [cliente, setCliente] = useState(initialData?.cliente || "")
-  const [proyecto, setProyecto] = useState(initialData?.proyecto || "")
+  const [referencia] = useState(initialData?.referencia || "-")
+  const [cliente] = useState(initialData?.cliente || "")
+  const [proyecto] = useState(initialData?.proyecto || "")
 
   // 2. Tarjetas de Muestras con Sub-tabla de Ensayos
   const [cards, setCards] = useState<OTMuestraCard[]>(() =>
@@ -97,10 +85,6 @@ export function OTSueloAgregadoForm({
       : [
           {
             codigo_muestra: "",
-            identificacion: "",
-            procedencia: "",
-            cantera: "",
-            cantidad_kg: "",
             ensayos: [{ codigo: "", descripcion: "", norma: "", cantidad: 1 }],
           },
         ]
@@ -121,7 +105,6 @@ export function OTSueloAgregadoForm({
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
   const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH SARAVIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
-  const [tecnicos, setTecnicos] = useState<string[]>(DEFAULT_TECNICOS)
 
   const opcionesApertura = Array.from(
     new Set([
@@ -136,44 +119,6 @@ export function OTSueloAgregadoForm({
       ...(otDesignadaA && otDesignadaA !== "-" ? [otDesignadaA.trim()] : []),
     ])
   )
-
-  // Cargar técnicos exclusivos de laboratorio de suelos dinámicamente
-  useEffect(() => {
-    async function loadTecnicos() {
-      try {
-        const { data, error } = await supabase
-          .from("perfiles")
-          .select("full_name, role")
-          .is("deleted_at", null)
-          .order("full_name")
-
-        if (!error && data && data.length > 0) {
-          // Filtrar estrictamente por rol "tecnico_suelos"
-          const tecnicosSuelos = data.filter((p) => {
-            const r = normalizeRoleId(p.role)
-            return r === "tecnico_suelos" || r.includes("tecnico_suelos")
-          })
-
-          const names = tecnicosSuelos
-            .map((p) => p.full_name?.trim().toUpperCase())
-            .filter(Boolean) as string[]
-
-          const combined = Array.from(
-            new Set([
-              ...names,
-              ...DEFAULT_TECNICOS,
-              ...(otDesignadaA ? [otDesignadaA.toUpperCase()] : []),
-            ])
-          ).sort()
-
-          setTecnicos(combined)
-        }
-      } catch (e) {
-        console.warn("Error fetching tecnicos suelos", e)
-      }
-    }
-    loadTecnicos()
-  }, [otDesignadaA])
 
   // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT
   useEffect(() => {
@@ -200,8 +145,6 @@ export function OTSueloAgregadoForm({
       }
       const data = await res.json()
 
-      setCliente(data.cliente || "")
-      setProyecto(data.proyecto || "")
       if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
       if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
       if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))
@@ -221,11 +164,7 @@ export function OTSueloAgregadoForm({
           codigo_ensayo: it.codigo_ensayo || "",
           descripcion: it.descripcion || "",
           norma: it.norma || "",
-          cantidad: it.cantidad ?? 1,
-          identificacion: it.identificacion || "",
-          procedencia: it.procedencia || "",
-          cantera: it.cantera || "",
-          cantidad_kg: it.cantidad_kg || "",
+          cantidad: 1,
         }))
         const generatedCards = itemsToCards(rawItems)
         setCards(generatedCards)
@@ -290,9 +229,9 @@ export function OTSueloAgregadoForm({
     const payload = {
       numero_ot: cleanOt,
       numero_recepcion: numeroRecepcion.trim() || null,
-      referencia: referencia.trim() || "-",
-      cliente: cliente.trim() || null,
-      proyecto: proyecto.trim() || null,
+      referencia: referencia?.trim() || "-",
+      cliente: cliente?.trim() || null,
+      proyecto: proyecto?.trim() || null,
       fecha_recepcion: fechaRecepcion || null,
       plazo_entrega_dias: plazoEntregaDias ? Number(plazoEntregaDias) : null,
       inicio_programado: inicioProgramado || null,
@@ -356,14 +295,14 @@ export function OTSueloAgregadoForm({
 
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto pr-2 py-4 space-y-6">
-          {/* SECCIÓN 1: ENCABEZADO */}
+          {/* SECCIÓN 1: ENCABEZADO (Solo N° OT y N° RECEPCIÓN) */}
           <div className="bg-sky-50/50 p-4 rounded-xl border border-sky-100 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-sky-900 border-b border-sky-200/60 pb-2">
               <Hash className="h-4 w-4 text-sky-600" />
               1. Identificación y Recepción
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° OT</Label>
                 <div className="relative mt-1">
@@ -398,7 +337,7 @@ export function OTSueloAgregadoForm({
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    placeholder="-"
+                    placeholder="1754-26"
                     value={numeroRecepcion}
                     onChange={(e) => {
                       setNumeroRecepcion(e.target.value)
@@ -433,47 +372,6 @@ export function OTSueloAgregadoForm({
                     <CheckCircle2 className="h-3 w-3" /> Datos cargados desde recepción
                   </p>
                 )}
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700">REFERENCIA</Label>
-                <Input
-                  placeholder="-"
-                  value={referencia}
-                  onChange={(e) => {
-                    setReferencia(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-sky-200/60">
-              <div>
-                <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                  <span>CLIENTE</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
-                </Label>
-                <Input
-                  placeholder="-"
-                  value={cliente}
-                  readOnly
-                  tabIndex={-1}
-                  className="mt-1 bg-slate-100/80 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none text-xs"
-                />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                  <span>PROYECTO</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
-                </Label>
-                <Input
-                  placeholder="-"
-                  value={proyecto}
-                  readOnly
-                  tabIndex={-1}
-                  className="mt-1 bg-slate-100/80 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none text-xs"
-                />
               </div>
             </div>
           </div>
@@ -542,17 +440,17 @@ export function OTSueloAgregadoForm({
             </div>
           </div>
 
-          {/* SECCIÓN 4: OBSERVACIONES Y RESPONSABLES */}
+          {/* SECCIÓN 4: NOTAS Y RESPONSABLES */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">
               <UserCheck className="h-4 w-4 text-sky-600" />
-              4. Observaciones y Responsables
+              4. Notas y Personal Designado
             </div>
 
             <div>
-              <Label className="text-xs font-medium text-slate-600">Observaciones</Label>
+              <Label className="text-xs font-medium text-slate-600">Notas</Label>
               <Textarea
-                placeholder="Indicar observaciones adicionales si las hubiera..."
+                placeholder="Indicar notas adicionales si las hubiera..."
                 value={observaciones}
                 onChange={(e) => {
                   setObservaciones(e.target.value)
@@ -630,7 +528,7 @@ export function OTSueloAgregadoForm({
             ) : isEditing ? (
               "Actualizar OT Suelo y Agregado"
             ) : (
-              "Guardar OT Suelo y Agregado"
+              "Crear Nueva Orden de Trabajo"
             )}
           </Button>
         </DialogFooter>
