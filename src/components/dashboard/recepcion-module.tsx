@@ -39,7 +39,6 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
-    const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
     const [selectedEmailRecepcion, setSelectedEmailRecepcion] = useState<Recepcion | null>(null)
@@ -138,8 +137,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         setIsModalOpen(true)
     }
 
-    const handleViewDetail = async (id: number) => {
-        setIsDetailLoading(true)
+    const handleViewDetail = useCallback(async (id: number) => {
         setIsDetailOpen(true)
         try {
             const data = await getRecepcionById(id)
@@ -147,10 +145,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         } catch {
             toast.error("No se pudo cargar el detalle de la recepción")
             setIsDetailOpen(false)
-        } finally {
-            setIsDetailLoading(false)
         }
-    }
+    }, [getRecepcionById])
 
     useEffect(() => {
         if (!focusRecepcionId) return
@@ -162,7 +158,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         if (onFocusHandled) {
             onFocusHandled()
         }
-    }, [focusRecepcionId, onFocusHandled])
+    }, [focusRecepcionId, onFocusHandled, handleViewDetail])
 
     const handleDelete = async (id: number) => {
         try {
