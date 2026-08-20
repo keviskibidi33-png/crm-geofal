@@ -15,6 +15,17 @@ import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialo
 import { OTMuestrasItemList, itemsToCards, cardsToItems, type OTMuestraCard } from "./OTMuestrasItemList"
 import type { OTData } from "./OTForm"
 
+const RESPONSABLES_APERTURA = [
+  "-",
+  "BETZABETH SARAVIA",
+]
+
+const RESPONSABLES_DESIGNADOS = [
+  "BEATRIZ PARINANGO GARCÍA",
+  "DEYVI INFANZÓN",
+  "IVAN CHACON",
+]
+
 const DEFAULT_TECNICOS: string[] = [
   "BETZABETH SARAVIA",
   "GERALDINE PINEDO",
@@ -111,6 +122,20 @@ export function OTSueloAgregadoForm({
   const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH SARAVIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
   const [tecnicos, setTecnicos] = useState<string[]>(DEFAULT_TECNICOS)
+
+  const opcionesApertura = Array.from(
+    new Set([
+      ...RESPONSABLES_APERTURA,
+      ...(otAperturadaPor ? [otAperturadaPor.trim()] : []),
+    ])
+  )
+
+  const opcionesDesignadas = Array.from(
+    new Set([
+      ...RESPONSABLES_DESIGNADOS,
+      ...(otDesignadaA && otDesignadaA !== "-" ? [otDesignadaA.trim()] : []),
+    ])
+  )
 
   // Cargar técnicos exclusivos de laboratorio de suelos dinámicamente
   useEffect(() => {
@@ -541,11 +566,11 @@ export function OTSueloAgregadoForm({
                     setOtAperturadaPor(e.target.value)
                     markDirty()
                   }}
-                  className="w-full mt-1 border border-slate-300 rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                  className="w-full mt-1 border border-slate-300 rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium cursor-pointer"
                 >
-                  {tecnicos.map((tec) => (
-                    <option key={tec} value={tec}>
-                      {tec}
+                  {opcionesApertura.map((resp) => (
+                    <option key={resp} value={resp}>
+                      {resp}
                     </option>
                   ))}
                 </select>
@@ -561,12 +586,12 @@ export function OTSueloAgregadoForm({
                     setOtDesignadaA(e.target.value)
                     markDirty()
                   }}
-                  className={`w-full mt-1 border rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium ${
-                    !otDesignadaA ? "border-amber-400 bg-amber-50/40 text-amber-900" : "border-slate-300"
+                  className={`w-full mt-1 border rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium cursor-pointer ${
+                    !otDesignadaA || otDesignadaA === "-" ? "border-amber-400 bg-amber-50/40 text-amber-900" : "border-slate-300"
                   }`}
                 >
                   <option value="">-- Selecciona el técnico designado --</option>
-                  {tecnicos.map((tec) => (
+                  {opcionesDesignadas.map((tec) => (
                     <option key={tec} value={tec}>
                       {tec}
                     </option>

@@ -13,14 +13,15 @@ import { supabase } from "@/lib/supabaseClient"
 import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialog"
 import type { OTData, OTItem } from "./OTForm"
 
-const DEFAULT_TECNICOS = [
+const RESPONSABLES_APERTURA = [
+  "-",
   "BETZABETH SARAVIA",
-  "GERALDINE PINEDO",
-  "JESUS MEJIA",
-  "LUIS MENDOZA",
-  "DANTE VALENTIN",
-  "CRISTHIAN ZAMUDIO",
-  "JORDY FLORES",
+]
+
+const RESPONSABLES_DESIGNADOS = [
+  "BEATRIZ PARINANGO GARCÍA",
+  "DEYVI INFANZÓN",
+  "IVAN CHACON",
 ]
 
 interface OTConcretoFormProps {
@@ -121,40 +122,20 @@ export function OTConcretoForm({
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
   const [otAperturadaPor, setOtAperturadaPor] = useState(initialData?.ot_aperturada_por || "BETZABETH SARAVIA")
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
-  const [tecnicos, setTecnicos] = useState<string[]>(DEFAULT_TECNICOS)
 
-  // Cargar técnicos y personal del sistema dinámicamente
-  useEffect(() => {
-    async function loadTecnicos() {
-      try {
-        const { data, error } = await supabase
-          .from("perfiles")
-          .select("full_name, role")
-          .is("deleted_at", null)
-          .order("full_name")
+  const opcionesApertura = Array.from(
+    new Set([
+      ...RESPONSABLES_APERTURA,
+      ...(otAperturadaPor ? [otAperturadaPor.trim()] : []),
+    ])
+  )
 
-        if (!error && data && data.length > 0) {
-          const names = data
-            .map((p) => p.full_name?.trim().toUpperCase())
-            .filter(Boolean) as string[]
-
-          const combined = Array.from(
-            new Set([
-              ...names,
-              ...DEFAULT_TECNICOS,
-              ...(otDesignadaA ? [otDesignadaA.toUpperCase()] : []),
-              ...(otAperturadaPor ? [otAperturadaPor.toUpperCase()] : []),
-            ])
-          ).sort()
-
-          setTecnicos(combined)
-        }
-      } catch (e) {
-        console.warn("Error fetching tecnicos", e)
-      }
-    }
-    loadTecnicos()
-  }, [otDesignadaA, otAperturadaPor])
+  const opcionesDesignadas = Array.from(
+    new Set([
+      ...RESPONSABLES_DESIGNADOS,
+      ...(otDesignadaA && otDesignadaA !== "-" ? [otDesignadaA.trim()] : []),
+    ])
+  )
 
   // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT
   useEffect(() => {
@@ -685,11 +666,11 @@ export function OTConcretoForm({
                     setOtAperturadaPor(e.target.value)
                     markDirty()
                   }}
-                  className="w-full mt-1 border border-slate-300 rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                  className="w-full mt-1 border border-slate-300 rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium cursor-pointer"
                 >
-                  {tecnicos.map((tec) => (
-                    <option key={tec} value={tec}>
-                      {tec}
+                  {opcionesApertura.map((resp) => (
+                    <option key={resp} value={resp}>
+                      {resp}
                     </option>
                   ))}
                 </select>
@@ -705,12 +686,12 @@ export function OTConcretoForm({
                     setOtDesignadaA(e.target.value)
                     markDirty()
                   }}
-                  className={`w-full mt-1 border rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium ${
-                    !otDesignadaA ? "border-amber-400 bg-amber-50/40 text-amber-900" : "border-slate-300"
+                  className={`w-full mt-1 border rounded-md bg-white h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium cursor-pointer ${
+                    !otDesignadaA || otDesignadaA === "-" ? "border-amber-400 bg-amber-50/40 text-amber-900" : "border-slate-300"
                   }`}
                 >
                   <option value="">-- Selecciona el técnico designado --</option>
-                  {tecnicos.map((tec) => (
+                  {opcionesDesignadas.map((tec) => (
                     <option key={tec} value={tec}>
                       {tec}
                     </option>
