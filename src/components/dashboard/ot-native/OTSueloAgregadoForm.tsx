@@ -10,18 +10,12 @@ import { Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircl
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
+import { normalizeRoleId } from "@/lib/role-utils"
 import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialog"
 import { OTMuestrasItemList, itemsToCards, cardsToItems, type OTMuestraCard } from "./OTMuestrasItemList"
 import type { OTData } from "./OTForm"
 
-const DEFAULT_TECNICOS = [
-  "BETZABETH SARAVIA",
-  "JESUS MEJIA",
-  "LUIS MENDOZA",
-  "DANTE VALENTIN",
-  "CRISTHIAN ZAMUDIO",
-  "JORDY FLORES",
-]
+const DEFAULT_TECNICOS: string[] = []
 
 interface OTSueloAgregadoFormProps {
   initialData?: OTData | null
@@ -110,7 +104,7 @@ export function OTSueloAgregadoForm({
   const [otDesignadaA, setOtDesignadaA] = useState(initialData?.ot_designada_a || "")
   const [tecnicos, setTecnicos] = useState<string[]>(DEFAULT_TECNICOS)
 
-  // Cargar técnicos y personal del sistema dinámicamente
+  // Cargar técnicos exclusivos de laboratorio de suelos dinámicamente
   useEffect(() => {
     async function loadTecnicos() {
       try {
@@ -121,23 +115,27 @@ export function OTSueloAgregadoForm({
           .order("full_name")
 
         if (!error && data && data.length > 0) {
-          const names = data
+          // Filtrar estrictamente por rol "tecnico_suelos"
+          const tecnicosSuelos = data.filter((p) => {
+            const r = normalizeRoleId(p.role)
+            return r === "tecnico_suelos" || r.includes("tecnico_suelos")
+          })
+
+          const names = tecnicosSuelos
             .map((p) => p.full_name?.trim().toUpperCase())
             .filter(Boolean) as string[]
 
           const combined = Array.from(
             new Set([
               ...names,
-              ...DEFAULT_TECNICOS,
               ...(otDesignadaA ? [otDesignadaA.toUpperCase()] : []),
-              ...(otAperturadaPor ? [otAperturadaPor.toUpperCase()] : []),
             ])
           ).sort()
 
           setTecnicos(combined)
         }
       } catch (e) {
-        console.warn("Error fetching tecnicos", e)
+        console.warn("Error fetching tecnicos suelos", e)
       }
     }
     loadTecnicos()

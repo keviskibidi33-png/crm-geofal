@@ -31,28 +31,37 @@ export interface OTMuestraCard {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Convierte la lista plana de OTItem en tarjetas agrupadas por código de muestra */
+/** Convierte la lista plana de OTItem en tarjetas agrupadas por código de muestra o grupo */
 export function itemsToCards(items: OTItem[]): OTMuestraCard[] {
   if (!items || items.length === 0) return [newEmptyCard()]
-  const grouped: Record<string, OTItem[]> = {}
+  const grouped: Record<string, { firstItem: OTItem; items: OTItem[] }> = {}
   for (const it of items) {
-    const key = it.codigo_muestra?.trim() || `MUESTRA-${it.item}`
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(it)
+    const key = it.codigo_muestra?.trim() || (it.identificacion ? `IDENT-${it.identificacion.trim()}` : `MUESTRA-${it.item}`)
+    if (!grouped[key]) {
+      grouped[key] = { firstItem: it, items: [] }
+    }
+    grouped[key].items.push(it)
   }
-  return Object.entries(grouped).map(([codigo, its]) => ({
-    codigo_muestra: codigo,
-    identificacion: "",
-    procedencia: "",
-    cantera: "",
-    cantidad_kg: "",
-    ensayos: its.map((it) => ({
-      codigo: it.codigo_ensayo?.trim() || "",
-      descripcion: it.descripcion?.trim() || "",
-      norma: it.norma?.trim() || "",
-      cantidad: it.cantidad ?? 1,
-    })),
-  }))
+  return Object.entries(grouped).map(([codigo, { firstItem, items: its }]) => {
+    const ident = its.find((i) => i.identificacion && i.identificacion.trim())?.identificacion || firstItem.identificacion || ""
+    const proc = its.find((i) => i.procedencia && i.procedencia.trim())?.procedencia || firstItem.procedencia || ""
+    const cant = its.find((i) => i.cantera && i.cantera.trim())?.cantera || firstItem.cantera || ""
+    const cantKg = its.find((i) => i.cantidad_kg !== undefined && i.cantidad_kg !== null && String(i.cantidad_kg).trim() !== "")?.cantidad_kg ?? (firstItem.cantidad_kg ?? "")
+
+    return {
+      codigo_muestra: codigo.startsWith("MUESTRA-") || codigo.startsWith("IDENT-") ? (firstItem.codigo_muestra || "") : codigo,
+      identificacion: ident,
+      procedencia: proc,
+      cantera: cant,
+      cantidad_kg: String(cantKg || ""),
+      ensayos: its.map((it) => ({
+        codigo: it.codigo_ensayo?.trim() || "",
+        descripcion: it.descripcion?.trim() || "",
+        norma: it.norma?.trim() || "",
+        cantidad: it.cantidad ?? 1,
+      })),
+    }
+  })
 }
 
 /** Convierte las tarjetas de vuelta a la lista plana de OTItem */
@@ -64,6 +73,10 @@ export function cardsToItems(cards: OTMuestraCard[]): OTItem[] {
       items.push({
         item: counter++,
         codigo_muestra: card.codigo_muestra.trim(),
+        identificacion: card.identificacion?.trim() || null,
+        procedencia: card.procedencia?.trim() || null,
+        cantera: card.cantera?.trim() || null,
+        cantidad_kg: card.cantidad_kg ? String(card.cantidad_kg).trim() : null,
         codigo_ensayo: ensayo.codigo.trim() || null,
         descripcion: ensayo.descripcion.trim(),
         norma: ensayo.norma.trim() || null,
