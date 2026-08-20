@@ -325,7 +325,12 @@ export function OTConcretoForm({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.detail || "Error al guardar la Orden de Trabajo")
+        const errorMsg = typeof errorData.detail === "string"
+          ? errorData.detail
+          : Array.isArray(errorData.detail)
+            ? errorData.detail.map((e: any) => `${e.loc ? e.loc.slice(-1)[0] : "campo"}: ${e.msg}`).join("; ")
+            : (errorData.message || "Error al guardar la Orden de Trabajo")
+        throw new Error(errorMsg)
       }
 
       toast.success(initialData?.id ? "OT Concreto actualizada" : "OT Concreto creada exitosamente")
