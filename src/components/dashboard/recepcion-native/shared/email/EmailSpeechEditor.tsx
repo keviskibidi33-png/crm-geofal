@@ -82,7 +82,7 @@ export function EmailSpeechEditor({
       </div>
 
       {/* Adjuntos y Firma Preview */}
-      <div className="p-3 rounded-lg border bg-muted/20 space-y-2 text-xs">
+      <div className="p-3 rounded-lg border bg-muted/20 space-y-2.5 text-xs">
         <div className="flex items-center justify-between text-muted-foreground">
           <span className="flex items-center gap-1.5 font-bold text-foreground">
             <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
@@ -92,14 +92,51 @@ export function EmailSpeechEditor({
             REC N-{recepcionNumero} {clienteNombre}.xlsx
           </span>
         </div>
-        <div className="flex items-center justify-between text-muted-foreground pt-1.5 border-t">
-          <span className="flex items-center gap-1.5 font-medium">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-            Firma Institucional:
-          </span>
-          <span className="font-semibold text-foreground">
-            {activeProfile.cargo} ({activeProfile.from_name})
-          </span>
+
+        {/* Firma Institucional y Vista Previa */}
+        <div className="flex flex-col gap-2 pt-2 border-t">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="flex items-center gap-1.5 font-medium">
+              <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+              Firma Institucional:
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">
+                {activeProfile.cargo} ({activeProfile.from_name})
+              </span>
+              {activeProfile.signature_image_url ? (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-300">
+                  PNG Oficial
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-300">
+                  None
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Vista previa gráfica de la firma */}
+          {activeProfile.signature_image_url ? (
+            <div className="mt-1 p-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col gap-1.5 shadow-2xs">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
+                <span>Vista previa de imagen de firma:</span>
+                <span className="text-emerald-600 font-mono text-[10px]">FirmaCoordinadoraLabBetzabethSaravia.png</span>
+              </div>
+              <img
+                src={activeProfile.signature_image_url}
+                alt={`Firma ${activeProfile.from_name}`}
+                className="max-h-20 w-auto object-contain rounded"
+              />
+            </div>
+          ) : (
+            <div className="mt-1 p-2 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="font-semibold">Vista previa de imagen de firma:</span>
+              <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-300">
+                None (Sin imagen gráfica)
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
