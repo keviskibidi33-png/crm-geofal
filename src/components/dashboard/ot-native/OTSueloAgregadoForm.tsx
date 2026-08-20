@@ -15,7 +15,15 @@ import { ModernConfirmDialog } from "@/components/dashboard/modern-confirm-dialo
 import { OTMuestrasItemList, itemsToCards, cardsToItems, type OTMuestraCard } from "./OTMuestrasItemList"
 import type { OTData } from "./OTForm"
 
-const DEFAULT_TECNICOS: string[] = []
+const DEFAULT_TECNICOS: string[] = [
+  "BETZABETH SARAVIA",
+  "GERALDINE PINEDO",
+  "JESUS MEJIA",
+  "LUIS MENDOZA",
+  "DANTE VALENTIN",
+  "CRISTHIAN ZAMUDIO",
+  "JORDY FLORES",
+]
 
 interface OTSueloAgregadoFormProps {
   initialData?: OTData | null
@@ -92,11 +100,11 @@ export function OTSueloAgregadoForm({
   const [plazoEntregaDias, setPlazoEntregaDias] = useState(initialData?.plazo_entrega_dias || "")
   const [inicioProgramado, setInicioProgramado] = useState(toIsoDate(initialData?.inicio_programado))
   const [finProgramado, setFinProgramado] = useState(toIsoDate(initialData?.fin_programado))
-  const [inicioReal, setInicioReal] = useState(toIsoDate(initialData?.inicio_real))
-  const [finReal, setFinReal] = useState(toIsoDate(initialData?.fin_real))
-  const [variacionInicio, setVariacionInicio] = useState(initialData?.variacion_inicio || "")
-  const [variacionFin, setVariacionFin] = useState(initialData?.variacion_fin || "")
-  const [duracionReal, setDuracionReal] = useState(initialData?.duracion_real_ejecucion_dias || "")
+  const inicioReal = toIsoDate(initialData?.inicio_real)
+  const finReal = toIsoDate(initialData?.fin_real)
+  const variacionInicio = initialData?.variacion_inicio || ""
+  const variacionFin = initialData?.variacion_fin || ""
+  const duracionReal = initialData?.duracion_real_ejecucion_dias || ""
 
   // 4. Notas y Personal
   const [observaciones, setObservaciones] = useState(initialData?.observaciones || "")
@@ -128,6 +136,7 @@ export function OTSueloAgregadoForm({
           const combined = Array.from(
             new Set([
               ...names,
+              ...DEFAULT_TECNICOS,
               ...(otDesignadaA ? [otDesignadaA.toUpperCase()] : []),
             ])
           ).sort()
@@ -139,13 +148,14 @@ export function OTSueloAgregadoForm({
       }
     }
     loadTecnicos()
-  }, [])
+  }, [otDesignadaA])
 
   // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT
   useEffect(() => {
     if (initialNumeroRecepcion && !initialData?.id) {
-      handlePrefill()
+      void handlePrefill()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNumeroRecepcion])
 
   // Autocompletar desde recepción
@@ -518,7 +528,7 @@ export function OTSueloAgregadoForm({
                   setObservaciones(e.target.value)
                   markDirty()
                 }}
-                className="mt-1 bg-white min-h-[60px]"
+                className="mt-1 bg-white min-h-15"
               />
             </div>
 
