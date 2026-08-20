@@ -445,7 +445,7 @@ function AssayRowItem({
           />
 
           {isCodigoOpen && codigoSuggestions.length > 0 && (
-            <div className="absolute left-0 top-full mt-1 w-84 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+            <div className="absolute left-0 top-full mt-1 w-84 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-9999 p-1.5 divide-y divide-border/40">
               {codigoSuggestions.map((item) => (
                 <button
                   key={item.codigo}
@@ -493,7 +493,7 @@ function AssayRowItem({
           />
 
           {isDescOpen && descSuggestions.length > 0 && (
-            <div className="absolute left-0 top-full mt-1 w-96 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-[9999] p-1.5 divide-y divide-border/40">
+            <div className="absolute left-0 top-full mt-1 w-96 max-h-60 overflow-y-auto bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl z-9999 p-1.5 divide-y divide-border/40">
               {descSuggestions.map((item) => (
                 <button
                   key={item.codigo}
@@ -526,7 +526,9 @@ function AssayRowItem({
       <td className="px-3 py-2 align-top">
         <Input
           value={assay.norma || ""}
-          onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange("norma", e.target.value.toUpperCase())
+          }
           placeholder="-"
           className="h-8 font-mono text-xs uppercase bg-background"
         />

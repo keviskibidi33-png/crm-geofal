@@ -80,7 +80,7 @@ export function FacturacionSection({
             </span>
           )}
           {showClienteDropdown && clientes.length > 0 && (
-            <div className="absolute z-[1000] top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl max-h-72 overflow-y-auto py-1.5 divide-y divide-border/40">
+            <div className="absolute z-1000 top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-primary/30 rounded-xl shadow-2xl max-h-72 overflow-y-auto py-1.5 divide-y divide-border/40">
               {clientes.map((c) => (
                 <div
                   key={String(c.id || Math.random())}

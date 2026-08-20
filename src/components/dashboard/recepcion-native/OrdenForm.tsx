@@ -138,7 +138,6 @@ export function OrdenForm({
     setError,
     clearErrors,
     setFocus,
-    formState: { errors },
   } = form;
 
   const { fields, append, replace } = useFieldArray({
@@ -150,7 +149,6 @@ export function OrdenForm({
 
   // Hook de Búsqueda de Clientes con tipado estricto
   const {
-    clienteSearch,
     setClienteSearch,
     clientes,
     selectCliente,
@@ -431,7 +429,8 @@ export function OrdenForm({
       nextLem = incrementString(nextLem);
     }
 
-    const { id: _rhfId, ...cloneData } = itemToClone as Record<string, unknown> & { id?: string };
+    const cloneData = { ...(itemToClone as Record<string, unknown>) };
+    delete (cloneData as Record<string, unknown>).id;
 
     const isYmd = (v: unknown) =>
       typeof v === "string" && /^\d{4}\/\d{2}\/\d{2}$/.test(v.trim());
@@ -455,6 +454,7 @@ export function OrdenForm({
 
   // Cálculo automático de fecha de rotura según fecha de moldeo + edad
   const muestrasValues = watch("muestras");
+  const serializedMuestras = JSON.stringify(muestrasValues);
   useEffect(() => {
     if (muestrasValues) {
       muestrasValues.forEach((muestra: any, index: number) => {
@@ -477,7 +477,7 @@ export function OrdenForm({
         }
       });
     }
-  }, [JSON.stringify(muestrasValues), setValue]);
+  }, [serializedMuestras, setValue]);
 
   // Formato inteligente de fechas
   const handleSmartDate = (
