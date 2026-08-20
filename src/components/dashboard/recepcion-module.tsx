@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText, MoreHorizontal } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,7 +52,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [importedData, setImportedData] = useState<any>(null)
     const [isOTModalOpen, setIsOTModalOpen] = useState(false)
     const [selectedOTData, setSelectedOTData] = useState<OTData | null>(null)
-    const [selectedOTRecepcionNum, setSelectedOTRecepcionNum] = useState<string | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<Recepcion | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
@@ -517,23 +518,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleViewDetail(item.id)}
-                                                title="Ver Detalle"
-                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-
                                             {canWrite && (
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
                                                     title="Editar Recepción"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                                                 >
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
@@ -542,66 +533,56 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleOpenOT(item.numero_recepcion, item.numero_ot)}
-                                                title={item.numero_ot ? `Ver / Editar OT (${formatOtDisplay(item.numero_ot)})` : "Crear Orden de Trabajo (OT)"}
-                                                className="h-8 w-8 text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-950/50"
-                                            >
-                                                <FileText className="h-4 w-4" />
-                                            </Button>
-
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
                                                 onClick={() => handleDownloadExcel(item)}
                                                 title="Descargar Excel"
-                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                className="h-8 w-8 text-muted-foreground hover:text-green-600 cursor-pointer"
                                             >
                                                 <FileSpreadsheet className="h-4 w-4 text-green-600" />
                                             </Button>
 
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                    setSelectedEmailRecepcion(item)
-                                                    setIsEmailModalOpen(true)
-                                                }}
-                                                title="Enviar Notificación por Correo (Outlook)"
-                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                                            >
-                                                <Mail className="h-4 w-4 text-blue-600" />
-                                            </Button>
-
-                                            {canDelete && (
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            title="Eliminar Recepción"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>¿Eliminar Recepción?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                Esta acción no se puede deshacer. Esto eliminará permanentemente la recepción
-                                                                <span className="font-bold text-foreground"> {item.numero_recepcion} </span>
-                                                                y la orden de trabajo asociada.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                                Eliminar
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            )}
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        title="Más opciones"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                                    >
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleViewDetail(item.id)}
+                                                        className="cursor-pointer gap-2"
+                                                    >
+                                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                                        <span>Ver Detalle</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => {
+                                                            setSelectedEmailRecepcion(item)
+                                                            setIsEmailModalOpen(true)
+                                                        }}
+                                                        className="cursor-pointer gap-2"
+                                                    >
+                                                        <Mail className="h-4 w-4 text-blue-600" />
+                                                        <span>Enviar Correo</span>
+                                                    </DropdownMenuItem>
+                                                    {canDelete && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                onClick={() => setDeleteTarget(item)}
+                                                                className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                                <span>Eliminar</span>
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -859,6 +840,34 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                 onOpenChange={setIsEmailModalOpen}
                 recepcion={selectedEmailRecepcion}
             />
+
+            {/* Diálogo de Confirmación de Eliminación Global */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar Recepción?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente la recepción
+                            <span className="font-bold text-foreground"> {deleteTarget?.numero_recepcion} </span>
+                            y la orden de trabajo asociada.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (deleteTarget) {
+                                    handleDelete(deleteTarget.id)
+                                    setDeleteTarget(null)
+                                }
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }
