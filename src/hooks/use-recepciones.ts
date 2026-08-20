@@ -60,6 +60,7 @@ export interface Recepcion {
     ot_exists?: boolean
     /** estado real de la OT asociada: PENDIENTE | EMITIDO | COMPLETADO | DESCARGADO */
     ot_estado?: string
+    ot_id?: number | null
 }
 
 export interface RecepcionesPaginationState {

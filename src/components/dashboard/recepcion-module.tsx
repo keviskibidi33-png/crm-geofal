@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText, MoreHorizontal } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText, MoreHorizontal, Download } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -53,6 +53,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [isOTModalOpen, setIsOTModalOpen] = useState(false)
     const [selectedOTData, setSelectedOTData] = useState<OTData | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Recepcion | null>(null)
+    const [downloadingOtId, setDownloadingOtId] = useState<number | string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const lastFocusedRecepcionIdRef = useRef<number | null>(null)
     const { user } = useAuth()
@@ -282,6 +283,58 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         }
     }
 
+    const handleDownloadOtExcel = async (item: Recepcion) => {
+        try {
+            setDownloadingOtId(item.id)
+            toast.loading(`Generando Excel de Orden de Trabajo...`)
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+
+            let otId = item.ot_id
+            if (!otId) {
+                const numParam = item.numero_ot || item.numero_recepcion
+                const searchRes = await authFetch(`${API_URL}/api/ot?search=${encodeURIComponent(numParam)}&limit=5`)
+                if (searchRes.ok) {
+                    const searchJson = await searchRes.json()
+                    const found = searchJson.items?.find((o: any) => 
+                        (item.numero_recepcion && o.numero_recepcion?.trim() === item.numero_recepcion.trim()) ||
+                        (item.numero_ot && o.numero_ot?.trim() === item.numero_ot.trim())
+                    )
+                    if (found) otId = found.id
+                }
+            }
+
+            if (!otId) {
+                toast.dismiss()
+                toast.warning("No se encontró la Orden de Trabajo asociada para descargar.")
+                return
+            }
+
+            const isConcreto = (item.tipo_recepcion || "").toUpperCase() === "CONCRETO"
+            const queryUrl = isConcreto ? `${API_URL}/api/ot/${otId}/excel?tipo=CONCRETO` : `${API_URL}/api/ot/${otId}/excel`
+            const res = await authFetch(queryUrl)
+            if (!res.ok) throw new Error("Error al generar el Excel de la Orden de Trabajo")
+
+            const blob = await res.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            const cleanOtNum = (item.numero_ot || item.numero_recepcion || "OT").replace("/", "-")
+            a.download = `OT-${cleanOtNum}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            a.remove()
+
+            toast.dismiss()
+            toast.success("Excel de Orden de Trabajo descargado correctamente")
+        } catch (err: any) {
+            toast.dismiss()
+            toast.error(err.message || "No se pudo descargar el Excel de la OT")
+        } finally {
+            setDownloadingOtId(null)
+        }
+    }
+
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "-"
         try {
@@ -472,6 +525,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                     <TableCell className="font-bold font-mono">
                                         <div className="flex items-center gap-1.5 whitespace-nowrap">
                                             <span>{formatOtDisplay(item.numero_ot)}</span>
+                                            
+                                            {/* Botón de Check / Abrir OT */}
                                             <button
                                                 type="button"
                                                 onClick={(e) => {
@@ -479,22 +534,46 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                     handleOpenOT(item.numero_recepcion, item.numero_ot)
                                                 }}
                                                 title={
-                                                    item.ot_emitida
-                                                        ? `OT emitida y completa: ${formatOtDisplay(item.numero_ot)} (Clic para ver/editar)`
+                                                    item.ot_emitida || item.ot_exists
+                                                        ? `OT emitida: ${formatOtDisplay(item.numero_ot)} (Clic para ver/editar)`
                                                         : "OT pendiente (Clic para abrir modal y generar OT)"
                                                 }
-                                                className={`inline-flex items-center justify-center h-4.5 w-4.5 rounded transition-all cursor-pointer border ${
-                                                    item.ot_emitida
+                                                className={`inline-flex items-center justify-center h-5 w-5 rounded transition-all cursor-pointer border ${
+                                                    item.ot_emitida || item.ot_exists
                                                         ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/25 hover:scale-110"
                                                         : "bg-slate-100 text-slate-500 border-slate-300 hover:bg-amber-100 hover:text-amber-700 hover:border-amber-400 hover:scale-110 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-amber-950/60 dark:hover:text-amber-400"
                                                 }`}
                                             >
-                                                {item.ot_emitida ? (
-                                                    <Check className="h-3 w-3 stroke-[2.5]" />
+                                                {item.ot_emitida || item.ot_exists ? (
+                                                    <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                                                 ) : (
                                                     <span className="text-[11px] font-bold leading-none select-none">-</span>
                                                 )}
                                             </button>
+
+                                            {/* Icono de descarga directa de la OT */}
+                                            {item.ot_emitida || item.ot_exists ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleDownloadOtExcel(item)
+                                                    }}
+                                                    disabled={downloadingOtId === item.id}
+                                                    title={`Descargar Excel de Orden de Trabajo (${formatOtDisplay(item.numero_ot)})`}
+                                                    className="inline-flex items-center justify-center h-5 w-5 rounded transition-all cursor-pointer border border-sky-300/60 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:scale-110 hover:border-sky-400 dark:bg-sky-950/50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-900/60"
+                                                >
+                                                    {downloadingOtId === item.id ? (
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                    ) : (
+                                                        <Download className="h-3 w-3 stroke-[2.5]" />
+                                                    )}
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center justify-center h-5 w-5 text-slate-400 select-none text-xs font-bold" title="Sin OT creada">
+                                                    -
+                                                </span>
+                                            )}
                                         </div>
                                     </TableCell>
                                     {scope !== "concreto" && (
