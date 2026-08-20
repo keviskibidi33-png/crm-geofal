@@ -358,7 +358,7 @@ export function OTSueloAgregadoForm({
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    placeholder="ej. 1977-26"
+                    placeholder="--"
                     value={numeroRecepcion}
                     onChange={(e) => {
                       setNumeroRecepcion(e.target.value)
@@ -397,7 +397,7 @@ export function OTSueloAgregadoForm({
               <div>
                 <Label className="text-xs font-semibold text-slate-700">REFERENCIA</Label>
                 <Input
-                  placeholder="-"
+                  placeholder="--"
                   value={referencia}
                   onChange={(e) => {
                     setReferencia(e.target.value)
@@ -410,27 +410,29 @@ export function OTSueloAgregadoForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-sky-200/60">
               <div>
-                <Label className="text-xs font-semibold text-slate-700">CLIENTE</Label>
+                <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                  <span>CLIENTE</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
+                </Label>
                 <Input
-                  placeholder="Nombre del cliente"
+                  placeholder="--"
                   value={cliente}
-                  onChange={(e) => {
-                    setCliente(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                  readOnly
+                  tabIndex={-1}
+                  className="mt-1 bg-slate-100/80 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none text-xs"
                 />
               </div>
               <div>
-                <Label className="text-xs font-semibold text-slate-700">PROYECTO</Label>
+                <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                  <span>PROYECTO</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(Solo lectura / Trazabilidad)</span>
+                </Label>
                 <Input
-                  placeholder="Nombre del proyecto"
+                  placeholder="--"
                   value={proyecto}
-                  onChange={(e) => {
-                    setProyecto(e.target.value)
-                    markDirty()
-                  }}
-                  className="mt-1 bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
+                  readOnly
+                  tabIndex={-1}
+                  className="mt-1 bg-slate-100/80 border-slate-200 text-slate-700 font-semibold cursor-not-allowed select-none text-xs"
                 />
               </div>
             </div>

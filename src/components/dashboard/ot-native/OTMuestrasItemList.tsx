@@ -201,7 +201,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Código LEM:</span>
             <Input
-              placeholder="ej. 3386-SU-26"
+              placeholder="--"
               value={card.codigo_muestra}
               onChange={(e) => onUpdateCard({ codigo_muestra: e.target.value })}
               className="h-8 w-40 font-mono font-bold text-xs uppercase bg-background"
@@ -223,10 +223,10 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
       <div className="p-5 space-y-5 overflow-visible">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { num: 1, label: "MUESTRA", field: "identificacion" as const, placeholder: "Identificación" },
-            { num: 2, label: "PROCEDENCIA", field: "procedencia" as const, placeholder: "Procedencia" },
-            { num: 3, label: "CANTERA", field: "cantera" as const, placeholder: "Cantera / Fuente" },
-            { num: 4, label: "CANTIDAD (KG)", field: "cantidad_kg" as const, placeholder: "---" },
+            { num: 1, label: "MUESTRA", field: "identificacion" as const, placeholder: "--" },
+            { num: 2, label: "PROCEDENCIA", field: "procedencia" as const, placeholder: "--" },
+            { num: 3, label: "CANTERA", field: "cantera" as const, placeholder: "--" },
+            { num: 4, label: "CANTIDAD (KG)", field: "cantidad_kg" as const, placeholder: "--" },
           ].map(({ num, label, field, placeholder }) => (
             <div key={field} className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase tracking-widest text-foreground/80 flex items-center gap-1">
@@ -360,7 +360,7 @@ function AssayRow({ assay, totalAssays, rowIndex, onChange, onSelectSuggestion, 
         <div ref={codigoRef} className="relative">
           <Input value={codigoQuery} onChange={handleCodigoChange}
             onFocus={() => { if (codigoQuery.trim().length >= 1) { const r = searchEnsayos(codigoQuery); setCodigoSuggestions(r.slice(0, 10)); setIsCodigoOpen(r.length > 0) } }}
-            placeholder="ej. SU24" className="h-8 font-mono font-bold text-xs uppercase bg-background text-sky-700" autoComplete="off" data-lpignore="true" />
+            placeholder="--" className="h-8 font-mono font-bold text-xs uppercase bg-background text-sky-700" autoComplete="off" data-lpignore="true" />
           {isCodigoOpen && codigoSuggestions.length > 0 && <SuggestionMenu items={codigoSuggestions} onSelect={selectFromCodigo} />}
         </div>
       </td>
@@ -368,17 +368,17 @@ function AssayRow({ assay, totalAssays, rowIndex, onChange, onSelectSuggestion, 
         <div ref={descRef} className="relative">
           <Input value={descQuery} onChange={handleDescChange}
             onFocus={() => { if (descQuery.trim().length >= 1) { const r = searchEnsayos(descQuery); setDescSuggestions(r.slice(0, 10)); setIsDescOpen(r.length > 0) } }}
-            placeholder="Descripción del ensayo" className="h-8 text-xs font-semibold uppercase bg-background" autoComplete="off" data-lpignore="true" />
+            placeholder="--" className="h-8 text-xs font-semibold uppercase bg-background" autoComplete="off" data-lpignore="true" />
           {isDescOpen && descSuggestions.length > 0 && <SuggestionMenu items={descSuggestions} onSelect={selectFromDesc} />}
         </div>
       </td>
       <td className="px-3 py-2 align-top">
         <Input value={assay.norma || ""} onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
-          placeholder="ej. NTP 400.016" className="h-8 font-mono text-xs uppercase bg-background" />
+          placeholder="--" className="h-8 font-mono text-xs uppercase bg-background" />
       </td>
       <td className="px-3 py-2 align-top">
         <Input type="number" value={assay.cantidad ?? 1} min={1} onChange={(e) => onChange("cantidad", e.target.value)}
-          className="h-8 text-xs text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+          placeholder="1" className="h-8 text-xs text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
       </td>
       <td className="px-2 py-2 text-center align-middle">
         <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Eliminar">
