@@ -74,7 +74,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
 
       <div className="flex-1 overflow-y-auto pr-2 space-y-6 pt-4">
         {/* Encabezado */}
-        <div className="grid grid-cols-3 gap-4 bg-sky-50/60 p-4 rounded-xl border border-sky-200/80 text-xs">
+        <div className="grid grid-cols-2 gap-4 bg-sky-50/60 p-4 rounded-xl border border-sky-200/80 text-xs">
           <div>
             <span className="font-semibold text-slate-500 block">N° OT</span>
             <span className="font-mono font-bold text-sky-900 text-sm">{formatOtDisplay(ot.numero_ot)}</span>
@@ -82,10 +82,6 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
           <div>
             <span className="font-semibold text-slate-500 block">N° RECEPCIÓN</span>
             <span className="font-mono font-semibold text-slate-800">{ot.numero_recepcion || "-"}</span>
-          </div>
-          <div>
-            <span className="font-semibold text-slate-500 block">REFERENCIA</span>
-            <span className="font-medium text-slate-800">{ot.referencia || "-"}</span>
           </div>
         </div>
 
