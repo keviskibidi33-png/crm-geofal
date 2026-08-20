@@ -147,7 +147,7 @@ export function SueloAgregadoSampleList({
                   </span>
                   <Input
                     {...register(`muestras.${sIdx}.codigo_muestra_lem`)}
-                    placeholder="-----"
+                    placeholder="-"
                     className="h-8 w-36 font-mono font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -187,7 +187,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.identificacion_muestra`)}
-                    placeholder="-----"
+                    placeholder="-"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -198,7 +198,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.procedencia`)}
-                    placeholder="-----"
+                    placeholder="-"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -209,7 +209,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.cantera`)}
-                    placeholder="-----"
+                    placeholder="-"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -220,7 +220,7 @@ export function SueloAgregadoSampleList({
                   </Label>
                   <Input
                     {...register(`muestras.${sIdx}.cantidad`)}
-                    placeholder="-----"
+                    placeholder="-"
                     className="font-bold text-xs uppercase bg-background"
                   />
                 </div>
@@ -440,7 +440,7 @@ function AssayRowItem({
                 setIsCodigoOpen(results.length > 0);
               }
             }}
-            placeholder="-----"
+            placeholder="-"
             className="h-8 font-mono font-bold text-xs uppercase bg-background"
             autoComplete="off"
           />
@@ -488,7 +488,7 @@ function AssayRowItem({
                 setIsDescOpen(results.length > 0);
               }
             }}
-            placeholder="-----"
+            placeholder="-"
             className="h-8 text-xs font-semibold uppercase bg-background"
             autoComplete="off"
           />
@@ -528,7 +528,7 @@ function AssayRowItem({
         <Input
           value={assay.norma || ""}
           onChange={(e) => onChange("norma", e.target.value.toUpperCase())}
-          placeholder="-----"
+          placeholder="-"
           className="h-8 font-mono text-xs uppercase bg-background"
         />
       </td>

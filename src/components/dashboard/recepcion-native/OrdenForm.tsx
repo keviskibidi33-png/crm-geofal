@@ -1173,7 +1173,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       handleAutoFillFromCotizacion(value);
                     }}
                     className={errors.numero_cotizacion ? "border-destructive" : ""}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.numero_cotizacion?.message && (
                     <span className="text-[9px] font-black text-destructive ml-1">
@@ -1677,7 +1677,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       });
                     }}
                     className={errors.ruc ? "border-destructive" : ""}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.ruc?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1693,7 +1693,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("domicilio_legal")}
                   className={errors.domicilio_legal ? "border-destructive" : ""}
-                  placeholder="-----"
+                  placeholder="-"
                   rows={2}
                 />
                 {errors.domicilio_legal?.message && (
@@ -1727,7 +1727,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                         });
                       }}
                       className={errors.persona_contacto ? "border-destructive" : ""}
-                      placeholder="-----"
+                      placeholder="-"
                     />
                     {errors.persona_contacto?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1746,7 +1746,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       {...register("email")}
                       rows={2}
                       className={errors.email ? "border-destructive" : ""}
-                      placeholder="-----"
+                      placeholder="-"
                     />
                     {errors.email?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1761,7 +1761,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                     <Input
                       {...register("telefono")}
                       className={errors.telefono ? "border-destructive" : ""}
-                      placeholder="-----"
+                      placeholder="-"
                     />
                     {errors.telefono?.message && (
                       <span className="text-[9px] font-black text-destructive">
@@ -1785,7 +1785,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Input
                   {...register("solicitante")}
                   className={errors.solicitante ? "border-destructive" : ""}
-                  placeholder="-----"
+                  placeholder="-"
                 />
                 {errors.solicitante?.message && (
                   <span className="text-[9px] font-black text-destructive">
@@ -1800,7 +1800,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("domicilio_solicitante")}
                   className={errors.domicilio_solicitante ? "border-destructive" : ""}
-                  placeholder="-----"
+                  placeholder="-"
                   rows={2}
                 />
                 {errors.domicilio_solicitante?.message && (
@@ -1816,7 +1816,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Input
                   {...register("proyecto")}
                   className={errors.proyecto ? "border-destructive" : ""}
-                  placeholder="-----"
+                  placeholder="-"
                 />
                 {errors.proyecto?.message && (
                   <span className="text-[9px] font-black text-destructive">
@@ -1831,7 +1831,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                 <Textarea
                   {...register("ubicacion")}
                   className={errors.ubicacion ? "border-destructive" : ""}
-                  placeholder="-----"
+                  placeholder="-"
                   rows={2}
                 />
                 {errors.ubicacion?.message && (
@@ -1856,7 +1856,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       handleSmartDate(e, "fecha_recepcion");
                     }}
                     className={errors.fecha_recepcion ? "border-destructive" : ""}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.fecha_recepcion?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1875,7 +1875,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       handleSmartDate(e, "fecha_estimada_culminacion");
                     }}
                     className={errors.fecha_estimada_culminacion ? "border-destructive" : ""}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.fecha_estimada_culminacion?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1942,7 +1942,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                   <Input
                     {...register("entregado_por")}
                     className={errors.entregado_por ? "border-destructive" : ""}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.entregado_por?.message && (
                     <span className="text-[9px] font-black text-destructive">
@@ -1993,7 +1993,7 @@ export function OrdenForm({ mode, editId, importedData, defaultTipo, allowedTipo
                       register("recibido_por").onChange(e);
                     }}
                     className={`${errors.recibido_por ? "border-destructive" : ""} font-bold text-xs uppercase`}
-                    placeholder="-----"
+                    placeholder="-"
                   />
                   {errors.recibido_por?.message && (
                     <span className="text-[9px] font-black text-destructive">
