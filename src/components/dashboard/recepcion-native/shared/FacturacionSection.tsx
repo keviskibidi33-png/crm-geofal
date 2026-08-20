@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Info } from "lucide-react";
 import { normalizeRucValue } from "@/lib/recepcion-validators";
 
-interface ClienteItem {
+export interface ClienteItem {
   id?: string | number;
   nombre?: string;
   cliente?: string;

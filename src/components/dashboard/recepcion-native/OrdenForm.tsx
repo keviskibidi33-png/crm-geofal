@@ -32,17 +32,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-// Subcomponentes modulares
-import { OrdenFormHeader } from "./OrdenFormHeader";
-import { ConcretoSampleTable } from "./ConcretoSampleTable";
-import { SueloAgregadoSampleList } from "./SueloAgregadoSampleList";
-import { FacturacionSection } from "./FacturacionSection";
-import { InformeSection } from "./InformeSection";
-import { FechasEmisionSection } from "./FechasEmisionSection";
-import { LogisticaSection } from "./LogisticaSection";
-import { ObservacionesSection } from "./ObservacionesSection";
-import { SavePlantillaModal } from "./SavePlantillaModal";
-import { OrdenConfirmDialogs } from "./OrdenConfirmDialogs";
+// Subcomponentes modulares organizados por carpetas
+import { OrdenFormHeader } from "./shared/OrdenFormHeader";
+import { ConcretoSampleTable } from "./recepcion-probetas/ConcretoSampleTable";
+import { SueloAgregadoSampleList } from "./recepcion-suelo-agregado/SueloAgregadoSampleList";
+import { FacturacionSection } from "./shared/FacturacionSection";
+import { InformeSection } from "./shared/InformeSection";
+import { FechasEmisionSection } from "./shared/FechasEmisionSection";
+import { LogisticaSection } from "./shared/LogisticaSection";
+import { ObservacionesSection } from "./shared/ObservacionesSection";
+import { SavePlantillaModal } from "./shared/SavePlantillaModal";
+import { OrdenConfirmDialogs } from "./shared/OrdenConfirmDialogs";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
