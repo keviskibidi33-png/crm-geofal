@@ -268,7 +268,19 @@ export function OrdenForm({
 
   useEffect(() => {
     if (existingOrden) {
-      reset(existingOrden);
+      const cleanPlaceholderVal = (v: any) => {
+        if (!v) return "";
+        const s = String(v).trim();
+        return s === "-" || s.toUpperCase() === "N/A" || s.toUpperCase() === "NULL" ? "" : s;
+      };
+
+      const cleanedOrden = {
+        ...existingOrden,
+        numero_cotizacion: cleanPlaceholderVal(existingOrden.numero_cotizacion),
+        numero_ot: cleanPlaceholderVal(existingOrden.numero_ot),
+      };
+
+      reset(cleanedOrden);
       if (Array.isArray(existingOrden.muestras) && existingOrden.muestras.length > 0) {
         const formatted = existingOrden.muestras.map((m: any, idx: number) => {
           let ensayosLista = m.ensayos_lista;
@@ -316,8 +328,14 @@ export function OrdenForm({
       const d = importedData;
       if (d.tipo_recepcion) setValue("tipo_recepcion", String(d.tipo_recepcion).toUpperCase() as any);
       if (d.numero_recepcion !== undefined) setValue("numero_recepcion", normalizeImportedText(d.numero_recepcion).toUpperCase());
-      if (d.numero_cotizacion !== undefined) setValue("numero_cotizacion", normalizeImportedText(d.numero_cotizacion).toUpperCase());
-      if (d.numero_ot !== undefined) setValue("numero_ot", normalizeImportedText(d.numero_ot).toUpperCase());
+      if (d.numero_cotizacion !== undefined) {
+        const cot = normalizeImportedText(d.numero_cotizacion).toUpperCase();
+        setValue("numero_cotizacion", cot === "-" || cot === "N/A" ? "" : cot);
+      }
+      if (d.numero_ot !== undefined) {
+        const ot = normalizeImportedText(d.numero_ot).toUpperCase();
+        setValue("numero_ot", ot === "-" || ot === "N/A" ? "" : ot);
+      }
       if (d.cliente) setValue("cliente", normalizeImportedText(d.cliente));
       if (d.ruc) setValue("ruc", normalizeRucValue(d.ruc));
       if (d.persona_contacto) {

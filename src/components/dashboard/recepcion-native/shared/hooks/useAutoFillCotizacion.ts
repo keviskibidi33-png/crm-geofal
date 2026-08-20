@@ -90,7 +90,9 @@ export function useAutoFillCotizacion({
           )
             .trim()
             .toUpperCase();
-          if (cotVal && !cotVal.includes("-") && /^\d+$/.test(cotVal)) {
+          if (cotVal === "-" || cotVal === "N/A" || cotVal === "NULL" || cotVal === "SIN ESPECIFICAR") {
+            cotVal = "";
+          } else if (cotVal && !cotVal.includes("-") && /^\d+$/.test(cotVal)) {
             cotVal = `${cotVal}-26`;
           }
           setValue("numero_cotizacion", cotVal, { shouldValidate: true });
