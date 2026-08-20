@@ -29,7 +29,7 @@ interface RecepcionModuleProps {
 }
 
 export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all" }: RecepcionModuleProps) {
-    const { recepciones, loading, pagination, fetchRecepciones, deleteRecepcion } = useRecepciones()
+    const { recepciones, loading, pagination, fetchRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
     const initialSelectedTipo = scope === "concreto" ? "CONCRETO" : scope === "lima" ? "LIMA_ALL" : "ALL"
@@ -39,6 +39,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
+    const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
     const [selectedEmailRecepcion, setSelectedEmailRecepcion] = useState<Recepcion | null>(null)
@@ -161,7 +162,6 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         if (onFocusHandled) {
             onFocusHandled()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [focusRecepcionId, onFocusHandled])
 
     const handleDelete = async (id: number) => {
