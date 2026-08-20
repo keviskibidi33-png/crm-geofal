@@ -255,7 +255,7 @@ interface SuggestionMenuProps {
 
 function SuggestionMenu({ items, onSelect }: SuggestionMenuProps) {
   return (
-    <div className="absolute left-0 top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-sky-500/40 rounded-xl shadow-2xl z-[9999] max-h-56 overflow-y-auto py-1 divide-y divide-border/40">
+    <div className="absolute left-0 top-full mt-1 w-full bg-popover text-popover-foreground border-2 border-sky-500/40 rounded-xl shadow-2xl z-9999 max-h-56 overflow-y-auto py-1 divide-y divide-border/40">
       {items.map((item) => (
         <button
           key={item.codigo}
@@ -273,7 +273,7 @@ function SuggestionMenu({ items, onSelect }: SuggestionMenuProps) {
             <span className="text-xs font-semibold text-foreground">{item.descripcion}</span>
           </div>
           {item.norma && (
-            <span className="text-[10px] font-mono text-muted-foreground shrink-0 max-w-[140px] truncate">
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0 max-w-35 truncate">
               {item.norma}
             </span>
           )}

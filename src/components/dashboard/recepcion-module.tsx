@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRecepciones, Recepcion } from "@/hooks/use-recepciones"
-import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, FileText, MoreHorizontal, Download } from "lucide-react"
+import { Plus, Search, RefreshCw, Trash2, FileSpreadsheet, Eye, Pencil, Loader2, Upload, ChevronLeft, ChevronRight, Building2, Mountain, Gem, Boxes, Droplets, Sparkles, Check, Mail, MoreHorizontal, Download } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -21,8 +21,6 @@ import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 import { RecepcionEmailModal } from "./recepcion-native/RecepcionEmailModal"
 import { OTForm, type OTData } from "./ot-native/OTForm"
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
 interface RecepcionModuleProps {
     focusRecepcionId?: number | null
     onFocusHandled?: () => void
@@ -30,8 +28,8 @@ interface RecepcionModuleProps {
     onNavigateToOTConcreto?: (numRecepcion: string) => void
 }
 
-export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all", onNavigateToOTConcreto }: RecepcionModuleProps) {
-    const { recepciones, loading, pagination, fetchRecepciones, refreshRecepciones, getRecepcionById, deleteRecepcion } = useRecepciones()
+export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all" }: RecepcionModuleProps) {
+    const { recepciones, loading, pagination, fetchRecepciones, deleteRecepcion } = useRecepciones()
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
     const initialSelectedTipo = scope === "concreto" ? "CONCRETO" : scope === "lima" ? "LIMA_ALL" : "ALL"
@@ -41,7 +39,6 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
-    const [isDetailLoading, setIsDetailLoading] = useState(false)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
     const [selectedEmailRecepcion, setSelectedEmailRecepcion] = useState<Recepcion | null>(null)
@@ -52,6 +49,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [importedData, setImportedData] = useState<any>(null)
     const [isOTModalOpen, setIsOTModalOpen] = useState(false)
     const [selectedOTData, setSelectedOTData] = useState<OTData | null>(null)
+    const [selectedOTRecepcionNum, setSelectedOTRecepcionNum] = useState<string | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Recepcion | null>(null)
     const [downloadingOtId, setDownloadingOtId] = useState<number | string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -163,6 +161,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         if (onFocusHandled) {
             onFocusHandled()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [focusRecepcionId, onFocusHandled])
 
     const handleDelete = async (id: number) => {
