@@ -168,13 +168,23 @@ function isLabKpiAuthorizedEmail(email?: string) {
       if (
         normEmail === "tecnico3@geofal.com.pe" ||
         normEmail === "sig@geofal.com.pe" ||
-        normEmail.includes("beatriz")
+        normEmail.includes("beatriz") ||
+        normEmail.includes("oficinatecnica1") ||
+        normEmail.includes("oficina_tecnica") ||
+        normEmail.includes("oficinatecnica")
       ) {
         return true
       }
     }
     const normalizedRole = normalizeRole(role)
-    return normalizedRole === "admin" || normalizedRole === "admin_general" || normalizedRole === "jefe_laboratorio"
+    return (
+      normalizedRole === "admin" ||
+      normalizedRole === "admin_general" ||
+      normalizedRole === "jefe_laboratorio" ||
+      normalizedRole.includes("oficina_tecnica") ||
+      permissions?.control_ambiental?.read === true ||
+      permissions?.control_ambiental_balanzas?.read === true
+    )
   }
 
   if (activeCheckModule === "estadistica_laboratorio") {
