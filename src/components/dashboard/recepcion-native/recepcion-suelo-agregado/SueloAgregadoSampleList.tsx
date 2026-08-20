@@ -142,7 +142,7 @@ export function SueloAgregadoSampleList({
                 </Badge>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                    Código LEM:
+                    Código del Ensayo:
                   </span>
                   <Input
                     {...register(`muestras.${sIdx}.codigo_muestra_lem`)}

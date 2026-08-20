@@ -158,7 +158,7 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onRemove, mar
             <Layers className="h-3.5 w-3.5 mr-1.5" />MUESTRA N° {index + 1}
           </Badge>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Código LEM:</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Código del Ensayo:</span>
             <Input
               placeholder="-"
               value={card.codigo_muestra}
