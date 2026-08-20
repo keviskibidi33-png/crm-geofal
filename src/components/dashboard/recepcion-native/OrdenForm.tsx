@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,8 +22,6 @@ import {
   getFieldPathFromBackendIssue,
   getBackendIssueMessage,
   getFirstClientErrorPath,
-  DEFAULT_FC,
-  DEFAULT_EDAD,
 } from "@/lib/recepcion-validators";
 import { useFormPersist } from "@/hooks/use-form-persist";
 import { useEnterTableNavigation } from "@/hooks/use-enter-table-navigation";
@@ -36,13 +34,17 @@ import { Badge } from "@/components/ui/badge";
 import { OrdenFormHeader } from "./shared/OrdenFormHeader";
 import { ConcretoSampleTable } from "./recepcion-probetas/ConcretoSampleTable";
 import { SueloAgregadoSampleList } from "./recepcion-suelo-agregado/SueloAgregadoSampleList";
-import { FacturacionSection } from "./shared/FacturacionSection";
+import { FacturacionSection, type ClienteItem } from "./shared/FacturacionSection";
 import { InformeSection } from "./shared/InformeSection";
 import { FechasEmisionSection } from "./shared/FechasEmisionSection";
 import { LogisticaSection } from "./shared/LogisticaSection";
 import { ObservacionesSection } from "./shared/ObservacionesSection";
 import { SavePlantillaModal } from "./shared/SavePlantillaModal";
 import { OrdenConfirmDialogs } from "./shared/OrdenConfirmDialogs";
+
+// Custom Hooks
+import { useClienteSearch } from "./shared/hooks/useClienteSearch";
+import { useAutoFillCotizacion } from "./shared/hooks/useAutoFillCotizacion";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -68,15 +70,11 @@ export function OrdenForm({
   const queryClient = useQueryClient();
   const handleItemsTableKeyDown = useEnterTableNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isSelectionRef = useRef(false);
 
-  // Estados de Modales y Búsquedas
+  // Estados de Modales
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [sampleDeleteIndex, setSampleDeleteIndex] = useState<number | null>(null);
   const [isSavePlantillaOpen, setIsSavePlantillaOpen] = useState(false);
-
-  const [clienteSearch, setClienteSearch] = useState("");
-  const [clientes, setClientes] = useState<Array<Record<string, unknown>>>([]);
 
   const [recepcionStatus, setRecepcionStatus] = useState<{
     estado: "idle" | "buscando" | "disponible" | "ocupado";
@@ -150,6 +148,34 @@ export function OrdenForm({
 
   const activeTipo = watch("tipo_recepcion") || "CONCRETO";
 
+  // Hook de Búsqueda de Clientes con tipado estricto
+  const {
+    clienteSearch,
+    setClienteSearch,
+    clientes,
+    selectCliente,
+  } = useClienteSearch();
+
+  const syncEntregadoPorFromContacto = (
+    contacto: unknown,
+    options?: { force?: boolean }
+  ) => {
+    const normalizedContacto = normalizeImportedText(contacto).toUpperCase();
+    const currentEntregado = normalizeImportedText(getValues("entregado_por"));
+    if (options?.force || !currentEntregado) {
+      setValue("entregado_por", normalizedContacto, { shouldValidate: true });
+    }
+  };
+
+  // Hook de Autocompletado desde Cotización o Control de Laboratorio
+  const { handleAutoFillFromCotizacion } = useAutoFillCotizacion({
+    form,
+    replace,
+    selectCliente,
+    syncEntregadoPorFromContacto,
+    initialTipo,
+  });
+
   // Helpers de foco y errores
   const focusFieldByPath = (fieldPath: string) => {
     try {
@@ -187,17 +213,6 @@ export function OrdenForm({
     focusFieldByPath(firstIssue.path);
     toast.error(`Revisa el campo resaltado: ${firstIssue.message}`);
     return true;
-  };
-
-  const syncEntregadoPorFromContacto = (
-    contacto: unknown,
-    options?: { force?: boolean }
-  ) => {
-    const normalizedContacto = normalizeImportedText(contacto).toUpperCase();
-    const currentEntregado = normalizeImportedText(getValues("entregado_por"));
-    if (options?.force || !currentEntregado) {
-      setValue("entregado_por", normalizedContacto, { shouldValidate: true });
-    }
   };
 
   const defaultValues: FormInput = {
@@ -292,8 +307,7 @@ export function OrdenForm({
         replace(formatted as any);
       }
       if (existingOrden.cliente) {
-        isSelectionRef.current = true;
-        setClienteSearch(existingOrden.cliente);
+        selectCliente(existingOrden.cliente);
       }
     }
   }, [existingOrden, reset, replace]);
@@ -360,65 +374,7 @@ export function OrdenForm({
     toast.success("Muestra eliminada del formulario");
   };
 
-  // Búsqueda de Clientes
-  useEffect(() => {
-    if (isSelectionRef.current) {
-      isSelectionRef.current = false;
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const q = clienteSearch.trim();
-      if (q.length >= 1) {
-        try {
-          const [resClientes, resPlantillas] = await Promise.allSettled([
-            authFetch(`${API_URL}/clientes?search=${encodeURIComponent(q)}`),
-            authFetch(`${API_URL}/api/recepcion/plantillas/buscar?q=${encodeURIComponent(q)}`),
-          ]);
-          let combined: Array<Record<string, unknown>> = [];
-          if (resClientes.status === "fulfilled" && resClientes.value.ok) {
-            const json = await resClientes.value.json();
-            if (Array.isArray(json.data)) combined.push(...json.data);
-          }
-          if (resPlantillas.status === "fulfilled" && resPlantillas.value.ok) {
-            const json = await resPlantillas.value.json();
-            if (Array.isArray(json)) {
-              json.forEach((p: any) => {
-                const name = p.cliente || p.nombre || p.nombre_plantilla;
-                if (
-                  name &&
-                  !combined.some(
-                    (c) => String(c.nombre || c.cliente).toUpperCase() === String(name).toUpperCase()
-                  )
-                ) {
-                  combined.push({
-                    id: p.id || p.codigo || name,
-                    nombre: name,
-                    ruc: p.ruc,
-                    direccion: p.domicilio_legal || p.ubicacion,
-                    contacto: p.persona_contacto,
-                    email: p.email,
-                    telefono: p.telefono,
-                    proyecto: p.proyecto,
-                    ubicacion: p.ubicacion,
-                    solicitante: p.solicitante,
-                    domicilio_solicitante: p.domicilio_solicitante,
-                  });
-                }
-              });
-            }
-          }
-          setClientes(combined);
-        } catch {
-          setClientes([]);
-        }
-      } else {
-        setClientes([]);
-      }
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [clienteSearch]);
-
-  const handleSelectCliente = (c: any) => {
+  const handleSelectCliente = (c: ClienteItem) => {
     const fallback = (v: unknown) => (v && String(v).trim()) || "";
     setValue("cliente", fallback(c.nombre || c.cliente), { shouldValidate: true });
     setValue("ruc", normalizeRucValue(c.ruc), { shouldValidate: true });
@@ -444,174 +400,6 @@ export function OrdenForm({
     }
     syncEntregadoPorFromContacto(c.contacto || c.persona_contacto, { force: true });
     toast.success(`Cliente ${c.nombre || c.cliente} seleccionado y datos completados`);
-  };
-
-  // Autollenado desde Cotización o Control de Laboratorio
-  const handleAutoFillFromCotizacion = async (cotValue: string) => {
-    if (!cotValue || cotValue.trim().length === 0) return;
-    const cleanVal = cotValue.trim().toUpperCase();
-    const tokenMatch = cleanVal.match(/^(\d+)-COT-(\d+)$/);
-    const token = tokenMatch ? `${tokenMatch[1]}-${tokenMatch[2]}` : cleanVal;
-
-    try {
-      toast.loading("Consultando cotización / control de laboratorio...");
-      let qd: any = null;
-      let res = await authFetch(
-        `${API_URL}/api/recepcion/prefill-cotizacion/${encodeURIComponent(cleanVal)}`
-      );
-      if (res.ok) {
-        qd = await res.json();
-      } else {
-        res = await authFetch(`${API_URL}/api/cotizacion/by-token/${encodeURIComponent(token)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) qd = json.data;
-        }
-      }
-
-      toast.dismiss();
-
-      if (qd) {
-        if (qd.source === "control_laboratorio") {
-          toast.success(
-            `Datos sincronizados desde Control Laboratorio (OT: ${qd.numero_ot || "-"}, Cotiz: ${
-              qd.numero_cotizacion || qd.cotizacion_numero || "-"
-            })`
-          );
-        } else {
-          toast.success(`Datos cargados desde cotización: ${qd.cliente || qd.cliente_nombre || "-"}`);
-        }
-        const fallback = (v: unknown) => (v && String(v).trim()) || "";
-
-        if (qd.numero_ot || qd.ot) {
-          let otVal = String(qd.numero_ot || qd.ot).trim();
-          if (otVal && !otVal.includes("-") && /^\d+$/.test(otVal)) {
-            otVal = `${otVal}-26`;
-          }
-          setValue("numero_ot", otVal, { shouldValidate: true });
-        }
-
-        if (qd.numero_cotizacion || qd.cotizacion_numero || qd.cotizacion_lab) {
-          let cotVal = String(
-            qd.numero_cotizacion || qd.cotizacion_numero || qd.cotizacion_lab
-          )
-            .trim()
-            .toUpperCase();
-          if (cotVal && !cotVal.includes("-") && /^\d+$/.test(cotVal)) {
-            cotVal = `${cotVal}-26`;
-          }
-          setValue("numero_cotizacion", cotVal, { shouldValidate: true });
-        }
-
-        if (qd.fecha_recepcion) {
-          const normFecha = normalizeImportedDate(qd.fecha_recepcion);
-          if (normFecha) setValue("fecha_recepcion", normFecha, { shouldValidate: true });
-        }
-        if (qd.fecha_estimada_culminacion || qd.fecha_entrega) {
-          const normFechaFin = normalizeImportedDate(
-            qd.fecha_estimada_culminacion || qd.fecha_entrega
-          );
-          if (normFechaFin)
-            setValue("fecha_estimada_culminacion", normFechaFin, { shouldValidate: true });
-        }
-
-        if (qd.source !== "control_laboratorio") {
-          setValue("cliente", fallback(qd.cliente || qd.cliente_nombre), { shouldValidate: true });
-          isSelectionRef.current = true;
-          setClienteSearch(String(fallback(qd.cliente || qd.cliente_nombre)));
-
-          setValue("ruc", normalizeRucValue(qd.ruc || qd.cliente_ruc), { shouldValidate: true });
-          setValue(
-            "persona_contacto",
-            normalizeImportedText(qd.persona_contacto || qd.contacto || qd.cliente_contacto),
-            { shouldValidate: true }
-          );
-          syncEntregadoPorFromContacto(qd.persona_contacto || qd.contacto || qd.cliente_contacto, {
-            force: true,
-          });
-          setValue("email", normalizeImportedText(qd.email || qd.cliente_email), {
-            shouldValidate: true,
-          });
-          setValue("telefono", normalizeImportedText(qd.telefono || qd.cliente_telefono), {
-            shouldValidate: true,
-          });
-          setValue("proyecto", normalizeImportedText(qd.proyecto), { shouldValidate: true });
-          setValue(
-            "ubicacion",
-            normalizeImportedText(qd.ubicacion || qd.domicilio_legal),
-            { shouldValidate: true }
-          );
-          setValue("domicilio_legal", fallback(qd.domicilio_legal || qd.ubicacion), {
-            shouldValidate: true,
-          });
-          setValue(
-            "solicitante",
-            fallback(qd.solicitante || qd.cliente || qd.cliente_nombre),
-            { shouldValidate: true }
-          );
-          setValue(
-            "domicilio_solicitante",
-            fallback(qd.domicilio_solicitante || qd.ubicacion || qd.domicilio_legal),
-            { shouldValidate: true }
-          );
-
-          const rawItems = qd.items || qd.items_json;
-          if (Array.isArray(rawItems) && rawItems.length > 0) {
-            const currentTipo = getValues("tipo_recepcion") || initialTipo;
-            if (
-              currentTipo === "SUELO_AGREGADO" ||
-              currentTipo === "ROCA" ||
-              currentTipo === "ALBANILERIA" ||
-              currentTipo === "AGUA"
-            ) {
-              const newMuestras = rawItems.map((item: any, idx: number) => ({
-                item_numero: idx + 1,
-                identificacion_muestra: item.descripcion
-                  ? `M-${idx + 1} (${item.descripcion})`
-                  : `MUESTRA N° ${idx + 1}`,
-                procedencia: "",
-                cantera: "",
-                cantidad: String(item.cantidad ? `${item.cantidad} KG` : "50 KG"),
-                codigo_muestra_lem: "",
-                codigo_ensayo: item.codigo || "",
-                ensayos_requeridos: item.descripcion || "",
-                norma_requerida: item.norma || "-",
-                ensayos_lista: [
-                  {
-                    codigo: item.codigo || "",
-                    descripcion: item.descripcion || "",
-                    norma: item.norma || "-",
-                  },
-                ],
-              }));
-              replace(newMuestras as any);
-              toast.success(`${newMuestras.length} muestra(s) y ensayos cargados desde la cotización`);
-            } else {
-              const newMuestras = sanitizeImportedMuestras(
-                rawItems.map((item: any, idx: number) => ({
-                  item_numero: idx + 1,
-                  identificacion_muestra: item.descripcion || `Probeta ${idx + 1}`,
-                  estructura: "",
-                  fc_kg_cm2: DEFAULT_FC,
-                  edad: DEFAULT_EDAD,
-                  requiere_densidad: false,
-                  fecha_moldeo: "",
-                  hora_moldeo: "",
-                  fecha_rotura: "",
-                  codigo_muestra_lem: "",
-                }))
-              );
-              replace(newMuestras as any);
-              toast.success(`${newMuestras.length} probeta(s) cargadas desde la cotización`);
-            }
-          }
-        }
-      } else {
-        toast.info(`No se encontró cotización o registro para '${cotValue}'`);
-      }
-    } catch {
-      toast.dismiss();
-    }
   };
 
   // Clonado inteligente de muestras
