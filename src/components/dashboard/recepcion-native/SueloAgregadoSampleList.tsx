@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react";
 
 interface SueloAgregadoSampleListProps {
-  form: UseFormReturn<FormInput, unknown, FormOutput>;
+  form: UseFormReturn<any>;
   fields: Array<Record<string, any>>;
   append: (value: any) => void;
   onCloneSample: (index: number) => void;
