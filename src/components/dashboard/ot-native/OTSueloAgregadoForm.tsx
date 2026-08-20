@@ -145,6 +145,7 @@ export function OTSueloAgregadoForm({
       }
       const data = await res.json()
 
+      if (data.numero_ot) setNumeroOt(data.numero_ot)
       if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
       if (data.inicio_programado) setInicioProgramado(toIsoDate(data.inicio_programado))
       if (data.fin_programado) setFinProgramado(toIsoDate(data.fin_programado))

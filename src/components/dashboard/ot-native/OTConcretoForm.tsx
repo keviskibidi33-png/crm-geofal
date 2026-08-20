@@ -162,6 +162,7 @@ export function OTConcretoForm({
       }
       const data = await res.json()
 
+      if (data.numero_ot) setNumeroOt(data.numero_ot)
       setCliente(data.cliente || "")
       setProyecto(data.proyecto || "")
       if (data.fecha_recepcion) setFechaRecepcion(toIsoDate(data.fecha_recepcion))
