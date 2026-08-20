@@ -252,7 +252,7 @@ export function OrdenForm({
   const { clearSavedData } = useFormPersist(
     `recepcion-form-${id || "new"}`,
     form,
-    !id
+    false // Deshabilitado: al crear una recepción el formulario debe iniciar limpio
   );
 
   // Carga de orden en modo edición

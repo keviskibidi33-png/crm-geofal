@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Copy, Sparkles, Layers } from "lucide-react"
+import { Plus, Trash2, Sparkles, Layers } from "lucide-react"
 import { searchEnsayos, getEnsayoByCodigo, type EnsayoItem } from "@/data/ensayos-data"
 import type { OTItem } from "./OTForm"
 
@@ -100,20 +100,11 @@ export function OTMuestrasItemList({ cards, onChange, markDirty }: OTMuestrasIte
     markDirty()
   }
 
-  const cloneCard = (idx: number) => {
-    const next = [...cards]
-    next.splice(idx + 1, 0, JSON.parse(JSON.stringify(cards[idx])))
-    onChange(next)
-    markDirty()
-  }
-
   const removeCard = (idx: number) => {
     if (cards.length <= 1) { onChange([newEmptyCard()]); markDirty(); return }
     onChange(cards.filter((_, i) => i !== idx))
     markDirty()
   }
-
-  const addCard = () => { onChange([...cards, newEmptyCard()]); markDirty() }
 
   return (
     <div className="space-y-5 overflow-visible">
@@ -124,21 +115,10 @@ export function OTMuestrasItemList({ cards, onChange, markDirty }: OTMuestrasIte
           index={cIdx}
           onUpdateCard={(patch) => updateCard(cIdx, patch)}
           onUpdateEnsayos={(ensayos) => updateCard(cIdx, { ensayos })}
-          onClone={() => cloneCard(cIdx)}
           onRemove={() => removeCard(cIdx)}
           markDirty={markDirty}
         />
       ))}
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={addCard}
-        className="w-full py-5 border-2 border-dashed border-sky-400/50 hover:border-sky-500 hover:bg-sky-50/50 text-sky-700 font-black text-xs uppercase tracking-widest gap-2 rounded-2xl shadow-sm transition-all cursor-pointer"
-      >
-        <Plus className="h-5 w-5 stroke-[2.5]" />
-        Agregar Otra Muestra (Muestra N° {cards.length + 1})
-      </Button>
     </div>
   )
 }
@@ -150,12 +130,11 @@ interface MuestraCardProps {
   index: number
   onUpdateCard: (patch: Partial<OTMuestraCard>) => void
   onUpdateEnsayos: (ensayos: EnsayoRow[]) => void
-  onClone: () => void
   onRemove: () => void
   markDirty: () => void
 }
 
-function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRemove, markDirty }: MuestraCardProps) {
+function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onRemove, markDirty }: MuestraCardProps) {
   const addEnsayo = () => { onUpdateEnsayos([...card.ensayos, { codigo: "", descripcion: "", norma: "", cantidad: 1 }]); markDirty() }
   const removeEnsayo = (aIdx: number) => {
     if (card.ensayos.length <= 1) { onUpdateEnsayos([{ codigo: "", descripcion: "", norma: "", cantidad: 1 }]); return }
@@ -190,9 +169,6 @@ function MuestraCard({ card, index, onUpdateCard, onUpdateEnsayos, onClone, onRe
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={onClone} className="h-8 px-2.5 text-xs font-bold gap-1.5 hover:text-sky-600 hover:border-sky-400/40 cursor-pointer" title="Clonar">
-            <Copy className="h-3.5 w-3.5" /><span>Clonar</span>
-          </Button>
           <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer" title="Eliminar">
             <Trash2 className="h-4 w-4" />
           </Button>

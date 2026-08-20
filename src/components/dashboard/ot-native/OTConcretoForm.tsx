@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Plus, Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2 } from "lucide-react"
+import { Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
@@ -216,24 +216,6 @@ export function OTConcretoForm({
       } catch {}
     }
   }, [inicioProgramado, finProgramado])
-
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        item: prev.length + 1,
-        codigo_muestra: "",
-        descripcion: "COMPRESION PROBETAS ASTM C39/C39M",
-        cantidad: 1,
-        elemento: "-",
-        fecha_rotura: "",
-        densidad: "NO",
-        edad: "",
-        fc_kg_cm2: "",
-      },
-    ])
-    markDirty()
-  }
 
   const handleRemoveItem = (index: number) => {
     if (items.length <= 1) {
@@ -488,16 +470,6 @@ export function OTConcretoForm({
                 <Layers className="h-4 w-4 text-sky-600" />
                 2. Probetas de Concreto (F-LEM-P-02.01)
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddItem}
-                className="gap-1 text-xs border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 font-medium cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Agregar Probeta
-              </Button>
             </div>
 
             <div
