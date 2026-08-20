@@ -306,14 +306,9 @@ export function OTSueloAgregadoForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-semibold text-slate-700">N° OT</Label>
-                <div className="relative mt-1">
-                  {!numeroOt.toLowerCase().startsWith("ot") && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">
-                      OT-
-                    </span>
-                  )}
+                <div className="mt-1">
                   <Input
-                    placeholder="1968-26"
+                    placeholder="193-26"
                     value={numeroOt}
                     onChange={(e) => {
                       setNumeroOt(e.target.value)
@@ -321,15 +316,13 @@ export function OTSueloAgregadoForm({
                     }}
                     onBlur={() => {
                       const val = numeroOt.trim()
-                      if (val && !val.includes("-")) {
+                      if (val && val !== "-" && !val.includes("-") && /^\d+$/.test(val)) {
                         const year = new Date().getFullYear().toString().slice(-2)
                         setNumeroOt(`${val}-${year}`)
                         markDirty()
                       }
                     }}
-                    className={`font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500 ${
-                      !numeroOt.toLowerCase().startsWith("ot") ? "pl-9" : ""
-                    }`}
+                    className="font-mono font-bold bg-white border-slate-300 focus-visible:ring-sky-500 focus-visible:border-sky-500"
                     required
                   />
                 </div>
@@ -338,7 +331,7 @@ export function OTSueloAgregadoForm({
                 <Label className="text-xs font-semibold text-slate-700">N° RECEPCIÓN</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    placeholder="1754-26"
+                    placeholder="193-26"
                     value={numeroRecepcion}
                     onChange={(e) => {
                       setNumeroRecepcion(e.target.value)
@@ -347,7 +340,7 @@ export function OTSueloAgregadoForm({
                     }}
                     onBlur={() => {
                       const val = numeroRecepcion.trim()
-                      if (val && !val.includes("-")) {
+                      if (val && val !== "-" && !val.includes("-") && /^\d+$/.test(val)) {
                         const year = new Date().getFullYear().toString().slice(-2)
                         setNumeroRecepcion(`${val}-${year}`)
                         markDirty()

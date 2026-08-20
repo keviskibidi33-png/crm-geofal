@@ -158,19 +158,19 @@ export function OrdenFormHeader({
             OT Nº:
           </Label>
           <div className="relative flex items-center">
-            {watch("numero_ot") && !/^ot/i.test(watch("numero_ot").trim()) && (
-              <span className="absolute left-3 font-mono font-bold text-slate-400 pointer-events-none select-none text-sm">
-                OT-
-              </span>
-            )}
             <Input
               {...register("numero_ot")}
               autoComplete="off"
               onBlur={(e) => {
                 let value = e.target.value.trim();
                 if (value) {
-                  // Si no tiene guión de año, agregar suffix
-                  if (!value.includes("-")) {
+                  if (value === "-") {
+                    e.target.value = "-";
+                    setValue("numero_ot", "-", { shouldValidate: true });
+                    return;
+                  }
+                  // Si no tiene guión de año y son dígitos, agregar suffix
+                  if (!value.includes("-") && /^\d+$/.test(value)) {
                     const year = new Date().getFullYear().toString().slice(-2);
                     value = `${value}-${year}`;
                   }
@@ -178,11 +178,7 @@ export function OrdenFormHeader({
                   setValue("numero_ot", value, { shouldValidate: true });
                 }
               }}
-              className={`${errors.numero_ot ? "border-destructive" : ""} ${
-                watch("numero_ot") && !/^ot/i.test(watch("numero_ot").trim())
-                  ? "pl-10 font-mono font-bold"
-                  : "font-mono font-bold"
-              }`}
+              className={`${errors.numero_ot ? "border-destructive" : ""} font-mono font-bold`}
               placeholder="193-26"
             />
           </div>

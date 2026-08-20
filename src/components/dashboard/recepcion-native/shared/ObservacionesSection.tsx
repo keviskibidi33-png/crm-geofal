@@ -5,13 +5,12 @@ import { UseFormReturn } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2, BookmarkPlus } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 
 interface ObservacionesSectionProps {
   form: UseFormReturn<any>;
   isSubmitting: boolean;
   isEditMode: boolean;
-  onOpenSavePlantilla: () => void;
   onClose: () => void;
 }
 
@@ -19,7 +18,6 @@ export function ObservacionesSection({
   form,
   isSubmitting,
   isEditMode,
-  onOpenSavePlantilla,
   onClose,
 }: ObservacionesSectionProps) {
   const { register } = form;
@@ -41,20 +39,7 @@ export function ObservacionesSection({
       </div>
 
       {/* BOTTOM ACTIONS BAR */}
-      <div className="flex items-center justify-between gap-4 pt-4 border-t sticky bottom-0 bg-background/80 backdrop-blur-md py-4 z-10">
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onOpenSavePlantilla}
-            className="text-xs font-bold gap-1.5"
-          >
-            <BookmarkPlus className="h-4 w-4 text-primary" />
-            <span>Guardar como Plantilla</span>
-          </Button>
-        </div>
-
+      <div className="flex items-center justify-end gap-4 pt-4 border-t sticky bottom-0 bg-background/80 backdrop-blur-md py-4 z-10">
         <div className="flex items-center gap-3">
           <Button
             type="button"

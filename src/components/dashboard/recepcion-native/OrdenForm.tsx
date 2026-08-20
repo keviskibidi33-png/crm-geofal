@@ -39,7 +39,6 @@ import { InformeSection } from "./shared/InformeSection";
 import { FechasEmisionSection } from "./shared/FechasEmisionSection";
 import { LogisticaSection } from "./shared/LogisticaSection";
 import { ObservacionesSection } from "./shared/ObservacionesSection";
-import { SavePlantillaModal } from "./shared/SavePlantillaModal";
 import { OrdenConfirmDialogs } from "./shared/OrdenConfirmDialogs";
 
 // Custom Hooks
@@ -74,7 +73,6 @@ export function OrdenForm({
   // Estados de Modales
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [sampleDeleteIndex, setSampleDeleteIndex] = useState<number | null>(null);
-  const [isSavePlantillaOpen, setIsSavePlantillaOpen] = useState(false);
 
   const [recepcionStatus, setRecepcionStatus] = useState<{
     estado: "idle" | "buscando" | "disponible" | "ocupado";
@@ -944,7 +942,6 @@ export function OrdenForm({
               form={form}
               isSubmitting={isSubmitting}
               isEditMode={isEditMode}
-              onOpenSavePlantilla={() => setIsSavePlantillaOpen(true)}
               onClose={onClose}
             />
           </form>
@@ -959,13 +956,6 @@ export function OrdenForm({
         sampleDeleteIndex={sampleDeleteIndex}
         setSampleDeleteIndex={setSampleDeleteIndex}
         handleConfirmSampleDelete={handleConfirmSampleDelete}
-      />
-
-      <SavePlantillaModal
-        isOpen={isSavePlantillaOpen}
-        onClose={() => setIsSavePlantillaOpen(false)}
-        currentFormData={getValues()}
-        tipoRecepcion={activeTipo}
       />
     </>
   );
