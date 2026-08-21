@@ -11,6 +11,7 @@ import {
   formSchema,
   type FormOutput,
   type FormInput,
+  normalizeDateInput,
   normalizeImportedText,
   normalizeRucValue,
   normalizeImportedDate,
@@ -265,6 +266,7 @@ export function OrdenForm({
   });
 
   useEffect(() => {
+    if (existingOrden) {
       const cleanPlaceholderVal = (v: any) => {
         if (!v) return "";
         const s = String(v).trim();

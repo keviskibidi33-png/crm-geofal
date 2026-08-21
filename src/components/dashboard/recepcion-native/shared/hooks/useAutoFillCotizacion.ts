@@ -223,6 +223,7 @@ export function useAutoFillCotizacion({
               );
             }
           }
+        } else {
           // ── Control Laboratorio: cliente, solicitante y proyecto. El resto de datos de facturación e informe vienen vacíos ─────────
           const currentCliente = (getValues("cliente") || "").trim();
           const currentProyecto = (getValues("proyecto") || "").trim();
@@ -251,6 +252,7 @@ export function useAutoFillCotizacion({
           setValue("telefono", "", { shouldValidate: true });
           setValue("domicilio_solicitante", "", { shouldValidate: true });
           setValue("ubicacion", "", { shouldValidate: true });
+        }
       } else {
         toast.info(`No se encontró cotización o registro para '${cotValue}'`);
       }
