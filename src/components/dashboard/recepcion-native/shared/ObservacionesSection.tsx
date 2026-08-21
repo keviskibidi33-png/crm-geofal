@@ -39,7 +39,7 @@ export function ObservacionesSection({
       </div>
 
       {/* BOTTOM ACTIONS BAR */}
-      <div className="flex items-center justify-end gap-4 pt-4 border-t sticky bottom-0 bg-background/80 backdrop-blur-md py-4 z-10">
+      <div className="flex items-center justify-end gap-4 pt-4 border-t bg-background mt-4">
         <div className="flex items-center gap-3">
           <Button
             type="button"
