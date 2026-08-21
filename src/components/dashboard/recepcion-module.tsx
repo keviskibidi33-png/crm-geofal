@@ -726,23 +726,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         {/* 8. ESTADO OT */}
                                         <TableCell className="text-center whitespace-nowrap">
                                             {item.ot_exists ? (
-                                                item.ot_estado === "EMITIDO" ? (
-                                                    <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[11px] px-2 py-0.5">
-                                                        Emitido
-                                                    </Badge>
-                                                ) : item.ot_estado === "COMPLETADO" ? (
-                                                    <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/30 dark:bg-blue-950/40 dark:text-blue-300 font-bold text-[11px] px-2 py-0.5">
-                                                        Completado
-                                                    </Badge>
-                                                ) : item.ot_estado === "DESCARGADO" ? (
-                                                    <Badge className="bg-indigo-500/15 text-indigo-700 hover:bg-indigo-500/25 border-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold text-[11px] px-2 py-0.5">
-                                                        Descargado
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300 font-bold text-[11px] px-2 py-0.5">
-                                                        Pendiente
-                                                    </Badge>
-                                                )
+                                                <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[11px] px-2 py-0.5">
+                                                    Revisado
+                                                </Badge>
                                             ) : (
                                                 <span className="text-slate-400 font-bold text-xs">-</span>
                                             )}
