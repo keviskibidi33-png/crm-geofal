@@ -482,12 +482,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-[#f8fafc] dark:bg-slate-800 text-xs font-bold uppercase tracking-wider border-b">
-                            <TableHead className="w-32">Nº Recepción</TableHead>
+                            <TableHead className="w-32 text-center">Nº Recepción</TableHead>
                             <TableHead className="w-44 text-center">Acciones</TableHead>
-                            <TableHead className="w-28">Nº OT</TableHead>
+                            <TableHead className="w-28 text-center">Nº OT</TableHead>
                             <TableHead className="w-32 text-center">Acciones</TableHead>
-                            <TableHead className="min-w-44">Cliente</TableHead>
-                            <TableHead className="w-36">Técnico</TableHead>
+                            <TableHead className="min-w-44 text-center">Cliente</TableHead>
+                            <TableHead className="w-36 text-center">Técnico</TableHead>
                             <TableHead className="w-28 text-center">Estado Recep.</TableHead>
                             <TableHead className="w-28 text-center">Estado OT</TableHead>
                         </TableRow>
@@ -529,12 +529,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                 return (
                                     <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                                         {/* 1. No RECEPCION */}
-                                        <TableCell className="font-bold font-mono text-primary whitespace-nowrap">
+                                        <TableCell className="text-center font-bold font-mono text-primary whitespace-nowrap">
                                             {item.numero_recepcion || "-"}
                                         </TableCell>
 
                                         {/* 2. ACCIONES (Recepción) */}
-                                        <TableCell>
+                                        <TableCell className="text-center">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 {canWrite && (
                                                     <Button
@@ -592,12 +592,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         </TableCell>
 
                                         {/* 3. No OT */}
-                                        <TableCell className="font-bold font-mono whitespace-nowrap">
+                                        <TableCell className="text-center font-bold font-mono whitespace-nowrap">
                                             {formatOtDisplay(item.numero_ot)}
                                         </TableCell>
 
                                         {/* 4. ACCIONES (OT) */}
-                                        <TableCell>
+                                        <TableCell className="text-center">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 {canWrite && (
                                                     <Button
@@ -641,12 +641,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                         </TableCell>
 
                                         {/* 5. CLIENTE */}
-                                        <TableCell className="font-medium max-w-56 truncate" title={item.cliente}>
+                                        <TableCell className="text-center font-medium max-w-56 truncate" title={item.cliente}>
                                             {item.cliente || "-"}
                                         </TableCell>
 
                                         {/* 6. TECNICO */}
-                                        <TableCell className="text-muted-foreground max-w-36 truncate font-medium" title={item.tecnico}>
+                                        <TableCell className="text-center text-muted-foreground max-w-36 truncate font-medium" title={item.tecnico}>
                                             {item.tecnico && item.tecnico !== "-" ? item.tecnico : "-"}
                                         </TableCell>
 
