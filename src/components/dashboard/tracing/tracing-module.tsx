@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useTracing } from "@/hooks/use-tracing"
 import { useReactToPrint } from "react-to-print"
 import { ModernConfirmDialog } from "../modern-confirm-dialog"
@@ -17,6 +17,9 @@ import {
     Eye,
     ChevronLeft,
     ChevronRight,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
     Calendar,
     Download,
     Loader2,
@@ -397,10 +400,102 @@ export function TracingModule() {
         )
     }
 
-    const filteredList = tracingList.filter(item =>
-        item.numero_recepcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.cliente?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    // Filter & Sort States
+    const [searchTerm, setSearchTerm] = useState("")
+    const [clientFilter, setClientFilter] = useState<string>("all")
+    const [stageFilter, setStageFilter] = useState<string>("all")
+    const [dateFilter, setDateFilter] = useState<string>("")
+    const [statusTab, setStatusTab] = useState<"all" | "completed" | "in_progress" | "pending">("all")
+    const [sortField, setSortField] = useState<"numero" | "cliente" | "fecha">("numero")
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+
+    const getItemOverallStatus = (item: any): "completed" | "in_progress" | "pending" => {
+        const statuses = (item.stages || []).map((s: any) => s.status)
+        if (statuses.length > 0 && statuses.every((st: string) => st === 'completado')) return 'completed'
+        if (statuses.some((st: string) => st === 'completado' || st === 'en_proceso')) return 'in_progress'
+        return 'pending'
+    }
+
+    const uniqueClients = useMemo(() => {
+        const set = new Set<string>()
+        tracingList.forEach(t => {
+            if (t.cliente && t.cliente.trim() && t.cliente !== '-') {
+                set.add(t.cliente.trim())
+            }
+        })
+        return Array.from(set).sort((a, b) => a.localeCompare(b))
+    }, [tracingList])
+
+    const stats = useMemo(() => {
+        let completed = 0
+        let in_progress = 0
+        let pending = 0
+        tracingList.forEach(item => {
+            const st = getItemOverallStatus(item)
+            if (st === 'completed') completed++
+            else if (st === 'in_progress') in_progress++
+            else pending++
+        })
+        return { total: tracingList.length, completed, in_progress, pending }
+    }, [tracingList])
+
+    const filteredList = useMemo(() => {
+        return tracingList.filter(item => {
+            // Search term (numero or cliente)
+            if (searchTerm.trim()) {
+                const term = searchTerm.toLowerCase()
+                const matchNum = (item.numero_recepcion || "").toLowerCase().includes(term)
+                const matchCli = (item.cliente || "").toLowerCase().includes(term)
+                if (!matchNum && !matchCli) return false
+            }
+
+            // Client filter
+            if (clientFilter !== "all" && (item.cliente || "").trim() !== clientFilter) {
+                return false
+            }
+
+            // Quick Status Tab
+            if (statusTab !== "all") {
+                const overall = getItemOverallStatus(item)
+                if (overall !== statusTab) return false
+            }
+
+            // Stage specific filter
+            if (stageFilter !== "all") {
+                const stage = item.stages?.find((s: any) => s.key === stageFilter)
+                if (stage?.status !== "completado") return false
+            }
+
+            // Date filter
+            if (dateFilter) {
+                const itemDateStr = item.fecha_entrega || item.fecha
+                if (!itemDateStr) return false
+                try {
+                    const itemDate = new Date(itemDateStr).toISOString().split('T')[0]
+                    if (itemDate !== dateFilter) return false
+                } catch {
+                    return false
+                }
+            }
+
+            return true
+        }).sort((a, b) => {
+            let comp = 0
+            if (sortField === "numero") {
+                const numA = parseInt((a.numero_recepcion || "").split('-')[0]) || 0
+                const numB = parseInt((b.numero_recepcion || "").split('-')[0]) || 0
+                comp = numA - numB
+                if (comp === 0) comp = (a.numero_recepcion || "").localeCompare(b.numero_recepcion || "")
+            } else if (sortField === "cliente") {
+                comp = (a.cliente || "").localeCompare(b.cliente || "")
+            } else if (sortField === "fecha") {
+                const dateA = new Date(a.fecha_entrega || a.fecha || 0).getTime()
+                const dateB = new Date(b.fecha_entrega || b.fecha || 0).getTime()
+                comp = dateA - dateB
+            }
+            return sortOrder === "asc" ? comp : -comp
+        })
+    }, [tracingList, searchTerm, clientFilter, stageFilter, dateFilter, statusTab, sortField, sortOrder])
 
     const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage))
     const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -411,7 +506,7 @@ export function TracingModule() {
 
     useEffect(() => {
         setCurrentPage(1)
-    }, [searchTerm])
+    }, [searchTerm, clientFilter, stageFilter, dateFilter, statusTab, itemsPerPage])
 
     useEffect(() => {
         if (currentPage > totalPages) {
@@ -419,48 +514,240 @@ export function TracingModule() {
         }
     }, [currentPage, totalPages])
 
+    const handleSort = (field: "numero" | "cliente" | "fecha") => {
+        if (sortField === field) {
+            setSortOrder(prev => prev === "asc" ? "desc" : "asc")
+        } else {
+            setSortField(field)
+            setSortOrder(field === "numero" ? "desc" : "asc")
+        }
+    }
+
+    const hasActiveFilters = searchTerm !== "" || clientFilter !== "all" || stageFilter !== "all" || dateFilter !== "" || statusTab !== "all"
+    const clearFilters = () => {
+        setSearchTerm("")
+        setClientFilter("all")
+        setStageFilter("all")
+        setDateFilter("")
+        setStatusTab("all")
+    }
+
     return (
-        <div className="h-full flex flex-col space-y-6 p-6 overflow-hidden">
-            <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                            Seguimiento de trabajos
-                        </h1>
-                    </div>
-                    <div className="flex justify-center">
-                        <div className="relative w-full max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                            <Input
-                                placeholder="Buscar por cliente o número de recepción..."
-                                className="pl-10 h-8 text-sm bg-muted/30 border border-transparent focus-visible:ring-1"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2">
-                            <Download className="w-4 h-4" />
-                            Exportar Lista
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchTracingList()} disabled={loadingList} className="gap-2">
-                            <RefreshCw className={cn("w-4 h-4", loadingList && "animate-spin")} />
-                            Actualizar
-                        </Button>
-                    </div>
+        <div className="h-full flex flex-col space-y-4 p-6 overflow-hidden">
+            {/* Header principal y botones de acción */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                        <LayoutList className="w-6 h-6 text-primary" />
+                        Seguimiento de Trabajos
+                    </h1>
+                    <p className="text-xs text-muted-foreground font-medium">
+                        Monitoreo integral de etapas: Recepción, Verificación, Compresión e Informe
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <Button variant="outline" size="sm" onClick={handleExportList} disabled={loadingList} className="gap-2 text-xs font-semibold h-8 bg-white dark:bg-slate-800">
+                        <Download className="w-3.5 h-3.5" />
+                        Exportar Lista
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => fetchTracingList()} disabled={loadingList} className="gap-2 text-xs font-semibold h-8 bg-white dark:bg-slate-800">
+                        <RefreshCw className={cn("w-3.5 h-3.5", loadingList && "animate-spin")} />
+                        Actualizar
+                    </Button>
                 </div>
             </div>
 
+            {/* Quick Status Tabs */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                    onClick={() => setStatusTab("all")}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border",
+                        statusTab === "all"
+                            ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 hover:border-slate-300"
+                    )}
+                >
+                    <span>Todos</span>
+                    <span className={cn("px-1.5 py-0.2 text-[10px] rounded-full", statusTab === "all" ? "bg-slate-700 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600")}>
+                        {stats.total}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => setStatusTab("completed")}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border",
+                        statusTab === "completed"
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                            : "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border-emerald-200 hover:border-emerald-300"
+                    )}
+                >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Completados (100%)</span>
+                    <span className={cn("px-1.5 py-0.2 text-[10px] rounded-full", statusTab === "completed" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-700")}>
+                        {stats.completed}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => setStatusTab("in_progress")}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border",
+                        statusTab === "in_progress"
+                            ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                            : "bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 border-amber-200 hover:border-amber-300"
+                    )}
+                >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>En Proceso</span>
+                    <span className={cn("px-1.5 py-0.2 text-[10px] rounded-full", statusTab === "in_progress" ? "bg-amber-700 text-white" : "bg-amber-50 text-amber-700")}>
+                        {stats.in_progress}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => setStatusTab("pending")}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border",
+                        statusTab === "pending"
+                            ? "bg-slate-600 text-white border-slate-600 shadow-sm"
+                            : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 hover:border-slate-300"
+                    )}
+                >
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Pendientes</span>
+                    <span className={cn("px-1.5 py-0.2 text-[10px] rounded-full", statusTab === "pending" ? "bg-slate-500 text-white" : "bg-slate-100 text-slate-500")}>
+                        {stats.pending}
+                    </span>
+                </button>
+            </div>
+
+            {/* Toolbar de Filtros Avanzados por Encabezados */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
+                {/* 1. Búsqueda por N° o Cliente */}
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
+                    <Input
+                        placeholder="N° recepción..."
+                        className="pl-8 h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 shadow-none focus-visible:ring-1"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                {/* 2. Filtro de Cliente */}
+                <div>
+                    <Select value={clientFilter} onValueChange={setClientFilter}>
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 shadow-none">
+                            <SelectValue placeholder="Cliente (Todos)" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-56">
+                            <SelectItem value="all">Todos los clientes</SelectItem>
+                            {uniqueClients.map(c => (
+                                <SelectItem key={c} value={c} className="text-xs truncate">{c}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* 3. Filtro de Etapa */}
+                <div>
+                    <Select value={stageFilter} onValueChange={setStageFilter}>
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 shadow-none">
+                            <SelectValue placeholder="Etapa (Todas)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas las etapas</SelectItem>
+                            <SelectItem value="recepcion">Recepción Completa</SelectItem>
+                            <SelectItem value="verificacion">Verificación Completa</SelectItem>
+                            <SelectItem value="compresion">Compresión Completa</SelectItem>
+                            <SelectItem value="informe">Informe Emitido</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* 4. Filtro por Fecha de Entrega */}
+                <div className="relative">
+                    <Input
+                        type="date"
+                        className="h-8 text-xs bg-white dark:bg-slate-800 border-slate-200 shadow-none px-2"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        title="Filtrar por fecha exacta"
+                    />
+                </div>
+
+                {/* 5. Reset button */}
+                {hasActiveFilters && (
+                    <div className="flex items-center">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearFilters}
+                            className="h-8 px-2.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 gap-1 font-semibold"
+                        >
+                            Limpiar filtros
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            {/* Tabla con Encabezados Ordenables e Interactivos */}
             <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
                 <Table>
-                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                    <TableHeader className="bg-[#f8fafc] dark:bg-slate-800 sticky top-0 z-10 border-b">
                         <TableRow>
-                            <TableHead className="w-45">Número Recepción</TableHead>
-                            <TableHead>Cliente</TableHead>
-                            <TableHead className="w-35">Fecha entrega</TableHead>
-                            <TableHead className="text-center w-60">Estado por Etapa</TableHead>
-                            <TableHead className="text-right w-25">Acciones</TableHead>
+                            <TableHead 
+                                className="w-48 cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                onClick={() => handleSort("numero")}
+                            >
+                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                    <span>N° Recepción</span>
+                                    {sortField === "numero" ? (
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                    )}
+                                </div>
+                            </TableHead>
+
+                            <TableHead 
+                                className="cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                onClick={() => handleSort("cliente")}
+                            >
+                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                    <span>Cliente / Solicitante</span>
+                                    {sortField === "cliente" ? (
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                    )}
+                                </div>
+                            </TableHead>
+
+                            <TableHead 
+                                className="w-40 cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                onClick={() => handleSort("fecha")}
+                            >
+                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                    <span>Fecha Entrega</span>
+                                    {sortField === "fecha" ? (
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                    )}
+                                </div>
+                            </TableHead>
+
+                            <TableHead className="text-center w-64 font-bold text-slate-700 dark:text-slate-200">
+                                <span>Estado por Etapa (REC • VER • COM • INF)</span>
+                            </TableHead>
+
+                            <TableHead className="text-right w-28 font-bold text-slate-700 dark:text-slate-200">
+                                <span>Acciones</span>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -476,15 +763,15 @@ export function TracingModule() {
                             ))
                         ) : filteredList.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                                    No se encontraron registros.
+                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                                    No se encontraron registros con los filtros seleccionados.
                                 </TableCell>
                             </TableRow>
                         ) : (
                             paginatedList.map((item) => (
                                 <TableRow key={item.numero_recepcion} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => handleOpenDetail(item.numero_recepcion)}>
                                     <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
-                                    <TableCell className="font-medium max-w-50 truncate">{item.cliente || '-'}</TableCell>
+                                    <TableCell className="font-medium max-w-50 truncate" title={item.cliente}>{item.cliente || '-'}</TableCell>
                                     <TableCell className="text-muted-foreground text-xs">
                                         {item.fecha_entrega
                                             ? new Date(item.fecha_entrega).toLocaleDateString()
@@ -516,7 +803,7 @@ export function TracingModule() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                title="Generar Informe concreto"
+                                                title="Generar Informe concreto (1-6 probetas)"
                                                 className="hover:bg-green-50 hover:text-green-600 rounded-full h-8 w-8 text-slate-500"
                                                 onClick={() => handleOpenCustomReportModal(item.numero_recepcion)}
                                             >
