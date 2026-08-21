@@ -266,15 +266,34 @@ export function CotizadoraModule({ user }: CotizadoraModuleProps) {
   const fetchQuotes = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from("cotizaciones")
-        .select("id, numero, year, cliente_nombre, cliente_ruc, proyecto, total, estado, vendedor_nombre, user_created, fecha_emision, created_at, items_count, object_key")
-        .eq("visibilidad", "visible")
-        .order("created_at", { ascending: false })
-        .range(0, 49999)
+      let allQuotes: any[] = []
+      let from = 0
+      const step = 1000
+      let hasMore = true
 
-      if (error) throw error
-      setQuotes((data || []).map((row) => mapDbQuoteToUi(row as DbQuoteListRow)))
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("cotizaciones")
+          .select("id, numero, year, cliente_nombre, cliente_ruc, proyecto, total, estado, vendedor_nombre, user_created, fecha_emision, created_at, items_count, object_key")
+          .eq("visibilidad", "visible")
+          .order("created_at", { ascending: false })
+          .range(from, from + step - 1)
+
+        if (error) throw error
+
+        if (data && data.length > 0) {
+          allQuotes = allQuotes.concat(data)
+          if (data.length < step) {
+            hasMore = false
+          } else {
+            from += step
+          }
+        } else {
+          hasMore = false
+        }
+      }
+
+      setQuotes(allQuotes.map((row) => mapDbQuoteToUi(row as DbQuoteListRow)))
     } catch (err: any) {
       toast.error("Error al cargar cotizaciones", {
         description: getSafeErrorMessage(err, "No se pudieron cargar las cotizaciones"),
