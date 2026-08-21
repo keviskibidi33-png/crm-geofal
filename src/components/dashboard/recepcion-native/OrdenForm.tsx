@@ -782,17 +782,8 @@ export function OrdenForm({
                   {(!allowedTipos || allowedTipos.includes("CONCRETO")) && (
                     <option value="CONCRETO">Concreto (Probetas)</option>
                   )}
-                  {(!allowedTipos || allowedTipos.includes("SUELO_AGREGADO")) && (
-                    <option value="SUELO_AGREGADO">Suelo y Agregado</option>
-                  )}
-                  {(!allowedTipos || allowedTipos.includes("ROCA")) && (
-                    <option value="ROCA">Muestras de Roca</option>
-                  )}
-                  {(!allowedTipos || allowedTipos.includes("ALBANILERIA")) && (
-                    <option value="ALBANILERIA">Muestras de Albañilería</option>
-                  )}
-                  {(!allowedTipos || allowedTipos.includes("AGUA")) && (
-                    <option value="AGUA">Muestras de Agua</option>
+                  {(!allowedTipos || allowedTipos.includes("SUELO_AGREGADO") || allowedTipos.includes("LIMA_ALL") || allowedTipos.includes("MUESTRAS")) && (
+                    <option value="SUELO_AGREGADO">Muestras</option>
                   )}
                 </select>
               </div>

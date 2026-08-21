@@ -42,20 +42,11 @@ export const EMAIL_PROFILES_CATALOG: EmailProfileOption[] = [
 ];
 
 export const getTipoMuestraLabel = (tipo?: string): string => {
-  switch ((tipo || "").toUpperCase()) {
-    case "CONCRETO":
-      return "Concreto";
-    case "SUELO_AGREGADO":
-      return "Suelo/Agregado";
-    case "ALBANILERIA":
-      return "Albañilería";
-    case "ROCA":
-      return "Roca";
-    case "AGUA":
-      return "Agua";
-    default:
-      return "Concreto";
+  const t = (tipo || "").toUpperCase();
+  if (t === "CONCRETO") {
+    return "Concreto";
   }
+  return "Suelo/Agregado/Albañileria/Roca/Agua";
 };
 
 export const generateDefaultSpeech = (

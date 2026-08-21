@@ -519,20 +519,14 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                         >
                             {scope === "lima" ? (
                                 <>
-                                    <option value="LIMA_ALL">Todos los formatos de Lima</option>
-                                    <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
-                                    <option value="ROCA">Roca (F-LEM-P-01.04)</option>
-                                    <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
-                                    <option value="AGUA">Agua (F-LEM-P-01.06)</option>
+                                    <option value="LIMA_ALL">Todas las Muestras</option>
+                                    <option value="SUELO_AGREGADO">Muestras (F-LEM-P-01.13)</option>
                                 </>
                             ) : (
                                 <>
                                     <option value="ALL">Todos los formatos</option>
                                     <option value="CONCRETO">Concreto (F-LEM-P-01.02)</option>
-                                    <option value="ROCA">Roca (F-LEM-P-01.04)</option>
-                                    <option value="ALBANILERIA">Albañilería (F-LEM-P-01.05)</option>
-                                    <option value="AGUA">Agua (F-LEM-P-01.06)</option>
-                                    <option value="SUELO_AGREGADO">Suelo y Agregados (F-LEM-P-01.13)</option>
+                                    <option value="SUELO_AGREGADO">Muestras (F-LEM-P-01.13)</option>
                                 </>
                             )}
                         </select>
@@ -926,34 +920,13 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                             },
                             {
                                 id: "SUELO_AGREGADO",
-                                label: "Suelo y Agregados",
-                                desc: "Suelos, agregados y densidades (F-LEM-P-01.13)",
+                                label: "Muestras",
+                                desc: "Suelos, agregados, rocas, albañilería y agua (F-LEM-P-01.13)",
                                 icon: Mountain,
                                 color: "text-amber-600 bg-amber-50 border-amber-200",
                             },
-                            {
-                                id: "ROCA",
-                                label: "Roca / Núcleos",
-                                desc: "Testigos y especímenes de roca (F-LEM-P-01.04)",
-                                icon: Gem,
-                                color: "text-slate-700 bg-slate-100 border-slate-300",
-                            },
-                            {
-                                id: "ALBANILERIA",
-                                label: "Albañilería",
-                                desc: "Ladrillos, bloques y muretes (F-LEM-P-01.05)",
-                                icon: Boxes,
-                                color: "text-rose-600 bg-rose-50 border-rose-200",
-                            },
-                            {
-                                id: "AGUA",
-                                label: "Agua",
-                                desc: "Muestras de agua para ensayo (F-LEM-P-01.06)",
-                                icon: Droplets,
-                                color: "text-cyan-600 bg-cyan-50 border-cyan-200",
-                            },
                         ]
-                        .filter((item) => item.id === "AUTO" || !allowedTipos || allowedTipos.includes(item.id))
+                        .filter((item) => item.id === "AUTO" || !allowedTipos || allowedTipos.includes(item.id) || (item.id === "SUELO_AGREGADO" && (allowedTipos.includes("LIMA_ALL") || allowedTipos.includes("MUESTRAS"))))
                         .map((item) => {
                             const IconComponent = item.icon
                             const isSelected = selectedImportTipo === item.id

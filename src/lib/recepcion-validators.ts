@@ -393,10 +393,10 @@ export const formSchema = z
     persona_contacto: safeOptionalString(""),
     email: safeOptionalString(""),
     telefono: safeOptionalString(""),
-    solicitante: safeRequiredString("Requerido"),
-    domicilio_solicitante: safeRequiredString("Requerido"),
-    proyecto: safeRequiredString("Requerido"),
-    ubicacion: safeRequiredString("Requerido"),
+    solicitante: safeOptionalString("-"),
+    domicilio_solicitante: safeOptionalString("-"),
+    proyecto: safeOptionalString("-"),
+    ubicacion: safeOptionalString("-"),
     fecha_recepcion: z.preprocess(
       normalizeDateInput,
       z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, "Fecha inválida (YYYY/MM/DD)")
@@ -419,21 +419,15 @@ export const formSchema = z
       (val) => val === true || val === "true" || val === "on",
       z.boolean()
     ),
-    entregado_por: safeRequiredString("Requerido"),
-    recibido_por: safeRequiredString("Requerido"),
+    entregado_por: safeOptionalString("-"),
+    recibido_por: safeOptionalString("-"),
     observaciones: safeOptionalString(""),
     muestras: z.preprocess(
       (val) => {
         if (!Array.isArray(val)) return val;
         return val.filter((m: Record<string, unknown> | null | undefined) => {
           if (!m || typeof m !== "object") return false;
-          const hasId =
-            typeof m.identificacion_muestra === "string" &&
-            m.identificacion_muestra.trim().length > 0;
-          const hasDate =
-            typeof m.fecha_moldeo === "string" &&
-            m.fecha_moldeo.trim().length > 0;
-          return hasId || hasDate;
+          return hasMeaningfulMuestraData(m);
         });
       },
       z.array(sampleSchema).min(1, "Mínimo una muestra")
