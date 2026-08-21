@@ -237,6 +237,7 @@ export function OTSueloAgregadoForm({
       numero_ot: cleanOt,
       numero_recepcion: numeroRecepcion.trim() || null,
       referencia: referencia?.trim() || "-",
+      tipo: "MUESTRAS",
       cliente: cliente?.trim() || null,
       proyecto: proyecto?.trim() || null,
       fecha_recepcion: fechaRecepcion || null,

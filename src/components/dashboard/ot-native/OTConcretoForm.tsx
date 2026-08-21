@@ -268,6 +268,7 @@ export function OTConcretoForm({
       numero_ot: cleanOt,
       numero_recepcion: numeroRecepcion.trim() || null,
       referencia: referencia.trim() || "-",
+      tipo: "CONCRETO",
       cliente: cliente.trim() || null,
       proyecto: proyecto.trim() || null,
       fecha_recepcion: fechaRecepcion || null,
