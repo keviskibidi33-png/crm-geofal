@@ -447,17 +447,7 @@ function evaluatePesadaConformity(lectura?: string, patron?: string, tol: number
 }
 
 export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: ControlAmbientalModuleProps) {
-  const [currentModuleMode, setCurrentModuleMode] = useState<"temperatura" | "balanza">(
-    defaultTab === "balanza" ? "balanza" : "temperatura"
-  )
-
-  useEffect(() => {
-    if (defaultTab === "balanza") {
-      setCurrentModuleMode("balanza")
-    } else if (defaultTab === "temperatura") {
-      setCurrentModuleMode("temperatura")
-    }
-  }, [defaultTab])
+  const currentModuleMode: "temperatura" | "balanza" = defaultTab === "balanza" ? "balanza" : "temperatura"
 
   const [loading, setLoading] = useState(false)
   const [temperaturaList, setTemperaturaList] = useState<ControlTemperaturaItem[]>([])
@@ -1424,8 +1414,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         </div>
 
         {/* Card Historial estilo Imagen 2 */}
-        <div className="border rounded-xl shadow-xs bg-white overflow-hidden">
-          <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
+        <div className="border rounded-xl shadow-xs bg-white overflow-hidden isolate">
+          <div className="px-5 py-3.5 border-b bg-slate-50 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
                 Historial Control de Temperatura
@@ -1675,8 +1665,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
       </div>
 
       {/* Card Historial estilo Imagen 2 */}
-      <div className="border rounded-xl shadow-xs bg-white overflow-hidden">
-        <div className="px-5 py-3.5 border-b bg-slate-50/70 flex items-center justify-between">
+      <div className="border rounded-xl shadow-xs bg-white overflow-hidden isolate">
+        <div className="px-5 py-3.5 border-b bg-slate-50 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
               Historial Verificación de Balanzas

@@ -509,13 +509,13 @@ export default function DashboardPage() {
       case "control_ambiental":
         return (
           <RoleGuard user={dashboardUser} allowedRoles={["admin", "jefe_laboratorio", "oficina_tecnica"]} allowedEmails={["tecnico3@geofal.com.pe", "sig@geofal.com.pe", "beatriz", "oficinatecnica1", "oficinatecnica"]}>
-            <ControlAmbientalModule user={dashboardUser} defaultTab="temperatura" />
+            <ControlAmbientalModule key="control_ambiental_temperatura" user={dashboardUser} defaultTab="temperatura" />
           </RoleGuard>
         )
       case "control_ambiental_balanzas":
         return (
           <RoleGuard user={dashboardUser} allowedRoles={["admin", "jefe_laboratorio", "oficina_tecnica"]} allowedEmails={["tecnico3@geofal.com.pe", "sig@geofal.com.pe", "beatriz", "oficinatecnica1", "oficinatecnica"]}>
-            <ControlAmbientalModule user={dashboardUser} defaultTab="balanza" />
+            <ControlAmbientalModule key="control_ambiental_balanzas" user={dashboardUser} defaultTab="balanza" />
           </RoleGuard>
         )
 
