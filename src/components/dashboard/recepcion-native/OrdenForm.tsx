@@ -286,7 +286,7 @@ export function OrdenForm({
         persona_contacto: cleanPlaceholderVal(existingOrden.persona_contacto),
         email: cleanPlaceholderVal(existingOrden.email),
         telefono: cleanPlaceholderVal(existingOrden.telefono),
-        solicitante: cleanPlaceholderVal(existingOrden.solicitante) || cleanPlaceholderVal(existingOrden.cliente),
+        solicitante: cleanPlaceholderVal(existingOrden.solicitante),
         domicilio_solicitante: cleanPlaceholderVal(existingOrden.domicilio_solicitante),
         proyecto: cleanPlaceholderVal(existingOrden.proyecto),
         ubicacion: cleanPlaceholderVal(existingOrden.ubicacion),
