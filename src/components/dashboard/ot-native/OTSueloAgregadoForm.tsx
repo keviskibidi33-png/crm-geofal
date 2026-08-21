@@ -120,9 +120,15 @@ export function OTSueloAgregadoForm({
     ])
   )
 
-  // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT
+  // Autocompletar automáticamente al abrir el modal desde recepción si es nueva OT o si los items son de concreto/inválidos
   useEffect(() => {
-    if (initialNumeroRecepcion && !initialData?.id) {
+    const hasValidEnsayoItems =
+      initialData?.items &&
+      initialData.items.length > 0 &&
+      initialData.items.some(
+        (it) => it.codigo_ensayo || (it.descripcion && !it.descripcion.toUpperCase().includes("COMPRESION"))
+      )
+    if (initialNumeroRecepcion && (!initialData?.id || !hasValidEnsayoItems)) {
       void handlePrefill()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -264,7 +264,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
         try {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
             const numParam = numeroOt || numeroRecepcion
-            const res = await authFetch(`${API_URL}/api/ot?search=${encodeURIComponent(numParam)}&limit=10`)
+            const tipoParam = scope === "concreto" ? "&tipo=CONCRETO" : scope === "lima" ? "&tipo=SU_AG" : ""
+            const res = await authFetch(`${API_URL}/api/ot?search=${encodeURIComponent(numParam)}${tipoParam}&limit=10`)
             if (res.ok) {
                 const data = await res.json()
                 const cleanRec = numeroRecepcion.trim()
