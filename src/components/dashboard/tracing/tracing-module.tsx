@@ -15,6 +15,7 @@ import {
     LayoutList,
     RefreshCw,
     Eye,
+    ChevronLeft,
     ChevronRight,
     Calendar,
     Download,
@@ -30,6 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/api-auth"
 import { useAuth } from "@/hooks/use-auth"
@@ -63,7 +65,7 @@ export function TracingModule() {
     const [loadingVersiones, setLoadingVersiones] = useState(false)
     const [downloadingStage, setDownloadingStage] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 100
+    const [itemsPerPage, setItemsPerPage] = useState<number>(10)
     const canDelete = user?.role === "admin" || user?.permissions?.tracing?.delete === true
 
     // Custom Concrete Report States
@@ -530,35 +532,56 @@ export function TracingModule() {
                         )}
                     </TableBody>
                 </Table>
+                {/* Pagination Footer estilo Control Ambiental / Temperatura */}
                 {!loadingList && filteredList.length > 0 && (
-                    <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
+                    <div className="flex flex-col sm:flex-row items-center justify-between border-t px-5 py-3 text-xs gap-3 bg-muted/20">
                         <span className="text-muted-foreground">
-                            Mostrando {(safeCurrentPage - 1) * itemsPerPage + 1}
-                            {' - '}
-                            {Math.min(safeCurrentPage * itemsPerPage, filteredList.length)}
-                            {' de '}
-                            {filteredList.length}
+                            Mostrando {(safeCurrentPage - 1) * itemsPerPage + 1} a{" "}
+                            {Math.min(safeCurrentPage * itemsPerPage, filteredList.length)} de{" "}
+                            {filteredList.length} registros
                         </span>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={safeCurrentPage <= 1}
-                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                            >
-                                Anterior
-                            </Button>
-                            <span className="min-w-22 text-center font-medium">
-                                Página {safeCurrentPage} / {totalPages}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={safeCurrentPage >= totalPages}
-                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                            >
-                                Siguiente
-                            </Button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Filas por página:</span>
+                                <Select
+                                    value={String(itemsPerPage)}
+                                    onValueChange={(val) => {
+                                        setItemsPerPage(Number(val))
+                                        setCurrentPage(1)
+                                    }}
+                                >
+                                    <SelectTrigger className="w-18 h-8 text-xs bg-white dark:bg-slate-800"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="10">10</SelectItem>
+                                        <SelectItem value="25">25</SelectItem>
+                                        <SelectItem value="50">50</SelectItem>
+                                        <SelectItem value="100">100</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 bg-white dark:bg-slate-800"
+                                    disabled={safeCurrentPage <= 1}
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="min-w-22.5 text-center font-medium px-2">
+                                    Página {safeCurrentPage} de {totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 bg-white dark:bg-slate-800"
+                                    disabled={safeCurrentPage >= totalPages}
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}
