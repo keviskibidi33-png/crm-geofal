@@ -503,31 +503,10 @@ export function OrdenForm({
     const val = e.target.value.trim();
     if (!val) return;
 
-    if (val.includes("/")) {
-      const parts = val.split("/");
-      if (parts.length >= 2) {
-        const currentYear = new Date().getFullYear().toString();
-        let y = "",
-          m = "",
-          d = "";
-
-        if (parts[0].trim().length === 4) {
-          y = parts[0].trim();
-          m = parts[1].trim().padStart(2, "0");
-          d = (parts[2] || "").trim().padStart(2, "0");
-        } else {
-          d = parts[0].trim().padStart(2, "0");
-          m = parts[1].trim().padStart(2, "0");
-          y = (parts[2] || "").trim();
-          if (!y) y = currentYear;
-          if (y.length === 2) y = `20${y}`;
-        }
-
-        if (d.length === 2 && m.length === 2 && y.length === 4) {
-          setValue(name, `${y}/${m}/${d}`, { shouldValidate: true });
-          return;
-        }
-      }
+    const normalized = normalizeDateInput(val);
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(normalized)) {
+      setValue(name, normalized, { shouldValidate: true });
+      return;
     }
 
     const digits = val.replace(/\D/g, "");
@@ -569,14 +548,11 @@ export function OrdenForm({
       const d = digits.slice(6, 8);
       if (Number(y) > 1900) finalDate = `${y}/${m}/${d}`;
       else {
-        const dd = digits.slice(0, 2);
-        const mm = digits.slice(2, 4);
-        const yyyy = digits.slice(4);
-        finalDate = `${yyyy}/${mm}/${dd}`;
+        finalDate = `${digits.slice(4)}/${m}/${d}`;
       }
     }
 
-    if (finalDate) {
+    if (finalDate && /^\d{4}\/\d{2}\/\d{2}$/.test(finalDate)) {
       setValue(name, finalDate, { shouldValidate: true });
     }
   };

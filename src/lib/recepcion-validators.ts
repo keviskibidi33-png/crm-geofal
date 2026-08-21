@@ -27,10 +27,27 @@ export const isDateWithinDays = (dateStr: string, days: number): boolean => {
 export const normalizeDateInput = (value: unknown): string => {
   if (value === null || value === undefined) return "";
   let val = String(value).trim().split("T")[0].split(" ")[0].replace(/[|]/g, "");
-  if (!val) return "";
+  if (!val || val === "-" || val.toUpperCase() === "N/A" || val.toUpperCase() === "NULL") return "";
 
   if (/^\d{4}\/\d{2}\/\d{2}$/.test(val)) return val;
   if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val.replace(/-/g, "/");
+
+  // Manejar formatos con delimitadores / o - (ej. 21/8/2026, 24/08/2026, 2026-8-21, 21-08-2026)
+  if (val.includes("/") || val.includes("-")) {
+    const parts = val.split(/[/-]/).map((p) => p.trim());
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        // YYYY/M/D o YYYY-M-D
+        return `${parts[0]}/${parts[1].padStart(2, "0")}/${parts[2].padStart(2, "0")}`;
+      } else if (parts[2].length === 4) {
+        // D/M/YYYY o DD/MM/YYYY o DD-MM-YYYY
+        return `${parts[2]}/${parts[1].padStart(2, "0")}/${parts[0].padStart(2, "0")}`;
+      } else if (parts[2].length === 2) {
+        // DD/MM/YY
+        return `20${parts[2]}/${parts[1].padStart(2, "0")}/${parts[0].padStart(2, "0")}`;
+      }
+    }
+  }
 
   const digits = val.replace(/\D/g, "");
   if (digits.length === 8) {
