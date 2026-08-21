@@ -318,7 +318,7 @@ export const ensayosData: EnsayoItem[] = [
   {
     codigo: 'AG19',
     descripcion: 'Análisis granulométrico por tamizado en agregado',
-    norma: 'ASTM C136/C136M-19',
+    norma: 'ASTM C136/C136M-25',
     acreditado: 'SI',
     referenciaOtraNorma: '-',
     ubicacion: 'LABORATORIO',
