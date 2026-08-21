@@ -149,7 +149,7 @@ export function OrdenDetail({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <OrdenDetailInfoCard orden={orden} />
-            <OrdenDetailSamplesTable muestras={orden.muestras} />
+            <OrdenDetailSamplesTable muestras={orden.muestras} tipoRecepcion={orden.tipo_recepcion} />
           </div>
 
           <OrdenDetailSidebar orden={orden} tracingData={tracingData} />

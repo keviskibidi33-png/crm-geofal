@@ -16,11 +16,44 @@ export function OrdenDetailSidebar({
   orden,
   tracingData,
 }: OrdenDetailSidebarProps) {
-  const currentStatus = tracingData?.stages?.every(
+  const isConcreto = !orden.tipo_recepcion || orden.tipo_recepcion.toUpperCase() === "CONCRETO";
+
+  let displayStages = tracingData?.stages;
+  if (!isConcreto && Array.isArray(tracingData?.stages)) {
+    const recepcionStage = tracingData.stages.find((s: any) => s.key === "recepcion") || {
+      name: "Recepción de Muestras",
+      key: "recepcion",
+      status: "completado",
+      message: "Muestras registradas en sistema",
+      date: orden.fecha_recepcion,
+    };
+    const informeStage = tracingData.stages.find((s: any) => s.key === "informe") || {
+      name: "Emisión de Informe",
+      key: "informe",
+      status: "pendiente",
+      message: "Pendiente de culminación de ensayos",
+    };
+
+    const isFinished = orden.estado === "COMPLETADA" || tracingData.stages.every((s: any) => s.status === "completado");
+    const ensayosStatus = isFinished ? "completado" : "en_proceso";
+
+    displayStages = [
+      recepcionStage,
+      {
+        name: "Ensayos en Laboratorio",
+        key: "ensayos_lab",
+        status: ensayosStatus,
+        message: ensayosStatus === "completado" ? "Ensayos concluidos" : "Ensayos programados / en ejecución",
+      },
+      informeStage,
+    ];
+  }
+
+  const currentStatus = displayStages?.every(
     (s: any) => s.status === "completado"
   )
     ? "completado"
-    : tracingData?.stages?.some(
+    : displayStages?.some(
         (s: any) => s.status === "en_proceso" || s.status === "completado"
       )
     ? "en_proceso"
@@ -35,7 +68,7 @@ export function OrdenDetailSidebar({
         vencimiento={orden.fecha_estimada_culminacion}
       />
 
-      <TimelineEtapas stages={tracingData?.stages} />
+      <TimelineEtapas stages={displayStages} />
 
       <div className="bg-card rounded-2xl border p-6 space-y-6">
         <div>

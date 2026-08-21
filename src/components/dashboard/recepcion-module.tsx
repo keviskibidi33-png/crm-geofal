@@ -20,6 +20,7 @@ import { OrdenForm } from "./recepcion-native/OrdenForm"
 import { OrdenDetail } from "./recepcion-native/OrdenDetail"
 import { RecepcionEmailModal } from "./recepcion-native/RecepcionEmailModal"
 import { OTForm, type OTData } from "./ot-native/OTForm"
+import { OTDetailDialog } from "./ot-native/OTDetailDialog"
 
 interface RecepcionModuleProps {
     focusRecepcionId?: number | null
@@ -40,6 +41,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
     const [editId, setEditId] = useState<number | null>(null)
     const [selectedRecepcion, setSelectedRecepcion] = useState<Recepcion | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [isOTDetailOpen, setIsOTDetailOpen] = useState(false)
+    const [viewingOtData, setViewingOtData] = useState<any>(null)
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
     const [selectedEmailRecepcion, setSelectedEmailRecepcion] = useState<Recepcion | null>(null)
     const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -275,6 +278,66 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             }
         } catch {
             // El formulario se precargará automáticamente con prefill
+        }
+    }
+
+    const handleViewOT = async (item: Recepcion) => {
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.geofal.com.pe"
+            let foundOt: any = null
+
+            // 1. Si tenemos ot_id registrado
+            if (item.ot_id) {
+                const res = await authFetch(`${API_URL}/api/ot/${item.ot_id}`)
+                if (res.ok) {
+                    foundOt = await res.json()
+                }
+            }
+
+            // 2. Buscar por número de OT o Recepción
+            if (!foundOt) {
+                const numParam = item.numero_ot || item.numero_recepcion
+                if (numParam) {
+                    const res = await authFetch(`${API_URL}/api/ot?search=${encodeURIComponent(numParam)}&limit=10`)
+                    if (res.ok) {
+                        const data = await res.json()
+                        const cleanRec = item.numero_recepcion?.trim()
+                        foundOt = data.items?.find((ot: any) =>
+                            (cleanRec && ot.numero_recepcion && ot.numero_recepcion.trim() === cleanRec) ||
+                            (item.numero_ot && ot.numero_ot && ot.numero_ot.trim() === item.numero_ot.trim())
+                        )
+                    }
+                }
+            }
+
+            // 3. Fallback con prefill si aún no se ha guardado formalmente la OT
+            if (!foundOt && item.numero_recepcion) {
+                const prefillRes = await authFetch(`${API_URL}/api/ot/prefill/${encodeURIComponent(item.numero_recepcion)}`)
+                if (prefillRes.ok) {
+                    const prefillData = await prefillRes.json()
+                    foundOt = {
+                        id: 0,
+                        numero_ot: item.numero_ot || "PENDIENTE",
+                        numero_recepcion: item.numero_recepcion,
+                        cliente: prefillData.cliente || item.cliente,
+                        proyecto: prefillData.proyecto || item.proyecto,
+                        fecha_recepcion: prefillData.fecha_recepcion || item.fecha_recepcion,
+                        ot_aperturada_por: item.tecnico || "-",
+                        ot_designada_a: item.tecnico || "-",
+                        items: prefillData.items || [],
+                        estado: "PENDIENTE",
+                    }
+                }
+            }
+
+            if (foundOt) {
+                setViewingOtData(foundOt)
+                setIsOTDetailOpen(true)
+            } else {
+                toast.info("No se encontró una Orden de Trabajo registrada para esta recepción.")
+            }
+        } catch {
+            toast.error("Error al obtener la información de la Orden de Trabajo")
         }
     }
 
@@ -613,8 +676,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => handleOpenOT(item.numero_recepcion, item.numero_ot)}
-                                                    title="Ver Orden de Trabajo"
+                                                    onClick={() => handleViewOT(item)}
+                                                    title="Ver Detalle de Orden de Trabajo"
                                                     className="h-7 w-7 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer"
                                                 >
                                                     <Eye className="h-3.5 w-3.5" />
@@ -817,6 +880,19 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                         setSelectedOTRecepcionNum(null)
                     }}
                 />
+            </Dialog>
+
+            {/* Modal para Visualizar Detalle de Orden de Trabajo (OT) */}
+            <Dialog open={isOTDetailOpen} onOpenChange={setIsOTDetailOpen}>
+                {viewingOtData && (
+                    <OTDetailDialog
+                        ot={viewingOtData}
+                        onClose={() => {
+                            setIsOTDetailOpen(false)
+                            setViewingOtData(null)
+                        }}
+                    />
+                )}
             </Dialog>
 
             {/* Modal para Selección del Tipo de Recepción a Importar */}
