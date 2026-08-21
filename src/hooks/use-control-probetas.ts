@@ -396,8 +396,8 @@ export function useControlProbetas() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      const safeName = (numeroOt || `OT-${recepcionId}`).replace(/[\/\\:]/g, "-")
-      a.download = `OT-${safeName}.xlsx`
+      const safeName = (numeroOt || String(recepcionId)).replace(/[\/\\:]/g, "-").replace(/^OT-?/i, "").trim()
+      a.download = `OT-${safeName}-Geofal - LEM.xlsx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

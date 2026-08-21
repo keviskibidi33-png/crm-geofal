@@ -226,9 +226,8 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      // Nombre: OT-<numero_ot>.xlsx (ej. OT-1981.xlsx)
-      const safeNumero = (ot.numero_ot || String(ot.id || "001")).replace(/[\/\\]/g, "-")
-      a.download = `OT-${safeNumero}.xlsx`
+      const safeNumero = (ot.numero_ot || String(ot.id || "001")).replace(/[\/\\]/g, "-").replace(/^OT-?/i, "").trim()
+      a.download = `OT-${safeNumero}-Geofal - LEM.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)

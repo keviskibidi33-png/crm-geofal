@@ -313,8 +313,8 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            const cleanOtNum = (item.numero_ot || item.numero_recepcion || "OT").replace("/", "-")
-            a.download = `OT-${cleanOtNum}.xlsx`
+            const cleanOtNum = (item.numero_ot || item.numero_recepcion || "OT").replace("/", "-").replace(/^OT-?/i, "").trim()
+            a.download = `OT-${cleanOtNum}-Geofal - LEM.xlsx`
             document.body.appendChild(a)
             a.click()
             window.URL.revokeObjectURL(url)

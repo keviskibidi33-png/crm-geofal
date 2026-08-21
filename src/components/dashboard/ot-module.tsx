@@ -167,7 +167,8 @@ export function OTModule() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `OT-${(ot.numero_ot || "001").replace("/", "-")}.xlsx`
+      const cleanOt = (ot.numero_ot || "001").replace("/", "-").replace(/^OT-?/i, "");
+      a.download = `OT-${cleanOt}-Geofal - LEM.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
