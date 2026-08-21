@@ -572,11 +572,17 @@ export function OrdenForm({
       if (!res.ok) throw new Error("Error buscando recepción");
       const data = await res.json();
 
-      if (data.encontrado) {
+      if (data.encontrado && !data.is_stub) {
         setRecepcionStatus({
           estado: "ocupado",
-          mensaje: `Recepción ya registrada en ${moduloNombre} (OT: ${data.datos?.numero_ot || "-"})`,
+          mensaje: `Recepción registrada en ${moduloNombre} (OT: ${data.datos?.numero_ot || "-"})`,
           formatos: { recepcion: true, verificacion: false, compresion: false },
+        });
+      } else if (data.is_stub || data.estado === "vinculada") {
+        setRecepcionStatus({
+          estado: "disponible",
+          mensaje: `Recepción sincronizada con OT: ${data.datos?.numero_ot || "-"}`,
+          formatos: { recepcion: false, verificacion: false, compresion: false },
         });
       } else {
         setRecepcionStatus({
