@@ -478,26 +478,24 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             </div>
 
             {/* Table */}
-            <div className="rounded-xl border bg-card overflow-hidden">
+            <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-muted/50 text-xs font-bold uppercase tracking-wider">
-                            <TableHead className="w-27.5">Nº Recepción</TableHead>
-                            <TableHead className="w-27.5">Nº OT</TableHead>
-                            {scope !== "concreto" && (
-                                <TableHead className="w-35">Tipo Formato</TableHead>
-                            )}
-                            <TableHead>Cliente</TableHead>
-                            <TableHead>Proyecto</TableHead>
-                            <TableHead className="w-27.5">F. Recepción</TableHead>
-                            <TableHead className="w-22.5 text-center">Muestras</TableHead>
-                            <TableHead className="w-25 text-right">Acciones</TableHead>
+                        <TableRow className="bg-[#f8fafc] dark:bg-slate-800 text-xs font-bold uppercase tracking-wider border-b">
+                            <TableHead className="w-32">Nº Recepción</TableHead>
+                            <TableHead className="w-44 text-center">Acciones</TableHead>
+                            <TableHead className="w-28">Nº OT</TableHead>
+                            <TableHead className="w-32 text-center">Acciones</TableHead>
+                            <TableHead className="min-w-44">Cliente</TableHead>
+                            <TableHead className="w-36">Técnico</TableHead>
+                            <TableHead className="w-28 text-center">Estado Recep.</TableHead>
+                            <TableHead className="w-28 text-center">Estado OT</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="text-xs">
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={scope === "concreto" ? 7 : 8} className="text-center py-12">
+                                <TableCell colSpan={8} className="text-center py-12">
                                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                         <p className="font-bold">Cargando recepciones...</p>
@@ -506,161 +504,184 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                             </TableRow>
                         ) : recepciones.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={scope === "concreto" ? 7 : 8} className="text-center py-12 text-muted-foreground">
+                                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                                     <p className="font-bold">No se encontraron recepciones</p>
                                     <p className="text-[11px] mt-1">Prueba con otros términos de búsqueda o añade una nueva recepción.</p>
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            recepciones.map((item) => (
-                                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                                    <TableCell className="font-bold font-mono text-primary">
-                                        {item.numero_recepcion || "-"}
-                                    </TableCell>
-                                    <TableCell className="font-bold font-mono">
-                                        <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                            <span>{formatOtDisplay(item.numero_ot)}</span>
-                                            
-                                            {/* Botón de Check / Abrir OT */}
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleOpenOT(item.numero_recepcion, item.numero_ot)
-                                                }}
-                                                title={
-                                                    item.ot_emitida || item.ot_exists
-                                                        ? `OT emitida: ${formatOtDisplay(item.numero_ot)} (Clic para ver/editar)`
-                                                        : "OT pendiente (Clic para abrir modal y generar OT)"
-                                                }
-                                                className={`inline-flex items-center justify-center h-5 w-5 rounded transition-all cursor-pointer border ${
-                                                    item.ot_emitida || item.ot_exists
-                                                        ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/25 hover:scale-110"
-                                                        : "bg-slate-100 text-slate-500 border-slate-300 hover:bg-amber-100 hover:text-amber-700 hover:border-amber-400 hover:scale-110 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-amber-950/60 dark:hover:text-amber-400"
-                                                }`}
-                                            >
-                                                {item.ot_emitida || item.ot_exists ? (
-                                                    <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                                                ) : (
-                                                    <span className="text-[11px] font-bold leading-none select-none">-</span>
-                                                )}
-                                            </button>
+                            recepciones.map((item) => {
+                                const isRecepcionComplete = Boolean(
+                                    item.numero_recepcion &&
+                                    item.cliente &&
+                                    item.proyecto &&
+                                    item.fecha_recepcion &&
+                                    (item.muestras_count ?? 0) >= 1
+                                )
 
-                                            {/* Icono de descarga directa de la OT */}
-                                            {item.ot_emitida || item.ot_exists ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleDownloadOtExcel(item)
-                                                    }}
-                                                    disabled={downloadingOtId === item.id}
-                                                    title={`Descargar Excel de Orden de Trabajo (${formatOtDisplay(item.numero_ot)})`}
-                                                    className="inline-flex items-center justify-center h-5 w-5 rounded transition-all cursor-pointer border border-sky-300/60 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:scale-110 hover:border-sky-400 dark:bg-sky-950/50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-900/60"
-                                                >
-                                                    {downloadingOtId === item.id ? (
-                                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                                    ) : (
-                                                        <Download className="h-3 w-3 stroke-[2.5]" />
-                                                    )}
-                                                </button>
-                                            ) : (
-                                                <span className="inline-flex items-center justify-center h-5 w-5 text-slate-400 select-none text-xs font-bold" title="Sin OT creada">
-                                                    -
-                                                </span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    {scope !== "concreto" && (
-                                        <TableCell>
-                                            {getTipoBadge(item.tipo_recepcion)}
+                                const isOtComplete = Boolean(
+                                    item.ot_emitida || 
+                                    item.ot_estado === "EMITIDO" || 
+                                    item.ot_estado === "COMPLETADO" || 
+                                    item.ot_estado === "DESCARGADO"
+                                )
+
+                                return (
+                                    <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                                        {/* 1. No RECEPCION */}
+                                        <TableCell className="font-bold font-mono text-primary whitespace-nowrap">
+                                            {item.numero_recepcion || "-"}
                                         </TableCell>
-                                    )}
-                                    <TableCell className="font-medium max-w-50 truncate" title={item.cliente}>
-                                        {item.cliente || "-"}
-                                    </TableCell>
-                                    <TableCell className="max-w-62.5 truncate text-muted-foreground" title={item.proyecto}>
-                                        {item.proyecto || "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                        {formatDate(item.fecha_recepcion)}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="secondary" className="font-bold">
-                                            {item.muestras_count ?? (Array.isArray(item.muestras) ? item.muestras.length : 0)}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                            {canWrite && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleEdit(item)}
-                                                    title="Editar Recepción"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            )}
 
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDownloadExcel(item)}
-                                                title="Descargar Excel"
-                                                className="h-8 w-8 text-muted-foreground hover:text-green-600 cursor-pointer"
-                                            >
-                                                <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                            </Button>
-
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
+                                        {/* 2. ACCIONES (Recepción) */}
+                                        <TableCell>
+                                            <div className="flex items-center justify-center gap-0.5">
+                                                {canWrite && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        title="Más opciones"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                                        onClick={() => handleEdit(item)}
+                                                        title="Editar Recepción"
+                                                        className="h-7 w-7 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer"
                                                     >
-                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <Pencil className="h-3.5 w-3.5" />
                                                     </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-48">
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleViewDetail(item.id)}
-                                                        className="cursor-pointer gap-2"
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleViewDetail(item.id)}
+                                                    title="Ver Detalle Recepción"
+                                                    className="h-7 w-7 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setSelectedEmailRecepcion(item)
+                                                        setIsEmailModalOpen(true)
+                                                    }}
+                                                    title="Ver / Enviar Correo"
+                                                    className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md cursor-pointer"
+                                                >
+                                                    <Mail className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDownloadExcel(item)}
+                                                    title="Descargar Excel Recepción"
+                                                    className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md cursor-pointer"
+                                                >
+                                                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                                                </Button>
+                                                {canDelete && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setDeleteTarget(item)}
+                                                        title="Eliminar Recepción"
+                                                        className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md cursor-pointer"
                                                     >
-                                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                                        <span>Ver Detalle</span>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => {
-                                                            setSelectedEmailRecepcion(item)
-                                                            setIsEmailModalOpen(true)
-                                                        }}
-                                                        className="cursor-pointer gap-2"
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
+
+                                        {/* 3. No OT */}
+                                        <TableCell className="font-bold font-mono whitespace-nowrap">
+                                            {formatOtDisplay(item.numero_ot)}
+                                        </TableCell>
+
+                                        {/* 4. ACCIONES (OT) */}
+                                        <TableCell>
+                                            <div className="flex items-center justify-center gap-0.5">
+                                                {canWrite && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleOpenOT(item.numero_recepcion, item.numero_ot)}
+                                                        title={item.ot_exists || item.ot_emitida ? "Editar Orden de Trabajo" : "Aperturar Orden de Trabajo"}
+                                                        className="h-7 w-7 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-md cursor-pointer"
                                                     >
-                                                        <Mail className="h-4 w-4 text-blue-600" />
-                                                        <span>Enviar Correo</span>
-                                                    </DropdownMenuItem>
-                                                    {canDelete && (
-                                                        <>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                onClick={() => setDeleteTarget(item)}
-                                                                className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                <span>Eliminar</span>
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleOpenOT(item.numero_recepcion, item.numero_ot)}
+                                                    title="Ver Orden de Trabajo"
+                                                    className="h-7 w-7 text-slate-600 hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                </Button>
+                                                {item.ot_emitida || item.ot_exists ? (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDownloadOtExcel(item)}
+                                                        disabled={downloadingOtId === item.id}
+                                                        title={`Descargar Excel OT (${formatOtDisplay(item.numero_ot)})`}
+                                                        className="h-7 w-7 text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-md cursor-pointer"
+                                                    >
+                                                        {downloadingOtId === item.id ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Download className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </Button>
+                                                ) : (
+                                                    <span className="w-7 text-center text-slate-300 font-bold text-xs select-none">-</span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+
+                                        {/* 5. CLIENTE */}
+                                        <TableCell className="font-medium max-w-56 truncate" title={item.cliente}>
+                                            {item.cliente || "-"}
+                                        </TableCell>
+
+                                        {/* 6. TECNICO */}
+                                        <TableCell className="text-muted-foreground max-w-36 truncate font-medium" title={item.tecnico}>
+                                            {item.tecnico && item.tecnico !== "-" ? item.tecnico : "-"}
+                                        </TableCell>
+
+                                        {/* 7. ESTADO RECEP. */}
+                                        <TableCell className="text-center whitespace-nowrap">
+                                            {isRecepcionComplete ? (
+                                                <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[11px] px-2 py-0.5">
+                                                    Completo
+                                                </Badge>
+                                            ) : item.numero_recepcion || item.cliente ? (
+                                                <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300 font-bold text-[11px] px-2 py-0.5">
+                                                    Incompleto
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-slate-400 font-bold text-xs">-</span>
+                                            )}
+                                        </TableCell>
+
+                                        {/* 8. ESTADO OT */}
+                                        <TableCell className="text-center whitespace-nowrap">
+                                            {isOtComplete ? (
+                                                <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[11px] px-2 py-0.5">
+                                                    Revisado
+                                                </Badge>
+                                            ) : item.ot_exists || (item.numero_ot && item.numero_ot !== "-") ? (
+                                                <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-300 font-bold text-[11px] px-2 py-0.5">
+                                                    Incompleto
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-slate-400 font-bold text-xs">-</span>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })
                         )}
                     </TableBody>
                 </Table>
