@@ -573,9 +573,9 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                     size="icon"
                                                     onClick={() => handleDownloadExcel(item)}
                                                     title="Descargar Excel Recepción"
-                                                    className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md cursor-pointer"
+                                                    className="h-7 w-7 text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-md cursor-pointer"
                                                 >
-                                                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                                                    <Download className="h-3.5 w-3.5" />
                                                 </Button>
                                                 {canDelete && (
                                                     <Button
@@ -626,12 +626,12 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                                                         onClick={() => handleDownloadOtExcel(item)}
                                                         disabled={downloadingOtId === item.id}
                                                         title={`Descargar Excel OT (${formatOtDisplay(item.numero_ot)})`}
-                                                        className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md cursor-pointer"
+                                                        className="h-7 w-7 text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-md cursor-pointer"
                                                     >
                                                         {downloadingOtId === item.id ? (
                                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                         ) : (
-                                                            <FileSpreadsheet className="h-3.5 w-3.5" />
+                                                            <Download className="h-3.5 w-3.5" />
                                                         )}
                                                     </Button>
                                                 ) : (
