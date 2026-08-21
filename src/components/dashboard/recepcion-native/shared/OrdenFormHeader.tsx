@@ -62,7 +62,7 @@ export function OrdenFormHeader({
               }
             }}
             className={errors.numero_recepcion ? "border-destructive" : ""}
-            placeholder="193-26"
+            placeholder="-"
           />
           {errors.numero_recepcion && (
             <span className="text-[9px] font-black text-destructive ml-1">
@@ -179,7 +179,7 @@ export function OrdenFormHeader({
                 }
               }}
               className={`${errors.numero_ot ? "border-destructive" : ""} font-mono font-bold`}
-              placeholder="193-26"
+              placeholder="-"
             />
           </div>
           {errors.numero_ot?.message && (
