@@ -6,11 +6,15 @@ const CONTACT_PLACEHOLDERS = new Set([
   "-",
   "/",
   "--",
+  "---",
   "N/A",
   "NA",
   "S/N",
   "SIN ESPECIFICAR",
+  "SIN ASIGNAR",
   "NO APLICA",
+  "NULL",
+  "UNDEFINED",
 ]);
 
 export const isDateWithinDays = (dateStr: string, days: number): boolean => {

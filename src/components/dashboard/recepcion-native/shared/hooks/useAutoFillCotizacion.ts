@@ -223,18 +223,17 @@ export function useAutoFillCotizacion({
               );
             }
           }
-        } else {
-          // ── Control Laboratorio: solo rellenar si el campo está vacío ─────────
+          // ── Control Laboratorio: cliente, solicitante y proyecto. El resto de datos de facturación e informe vienen vacíos ─────────
           const currentCliente = (getValues("cliente") || "").trim();
           const currentProyecto = (getValues("proyecto") || "").trim();
 
-          const clienteVal = String(fallback(qd.cliente || qd.cliente_nombre));
+          const clienteVal = normalizeImportedText(qd.cliente || qd.cliente_nombre);
           if (!currentCliente && clienteVal) {
             setValue("cliente", clienteVal, { shouldValidate: true });
             selectCliente(clienteVal);
             setValue(
               "solicitante",
-              fallback(qd.solicitante || qd.cliente || qd.cliente_nombre),
+              clienteVal,
               { shouldValidate: true }
             );
           }
@@ -243,7 +242,15 @@ export function useAutoFillCotizacion({
           if (!currentProyecto && proyectoVal) {
             setValue("proyecto", proyectoVal, { shouldValidate: true });
           }
-        }
+
+          // Garantizar que campos de facturación e informe no queden con "-"
+          setValue("ruc", "", { shouldValidate: true });
+          setValue("domicilio_legal", "", { shouldValidate: true });
+          setValue("persona_contacto", "", { shouldValidate: true });
+          setValue("email", "", { shouldValidate: true });
+          setValue("telefono", "", { shouldValidate: true });
+          setValue("domicilio_solicitante", "", { shouldValidate: true });
+          setValue("ubicacion", "", { shouldValidate: true });
       } else {
         toast.info(`No se encontró cotización o registro para '${cotValue}'`);
       }

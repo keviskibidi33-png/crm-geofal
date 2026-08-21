@@ -265,17 +265,32 @@ export function OrdenForm({
   });
 
   useEffect(() => {
-    if (existingOrden) {
       const cleanPlaceholderVal = (v: any) => {
         if (!v) return "";
         const s = String(v).trim();
-        return s === "-" || s.toUpperCase() === "N/A" || s.toUpperCase() === "NULL" ? "" : s;
+        const upper = s.toUpperCase();
+        return s === "-" || upper === "N/A" || upper === "NA" || upper === "NULL" || upper === "SIN ESPECIFICAR" || upper === "SIN ASIGNAR" || upper === "NO APLICA" ? "" : s;
       };
 
       const cleanedOrden = {
         ...existingOrden,
         numero_cotizacion: cleanPlaceholderVal(existingOrden.numero_cotizacion),
         numero_ot: cleanPlaceholderVal(existingOrden.numero_ot),
+        cliente: cleanPlaceholderVal(existingOrden.cliente),
+        domicilio_legal: cleanPlaceholderVal(existingOrden.domicilio_legal),
+        ruc: cleanPlaceholderVal(existingOrden.ruc),
+        persona_contacto: cleanPlaceholderVal(existingOrden.persona_contacto),
+        email: cleanPlaceholderVal(existingOrden.email),
+        telefono: cleanPlaceholderVal(existingOrden.telefono),
+        solicitante: cleanPlaceholderVal(existingOrden.solicitante) || cleanPlaceholderVal(existingOrden.cliente),
+        domicilio_solicitante: cleanPlaceholderVal(existingOrden.domicilio_solicitante),
+        proyecto: cleanPlaceholderVal(existingOrden.proyecto),
+        ubicacion: cleanPlaceholderVal(existingOrden.ubicacion),
+        observaciones: cleanPlaceholderVal(existingOrden.observaciones),
+        entregado_por: cleanPlaceholderVal(existingOrden.entregado_por),
+        recibido_por: cleanPlaceholderVal(existingOrden.recibido_por),
+        fecha_recepcion: existingOrden.fecha_recepcion ? normalizeImportedDate(existingOrden.fecha_recepcion) : "",
+        fecha_estimada_culminacion: existingOrden.fecha_estimada_culminacion ? normalizeImportedDate(existingOrden.fecha_estimada_culminacion) : "",
       };
 
       reset(cleanedOrden);
@@ -572,17 +587,11 @@ export function OrdenForm({
       if (!res.ok) throw new Error("Error buscando recepción");
       const data = await res.json();
 
-      if (data.encontrado && !data.is_stub) {
-        setRecepcionStatus({
-          estado: "ocupado",
-          mensaje: `Recepción registrada en ${moduloNombre} (OT: ${data.datos?.numero_ot || "-"})`,
-          formatos: { recepcion: true, verificacion: false, compresion: false },
-        });
-      } else if (data.is_stub || data.estado === "vinculada") {
+      if (data.encontrado) {
         setRecepcionStatus({
           estado: "disponible",
-          mensaje: `Recepción sincronizada con OT: ${data.datos?.numero_ot || "-"}`,
-          formatos: { recepcion: false, verificacion: false, compresion: false },
+          mensaje: `Recepción vinculada (OT: ${data.datos?.numero_ot || "-"})`,
+          formatos: data.formatos || { recepcion: true, verificacion: false, compresion: false },
         });
       } else {
         setRecepcionStatus({
