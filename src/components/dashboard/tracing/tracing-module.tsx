@@ -317,7 +317,7 @@ export function TracingModule() {
                 const match = recNum.match(/(\d+)/)
                 const recCode = match ? match[1] : "000"
                 const nMuestras = selectedProbetasIds.length
-                filename = `1-Inf-N-${recCode}-26-CO12-COM-V04 -${nMuestras}.xlsx`
+                filename = `1-INF.-N-${recCode}-26-CO12-COM-V04 -${nMuestras}.xlsx`
             }
 
             const a = document.createElement('a')
@@ -1287,10 +1287,10 @@ export function TracingModule() {
                                                     </TableCell>
                                                     <TableCell className="text-xs font-bold text-slate-400 text-center">{m.item_numero || idx + 1}</TableCell>
                                                     <TableCell className="text-xs font-bold text-[#0070F3]">
-                                                        {m.codigo_muestra_lem || m.codigo_muestra || m.codigo_lem || '-'}
+                                                        {m.codigo_muestra_lem || m.codigo_lem || m.codigo_muestra || '-'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-semibold text-slate-700">
-                                                        {m.codigo_muestra || m.identificacion_muestra || '-'}
+                                                        {m.identificacion_muestra || (m.codigo_muestra && m.codigo_muestra !== m.codigo_muestra_lem ? m.codigo_muestra : '') || '-'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-normal text-slate-600 max-w-37.5 truncate" title={m.estructura}>
                                                         {m.estructura || '-'}
