@@ -160,7 +160,7 @@ export function OTModule() {
     if (!ot.id) return
     setDownloadingId(ot.id)
     try {
-      const res = await authFetch(`${API_URL}/api/ot/${ot.id}/excel`)
+      const res = await authFetch(`${API_URL}/api/ot/${ot.id}/excel?tipo=SU_AG`)
       if (!res.ok) throw new Error("Error al exportar Excel")
 
       const blob = await res.blob()

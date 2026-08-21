@@ -305,7 +305,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             }
 
             const isConcreto = (item.tipo_recepcion || "").toUpperCase() === "CONCRETO"
-            const queryUrl = isConcreto ? `${API_URL}/api/ot/${otId}/excel?tipo=CONCRETO` : `${API_URL}/api/ot/${otId}/excel`
+            const queryUrl = isConcreto ? `${API_URL}/api/ot/${otId}/excel?tipo=CONCRETO` : `${API_URL}/api/ot/${otId}/excel?tipo=SU_AG`
             const res = await authFetch(queryUrl)
             if (!res.ok) throw new Error("Error al generar el Excel de la Orden de Trabajo")
 
