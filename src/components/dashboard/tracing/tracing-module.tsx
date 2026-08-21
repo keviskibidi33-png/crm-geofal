@@ -329,8 +329,11 @@ export function TracingModule() {
             window.URL.revokeObjectURL(downloadUrl)
 
             toast.success("Informe generado y descargado correctamente.")
-            setIsCustomReportOpen(false)
-            fetchTracingList() // Recargar para mostrar los nuevos estados
+            setCustomReportProbetas(prev => 
+                prev.map(m => selectedProbetasIds.includes(m.id) ? { ...m, status_entrega: "GENERADO" } : m)
+            )
+            setSelectedProbetasIds([])
+            fetchTracingList() // Recargar para sincronizar en segundo plano
         } catch (error: any) {
             console.error("Error generating custom report:", error)
             toast.error(error.message || "Error al descargar el informe.")

@@ -590,8 +590,8 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
     setLoading(true)
     try {
       const [resTemp, resBal] = await Promise.all([
-        authFetch(`${API_URL}/api/control-ambiental/temperatura?limit=500`),
-        authFetch(`${API_URL}/api/control-ambiental/balanza?limit=500`),
+        authFetch(`${API_URL}/api/control-ambiental/temperatura?limit=5000`),
+        authFetch(`${API_URL}/api/control-ambiental/balanza?limit=5000`),
       ])
       if (resTemp.ok) setTemperaturaList(await resTemp.json())
       if (resBal.ok) setBalanzaList(await resBal.json())
@@ -902,8 +902,13 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
           fecha_cierre: parsedObs.fecha_cierre,
           pin_cierre: parsedObs.pin_cierre,
         })
+        const sortedItems = [...items].sort((a, b) => {
+          const cmpDate = a.fecha.localeCompare(b.fecha)
+          if (cmpDate !== 0) return cmpDate
+          return (a.hora_lectura || "").localeCompare(b.hora_lectura || "")
+        })
         setTempDocRows(
-          items.map((it) => {
+          sortedItems.map((it) => {
             const rowObs = parseTempObs(it.observaciones)
             return {
               id: it.id,
@@ -986,18 +991,24 @@ export function ControlAmbientalModule({ user, defaultTab = "temperatura" }: Con
         })
 
         const numPesadas = matchingDef.pesadas.length || 6
-        const rows = Array.from(rowMap.values()).map((r) => {
-          const pesadasDyn = ensurePesadas(r.pesadas, numPesadas)
-          const firstObs = items.length > 0 ? parseBalanzaObs(items[0].observaciones) : {}
-          if (firstObs.estado_pesadas) {
-            pesadasDyn.forEach((p, idx) => {
-              if (firstObs.estado_pesadas?.[idx]) {
-                p.estado = firstObs.estado_pesadas[idx]
-              }
-            })
-          }
-          return { ...r, pesadas: pesadasDyn }
-        })
+        const rows = Array.from(rowMap.values())
+          .sort((a, b) => {
+            const cmpDate = a.fecha.localeCompare(b.fecha)
+            if (cmpDate !== 0) return cmpDate
+            return (a.hora || "").localeCompare(b.hora || "")
+          })
+          .map((r) => {
+            const pesadasDyn = ensurePesadas(r.pesadas, numPesadas)
+            const firstObs = items.length > 0 ? parseBalanzaObs(items[0].observaciones) : {}
+            if (firstObs.estado_pesadas) {
+              pesadasDyn.forEach((p, idx) => {
+                if (firstObs.estado_pesadas?.[idx]) {
+                  p.estado = firstObs.estado_pesadas[idx]
+                }
+              })
+            }
+            return { ...r, pesadas: pesadasDyn }
+          })
 
         setBalanzaDocRows(rows)
       }
