@@ -15,13 +15,11 @@ import {
   ChevronRight,
   FileText,
   X,
-  Save,
   Download,
   Lock,
   Unlock,
   Clock,
   KeyRound,
-  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -426,23 +424,6 @@ function evaluateTempHumRow(row: TempRow, areaName: string) {
     isHumRangeInvalid,
     tempLimitsMsg: `${minLimitTemp} - ${maxLimitTemp} °C`,
     humLimitsMsg: `< ${maxLimitHum}% H.R.`,
-  }
-}
-
-function evaluatePesadaConformity(lectura?: string, patron?: string, tol: number = 0.5) {
-  const lecNum = parseFloat(lectura || patron || "")
-  const patNum = parseFloat(patron || lectura || "")
-
-  if (isNaN(lecNum) || isNaN(patNum)) {
-    return { estado: "-", conforme: true, diff: 0 }
-  }
-
-  const diff = Math.abs(lecNum - patNum)
-  const isOk = Math.round(diff * 100000) / 100000 <= Math.round(tol * 100000) / 100000
-  return {
-    estado: isOk ? "OK" : "NO",
-    conforme: isOk,
-    diff,
   }
 }
 

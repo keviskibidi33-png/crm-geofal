@@ -454,11 +454,11 @@ export function TracingModule() {
                 <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                         <TableRow>
-                            <TableHead className="w-[180px]">Número Recepción</TableHead>
+                            <TableHead className="w-45">Número Recepción</TableHead>
                             <TableHead>Cliente</TableHead>
-                            <TableHead className="w-[140px]">Fecha entrega</TableHead>
-                            <TableHead className="text-center w-[240px]">Estado por Etapa</TableHead>
-                            <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                            <TableHead className="w-35">Fecha entrega</TableHead>
+                            <TableHead className="text-center w-60">Estado por Etapa</TableHead>
+                            <TableHead className="text-right w-25">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -482,7 +482,7 @@ export function TracingModule() {
                             paginatedList.map((item) => (
                                 <TableRow key={item.numero_recepcion} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => handleOpenDetail(item.numero_recepcion)}>
                                     <TableCell className="font-bold text-primary">{item.numero_recepcion}</TableCell>
-                                    <TableCell className="font-medium max-w-[200px] truncate">{item.cliente || '-'}</TableCell>
+                                    <TableCell className="font-medium max-w-50 truncate">{item.cliente || '-'}</TableCell>
                                     <TableCell className="text-muted-foreground text-xs">
                                         {item.fecha_entrega
                                             ? new Date(item.fecha_entrega).toLocaleDateString()
@@ -548,7 +548,7 @@ export function TracingModule() {
                             >
                                 Anterior
                             </Button>
-                            <span className="min-w-[88px] text-center font-medium">
+                            <span className="min-w-22 text-center font-medium">
                                 Página {safeCurrentPage} / {totalPages}
                             </span>
                             <Button
@@ -704,7 +704,7 @@ export function TracingModule() {
                                                                                 <History className="w-3 h-3" />
                                                                                 Historial de Versiones
                                                                             </p>
-                                                                            <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+                                                                            <div className="space-y-1.5 max-h-37.5 overflow-y-auto">
                                                                                 {informeVersiones.map((v: any) => (
                                                                                     <div key={v.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded px-2.5 py-1.5 text-[11px]">
                                                                                         <div className="flex items-center gap-2">
@@ -1292,7 +1292,7 @@ export function TracingModule() {
                                                     <TableCell className="text-xs font-semibold text-slate-700">
                                                         {m.codigo_muestra || m.identificacion_muestra || '-'}
                                                     </TableCell>
-                                                    <TableCell className="text-xs font-normal text-slate-600 max-w-[150px] truncate" title={m.estructura}>
+                                                    <TableCell className="text-xs font-normal text-slate-600 max-w-37.5 truncate" title={m.estructura}>
                                                         {m.estructura || '-'}
                                                     </TableCell>
                                                     <TableCell className="text-xs font-black text-slate-800 text-center">{m.fc_kg_cm2 || '210'}</TableCell>
