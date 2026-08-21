@@ -604,9 +604,13 @@ export default function GeGruesoForm({ editId, onClose, onSaved }: GeGruesoFormP
           })
           if (!res.ok) throw new Error("Error al generar Excel")
           const blob = await res.blob()
+          const cd = res.headers.get('content-disposition')
+          const filenameMatch = cd ? cd.match(/filename="?([^";]+)"?/i) : null
+          const filename = filenameMatch?.[1] || `${buildFormatPreview(form.muestra, muestraType, 'GE GRUESO')}.xlsx`
+
           const link = document.createElement("a")
           link.href = URL.createObjectURL(blob)
-          link.download = `${buildFormatPreview(form.muestra, muestraType, 'GE GRUESO')}.xlsx`
+          link.download = filename
           link.click()
           URL.revokeObjectURL(link.href)
 
