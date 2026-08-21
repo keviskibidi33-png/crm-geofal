@@ -143,7 +143,7 @@ export function FacturacionSection({
         <Textarea
           {...register("domicilio_legal")}
           className={errors.domicilio_legal ? "border-destructive" : ""}
-          placeholder="-"
+          placeholder=""
           rows={2}
         />
         {errors.domicilio_legal?.message && (

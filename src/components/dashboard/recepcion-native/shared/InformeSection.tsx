@@ -28,7 +28,7 @@ export function InformeSection({ form }: InformeSectionProps) {
         <Input
           {...register("solicitante")}
           className={errors.solicitante ? "border-destructive" : ""}
-          placeholder="-"
+          placeholder=""
         />
         {errors.solicitante?.message && (
           <span className="text-[9px] font-black text-destructive">
@@ -43,7 +43,7 @@ export function InformeSection({ form }: InformeSectionProps) {
         <Textarea
           {...register("domicilio_solicitante")}
           className={errors.domicilio_solicitante ? "border-destructive" : ""}
-          placeholder="-"
+          placeholder=""
           rows={2}
         />
         {errors.domicilio_solicitante?.message && (
@@ -59,7 +59,7 @@ export function InformeSection({ form }: InformeSectionProps) {
         <Input
           {...register("proyecto")}
           className={errors.proyecto ? "border-destructive" : ""}
-          placeholder="-"
+          placeholder=""
         />
         {errors.proyecto?.message && (
           <span className="text-[9px] font-black text-destructive">
@@ -74,7 +74,7 @@ export function InformeSection({ form }: InformeSectionProps) {
         <Textarea
           {...register("ubicacion")}
           className={errors.ubicacion ? "border-destructive" : ""}
-          placeholder="-"
+          placeholder=""
           rows={2}
         />
         {errors.ubicacion?.message && (

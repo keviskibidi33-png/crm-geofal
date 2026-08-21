@@ -224,34 +224,18 @@ export function useAutoFillCotizacion({
             }
           }
         } else {
-          // ── Control Laboratorio: cliente, solicitante y proyecto. El resto de datos de facturación e informe vienen vacíos ─────────
-          const currentCliente = (getValues("cliente") || "").trim();
-          const currentProyecto = (getValues("proyecto") || "").trim();
-
-          const clienteVal = normalizeImportedText(qd.cliente || qd.cliente_nombre);
-          if (!currentCliente && clienteVal) {
-            setValue("cliente", clienteVal, { shouldValidate: true });
-            selectCliente(clienteVal);
-            setValue(
-              "solicitante",
-              clienteVal,
-              { shouldValidate: true }
-            );
-          }
-
-          const proyectoVal = normalizeImportedText(qd.proyecto);
-          if (!currentProyecto && proyectoVal) {
-            setValue("proyecto", proyectoVal, { shouldValidate: true });
-          }
-
-          // Garantizar que campos de facturación e informe no queden con "-"
-          setValue("ruc", "", { shouldValidate: true });
-          setValue("domicilio_legal", "", { shouldValidate: true });
-          setValue("persona_contacto", "", { shouldValidate: true });
-          setValue("email", "", { shouldValidate: true });
-          setValue("telefono", "", { shouldValidate: true });
-          setValue("domicilio_solicitante", "", { shouldValidate: true });
-          setValue("ubicacion", "", { shouldValidate: true });
+          // ── Control Laboratorio: Solo sincroniza N° OT, Cotización y Fechas.
+          // Toda la información de cliente, proyecto, facturación e informe viene vacía.
+          setValue("cliente", "", { shouldValidate: false });
+          setValue("solicitante", "", { shouldValidate: false });
+          setValue("proyecto", "", { shouldValidate: false });
+          setValue("ruc", "", { shouldValidate: false });
+          setValue("domicilio_legal", "", { shouldValidate: false });
+          setValue("persona_contacto", "", { shouldValidate: false });
+          setValue("email", "", { shouldValidate: false });
+          setValue("telefono", "", { shouldValidate: false });
+          setValue("domicilio_solicitante", "", { shouldValidate: false });
+          setValue("ubicacion", "", { shouldValidate: false });
         }
       } else {
         toast.info(`No se encontró cotización o registro para '${cotValue}'`);

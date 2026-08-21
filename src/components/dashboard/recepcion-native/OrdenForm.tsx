@@ -86,6 +86,8 @@ export function OrdenForm({
 
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       numero_ot: "",
       numero_recepcion: "",
