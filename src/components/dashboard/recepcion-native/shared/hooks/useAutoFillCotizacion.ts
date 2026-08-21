@@ -113,7 +113,13 @@ export function useAutoFillCotizacion({
             });
         }
 
-        if (qd.source !== "control_laboratorio") {
+        // ── Mapear campos de cliente / proyecto / muestras ───────────────────────
+        // Para fuente "control_laboratorio": poblar cliente y proyecto
+        // solo si el formulario los tiene vacíos (no sobreescribir edición manual).
+        // Para cualquier otra fuente: mapeo completo.
+        const isControlLab = qd.source === "control_laboratorio";
+
+        if (!isControlLab) {
           const clienteVal = String(fallback(qd.cliente || qd.cliente_nombre));
           setValue("cliente", clienteVal, { shouldValidate: true });
           selectCliente(clienteVal);
@@ -216,6 +222,26 @@ export function useAutoFillCotizacion({
                 `${newMuestras.length} probeta(s) cargadas desde la cotización`
               );
             }
+          }
+        } else {
+          // ── Control Laboratorio: solo rellenar si el campo está vacío ─────────
+          const currentCliente = (getValues("cliente") || "").trim();
+          const currentProyecto = (getValues("proyecto") || "").trim();
+
+          const clienteVal = String(fallback(qd.cliente || qd.cliente_nombre));
+          if (!currentCliente && clienteVal) {
+            setValue("cliente", clienteVal, { shouldValidate: true });
+            selectCliente(clienteVal);
+            setValue(
+              "solicitante",
+              fallback(qd.solicitante || qd.cliente || qd.cliente_nombre),
+              { shouldValidate: true }
+            );
+          }
+
+          const proyectoVal = normalizeImportedText(qd.proyecto);
+          if (!currentProyecto && proyectoVal) {
+            setValue("proyecto", proyectoVal, { shouldValidate: true });
           }
         }
       } else {
