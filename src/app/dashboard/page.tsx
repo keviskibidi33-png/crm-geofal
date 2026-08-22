@@ -43,6 +43,7 @@ function dashboardDynamic<TProps>(loader: () => Promise<ComponentType<TProps>>) 
 }
 
 const ClientesModule = dashboardDynamic(async () => (await import("@/components/dashboard/clientes-module")).ClientesModule)
+const DatosClientesModule = dashboardDynamic(async () => (await import("@/components/dashboard/datos-clientes-module")).DatosClientesModule)
 const CotizadoraModule = dashboardDynamic(async () => (await import("@/components/dashboard/cotizadora-module")).CotizadoraModule)
 const ConfiguracionModule = dashboardDynamic(async () => (await import("@/components/dashboard/configuracion-module")).ConfiguracionModule)
 const UsuariosModule = dashboardDynamic(async () => (await import("@/components/dashboard/usuarios-module")).UsuariosModule)
@@ -406,6 +407,8 @@ export default function DashboardPage() {
     switch (activeModule) {
       case "clientes":
         return <ClientesModule user={dashboardUser} />
+      case "datos_clientes":
+        return <DatosClientesModule />
       case "comunicaciones":
         return <ComunicacionesModule user={dashboardUser} />
       case "kanban":

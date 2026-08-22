@@ -18,6 +18,7 @@ import {
   Briefcase,
   MapPin,
   Boxes,
+  Building2,
 } from "lucide-react"
 import type { ModuleType } from "@/hooks/use-auth"
 import { PERMISSION_MODULE_CATALOG } from "@/lib/permission-modules"
@@ -47,6 +48,7 @@ export interface SidebarModuleGroup {
 // ── 1. Comercial ──────────────────────────────────────────────────
 export const COMERCIAL_MODULES: SidebarModuleItem[] = [
   { id: "clientes", label: "Clientes", icon: Users },
+  { id: "datos_clientes", label: "Datos Clientes", icon: Building2 },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
 ]

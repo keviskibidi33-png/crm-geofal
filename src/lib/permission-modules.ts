@@ -5,6 +5,8 @@ export const PERMISSION_MODULE_CATALOG = [
   { id: "kanban", label: "Tableros Kanban" },
   { id: "ingenieria_archivos", label: "Control Informes" },
   { id: "clientes", label: "Clientes" },
+  { id: "datos_clientes", label: "Datos Clientes" },
+  { id: "proyectos", label: "Proyectos" },
   { id: "cotizadora", label: "Cotizadora" },
   { id: "programacion", label: "Programación" },
   { id: "ot", label: "Orden de Trabajo (OT) - Muestras" },

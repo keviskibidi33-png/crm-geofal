@@ -21,7 +21,10 @@ export function useClienteSearch() {
       const q = clienteSearch.trim();
       if (q.length >= 1) {
         try {
-          const [resClientes, resPlantillas] = await Promise.allSettled([
+          const [resDatosClientes, resClientes, resPlantillas] = await Promise.allSettled([
+            authFetch(
+              `${API_URL}/api/datos-clientes/autocomplete?q=${encodeURIComponent(q)}`
+            ),
             authFetch(`${API_URL}/clientes?search=${encodeURIComponent(q)}`),
             authFetch(
               `${API_URL}/api/recepcion/plantillas/buscar?q=${encodeURIComponent(q)}`
@@ -30,13 +33,55 @@ export function useClienteSearch() {
 
           const combined: ClienteItem[] = [];
 
-          if (resClientes.status === "fulfilled" && resClientes.value.ok) {
-            const json = await resClientes.value.json();
-            if (Array.isArray(json.data)) {
-              combined.push(...(json.data as ClienteItem[]));
+          // 1. Prioridad: DatosClientes (Directorio especializado para informes)
+          if (resDatosClientes.status === "fulfilled" && resDatosClientes.value.ok) {
+            const json = await resDatosClientes.value.json();
+            if (Array.isArray(json)) {
+              json.forEach((dc: any) => {
+                const name = dc.cliente || dc.nombre;
+                if (name) {
+                  combined.push({
+                    id: dc.id,
+                    nombre: name,
+                    cliente: name,
+                    ruc: dc.ruc,
+                    direccion: dc.domicilio_legal,
+                    domicilio_legal: dc.domicilio_legal,
+                    contacto: dc.persona_contacto,
+                    persona_contacto: dc.persona_contacto,
+                    email: dc.email,
+                    telefono: dc.telefono,
+                    solicitante: dc.solicitante,
+                    domicilio_solicitante: dc.domicilio_solicitante,
+                    proyecto: dc.proyecto,
+                    ubicacion: dc.ubicacion,
+                  });
+                }
+              });
             }
           }
 
+          // 2. Clientes comerciales generales
+          if (resClientes.status === "fulfilled" && resClientes.value.ok) {
+            const json = await resClientes.value.json();
+            if (Array.isArray(json.data)) {
+              json.data.forEach((c: any) => {
+                const name = c.nombre || c.cliente;
+                if (
+                  name &&
+                  !combined.some(
+                    (item) =>
+                      String(item.nombre || item.cliente || "").toUpperCase() ===
+                      String(name).toUpperCase()
+                  )
+                ) {
+                  combined.push(c as ClienteItem);
+                }
+              });
+            }
+          }
+
+          // 3. Plantillas históricas
           if (resPlantillas.status === "fulfilled" && resPlantillas.value.ok) {
             const json = await resPlantillas.value.json();
             if (Array.isArray(json)) {
@@ -55,7 +100,9 @@ export function useClienteSearch() {
                     nombre: name,
                     ruc: p.ruc,
                     direccion: p.domicilio_legal || p.ubicacion,
+                    domicilio_legal: p.domicilio_legal,
                     contacto: p.persona_contacto,
+                    persona_contacto: p.persona_contacto,
                     email: p.email,
                     telefono: p.telefono,
                     proyecto: p.proyecto,
