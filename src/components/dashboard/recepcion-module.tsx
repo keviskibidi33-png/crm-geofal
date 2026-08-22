@@ -190,7 +190,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             a.href = url
 
             const disposition = response.headers.get("Content-Disposition")
-            let filename = `REC N-${item.numero_recepcion || item.numero_ot || item.id} ${item.cliente || ""}.xlsx`.trim()
+            let filename = `REC N° ${item.numero_recepcion || item.numero_ot || item.id} ${item.cliente || ""}.xlsx`.trim()
             if (disposition) {
                 const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
                 if (match && match[1]) {

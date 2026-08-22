@@ -73,7 +73,7 @@ export function OrdenDetail({
       const link = document.createElement("a");
       link.href = url;
       const disposition = res.headers.get("Content-Disposition");
-      let filename = `REC N-${
+      let filename = `REC N° ${
         orden.numero_recepcion || orden.numero_ot || orden.id
       } ${orden.cliente || ""}.xlsx`.trim();
       if (disposition) {
