@@ -48,7 +48,6 @@ export interface SidebarModuleGroup {
 // ── 1. Comercial ──────────────────────────────────────────────────
 export const COMERCIAL_MODULES: SidebarModuleItem[] = [
   { id: "clientes", label: "Clientes", icon: Users },
-  { id: "datos_clientes", label: "Datos Clientes", icon: Building2 },
   { id: "cotizadora", label: "Cotizadora", icon: FileText },
   { id: "comercial", label: "Control Comercial", icon: ClipboardList },
 ]
@@ -56,6 +55,7 @@ export const COMERCIAL_MODULES: SidebarModuleItem[] = [
 // ── 2. Concretos ──────────────────────────────────────────────────
 export const CONCRETOS_MODULES: SidebarModuleItem[] = [
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
+  { id: "datos_clientes", label: "Datos Clientes", icon: Building2 },
   { id: "ot_concreto", label: "OT Concreto", icon: FileText, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
@@ -66,6 +66,7 @@ export const CONCRETOS_MODULES: SidebarModuleItem[] = [
 // ── 3. Lab. Lima (Control + Ensayos) ──────────────────────────────
 export const LAB_LIMA_MAIN_MODULES: SidebarModuleItem[] = [
   { id: "recepcion_lima", label: "Recepción Muestras", icon: Boxes, adminOnly: true },
+  { id: "datos_clientes", label: "Datos Clientes", icon: Building2 },
   { id: "ingenieria_archivos", label: "Control Informes", icon: FileText },
   { id: "laboratorio", label: "Control Laboratorio", icon: Activity },
   { id: "ot", label: "OT Muestras", icon: FileText },
