@@ -224,18 +224,19 @@ export function useAutoFillCotizacion({
             }
           }
         } else {
-          // ── Control Laboratorio: Solo sincroniza N° OT, Cotización y Fechas.
-          // Toda la información de cliente, proyecto, facturación e informe viene vacía.
-          setValue("cliente", "", { shouldValidate: false });
-          setValue("solicitante", "", { shouldValidate: false });
-          setValue("proyecto", "", { shouldValidate: false });
-          setValue("ruc", "", { shouldValidate: false });
-          setValue("domicilio_legal", "", { shouldValidate: false });
-          setValue("persona_contacto", "", { shouldValidate: false });
-          setValue("email", "", { shouldValidate: false });
-          setValue("telefono", "", { shouldValidate: false });
-          setValue("domicilio_solicitante", "", { shouldValidate: false });
-          setValue("ubicacion", "", { shouldValidate: false });
+          // ── Control Laboratorio: Solo sincroniza N° OT, Cotización y Fechas sin limpiar datos existentes.
+          const currentCliente = getValues("cliente") || "";
+          const labCliente = String(fallback(qd.cliente || qd.cliente_nombre));
+          if (!currentCliente && labCliente && labCliente !== "-") {
+            setValue("cliente", labCliente, { shouldValidate: true });
+            selectCliente(labCliente);
+          }
+
+          const currentProyecto = getValues("proyecto") || "";
+          const labProyecto = normalizeImportedText(qd.proyecto);
+          if (!currentProyecto && labProyecto && labProyecto !== "-") {
+            setValue("proyecto", labProyecto, { shouldValidate: true });
+          }
         }
       } else {
         toast.info(`No se encontró cotización o registro para '${cotValue}'`);
