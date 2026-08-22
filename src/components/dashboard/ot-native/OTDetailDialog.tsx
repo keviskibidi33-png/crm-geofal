@@ -48,15 +48,21 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
   }
 
   const getStatusBadge = (status?: string) => {
-    switch (status) {
+    switch (status?.toUpperCase()) {
+      case "EMITIDO":
+        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold border-emerald-300">EMITIDO</Badge>
       case "COMPLETADO":
-        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold">COMPLETADO</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold border-emerald-300">COMPLETADO</Badge>
+      case "DESCARGADO":
+        return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 font-semibold border-indigo-300">DESCARGADO</Badge>
       case "EN PROCESO":
-        return <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100 font-semibold">EN PROCESO</Badge>
+        return <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100 font-semibold border-sky-300">EN PROCESO</Badge>
       default:
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-semibold">PENDIENTE</Badge>
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-semibold border-amber-300">PENDIENTE</Badge>
     }
   }
+
+  const isMuestras = ot.tipo === "MUESTRAS" || ot.items?.some(it => Boolean(it.codigo_ensayo))
 
   return (
     <DialogContent className="max-w-[90vw] w-full max-h-[90vh] flex flex-col p-6 sm:p-8 rounded-2xl overflow-hidden bg-white">
@@ -69,7 +75,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
           {getStatusBadge(ot.estado)}
         </div>
         <DialogDescription>
-          Vista detallada del registro oficial F-LEM-P-02.01.
+          Vista detallada del registro oficial {isMuestras ? "F-LEM-P-02.03 (Suelo / Agregado / Ensayos)" : "F-LEM-P-02.01 (Concreto)"}.
         </DialogDescription>
       </DialogHeader>
 
