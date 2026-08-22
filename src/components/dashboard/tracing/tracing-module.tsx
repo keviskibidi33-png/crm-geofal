@@ -699,7 +699,7 @@ export function TracingModule() {
                     <TableHeader className="bg-primary sticky top-0 z-10 border-b border-primary-foreground/20">
                         <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                             <TableHead 
-                                className="w-48 cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
+                                className="w-48 cursor-pointer select-none text-primary-foreground"
                                 onClick={() => handleSort("numero")}
                             >
                                 <div className="flex items-center gap-1 font-black text-primary-foreground">
@@ -713,7 +713,7 @@ export function TracingModule() {
                             </TableHead>
 
                             <TableHead 
-                                className="cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
+                                className="cursor-pointer select-none text-primary-foreground"
                                 onClick={() => handleSort("cliente")}
                             >
                                 <div className="flex items-center gap-1 font-black text-primary-foreground">
@@ -727,7 +727,7 @@ export function TracingModule() {
                             </TableHead>
 
                             <TableHead 
-                                className="w-40 cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
+                                className="w-40 cursor-pointer select-none text-primary-foreground"
                                 onClick={() => handleSort("fecha")}
                             >
                                 <div className="flex items-center gap-1 font-black text-primary-foreground">

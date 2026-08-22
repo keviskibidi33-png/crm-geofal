@@ -326,7 +326,7 @@ export function useControlProbetas() {
   const searchRecepciones = useCallback(async (query: string): Promise<Receipt[]> => {
     if (!query.trim()) return []
     try {
-      const res = await authFetch(`${API_URL}/api/recepcion/paginated?q=${encodeURIComponent(query)}&page_size=8`)
+      const res = await authFetch(`${API_URL}/api/recepcion/paginated?q=${encodeURIComponent(query)}&page_size=8&tipo_recepcion=CONCRETO`)
       if (res.ok) {
         const data = await res.json()
         return data.items || []
