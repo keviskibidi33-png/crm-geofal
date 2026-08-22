@@ -796,21 +796,24 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
                         {editId ? "Editar Recepción" : "Nueva Recepción"}
                     </DialogTitle>
                     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                        <OrdenForm
-                            mode={editId ? "edit" : "create"}
-                            editId={editId ?? undefined}
-                            importedData={importedData}
-                            defaultTipo={defaultTipo}
-                            allowedTipos={allowedTipos}
-                            onClose={(reason) => {
-                                if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
-                                else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
-                                setIsModalOpen(false)
-                                setEditId(null)
-                                setImportedData(null)
-                                refreshCurrentPage()
-                            }}
-                        />
+                        {isModalOpen && (
+                            <OrdenForm
+                                key={editId ? `edit-${editId}` : `new-${Date.now()}`}
+                                mode={editId ? "edit" : "create"}
+                                editId={editId ?? undefined}
+                                importedData={importedData}
+                                defaultTipo={defaultTipo}
+                                allowedTipos={allowedTipos}
+                                onClose={(reason) => {
+                                    if (reason === 'created') toast.success('¡Recepción creada exitosamente!')
+                                    else if (reason === 'updated') toast.success('¡Recepción actualizada exitosamente!')
+                                    setIsModalOpen(false)
+                                    setEditId(null)
+                                    setImportedData(null)
+                                    refreshCurrentPage()
+                                }}
+                            />
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
