@@ -849,7 +849,7 @@ export function ClientesModule({ user }: ClientesModuleProps) {
         <Card className="bg-card border-border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+              <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                 <TableHead className="text-primary-foreground font-black">Cliente</TableHead>
                 <TableHead className="text-primary-foreground font-black">Empresa</TableHead>
                 <TableHead className="text-primary-foreground font-black">Sector</TableHead>

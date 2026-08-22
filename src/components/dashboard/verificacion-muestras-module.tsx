@@ -498,7 +498,7 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
             <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
                         <TableHeader>
-                            <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                            <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                                 <TableHead className="w-[120px] text-primary-foreground font-black">N° Verificación</TableHead>
                                 <TableHead className="text-primary-foreground font-black">Cliente</TableHead>
                                 <TableHead className="text-primary-foreground font-black">Verificado Por</TableHead>

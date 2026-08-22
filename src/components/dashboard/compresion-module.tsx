@@ -629,7 +629,7 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
             <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                        <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                             <TableHead className="w-30 text-primary-foreground font-black">N° OT</TableHead>
                             <TableHead className="text-primary-foreground font-black">N° Recepción</TableHead>
                             <TableHead className="text-primary-foreground font-black">Estado</TableHead>

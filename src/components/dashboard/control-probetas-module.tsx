@@ -775,7 +775,7 @@ function SortTh({ label, column, sortColumn, sortDirection, onSort, className = 
   const active = sortColumn === column
   return (
     <th
-      className={`${TH} ${className} text-zinc-950 font-black cursor-pointer select-none hover:bg-zinc-300 transition-colors`}
+      className={`${TH} ${className} text-zinc-950 font-black cursor-pointer select-none`}
       onClick={() => onSort(column)}
     >
       <div className="flex items-center justify-center gap-1">

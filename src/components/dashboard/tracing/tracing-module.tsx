@@ -697,7 +697,7 @@ export function TracingModule() {
             <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
                 <Table>
                     <TableHeader className="bg-primary sticky top-0 z-10 border-b border-primary-foreground/20">
-                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                        <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                             <TableHead 
                                 className="w-48 cursor-pointer select-none text-primary-foreground"
                                 onClick={() => handleSort("numero")}

@@ -539,7 +539,7 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                        <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                             <TableHead className="w-32 text-center text-primary-foreground font-black">Nº Recepción</TableHead>
                             <TableHead className="w-44 text-center text-primary-foreground font-black">Acciones</TableHead>
                             <TableHead className="w-28 text-center text-primary-foreground font-black">Nº OT</TableHead>

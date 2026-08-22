@@ -313,7 +313,7 @@ export function OTModule() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+              <TableRow className="bg-primary hover:bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                 <TableHead className="w-35 font-black text-primary-foreground">N° OT</TableHead>
                 <TableHead className="w-30 font-black text-primary-foreground">N° RECEPCIÓN</TableHead>
                 <TableHead className="w-32.5 font-black text-primary-foreground">FECHA RECEPCIÓN</TableHead>
