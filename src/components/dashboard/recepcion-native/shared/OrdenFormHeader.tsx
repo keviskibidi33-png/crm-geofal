@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Sparkles, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface RecepcionStatus {
@@ -41,9 +41,31 @@ export function OrdenFormHeader({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Numero Recepcion */}
         <div className="relative">
-          <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
-            Recepción Nº:
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
+              Recepción Nº:
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const val = getValues("numero_recepcion") || "";
+                if (val.trim()) {
+                  buscarEstadoRecepcion(val);
+                  handleAutoFillFromCotizacion(val);
+                  toast.success("Actualizando datos desde Control Lab / Recepción...");
+                } else {
+                  toast.info("Ingresa un número de recepción para actualizar");
+                }
+              }}
+              className="h-5 px-1.5 text-[9px] font-black text-sky-600 hover:bg-sky-50 gap-1 cursor-pointer"
+              title="Actualizar datos desde Control Laboratorio"
+            >
+              <RotateCw className="h-3 w-3" />
+              <span>Actualizar</span>
+            </Button>
+          </div>
           <Input
             {...register("numero_recepcion")}
             onBlur={(e) => {

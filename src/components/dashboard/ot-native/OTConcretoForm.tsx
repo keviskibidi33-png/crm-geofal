@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2 } from "lucide-react"
+import { Trash2, Loader2, Calendar, FileText, UserCheck, Layers, Hash, Wand2, CheckCircle2, RotateCw } from "lucide-react"
 import { toast } from "sonner"
 import { authFetch } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabaseClient"
@@ -400,11 +400,11 @@ export function OTConcretoForm({
                     size="sm"
                     onClick={handlePrefill}
                     disabled={prefilling || !numeroRecepcion.trim()}
-                    title="Autocompletar datos desde la recepción"
+                    title="Actualizar / Autocompletar datos desde la recepción y Control Lab"
                     className="shrink-0 gap-1.5 border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold cursor-pointer"
                   >
-                    {prefilling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                    Autocompletar
+                    <RotateCw className={`h-3.5 w-3.5 ${prefilling ? "animate-spin" : ""}`} />
+                    Actualizar
                   </Button>
                 </div>
                 {prefilled && (
