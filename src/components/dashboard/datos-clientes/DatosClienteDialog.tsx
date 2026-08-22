@@ -297,7 +297,7 @@ export function DatosClienteDialog({
                   onFocus={() => {
                     if (suggestions.length > 0 && !clienteToEdit) setShowDropdown(true);
                   }}
-                  placeholder="Ej. VYV BRAVO S.A.C. (escriba para buscar en Comercial)"
+                  placeholder="Cliente (Razón Social)"
                   autoComplete="off"
                   data-lpignore="true"
                   className={`font-semibold uppercase ${
@@ -345,7 +345,7 @@ export function DatosClienteDialog({
                   {...register("ruc", {
                     required: "El RUC o documento es obligatorio",
                   })}
-                  placeholder="Ej. 20549356762"
+                  placeholder="RUC / Doc."
                   className={`font-mono ${
                     errors.ruc ? "border-destructive" : ""
                   }`}
@@ -367,7 +367,7 @@ export function DatosClienteDialog({
                   {...register("domicilio_legal", {
                     required: "El domicilio legal es obligatorio",
                   })}
-                  placeholder="Ej. AV. ARAÑON 763, LOS OLIVOS, LIMA"
+                  placeholder="Domicilio Legal"
                   className={`uppercase ${
                     errors.domicilio_legal ? "border-destructive" : ""
                   }`}
@@ -387,7 +387,7 @@ export function DatosClienteDialog({
                 </Label>
                 <Input
                   {...register("persona_contacto")}
-                  placeholder="Ej. IRMA COAQUIRA LAYME"
+                  placeholder="Persona Contacto"
                   className="uppercase"
                 />
               </div>
@@ -401,7 +401,7 @@ export function DatosClienteDialog({
                 <Input
                   type="email"
                   {...register("email")}
-                  placeholder="Ej. icoaquira@gmail.com"
+                  placeholder="Correo electrónico"
                   className="font-mono text-xs"
                 />
               </div>
@@ -414,7 +414,7 @@ export function DatosClienteDialog({
                 </Label>
                 <Input
                   {...register("telefono")}
-                  placeholder="Ej. 956057624"
+                  placeholder="Teléfono"
                   className="font-mono"
                 />
               </div>
@@ -453,7 +453,7 @@ export function DatosClienteDialog({
                   {...register("solicitante", {
                     required: "El solicitante es obligatorio",
                   })}
-                  placeholder="Ej. VYV BRAVO"
+                  placeholder="Solicitante"
                   className={`font-semibold uppercase ${
                     errors.solicitante ? "border-destructive" : ""
                   }`}
@@ -476,7 +476,7 @@ export function DatosClienteDialog({
                   {...register("domicilio_solicitante", {
                     required: "El domicilio del solicitante es obligatorio",
                   })}
-                  placeholder="Ej. AV. ARAÑON 763, LOS OLIVOS, LIMA"
+                  placeholder="Domicilio Legal (Solicitante)"
                   className={`uppercase ${
                     errors.domicilio_solicitante ? "border-destructive" : ""
                   }`}
@@ -498,7 +498,7 @@ export function DatosClienteDialog({
                   {...register("proyecto", {
                     required: "El nombre del proyecto es obligatorio",
                   })}
-                  placeholder="Ej. CONSTRUCCION DEL PUENTE INAMBARI"
+                  placeholder="Proyecto / Obra"
                   className={`font-semibold uppercase ${
                     errors.proyecto ? "border-destructive" : ""
                   }`}
@@ -521,7 +521,7 @@ export function DatosClienteDialog({
                   {...register("ubicacion", {
                     required: "La ubicación del proyecto es obligatoria",
                   })}
-                  placeholder="Ej. AV. LAS PALMERAS, CUSCO, CUSCO"
+                  placeholder="Ubicación del Proyecto / Obra"
                   className={`uppercase ${
                     errors.ubicacion ? "border-destructive" : ""
                   }`}
