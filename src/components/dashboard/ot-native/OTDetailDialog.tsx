@@ -62,7 +62,13 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
     }
   }
 
-  const isMuestras = ot.tipo === "MUESTRAS" || ot.items?.some(it => Boolean(it.codigo_ensayo))
+  const rawItems: any[] = Array.isArray(ot?.items)
+    ? ot.items
+    : typeof ot?.items === "string"
+      ? (() => { try { const parsed = JSON.parse(ot.items); return Array.isArray(parsed) ? parsed : [] } catch { return [] } })()
+      : []
+
+  const isMuestras = ot?.tipo === "MUESTRAS" || rawItems.some((it: any) => Boolean(it?.codigo_ensayo))
 
   return (
     <DialogContent className="max-w-[90vw] w-full max-h-[90vh] flex flex-col p-6 sm:p-8 rounded-2xl overflow-hidden bg-white">
@@ -96,7 +102,7 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
         <div>
           <div className="flex items-center gap-2 font-semibold text-sm text-slate-800 mb-2">
             <Layers className="h-4 w-4 text-sky-600" />
-            Ítems y Muestras ({ot.items?.length || 0})
+            Ítems y Muestras ({rawItems.length})
           </div>
           <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <Table>
@@ -109,8 +115,8 @@ export function OTDetailDialog({ ot, onClose }: OTDetailDialogProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ot.items && ot.items.length > 0 ? (
-                  ot.items.map((item, idx) => (
+                {rawItems.length > 0 ? (
+                  rawItems.map((item, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="text-center font-bold text-slate-500 text-xs">
                         {item.item || idx + 1}
