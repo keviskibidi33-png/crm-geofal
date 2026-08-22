@@ -48,6 +48,7 @@ export interface OTData {
   ot_designada_a?: string | null
   items: OTItem[]
   estado?: string
+  tipo?: string | null
 }
 
 export interface OTFormProps {
