@@ -498,13 +498,13 @@ export function VerificacionMuestrasModule({ focusVerificacionId, onFocusHandled
             <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[120px]">N° Verificación</TableHead>
-                                <TableHead>Cliente</TableHead>
-                                <TableHead>Verificado Por</TableHead>
-                                <TableHead>Fecha Verificación</TableHead>
-                                <TableHead className="text-center">Muestras</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                            <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                                <TableHead className="w-[120px] text-primary-foreground font-black">N° Verificación</TableHead>
+                                <TableHead className="text-primary-foreground font-black">Cliente</TableHead>
+                                <TableHead className="text-primary-foreground font-black">Verificado Por</TableHead>
+                                <TableHead className="text-primary-foreground font-black">Fecha Verificación</TableHead>
+                                <TableHead className="text-center text-primary-foreground font-black">Muestras</TableHead>
+                                <TableHead className="text-right text-primary-foreground font-black">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

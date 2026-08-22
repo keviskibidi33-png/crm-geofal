@@ -345,15 +345,15 @@ export function OTConcretoModule({ initialPrefillRecepcion, onClearPrefill }: OT
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40 text-xs uppercase font-bold text-muted-foreground tracking-wider">
-                  <TableHead className="w-30">N° OT</TableHead>
-                  <TableHead className="w-30">N° Recepción</TableHead>
-                  <TableHead className="min-w-50">Cliente</TableHead>
-                  <TableHead className="min-w-60">Proyecto</TableHead>
-                  <TableHead className="w-30">F. Recepción</TableHead>
-                  <TableHead className="w-25 text-center">Probetas</TableHead>
-                  <TableHead className="w-27.5 text-center">Estado</TableHead>
-                  <TableHead className="w-35 text-right">Acciones</TableHead>
+                <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                  <TableHead className="w-30 text-primary-foreground font-black">N° OT</TableHead>
+                  <TableHead className="w-30 text-primary-foreground font-black">N° Recepción</TableHead>
+                  <TableHead className="min-w-50 text-primary-foreground font-black">Cliente</TableHead>
+                  <TableHead className="min-w-60 text-primary-foreground font-black">Proyecto</TableHead>
+                  <TableHead className="w-30 text-primary-foreground font-black">F. Recepción</TableHead>
+                  <TableHead className="w-25 text-center text-primary-foreground font-black">Probetas</TableHead>
+                  <TableHead className="w-27.5 text-center text-primary-foreground font-black">Estado</TableHead>
+                  <TableHead className="w-35 text-right text-primary-foreground font-black">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">

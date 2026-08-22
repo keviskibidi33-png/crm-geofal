@@ -539,15 +539,15 @@ export function RecepcionModule({ focusRecepcionId, onFocusHandled, scope = "all
             <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
-                        <TableRow className="bg-[#f8fafc] dark:bg-slate-800 text-xs font-bold uppercase tracking-wider border-b">
-                            <TableHead className="w-32 text-center">Nº Recepción</TableHead>
-                            <TableHead className="w-44 text-center">Acciones</TableHead>
-                            <TableHead className="w-28 text-center">Nº OT</TableHead>
-                            <TableHead className="w-32 text-center">Acciones</TableHead>
-                            <TableHead className="min-w-44 text-center">Cliente</TableHead>
-                            <TableHead className="w-36 text-center">Técnico</TableHead>
-                            <TableHead className="w-28 text-center">Estado Recep.</TableHead>
-                            <TableHead className="w-28 text-center">Estado OT</TableHead>
+                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                            <TableHead className="w-32 text-center text-primary-foreground font-black">Nº Recepción</TableHead>
+                            <TableHead className="w-44 text-center text-primary-foreground font-black">Acciones</TableHead>
+                            <TableHead className="w-28 text-center text-primary-foreground font-black">Nº OT</TableHead>
+                            <TableHead className="w-32 text-center text-primary-foreground font-black">Acciones</TableHead>
+                            <TableHead className="min-w-44 text-center text-primary-foreground font-black">Cliente</TableHead>
+                            <TableHead className="w-36 text-center text-primary-foreground font-black">Técnico</TableHead>
+                            <TableHead className="w-28 text-center text-primary-foreground font-black">Estado Recep.</TableHead>
+                            <TableHead className="w-28 text-center text-primary-foreground font-black">Estado OT</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="text-xs">

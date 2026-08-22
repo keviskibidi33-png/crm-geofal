@@ -849,16 +849,16 @@ export function ClientesModule({ user }: ClientesModuleProps) {
         <Card className="bg-card border-border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Sector</TableHead>
-                <TableHead>Cotizaciones</TableHead>
-                <TableHead>Proyectos</TableHead>
-                <TableHead>Valor Total</TableHead>
-                <TableHead>Antigüedad</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+              <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                <TableHead className="text-primary-foreground font-black">Cliente</TableHead>
+                <TableHead className="text-primary-foreground font-black">Empresa</TableHead>
+                <TableHead className="text-primary-foreground font-black">Sector</TableHead>
+                <TableHead className="text-primary-foreground font-black">Cotizaciones</TableHead>
+                <TableHead className="text-primary-foreground font-black">Proyectos</TableHead>
+                <TableHead className="text-primary-foreground font-black">Valor Total</TableHead>
+                <TableHead className="text-primary-foreground font-black">Antigüedad</TableHead>
+                <TableHead className="text-primary-foreground font-black">Estado</TableHead>
+                <TableHead className="w-[50px] text-primary-foreground font-black"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

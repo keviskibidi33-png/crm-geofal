@@ -696,55 +696,55 @@ export function TracingModule() {
             {/* Tabla con Encabezados Ordenables e Interactivos */}
             <div className="flex-1 rounded-xl border bg-card shadow-sm overflow-auto">
                 <Table>
-                    <TableHeader className="bg-[#f8fafc] dark:bg-slate-800 sticky top-0 z-10 border-b">
-                        <TableRow>
+                    <TableHeader className="bg-primary sticky top-0 z-10 border-b border-primary-foreground/20">
+                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
                             <TableHead 
-                                className="w-48 cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="w-48 cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => handleSort("numero")}
                             >
-                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                <div className="flex items-center gap-1 font-black text-primary-foreground">
                                     <span>N° Recepción</span>
                                     {sortField === "numero" ? (
-                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-white" /> : <ArrowDown className="w-3.5 h-3.5 text-white" />
                                     ) : (
-                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-primary-foreground/60" />
                                     )}
                                 </div>
                             </TableHead>
 
                             <TableHead 
-                                className="cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => handleSort("cliente")}
                             >
-                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                <div className="flex items-center gap-1 font-black text-primary-foreground">
                                     <span>Cliente / Solicitante</span>
                                     {sortField === "cliente" ? (
-                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-white" /> : <ArrowDown className="w-3.5 h-3.5 text-white" />
                                     ) : (
-                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-primary-foreground/60" />
                                     )}
                                 </div>
                             </TableHead>
 
                             <TableHead 
-                                className="w-40 cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                className="w-40 cursor-pointer select-none text-primary-foreground hover:bg-primary/90 transition-colors"
                                 onClick={() => handleSort("fecha")}
                             >
-                                <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
+                                <div className="flex items-center gap-1 font-black text-primary-foreground">
                                     <span>Fecha Entrega</span>
                                     {sortField === "fecha" ? (
-                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-white" /> : <ArrowDown className="w-3.5 h-3.5 text-white" />
                                     ) : (
-                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-primary-foreground/60" />
                                     )}
                                 </div>
                             </TableHead>
 
-                            <TableHead className="text-center w-64 font-bold text-slate-700 dark:text-slate-200">
+                            <TableHead className="text-center w-64 font-black text-primary-foreground">
                                 <span>Estado por Etapa (REC • VER • COM • INF)</span>
                             </TableHead>
 
-                            <TableHead className="text-right w-28 font-bold text-slate-700 dark:text-slate-200">
+                            <TableHead className="text-right w-28 font-black text-primary-foreground">
                                 <span>Acciones</span>
                             </TableHead>
                         </TableRow>

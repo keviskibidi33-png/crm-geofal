@@ -312,16 +312,16 @@ export function OTModule() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50/80">
-              <TableRow className="border-b border-slate-200">
-                <TableHead className="w-35 font-bold text-slate-700">N° OT</TableHead>
-                <TableHead className="w-30 font-bold text-slate-700">N° RECEPCIÓN</TableHead>
-                <TableHead className="w-32.5 font-bold text-slate-700">FECHA RECEPCIÓN</TableHead>
-                <TableHead className="w-25 font-bold text-slate-700 text-center">PLAZO</TableHead>
-                <TableHead className="font-bold text-slate-700">ENSAYOS / MUESTRAS</TableHead>
-                <TableHead className="w-40 font-bold text-slate-700">TÉCNICO DESIGNADO</TableHead>
-                <TableHead className="w-30 font-bold text-slate-700 text-center">ESTADO</TableHead>
-                <TableHead className="w-40 font-bold text-slate-700 text-right pr-6">ACCIONES</TableHead>
+            <TableHeader>
+              <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                <TableHead className="w-35 font-black text-primary-foreground">N° OT</TableHead>
+                <TableHead className="w-30 font-black text-primary-foreground">N° RECEPCIÓN</TableHead>
+                <TableHead className="w-32.5 font-black text-primary-foreground">FECHA RECEPCIÓN</TableHead>
+                <TableHead className="w-25 font-black text-primary-foreground text-center">PLAZO</TableHead>
+                <TableHead className="font-black text-primary-foreground">ENSAYOS / MUESTRAS</TableHead>
+                <TableHead className="w-40 font-black text-primary-foreground">TÉCNICO DESIGNADO</TableHead>
+                <TableHead className="w-30 font-black text-primary-foreground text-center">ESTADO</TableHead>
+                <TableHead className="w-40 font-black text-primary-foreground text-right pr-6">ACCIONES</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

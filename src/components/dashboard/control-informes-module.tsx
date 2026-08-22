@@ -447,13 +447,13 @@ export function ControlInformesModule() {
     return (
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-300">
+          <thead className="bg-primary text-primary-foreground font-black border-b border-primary-foreground/20">
             <tr>
-              <th className="px-6 py-4 text-sm uppercase tracking-wider">Tipo de Ensayo</th>
-              <th className="px-6 py-4 border-l border-slate-200 text-center text-sm uppercase tracking-wider">Último Informe</th>
-              <th className="px-6 py-4 border-l border-slate-200 text-center text-slate-950 text-sm uppercase tracking-wider">Total</th>
-              {showCategoryColumn && <th className="px-6 py-4 border-l border-slate-200 text-center text-sm uppercase tracking-wider">Categoría</th>}
-              <th className="px-6 py-4 border-l border-slate-200 text-center text-sm uppercase tracking-wider">Acción Rápida</th>
+              <th className="px-6 py-4 text-xs font-black uppercase tracking-wider">Tipo de Ensayo</th>
+              <th className="px-6 py-4 border-l border-primary-foreground/20 text-center text-xs font-black uppercase tracking-wider">Último Informe</th>
+              <th className="px-6 py-4 border-l border-primary-foreground/20 text-center text-xs font-black uppercase tracking-wider">Total</th>
+              {showCategoryColumn && <th className="px-6 py-4 border-l border-primary-foreground/20 text-center text-xs font-black uppercase tracking-wider">Categoría</th>}
+              <th className="px-6 py-4 border-l border-primary-foreground/20 text-center text-xs font-black uppercase tracking-wider">Acción Rápida</th>
             </tr>
           </thead>
 

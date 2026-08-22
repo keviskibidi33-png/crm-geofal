@@ -629,12 +629,12 @@ export function CompresionModule({ focusEnsayoId, onFocusHandled }: CompresionMo
             <div className="rounded-md border bg-card flex-1 overflow-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-30">N° OT</TableHead>
-                            <TableHead>N° Recepción</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Fecha Creación</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                        <TableRow className="bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-wider border-b border-primary-foreground/20">
+                            <TableHead className="w-30 text-primary-foreground font-black">N° OT</TableHead>
+                            <TableHead className="text-primary-foreground font-black">N° Recepción</TableHead>
+                            <TableHead className="text-primary-foreground font-black">Estado</TableHead>
+                            <TableHead className="text-primary-foreground font-black">Fecha Creación</TableHead>
+                            <TableHead className="text-right text-primary-foreground font-black">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
