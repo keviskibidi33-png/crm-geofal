@@ -126,29 +126,9 @@ export function OrdenFormHeader({
 
         {/* Numero Cotizacion */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
-              Cotización Nº:
-            </Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const val = getValues("numero_cotizacion") || "";
-                if (val.trim()) {
-                  handleAutoFillFromCotizacion(val);
-                } else {
-                  toast.info("Ingresa un número de cotización o código para autocompletar");
-                }
-              }}
-              className="h-5 px-1.5 text-[9px] font-black text-primary hover:bg-primary/10 gap-1"
-              title="Autocompletar datos y ensayos desde la Cotización / Control Lab"
-            >
-              <Sparkles className="h-3 w-3" />
-              <span>Autocompletar</span>
-            </Button>
-          </div>
+          <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
+            Cotización Nº:
+          </Label>
           <Input
             {...register("numero_cotizacion")}
             onBlur={async (e) => {
