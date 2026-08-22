@@ -55,7 +55,6 @@ export const COMERCIAL_MODULES: SidebarModuleItem[] = [
 // ── 2. Concretos ──────────────────────────────────────────────────
 export const CONCRETOS_MODULES: SidebarModuleItem[] = [
   { id: "recepcion", label: "Recepción Probetas", icon: TestTube, adminOnly: true },
-  { id: "datos_clientes", label: "Datos Clientes", icon: Building2 },
   { id: "ot_concreto", label: "OT Concreto", icon: FileText, adminOnly: true },
   { id: "verificacion_muestras", label: "Verificación Probetas", icon: ClipboardList, adminOnly: true },
   { id: "control_probetas", label: "Control Probetas", icon: Calendar, adminOnly: true },
