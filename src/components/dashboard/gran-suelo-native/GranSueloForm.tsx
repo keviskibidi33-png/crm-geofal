@@ -323,7 +323,7 @@ export default function GranSueloForm({ editId, onClose, onSaved }: GranSueloFor
                         numero_ot: detail.numero_ot || payload.numero_ot || '',
                         cliente: detail.cliente || payload.cliente || '',
                         fecha_ensayo: detail.fecha_documento || payload.fecha_ensayo || payload.fecha_documento || '',
-                        realizado_por: payload.realizado_por || '-',
+                        realizado_por: payload.realizado_por || 'OPERADOR',
                         ...payload,
                     }
                     merged.muestra = normalizeMuestraCode(merged.muestra || '')
